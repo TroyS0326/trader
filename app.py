@@ -35,7 +35,6 @@ def fail(message: str, status: int = 400, **extras):
 
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
-    
     if order.get('strategy') == 'target1_then_trailing_runner':
         t1 = order.get('target_1_order') or {}
         runner = order.get('runner_order') or {}
@@ -257,7 +256,7 @@ def api_order_status(order_id: str):
                     order['runner_trailing_order'] = get_order(bundle.get('runner_trailing_order_id'))
                 elif bundle.get('runner_stop_order_id'):
                     order['runner_order'] = get_order(bundle.get('runner_stop_order_id'))
-                raw['order_bundle'] = bundle 
+                raw['order_bundle'] = bundle
         updates = {
             'order_status': order.get('status'),
             'filled_avg_price': order.get('filled_avg_price'),
