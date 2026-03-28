@@ -269,11 +269,17 @@ def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0
 
 
 def filter_bars_for_today_session(minute_bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    today = now_et().date()
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != today:
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if 9 * 60 + 30 <= mins <= 16 * 60:
@@ -286,10 +292,18 @@ def filter_bars_in_et_window(minute_bars: List[Dict[str, Any]], start_label: str
     end_h, end_m = parse_hhmm(end_label)
     start_min = start_h * 60 + start_m
     end_min = end_h * 60 + end_m
+
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != now_et().date():
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if start_min <= mins < end_min:
@@ -996,23 +1010,6 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan() -> Dict[str, Any]:
-    raw_symbols = get_market_candidates(100)
-    snapshots = get_snapshots(raw_symbols)
-
-    cheap_symbols = []
-    for sym in raw_symbols:
-        if sym == 'SPY':
-            continue
-        snap = snapshots.get(sym, {})
-        daily_c = safe_num(snap.get('dailyBar', {}).get('c'))
-        prev_c = safe_num(snap.get('prevDailyBar', {}).get('c'))
-        price = daily_c or prev_c
-        if price > 0 and price < 5.0:
-            cheap_symbols.append(sym)
-
-    symbols = cheap_symbols[:SCAN_CANDIDATE_LIMIT]
-    if 'SPY' not in symbols:
-        symbols.append('SPY')
 
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
