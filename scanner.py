@@ -40,6 +40,9 @@ from config import (
 )
 
 TIMEOUT = 20
+MAX_FLOAT_SHARES = 50_000_000
+HIGH_GAP_THRESHOLD_PCT = 20.0
+HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL = 5_000_000
 VETERAN_BLACKLIST = {
     'NVD', 'NVDL', 'NVDX', 'NVDQ', 'TQQQ', 'SQQQ', 'QLD', 'QID', 'SOXL', 'SOXS',
     'UPRO', 'SPXU', 'SPXL', 'SPXS', 'UVXY', 'VIXY', 'SVIX', 'BOIL', 'KOLD', 'UCO',
@@ -195,6 +198,32 @@ def get_company_profile(symbol: str) -> Dict[str, Any]:
         return {}
 
 
+def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
+    try:
+        payload = _get_json(f'{ALPACA_DATA_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
+        return payload if isinstance(payload, dict) else {}
+    except requests.RequestException:
+        return {}
+
+
+def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> float:
+    float_candidates = (
+        asset.get('float'),
+        asset.get('shares_float'),
+        asset.get('float_shares'),
+        profile.get('floatShares'),
+        profile.get('shareFloat'),
+    )
+    for raw in float_candidates:
+        val = safe_num(raw)
+        if val > 0:
+            return val
+    finnhub_float_millions = safe_num(profile.get('shareOutstanding'))
+    if finnhub_float_millions > 0:
+        return finnhub_float_millions * 1_000_000
+    return 0.0
+
+
 def calc_atr(bars: List[Dict[str, Any]], period: int = 14) -> float:
     if len(bars) < 2:
         return 0.0
@@ -310,8 +339,10 @@ def get_stock_chart_pack(symbol: str) -> Dict[str, Any]:
     return {'symbol': symbol, 'daily': to_chart_bars(daily[-220:]), 'intraday': to_chart_bars(intraday[-390:])}
 
 
-def score_float_liquidity(profile: Dict[str, Any], premarket_notional: float, day_volume: float, spread: float, atr: float, current_price: float) -> Tuple[int, Dict[str, Any]]:
+def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premarket_notional: float, day_volume: float, spread: float, atr: float, current_price: float) -> Tuple[int, Dict[str, Any]]:
     shares_out = safe_num(profile.get('shareOutstanding')) * 1_000_000
+    float_shares = extract_float_shares(profile, asset)
+    high_float_block = bool(float_shares and float_shares > MAX_FLOAT_SHARES)
     float_proxy_ok = 10_000_000 <= shares_out <= 50_000_000 if shares_out > 0 else False
     spread_pct = spread / current_price if current_price > 0 else 1.0
     score = 1
@@ -323,8 +354,12 @@ def score_float_liquidity(profile: Dict[str, Any], premarket_notional: float, da
         score = 3
     elif day_volume >= 1_000_000 and spread_pct <= 0.005:
         score = 2
+    if high_float_block:
+        score = 1
     return score, {
         'shares_outstanding_proxy': round(shares_out, 0) if shares_out else None,
+        'float_shares': round(float_shares, 0) if float_shares else None,
+        'high_float_block': high_float_block,
         'float_sweet_spot_proxy': float_proxy_ok,
         'premarket_dollar_volume': round(premarket_notional, 2),
         'spread': round(spread, 4),
@@ -418,6 +453,10 @@ def classify_setup_grade(total: int, catalyst_score: int, liquidity_score: int, 
     if total >= (A_SCORE - 4) and catalyst_score >= 4:
         return 'WATCH'
     return 'NO TRADE'
+
+
+def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
+    return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
 
 
 def choose_sector_etf(profile: Dict[str, Any], symbol: str) -> str:
@@ -559,6 +598,39 @@ def score_relative_strength_open(symbol_minute_bars: List[Dict[str, Any]], spy_m
         'open_to_now_change_pct': round(sym_change, 2),
         'spy_open_to_now_change_pct': round(spy_change, 2),
         'edge': round(edge, 2),
+    }
+
+
+def detect_heavy_red_candle_trap(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]:
+    morning = filter_bars_in_et_window(filter_bars_for_today_session(minute_bars), OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
+    if len(morning) < 2:
+        return {'triggered': False, 'reason': 'Not enough opening bars to evaluate red-candle trap.'}
+    green_vols = [safe_num(b.get('v')) for b in morning if safe_num(b.get('c')) > safe_num(b.get('o'))]
+    if not green_vols:
+        return {'triggered': False, 'reason': 'No green candles in opening range to compare against.'}
+    max_green_vol = max(green_vols)
+    heavy_red = []
+    for idx, bar in enumerate(morning):
+        open_px = safe_num(bar.get('o'))
+        close_px = safe_num(bar.get('c'))
+        vol = safe_num(bar.get('v'))
+        if close_px < open_px and vol > max_green_vol:
+            heavy_red.append((idx, bar, vol))
+    if not heavy_red:
+        return {
+            'triggered': False,
+            'max_green_volume': round(max_green_vol, 2),
+            'reason': 'No heavy red candle exceeded the strongest green volume.',
+        }
+    first_idx, first_bar, first_vol = heavy_red[0]
+    return {
+        'triggered': True,
+        'first_red_index': first_idx,
+        'first_red_open': round(safe_num(first_bar.get('o')), 4),
+        'first_red_close': round(safe_num(first_bar.get('c')), 4),
+        'first_red_volume': round(first_vol, 2),
+        'max_green_volume': round(max_green_vol, 2),
+        'reason': 'Opening red candle volume exceeded all green candles in the opening range.',
     }
 
 
@@ -758,7 +830,7 @@ def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, 
     }
 
 
-def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any]) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
     minute_bar = snapshot.get('minuteBar', {})
@@ -772,10 +844,12 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     atr = calc_atr(daily_bars)
     premarket_notional = premarket_dollar_volume(minute_bars)
     premarket_gap_pct = price_change_pct
+    required_premarket_notional = required_premarket_volume_for_gap(premarket_gap_pct)
     volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
+    red_candle_trap = detect_heavy_red_candle_trap(minute_bars)
 
     catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
-    liquidity_score, liquidity_meta = score_float_liquidity(profile, premarket_notional, day_volume, spread, atr, current_price)
+    liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
     daily_score, daily_meta = score_daily_alignment(current_price, daily_bars)
     sector_symbol = choose_sector_etf(profile, symbol)
     sector_snapshot = sector_snapshots.get(sector_symbol, {})
@@ -802,16 +876,20 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Catalyst not strong enough.')
     if premarket_gap_pct < MIN_PREMARKET_GAP_PCT:
         skip_reasons.append('Premarket gap is not strong enough for an A-grade setup.')
-    if premarket_notional < MIN_PREMARKET_DOLLAR_VOL:
-        skip_reasons.append('Premarket dollar volume is too light.')
+    if premarket_notional < required_premarket_notional:
+        skip_reasons.append(f'Premarket dollar volume is too light for a {premarket_gap_pct:.1f}% gap (needs at least ${required_premarket_notional:,.0f}).')
     if sector_score < MIN_SECTOR_SYMPATHY_SCORE:
         skip_reasons.append('Sector sympathy is too weak.')
     if catalyst_meta.get('hard_pass'):
         skip_reasons.append('Gemini flagged the headlines as non-tradeable noise or risk.')
     if liquidity_meta.get('wide_spread_block'):
         skip_reasons.append('Spread is too wide.')
+    if liquidity_meta.get('high_float_block'):
+        skip_reasons.append(f"Float is too high ({liquidity_meta.get('float_shares', 0):,.0f} shares).")
     if volume_poc and current_price <= volume_poc:
         skip_reasons.append('Price is below the daily volume POC.')
+    if red_candle_trap.get('triggered'):
+        skip_reasons.append('Hard skip: opening heavy red candle trap detected.')
     if entry_meta.get('extended'):
         skip_reasons.append('Price is extended above the entry zone.')
     if sizing['qty'] < 1:
@@ -891,6 +969,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
             'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
             'market_internals': market_internals,
+            'red_candle_trap': red_candle_trap,
+            'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
             'sizing': sizing,
             'quick_notes': notes,
@@ -967,7 +1047,8 @@ def run_scan() -> Dict[str, Any]:
             continue
         try:
             profile = get_company_profile(symbol)
-            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, spy_minute_bars, sector_snapshots, market_internals))
+            asset = get_alpaca_asset(symbol)
+            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals))
         except Exception:
             continue
 
