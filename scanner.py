@@ -626,8 +626,8 @@ def score_entry_quality(current_price: float, daily_bars: List[Dict[str, Any]], 
     stop = min(stop_anchor, entry - max(0.05, atr * 0.35))
     stop = max(stop, recent_low)
     risk = max(0.01, entry - stop)
-    target1 = entry + risk * 2
-    target2 = entry + risk * 3
+    target1 = entry + risk * 3
+    target2 = entry + risk * 4
     rr2 = (target2 - entry) / risk if risk > 0 else 0.0
     distance = abs(current_price - entry) / entry if entry > 0 else 9.99
     contraction = (coil_high - coil_low) <= max(0.25, atr * 0.8)
@@ -874,6 +874,12 @@ def run_scan() -> Dict[str, Any]:
         minute_bars = minute_bars_map.get(symbol, [])
         snapshot = snapshots.get(symbol, {})
         quote = quotes.get(symbol, {})
+        ask = safe_num(quote.get('ap'))
+        minute_close = safe_num(snapshot.get('minuteBar', {}).get('c'))
+        daily_close = safe_num(snapshot.get('dailyBar', {}).get('c'))
+        current_price = ask or minute_close or daily_close
+        if current_price and current_price >= 5.0:
+            continue
         if not snapshot or not daily_bars or not minute_bars:
             continue
         try:
