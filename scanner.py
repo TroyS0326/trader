@@ -241,11 +241,17 @@ def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0
 
 
 def filter_bars_for_today_session(minute_bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    today = now_et().date()
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != today:
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if 9 * 60 + 30 <= mins <= 16 * 60:
@@ -258,10 +264,18 @@ def filter_bars_in_et_window(minute_bars: List[Dict[str, Any]], start_label: str
     end_h, end_m = parse_hhmm(end_label)
     start_min = start_h * 60 + start_m
     end_min = end_h * 60 + end_m
+
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != now_et().date():
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if start_min <= mins < end_min:
@@ -917,8 +931,16 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan() -> Dict[str, Any]:
-    symbols = get_market_candidates()
-    snapshots = get_snapshots(symbols)
+    raw_symbols = get_market_candidates(500)
+    fallbacks = ['SOUN', 'BBAI', 'LUNR', 'PLUG', 'FCEL', 'SIRI', 'MULN', 'FFIE', 'MVIS', 'RIOT', 'MARA', 'HOLO', 'GNS', 'LAZR']
+    for fb in fallbacks:
+        if fb not in raw_symbols:
+            raw_symbols.append(fb)
+
+    snapshots = get_snapshots(raw_symbols)
+    symbols = [sym for sym in raw_symbols if sym == 'SPY' or safe_num(snapshots.get(sym, {}).get('minuteBar', {}).get('c')) < 5.0]
+    if 'SPY' not in symbols:
+        symbols.insert(0, 'SPY')
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
     sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols])
