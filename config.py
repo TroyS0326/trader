@@ -1,0 +1,47 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / '.env')
+
+APP_TITLE = 'Veteran Day Trading Playbook Pro'
+SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
+DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
+HOST = os.getenv('HOST', '127.0.0.1')
+PORT = int(os.getenv('PORT', '5000'))
+
+ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
+ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
+ALPACA_PAPER_BASE = os.getenv('ALPACA_PAPER_BASE', 'https://paper-api.alpaca.markets').rstrip('/')
+ALPACA_DATA_BASE = os.getenv('ALPACA_DATA_BASE', 'https://data.alpaca.markets').rstrip('/')
+ALPACA_FEED = os.getenv('ALPACA_FEED', 'iex').strip() or 'iex'
+FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', '').strip()
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
+
+DB_PATH = str(BASE_DIR / 'veteran_trades.db')
+SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
+WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
+MAX_BUY_SHARES = int(os.getenv('MAX_BUY_SHARES', '999'))
+DEFAULT_RISK_CAPITAL = float(os.getenv('DEFAULT_RISK_CAPITAL', '300'))
+MAX_DOLLAR_LOSS_PER_TRADE = float(os.getenv('MAX_DOLLAR_LOSS_PER_TRADE', '5'))
+MAX_FAILED_TRADES_PER_DAY = int(os.getenv('MAX_FAILED_TRADES_PER_DAY', '2'))
+WATCHLIST_PUSH_SECONDS = float(os.getenv('WATCHLIST_PUSH_SECONDS', '4'))
+ORDER_STATUS_POLL_SECONDS = float(os.getenv('ORDER_STATUS_POLL_SECONDS', '8'))
+MIN_SCORE_TO_EXECUTE = int(os.getenv('MIN_SCORE_TO_EXECUTE', '25'))
+MIN_CATALYST_SCORE = int(os.getenv('MIN_CATALYST_SCORE', '4'))
+NO_BUY_BEFORE_ET = os.getenv('NO_BUY_BEFORE_ET', '10:00').strip() or '10:00'
+OPENING_RANGE_START_ET = os.getenv('OPENING_RANGE_START_ET', '09:30').strip() or '09:30'
+OPENING_RANGE_END_ET = os.getenv('OPENING_RANGE_END_ET', '10:00').strip() or '10:00'
+MAX_SPREAD_PCT = float(os.getenv('MAX_SPREAD_PCT', '0.003'))
+MAX_ENTRY_EXTENSION_PCT = float(os.getenv('MAX_ENTRY_EXTENSION_PCT', '0.01'))
+OR_BREAKOUT_BUFFER_PCT = float(os.getenv('OR_BREAKOUT_BUFFER_PCT', '0.0015'))
+PULLBACK_MAX_RETRACE_PCT = float(os.getenv('PULLBACK_MAX_RETRACE_PCT', '0.45'))
+
+MIN_PREMARKET_GAP_PCT = float(os.getenv('MIN_PREMARKET_GAP_PCT', '6.0'))
+MIN_PREMARKET_DOLLAR_VOL = float(os.getenv('MIN_PREMARKET_DOLLAR_VOL', '2000000'))
+MIN_SECTOR_SYMPATHY_SCORE = int(os.getenv('MIN_SECTOR_SYMPATHY_SCORE', '3'))
+A_PLUS_SCORE = int(os.getenv('A_PLUS_SCORE', '34'))
+A_SCORE = int(os.getenv('A_SCORE', '30'))
+TIMEZONE_LABEL = 'America/New_York'

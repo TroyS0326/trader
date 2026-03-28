@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <h1>{{ app_title }}</h1>
+        <p>Scan once, wait for the open to prove itself, then act only when the setup is still clean.</p>
+      </div>
+      <div class="hero-actions">
+        <button id="runBtn">Run Morning Scan</button>
+        <div id="statusLine" class="status">Ready.</div>
+        <span id="marketCall" class="pill skip">No scan yet</span>
+      </div>
+    </header>
+
+    <section class="card" id="watchCard">
+      <div class="section-head">
+        <h2>What Stock to Watch</h2>
+        <span id="decisionPill" class="pill skip">No scan yet</span>
+      </div>
+      <div id="watchPanel" class="watch-panel">
+        <div class="watch-line" id="watchLabel">Run the scanner to populate today’s plan.</div>
+        <div class="watch-line" id="watchGradeLine">Setup grade: —</div>
+        <div class="watch-line" id="watchBuyLine">Buy only after 10:00 AM ET if it is between $0.00 and $0.00.</div>
+        <div class="watch-line" id="watchQtyLine">Buy 5 shares max.</div>
+        <div class="watch-line" id="watchRiskLine">Max dollar loss: $0.00</div>
+        <div class="watch-line" id="watchOpenLine">Opening range: waiting.</div>
+        <div class="watch-line" id="watchStopLine">Stop: $0.00</div>
+        <div class="watch-line" id="watchTpLine">Take profit: $0.00 to $0.00</div>
+      </div>
+      <div id="riskBox" class="note">Risk lock: unavailable.</div>
+      <div class="action-row">
+        <button id="paperTradeBtn" class="secondary" disabled>Execute Paper Bracket Order</button>
+        <button id="refreshOrderBtn" class="ghost" disabled>Refresh Last Order Status</button>
+      </div>
+      <div id="executionStatus" class="note">No order submitted yet.</div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Best Pick</h2>
+        <div id="bestSymbol" class="symbol-box">—</div>
+      </div>
+      <div class="grid" id="bestStats">
+        <div class="mini-card"><div class="label">Current Price</div><div id="statCurrent" class="value">—</div></div>
+        <div class="mini-card"><div class="label">Entry</div><div id="statEntry" class="value">—</div></div>
+        <div class="mini-card"><div class="label">Stop</div><div id="statStop" class="value">—</div></div>
+        <div class="mini-card"><div class="label">Target 1</div><div id="statT1" class="value">—</div></div>
+        <div class="mini-card"><div class="label">Target 2</div><div id="statT2" class="value">—</div></div>
+        <div class="mini-card"><div class="label">Score</div><div id="statScore" class="value">—</div></div>
+      </div>
+      <div class="mini-grid" id="scoreRows"></div>
+      <div id="bestNotes" class="note"></div>
+    </section>
+
+    <section class="card charts">
+      <div class="section-head">
+        <h2>Charts</h2>
+        <span class="muted">Intraday 1-minute and Daily</span>
+      </div>
+      <div class="chart-grid">
+        <div>
+          <h3>1-Minute</h3>
+          <div id="intradayChart" class="chart-box"></div>
+        </div>
+        <div>
+          <h3>Daily</h3>
+          <div id="dailyChart" class="chart-box"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Live Watchlist</h2>
+        <span class="muted">Auto-updates after each scan</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Signal</th>
+              <th>Current</th>
+              <th>Entry</th>
+              <th>Stop</th>
+              <th>Target 1</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="watchlistBody">
+            <tr><td colspan="7" class="muted">No active watchlist yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Scan History</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Time</th><th>Day</th><th>Best Symbol</th><th>Decision</th><th>Score</th></tr>
+          </thead>
+          <tbody id="scanHistoryBody">
+            <tr><td colspan="6" class="muted">No scans yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Trade Journal</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Time</th><th>Symbol</th><th>Decision</th><th>Qty</th><th>Entry</th><th>Stop</th><th>T1</th><th>Status</th><th>Outcome</th></tr>
+          </thead>
+          <tbody id="tradeHistoryBody">
+            <tr><td colspan="10" class="muted">No trades yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+<script>
+const state = {
+  scan: null,
+  lastOrderId: null,
+  ws: null,
+  intradayChart: null,
+  dailyChart: null,
+  intradaySeries: null,
+  dailySeries: null,
+};
+
+const runBtn = document.getElementById('runBtn');
+const paperTradeBtn = document.getElementById('paperTradeBtn');
+const refreshOrderBtn = document.getElementById('refreshOrderBtn');
+const statusLine = document.getElementById('statusLine');
+const executionStatus = document.getElementById('executionStatus');
+
+function money(v) {
+  if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
+  return `$${Number(v).toFixed(2)}`;
+}
+
+function setStatus(text) {
+  statusLine.textContent = text;
+}
+
+function setDecisionPill(decision) {
+  const el = document.getElementById('decisionPill');
+  const css = (decision || '').toLowerCase().replace(/\s+/g, '-');
+  el.textContent = decision || '—';
+  el.className = 'pill ' + css;
+}
+
+function renderBestPick(best) {
+  document.getElementById('bestSymbol').textContent = best.symbol;
+  document.getElementById('statCurrent').textContent = money(best.current_price);
+  document.getElementById('statEntry').textContent = money(best.entry_price);
+  document.getElementById('statStop').textContent = money(best.stop_price);
+  document.getElementById('statT1').textContent = money(best.target_1);
+  document.getElementById('statT2').textContent = money(best.target_2);
+  document.getElementById('statScore').textContent = best.score_total;
+  const scoreRows = document.getElementById('scoreRows');
+  scoreRows.innerHTML = '';
+  Object.entries(best.scores).forEach(([k, v]) => {
+    const div = document.createElement('div');
+    div.className = 'mini-card';
+    div.innerHTML = `<div class="label">${k.replaceAll('_',' ')}</div><div class="value">${v}/5</div>`;
+    scoreRows.appendChild(div);
+  });
+
+  const catalyst = best.details?.catalyst || {};
+  const notes = [];
+  notes.push(`Catalyst: ${catalyst.catalyst_type || 'unknown'}${catalyst.used_ai ? ' (Gemini scored)' : ''}.`);
+  if (best.setup_grade) notes.push(`Setup grade: ${best.setup_grade}.`);
+  const sector = best.details?.sector_sympathy || {};
+  if (sector.sector_symbol) notes.push(`Sector ${sector.sector_symbol}: ${sector.sector_change_pct}% (edge ${sector.edge_vs_sector_pct}%).`);
+  if (catalyst.reason) notes.push(catalyst.reason);
+  const openRs = best.details?.open_relative_strength || {};
+  if (openRs.edge !== undefined) notes.push(`Open RS vs SPY: ${openRs.edge}%`);
+  const openingRange = best.details?.opening_range || {};
+  if (openingRange.or_high) notes.push(`OR ${openingRange.or_low}-${openingRange.or_high}.`);
+  notes.push(`R/R to target 2: ${best.rr_ratio_2}:1.`);
+  const skips = best.details?.skip_reasons || [];
+  if (skips.length) notes.push(`Why not now: ${skips[0]}`);
+  document.getElementById('bestNotes').textContent = notes.join(' ');
+  setDecisionPill(best.decision);
+}
+
+function renderWatchPanel(best) {
+  const panel = best.watch_panel;
+  document.getElementById('watchLabel').textContent = panel.label;
+  document.getElementById('watchBuyLine').textContent = `Buy only after ${panel.buy_after} if it is between ${money(panel.buy_range[0])} and ${money(panel.buy_range[1])}.`;
+  document.getElementById('watchQtyLine').textContent = `Buy up to ${panel.max_shares} shares based on risk.`;
+  const gradeEl = document.getElementById('watchGradeLine');
+  if (gradeEl) gradeEl.textContent = `Setup grade: ${best.setup_grade || panel.setup_grade || '—'}`;
+  document.getElementById('watchRiskLine').textContent = `Max dollar loss: ${money(panel.max_dollar_loss)}`;
+  const orLow = panel.opening_range?.[0];
+  const orHigh = panel.opening_range?.[1];
+  const vwap = panel.vwap;
+  document.getElementById('watchOpenLine').textContent = `Opening range: ${money(orLow)} to ${money(orHigh)}. VWAP: ${money(vwap)}.`;
+  document.getElementById('watchStopLine').textContent = `Stop: ${money(panel.stop)}`;
+  document.getElementById('watchTpLine').textContent = `Take profit: ${money(panel.take_profit_range[0])} to ${money(panel.take_profit_range[1])}`;
+}
+
+function renderRiskControls(risk) {
+  const el = document.getElementById('riskBox');
+  if (!risk) {
+    el.textContent = 'Risk lock: unavailable.';
+    return;
+  }
+  const parts = [];
+  parts.push(`Buy window: ${risk.buy_window_open ? 'OPEN' : `blocked until ${risk.no_buy_before_et} ET`}`);
+  parts.push(`Failed trades today: ${risk.failed_trades_today}/${risk.max_failed_trades_per_day}`);
+  parts.push(risk.can_trade_today ? 'Trading allowed.' : 'Daily loss lock active.');
+  el.textContent = parts.join(' ');
+}
+
+function renderHistory(history) {
+  const scanBody = document.getElementById('scanHistoryBody');
+  const tradeBody = document.getElementById('tradeHistoryBody');
+  scanBody.innerHTML = '';
+  tradeBody.innerHTML = '';
+
+  const scans = history?.scans || [];
+  const trades = history?.trades || [];
+
+  if (!scans.length) {
+    scanBody.innerHTML = '<tr><td colspan="6" class="muted">No scans yet.</td></tr>';
+  } else {
+    scans.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${s.id}</td><td>${s.created_at}</td><td>${s.market_day || ''}</td><td>${s.best_symbol || ''}</td><td>${s.best_decision || ''}</td><td>${s.best_score || ''}</td>`;
+      scanBody.appendChild(tr);
+    });
+  }
+
+  if (!trades.length) {
+    tradeBody.innerHTML = '<tr><td colspan="10" class="muted">No trades yet.</td></tr>';
+  } else {
+    trades.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${t.id}</td><td>${t.created_at}</td><td>${t.symbol}</td><td>${t.decision || ''}</td><td>${t.qty || ''}</td><td>${money(t.entry_price)}</td><td>${money(t.stop_price)}</td><td>${money(t.target_1)}</td><td>${t.order_status || ''}</td><td>${t.outcome || ''}</td>`;
+      tradeBody.appendChild(tr);
+    });
+  }
+}
+
+function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const chart = LightweightCharts.createChart(container, {
+    layout: { background: { color: '#0b1220' }, textColor: '#dbe4ff' },
+    grid: { vertLines: { color: 'rgba(148,163,184,0.08)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
+    rightPriceScale: { borderColor: 'rgba(148,163,184,0.2)' },
+    timeScale: { borderColor: 'rgba(148,163,184,0.2)' },
+    width: container.clientWidth,
+    height: 330,
+  });
+  const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
+    upColor: '#16a34a',
+    downColor: '#dc2626',
+    borderVisible: false,
+    wickUpColor: '#16a34a',
+    wickDownColor: '#dc2626',
+  });
+  series.setData(data);
+  chart.timeScale().fitContent();
+  state[chartRefName] = chart;
+  state[seriesRefName] = series;
+}
+
+function renderCharts(chartPack) {
+  createOrResetChart('intradayChart', 'intradaySeries', 'intradayChart', chartPack.intraday || []);
+  createOrResetChart('dailyChart', 'dailySeries', 'dailyChart', chartPack.daily || []);
+}
+
+function renderWatchlist(items) {
+  const body = document.getElementById('watchlistBody');
+  body.innerHTML = '';
+  if (!items || !items.length) {
+    body.innerHTML = '<tr><td colspan="7" class="muted">No active watchlist yet.</td></tr>';
+    return;
+  }
+  items.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.symbol}</td>
+      <td><span class="table-pill ${(item.live_signal || 'WATCH').toLowerCase().replace(/\s+/g,'-')}">${item.live_signal || 'WATCH'}</span></td>
+      <td>${money(item.current_price)}</td>
+      <td>${money(item.entry_price)}</td>
+      <td>${money(item.stop_price)}</td>
+      <td>${money(item.target_1)}</td>
+      <td>${item.score_total}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function connectWatchlistSocket() {
+  if (state.ws) state.ws.close();
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${protocol}://${location.host}/ws/watchlist`);
+  state.ws = ws;
+  ws.onmessage = (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === 'watchlist') {
+      renderWatchlist(payload.items || []);
+      const best = state.scan?.best_pick;
+      if (!best) return;
+      const top = (payload.items || []).find(i => i.symbol === best.symbol);
+      if (top) {
+        document.getElementById('statCurrent').textContent = money(top.current_price);
+      }
+    }
+  };
+}
+
+async function loadHistory() {
+  const res = await fetch('/api/history');
+  const data = await res.json();
+  if (data.ok) renderHistory(data.data);
+}
+
+async function runScan() {
+  runBtn.disabled = true;
+  paperTradeBtn.disabled = true;
+  setStatus('Scanning market, scoring catalysts, and checking the open...');
+  try {
+    const res = await fetch('/api/scan', { method: 'POST' });
+    const payload = await res.json();
+    if (!payload.ok) throw new Error(payload.error);
+    state.scan = payload.data;
+    const best = payload.data.best_pick;
+    const marketCall = document.getElementById('marketCall');
+    if (marketCall) { marketCall.textContent = payload.data.market_call || '—'; marketCall.className = 'pill ' + ((payload.data.market_call || 'skip').toLowerCase().replace(/\s+/g,'-')); }
+    renderBestPick(best);
+    renderWatchPanel(best);
+    renderCharts(payload.data.chart_pack);
+    renderWatchlist(payload.data.watchlist || []);
+    renderHistory(payload.history || {});
+    renderRiskControls(payload.data.risk_controls || {});
+    paperTradeBtn.disabled = best.decision !== 'BUY NOW' || !['A+','A'].includes(best.setup_grade || '');
+    setStatus(`Scan complete. Best pick: ${best.symbol} (${best.decision}, ${best.setup_grade || '—'}).`);
+    connectWatchlistSocket();
+  } catch (err) {
+    setStatus(`Error: ${err.message}`);
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+async function executePaperTrade() {
+  if (!state.scan?.best_pick) return;
+  const best = state.scan.best_pick;
+  executionStatus.textContent = 'Submitting paper bracket order...';
+  try {
+    const res = await fetch('/api/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scan_id: state.scan.scan_id,
+        symbol: best.symbol,
+        decision: best.decision,
+        score_total: best.score_total,
+        current_price: best.current_price,
+        entry_price: best.entry_price,
+        buy_lower: best.buy_lower,
+        buy_upper: best.buy_upper,
+        stop_price: best.stop_price,
+        target_1: best.target_1,
+        target_2: best.target_2,
+        qty: best.qty,
+        risk_per_share: best.risk_per_share,
+        rr_ratio_1: best.rr_ratio_1,
+        rr_ratio_2: best.rr_ratio_2,
+        scores: best.scores,
+        details: best.details,
+      })
+    });
+    const payload = await res.json();
+    if (!payload.ok) throw new Error(payload.error);
+    state.lastOrderId = payload.data.order_id;
+    refreshOrderBtn.disabled = false;
+    executionStatus.textContent = `Order submitted. ID: ${payload.data.order_id}. Status: ${payload.data.status}.`;
+    renderHistory(payload.history || {});
+    renderRiskControls(payload.data.risk_controls || {});
+  } catch (err) {
+    executionStatus.textContent = `Execution error: ${err.message}`;
+  }
+}
+
+async function refreshLastOrder() {
+  if (!state.lastOrderId) return;
+  executionStatus.textContent = 'Refreshing order status...';
+  try {
+    const res = await fetch(`/api/order-status/${state.lastOrderId}`);
+    const payload = await res.json();
+    if (!payload.ok) throw new Error(payload.error);
+    executionStatus.textContent = `Order ${payload.data.id}: ${payload.data.status}. Filled avg: ${payload.data.filled_avg_price || '—'}`;
+    renderHistory(payload.history || {});
+    renderRiskControls(payload.data.risk_controls || {});
+  } catch (err) {
+    executionStatus.textContent = `Order refresh error: ${err.message}`;
+  }
+}
+
+runBtn.addEventListener('click', runScan);
+paperTradeBtn.addEventListener('click', executePaperTrade);
+refreshOrderBtn.addEventListener('click', refreshLastOrder);
+window.addEventListener('load', loadHistory);
+window.addEventListener('resize', () => {
+  if (state.intradayChart) state.intradayChart.applyOptions({ width: document.getElementById('intradayChart').clientWidth });
+  if (state.dailyChart) state.dailyChart.applyOptions({ width: document.getElementById('dailyChart').clientWidth });
+});
+</script>
+</body>
+</html>
