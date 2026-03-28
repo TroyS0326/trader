@@ -19,6 +19,9 @@ from config import (
     MAX_DOLLAR_LOSS_PER_TRADE,
     MAX_ENTRY_EXTENSION_PCT,
     MAX_SPREAD_PCT,
+    MARKET_INTERNALS_ADD_SYMBOL,
+    MARKET_INTERNALS_BLOCK_ENABLED,
+    MARKET_INTERNALS_TICK_SYMBOL,
     MIN_CATALYST_SCORE,
     MIN_PREMARKET_DOLLAR_VOL,
     MIN_PREMARKET_GAP_PCT,
@@ -35,8 +38,12 @@ from config import (
     TIMEZONE_LABEL,
     WATCHLIST_SIZE,
 )
-
 TIMEOUT = 20
+MAX_FLOAT_SHARES = 50_000_000
+HIGH_GAP_THRESHOLD_PCT = 20.0
+HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL = 5_000_000
+
+
 VETERAN_BLACKLIST = {
     'NVD', 'NVDL', 'NVDX', 'NVDQ', 'TQQQ', 'SQQQ', 'QLD', 'QID', 'SOXL', 'SOXS',
     'UPRO', 'SPXU', 'SPXL', 'SPXS', 'UVXY', 'VIXY', 'SVIX', 'BOIL', 'KOLD', 'UCO',
@@ -191,6 +198,32 @@ def get_company_profile(symbol: str) -> Dict[str, Any]:
     except requests.RequestException:
         return {}
 
+def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
+    try:
+        payload = _get_json(f'{ALPACA_DATA_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
+        return payload if isinstance(payload, dict) else {}
+    except requests.RequestException:
+        return {}
+
+
+def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> float:
+    float_candidates = (
+        asset.get('float'),
+        asset.get('shares_float'),
+        asset.get('float_shares'),
+        profile.get('floatShares'),
+        profile.get('shareFloat'),
+    )
+    for raw in float_candidates:
+        val = safe_num(raw)
+        if val > 0:
+            return val
+    finnhub_float_millions = safe_num(profile.get('shareOutstanding'))
+    if finnhub_float_millions > 0:
+        return finnhub_float_millions * 1_000_000
+    return 0.0
+
+
 
 def calc_atr(bars: List[Dict[str, Any]], period: int = 14) -> float:
     if len(bars) < 2:
@@ -216,14 +249,39 @@ def calc_vwap(minute_bars: List[Dict[str, Any]]) -> float:
         total_pv += typical * vol
         total_v += vol
     return total_pv / total_v if total_v > 0 else 0.0
+    
+def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0.01) -> float:
+    session = filter_bars_for_today_session(minute_bars)
+    if not session:
+        return 0.0
+    ladder: Dict[float, float] = {}
+    tick = max(0.0001, min_tick)
+    for bar in session:
+        typical = (safe_num(bar.get('h')) + safe_num(bar.get('l')) + safe_num(bar.get('c'))) / 3.0
+        vol = safe_num(bar.get('v'))
+        if typical <= 0 or vol <= 0:
+            continue
+        px = round(round(typical / tick) * tick, 4)
+        ladder[px] = ladder.get(px, 0.0) + vol
+    if not ladder:
+        return 0.0
+    return max(ladder.items(), key=lambda kv: kv[1])[0]
+
+    
 
 
 def filter_bars_for_today_session(minute_bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    today = now_et().date()
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+    
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != today:
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if 9 * 60 + 30 <= mins <= 16 * 60:
@@ -236,10 +294,18 @@ def filter_bars_in_et_window(minute_bars: List[Dict[str, Any]], start_label: str
     end_h, end_m = parse_hhmm(end_label)
     start_min = start_h * 60 + start_m
     end_min = end_h * 60 + end_m
+    
+    if not minute_bars:
+        return []
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return []
+    target_date = latest_dt.date()
+    
     out: List[Dict[str, Any]] = []
     for bar in minute_bars:
         dt = bar_dt_et(bar)
-        if not dt or dt.date() != now_et().date():
+        if not dt or dt.date() != target_date:
             continue
         mins = dt.hour * 60 + dt.minute
         if start_min <= mins < end_min:
@@ -289,8 +355,10 @@ def get_stock_chart_pack(symbol: str) -> Dict[str, Any]:
     return {'symbol': symbol, 'daily': to_chart_bars(daily[-220:]), 'intraday': to_chart_bars(intraday[-390:])}
 
 
-def score_float_liquidity(profile: Dict[str, Any], premarket_notional: float, day_volume: float, spread: float, atr: float, current_price: float) -> Tuple[int, Dict[str, Any]]:
+def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premarket_notional: float, day_volume: float, spread: float, atr: float, current_price: float) -> Tuple[int, Dict[str, Any]]:
     shares_out = safe_num(profile.get('shareOutstanding')) * 1_000_000
+    float_shares = extract_float_shares(profile, asset)
+    high_float_block = bool(float_shares and float_shares > MAX_FLOAT_SHARES)
     float_proxy_ok = 10_000_000 <= shares_out <= 50_000_000 if shares_out > 0 else False
     spread_pct = spread / current_price if current_price > 0 else 1.0
     score = 1
@@ -302,8 +370,12 @@ def score_float_liquidity(profile: Dict[str, Any], premarket_notional: float, da
         score = 3
     elif day_volume >= 1_000_000 and spread_pct <= 0.005:
         score = 2
+    if high_float_block:
+        score = 1    
     return score, {
         'shares_outstanding_proxy': round(shares_out, 0) if shares_out else None,
+        'float_shares': round(float_shares, 0) if float_shares else None,
+        'high_float_block': high_float_block,
         'float_sweet_spot_proxy': float_proxy_ok,
         'premarket_dollar_volume': round(premarket_notional, 2),
         'spread': round(spread, 4),
@@ -347,7 +419,7 @@ def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str,
         'direction': 'unknown',
         'confidence': 'low',
         'hard_pass': False,
-        'reason': 'Fallback scoring used because Gemini was unavailable.',
+        'reason': ai.get('reason') or 'Fallback scoring used because Gemini was unavailable.',
         'headlines': headlines[:8],
     }
 
@@ -397,7 +469,10 @@ def classify_setup_grade(total: int, catalyst_score: int, liquidity_score: int, 
     if total >= (A_SCORE - 4) and catalyst_score >= 4:
         return 'WATCH'
     return 'NO TRADE'
-
+    
+def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
+    return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
+    
 
 def choose_sector_etf(profile: Dict[str, Any], symbol: str) -> str:
     text = ' '.join(str(profile.get(k, '')).lower() for k in ('finnhubIndustry', 'industry', 'name'))
@@ -540,6 +615,79 @@ def score_relative_strength_open(symbol_minute_bars: List[Dict[str, Any]], spy_m
         'edge': round(edge, 2),
     }
 
+def detect_heavy_red_candle_trap(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]:
+    morning = filter_bars_in_et_window(filter_bars_for_today_session(minute_bars), OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
+    if len(morning) < 2:
+        return {'triggered': False, 'reason': 'Not enough opening bars to evaluate red-candle trap.'}
+    green_vols = [safe_num(b.get('v')) for b in morning if safe_num(b.get('c')) > safe_num(b.get('o'))]
+    if not green_vols:
+        return {'triggered': False, 'reason': 'No green candles in opening range to compare against.'}
+    max_green_vol = max(green_vols)
+    heavy_red = []
+    for idx, bar in enumerate(morning):
+        open_px = safe_num(bar.get('o'))
+        close_px = safe_num(bar.get('c'))
+        vol = safe_num(bar.get('v'))
+        if close_px < open_px and vol > max_green_vol:
+            heavy_red.append((idx, bar, vol))
+    if not heavy_red:
+        return {
+            'triggered': False,
+            'max_green_volume': round(max_green_vol, 2),
+            'reason': 'No heavy red candle exceeded the strongest green volume.',
+        }
+    first_idx, first_bar, first_vol = heavy_red[0]
+    return {
+        'triggered': True,
+        'first_red_index': first_idx,
+        'first_red_open': round(safe_num(first_bar.get('o')), 4),
+        'first_red_close': round(safe_num(first_bar.get('c')), 4),
+        'first_red_volume': round(first_vol, 2),
+        'max_green_volume': round(max_green_vol, 2),
+        'reason': 'Opening red candle volume exceeded all green candles in the opening range.',
+    }
+
+
+
+def get_market_internals_bias() -> Dict[str, Any]:
+    meta = {
+        'enabled': MARKET_INTERNALS_BLOCK_ENABLED,
+        'tick_symbol': MARKET_INTERNALS_TICK_SYMBOL,
+        'add_symbol': MARKET_INTERNALS_ADD_SYMBOL,
+        'tick_persistently_negative': False,
+        'add_dropping': False,
+        'longs_blocked': False,
+        'reason': '',
+    }
+    if not MARKET_INTERNALS_BLOCK_ENABLED:
+        meta['reason'] = 'Market internals block disabled.'
+        return meta
+    end = now_utc()
+    start = end - timedelta(minutes=30)
+    try:
+        bars = get_bars([MARKET_INTERNALS_TICK_SYMBOL, MARKET_INTERNALS_ADD_SYMBOL], '1Min', start, end, 60)
+    except Exception as exc:
+        meta['reason'] = f'Could not fetch internals: {exc}'
+        return meta
+    tick_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_TICK_SYMBOL, []) if safe_num(b.get('c')) != 0]
+    add_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_ADD_SYMBOL, []) if safe_num(b.get('c')) != 0]
+    if len(tick_series) >= 5:
+        last5 = tick_series[-5:]
+        meta['tick_persistently_negative'] = all(v < 0 for v in last5)
+        meta['tick_last'] = round(last5[-1], 2)
+    if len(add_series) >= 5:
+        recent = add_series[-5:]
+        meta['add_dropping'] = (recent[-1] < recent[0]) and all(recent[i] <= recent[i - 1] for i in range(1, len(recent)))
+        meta['add_last'] = round(recent[-1], 2)
+    meta['longs_blocked'] = bool(meta['tick_persistently_negative'] and meta['add_dropping'])
+    if meta['longs_blocked']:
+        meta['reason'] = 'Blocked: $TICK is persistently below 0 while $ADD is falling.'
+    else:
+        meta['reason'] = 'Breadth filter is not blocking longs.'
+    return meta
+
+
+
 
 def score_vwap_hold_reclaim(minute_bars: List[Dict[str, Any]]) -> Tuple[int, Dict[str, Any]]:
     session = filter_bars_for_today_session(minute_bars)
@@ -626,8 +774,8 @@ def score_entry_quality(current_price: float, daily_bars: List[Dict[str, Any]], 
     stop = min(stop_anchor, entry - max(0.05, atr * 0.35))
     stop = max(stop, recent_low)
     risk = max(0.01, entry - stop)
-    target1 = entry + risk * 2
-    target2 = entry + risk * 3
+    target1 = entry + risk * 3
+    target2 = entry + risk * 4
     rr2 = (target2 - entry) / risk if risk > 0 else 0.0
     distance = abs(current_price - entry) / entry if entry > 0 else 9.99
     contraction = (coil_high - coil_low) <= max(0.25, atr * 0.8)
@@ -699,7 +847,7 @@ def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, 
     }
 
 
-def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any]) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
     minute_bar = snapshot.get('minuteBar', {})
@@ -713,9 +861,12 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     atr = calc_atr(daily_bars)
     premarket_notional = premarket_dollar_volume(minute_bars)
     premarket_gap_pct = price_change_pct
+    required_premarket_notional = required_premarket_volume_for_gap(premarket_gap_pct) 
+    volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
+    red_candle_trap = detect_heavy_red_candle_trap(minute_bars)
 
     catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
-    liquidity_score, liquidity_meta = score_float_liquidity(profile, premarket_notional, day_volume, spread, atr, current_price)
+    liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
     daily_score, daily_meta = score_daily_alignment(current_price, daily_bars)
     sector_symbol = choose_sector_etf(profile, symbol)
     sector_snapshot = sector_snapshots.get(sector_symbol, {})
@@ -742,14 +893,20 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Catalyst not strong enough.')
     if premarket_gap_pct < MIN_PREMARKET_GAP_PCT:
         skip_reasons.append('Premarket gap is not strong enough for an A-grade setup.')
-    if premarket_notional < MIN_PREMARKET_DOLLAR_VOL:
-        skip_reasons.append('Premarket dollar volume is too light.')
+    if premarket_notional < required_premarket_notional:
+        skip_reasons.append(f'Premarket dollar volume is too light for a {premarket_gap_pct:.1f}% gap (needs at least ${required_premarket_notional:,.0f}).')
     if sector_score < MIN_SECTOR_SYMPATHY_SCORE:
         skip_reasons.append('Sector sympathy is too weak.')
     if catalyst_meta.get('hard_pass'):
         skip_reasons.append('Gemini flagged the headlines as non-tradeable noise or risk.')
     if liquidity_meta.get('wide_spread_block'):
         skip_reasons.append('Spread is too wide.')
+    if liquidity_meta.get('high_float_block'):
+        skip_reasons.append(f"Float is too high ({liquidity_meta.get('float_shares', 0):,.0f} shares).")
+    if volume_poc and current_price <= volume_poc:
+        skip_reasons.append('Price is below the daily volume POC.') 
+    if red_candle_trap.get('triggered'):
+        skip_reasons.append('Hard skip: opening heavy red candle trap detected.')        
     if entry_meta.get('extended'):
         skip_reasons.append('Price is extended above the entry zone.')
     if sizing['qty'] < 1:
@@ -762,7 +919,9 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Opening-range breakout is not confirmed yet.')
     if after_time_gate and not vwap_meta.get('reclaimed_vwap'):
         skip_reasons.append('VWAP reclaim/hold is not strong enough.')
-
+    if market_internals.get('longs_blocked'):
+        skip_reasons.append(market_internals.get('reason') or 'Market internals are blocking long breakouts.')
+        
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
     in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
     decision = 'SKIP'
@@ -825,6 +984,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spy_day_change_pct': round(spy_change_pct, 2),
             'spread': round(spread, 4),
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
+            'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
+            'market_internals': market_internals,
+            'red_candle_trap': red_candle_trap,
+            'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
             'sizing': sizing,
             'quick_notes': notes,
@@ -850,8 +1013,29 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan() -> Dict[str, Any]:
-    symbols = get_market_candidates()
-    snapshots = get_snapshots(symbols)
+    raw_symbols = get_market_candidates(500)
+    fallbacks = ['SOUN', 'BBAI', 'LUNR', 'PLUG', 'FCEL', 'SIRI', 'MULN', 'FFIE', 'MVIS', 'RIOT', 'MARA', 'HOLO', 'GNS', 'LAZR']
+    for fb in fallbacks:
+        if fb not in raw_symbols:
+            raw_symbols.append(fb)
+
+    snapshots = get_snapshots(raw_symbols)
+    
+    cheap_symbols = []
+    for sym in raw_symbols:
+        if sym == 'SPY':
+            continue
+        snap = snapshots.get(sym, {})
+        daily_c = safe_num(snap.get('dailyBar', {}).get('c'))
+        prev_c = safe_num(snap.get('prevDailyBar', {}).get('c'))
+        price = daily_c or prev_c
+        if price > 0 and price < 5.0:
+            cheap_symbols.append(sym)
+
+    symbols = cheap_symbols[:SCAN_CANDIDATE_LIMIT]
+    if 'SPY' not in symbols:
+        symbols.append('SPY')
+        
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
     sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols])
@@ -865,7 +1049,8 @@ def run_scan() -> Dict[str, Any]:
     spy_curr = safe_num(spy_snap.get('dailyBar', {}).get('c')) or safe_num(spy_snap.get('minuteBar', {}).get('c')) or spy_prev
     spy_change_pct = ((spy_curr - spy_prev) / spy_prev * 100.0) if spy_prev > 0 else 0.0
     spy_minute_bars = minute_bars_map.get('SPY', [])
-
+    market_internals = get_market_internals_bias()
+    
     ranked = []
     for symbol in symbols:
         if symbol == 'SPY':
@@ -874,11 +1059,18 @@ def run_scan() -> Dict[str, Any]:
         minute_bars = minute_bars_map.get(symbol, [])
         snapshot = snapshots.get(symbol, {})
         quote = quotes.get(symbol, {})
+        ask = safe_num(quote.get('ap'))
+        minute_close = safe_num(snapshot.get('minuteBar', {}).get('c'))
+        daily_close = safe_num(snapshot.get('dailyBar', {}).get('c'))
+        current_price = ask or minute_close or daily_close
+        if current_price and current_price >= 5.0:
+            continue        
         if not snapshot or not daily_bars or not minute_bars:
             continue
         try:
             profile = get_company_profile(symbol)
-            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, spy_minute_bars, sector_snapshots))
+            asset = get_alpaca_asset(symbol)
+            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals))
         except Exception:
             continue
 
@@ -910,7 +1102,7 @@ def run_scan() -> Dict[str, Any]:
     return {
         'generated_at': now_utc().isoformat(),
         'day_of_week': now_et().strftime('%A'),
-        'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2)},
+        'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2), 'market_internals': market_internals},
         'market_call': market_call,
         'best_pick': best,
         'watchlist': ranked[:WATCHLIST_SIZE],
@@ -927,5 +1119,6 @@ def run_scan() -> Dict[str, Any]:
             'a_score': A_SCORE,
             'min_premarket_gap_pct': MIN_PREMARKET_GAP_PCT,
             'min_premarket_dollar_vol': MIN_PREMARKET_DOLLAR_VOL,
+            'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
     }

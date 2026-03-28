@@ -13,7 +13,7 @@ from config import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = 'gemini-3-flash'
+DEFAULT_MODEL = 'gemini-2.5-flash'
 model_name = (GEMINI_MODEL or DEFAULT_MODEL).removeprefix('models/')
 GEMINI_URL = f'https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent'
 
@@ -176,8 +176,10 @@ def _coerce_result(parsed: Dict[str, Any]) -> Dict[str, Any]:
 def classify_news_with_gemini(symbol: str, headlines: List[Dict[str, Any]]) -> Dict[str, Any]:
     global _COOLDOWN_UNTIL
 
-    if not GEMINI_API_KEY or not headlines:
-        return _fallback('Gemini disabled or no headlines available.')
+    if not GEMINI_API_KEY:
+        return _fallback('Gemini disabled: GEMINI_API_KEY is missing.')
+    if not headlines:
+        return _fallback('Gemini skipped: no headlines available for this symbol.')
 
     trimmed = _normalize_headlines(headlines)
     key = _cache_key(symbol, trimmed)
