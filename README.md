@@ -14,6 +14,7 @@ This local app is built to follow your playbook in order:
   - bid/ask-pegged limit entry
   - 15-second entry timeout + auto-cancel
   - target-1 scale-out, breakeven stop shift, trailing stop runner for target-2
+
 - SQLite scan history and trade journal
 - Optional market internals long-block filter using $TICK + $ADD
 - Daily volume-profile POC gate (blocks buys below POC)

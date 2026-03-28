@@ -37,10 +37,7 @@
         <div class="watch-line" id="watchTpLine">Take profit: $0.00 to $0.00</div>
       </div>
       <div id="riskBox" class="note">Risk lock: unavailable.</div>
-      <div class="action-row">
-        <button id="paperTradeBtn" class="secondary" disabled>Execute Paper Bracket Order</button>
-        <button id="refreshOrderBtn" class="ghost" disabled>Refresh Last Order Status</button>
-      </div>
+
       <div id="executionStatus" class="note">No order submitted yet.</div>
     </section>
 
@@ -147,11 +144,7 @@ const state = {
   dailySeries: null,
 };
 
-const runBtn = document.getElementById('runBtn');
-const paperTradeBtn = document.getElementById('paperTradeBtn');
-const refreshOrderBtn = document.getElementById('refreshOrderBtn');
-const statusLine = document.getElementById('statusLine');
-const executionStatus = document.getElementById('executionStatus');
+
 
 function money(v) {
   if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
@@ -356,7 +349,6 @@ async function runScan() {
     renderWatchlist(payload.data.watchlist || []);
     renderHistory(payload.history || {});
     renderRiskControls(payload.data.risk_controls || {});
-    paperTradeBtn.disabled = best.decision !== 'BUY NOW' || !['A+','A'].includes(best.setup_grade || '');
     setStatus(`Scan complete. Best pick: ${best.symbol} (${best.decision}, ${best.setup_grade || '—'}).`);
     connectWatchlistSocket();
   } catch (err) {
@@ -366,64 +358,8 @@ async function runScan() {
   }
 }
 
-async function executePaperTrade() {
-  if (!state.scan?.best_pick) return;
-  const best = state.scan.best_pick;
-  executionStatus.textContent = 'Submitting paper bracket order...';
-  try {
-    const res = await fetch('/api/execute', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        scan_id: state.scan.scan_id,
-        symbol: best.symbol,
-        decision: best.decision,
-        score_total: best.score_total,
-        current_price: best.current_price,
-        entry_price: best.entry_price,
-        buy_lower: best.buy_lower,
-        buy_upper: best.buy_upper,
-        stop_price: best.stop_price,
-        target_1: best.target_1,
-        target_2: best.target_2,
-        qty: best.qty,
-        risk_per_share: best.risk_per_share,
-        rr_ratio_1: best.rr_ratio_1,
-        rr_ratio_2: best.rr_ratio_2,
-        scores: best.scores,
-        details: best.details,
-      })
-    });
-    const payload = await res.json();
-    if (!payload.ok) throw new Error(payload.error);
-    state.lastOrderId = payload.data.order_id;
-    refreshOrderBtn.disabled = false;
-    executionStatus.textContent = `Order submitted. ID: ${payload.data.order_id}. Status: ${payload.data.status}.`;
-    renderHistory(payload.history || {});
-    renderRiskControls(payload.data.risk_controls || {});
-  } catch (err) {
-    executionStatus.textContent = `Execution error: ${err.message}`;
-  }
-}
-
-async function refreshLastOrder() {
-  if (!state.lastOrderId) return;
-  executionStatus.textContent = 'Refreshing order status...';
-  try {
-    const res = await fetch(`/api/order-status/${state.lastOrderId}`);
-    const payload = await res.json();
-    if (!payload.ok) throw new Error(payload.error);
-    executionStatus.textContent = `Order ${payload.data.id}: ${payload.data.status}. Filled avg: ${payload.data.filled_avg_price || '—'}`;
-    renderHistory(payload.history || {});
-    renderRiskControls(payload.data.risk_controls || {});
-  } catch (err) {
-    executionStatus.textContent = `Order refresh error: ${err.message}`;
-  }
-}
 
 runBtn.addEventListener('click', runScan);
-paperTradeBtn.addEventListener('click', executePaperTrade);
-refreshOrderBtn.addEventListener('click', refreshLastOrder);
 window.addEventListener('load', loadHistory);
 window.addEventListener('resize', () => {
   if (state.intradayChart) state.intradayChart.applyOptions({ width: document.getElementById('intradayChart').clientWidth });
