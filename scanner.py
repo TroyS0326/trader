@@ -19,6 +19,9 @@ from config import (
     MAX_DOLLAR_LOSS_PER_TRADE,
     MAX_ENTRY_EXTENSION_PCT,
     MAX_SPREAD_PCT,
+    MARKET_INTERNALS_ADD_SYMBOL,
+    MARKET_INTERNALS_BLOCK_ENABLED,
+    MARKET_INTERNALS_TICK_SYMBOL,
     MIN_CATALYST_SCORE,
     MIN_PREMARKET_DOLLAR_VOL,
     MIN_PREMARKET_GAP_PCT,
@@ -35,6 +38,7 @@ from config import (
     TIMEZONE_LABEL,
     WATCHLIST_SIZE,
 )
+from crypto_scanner import run_crypto_scan
 
 TIMEOUT = 20
 VETERAN_BLACKLIST = {
@@ -216,6 +220,24 @@ def calc_vwap(minute_bars: List[Dict[str, Any]]) -> float:
         total_pv += typical * vol
         total_v += vol
     return total_pv / total_v if total_v > 0 else 0.0
+
+
+def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0.01) -> float:
+    session = filter_bars_for_today_session(minute_bars)
+    if not session:
+        return 0.0
+    ladder: Dict[float, float] = {}
+    tick = max(0.0001, min_tick)
+    for bar in session:
+        typical = (safe_num(bar.get('h')) + safe_num(bar.get('l')) + safe_num(bar.get('c'))) / 3.0
+        vol = safe_num(bar.get('v'))
+        if typical <= 0 or vol <= 0:
+            continue
+        px = round(round(typical / tick) * tick, 4)
+        ladder[px] = ladder.get(px, 0.0) + vol
+    if not ladder:
+        return 0.0
+    return max(ladder.items(), key=lambda kv: kv[1])[0]
 
 
 def filter_bars_for_today_session(minute_bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -541,6 +563,44 @@ def score_relative_strength_open(symbol_minute_bars: List[Dict[str, Any]], spy_m
     }
 
 
+def get_market_internals_bias() -> Dict[str, Any]:
+    meta = {
+        'enabled': MARKET_INTERNALS_BLOCK_ENABLED,
+        'tick_symbol': MARKET_INTERNALS_TICK_SYMBOL,
+        'add_symbol': MARKET_INTERNALS_ADD_SYMBOL,
+        'tick_persistently_negative': False,
+        'add_dropping': False,
+        'longs_blocked': False,
+        'reason': '',
+    }
+    if not MARKET_INTERNALS_BLOCK_ENABLED:
+        meta['reason'] = 'Market internals block disabled.'
+        return meta
+    end = now_utc()
+    start = end - timedelta(minutes=30)
+    try:
+        bars = get_bars([MARKET_INTERNALS_TICK_SYMBOL, MARKET_INTERNALS_ADD_SYMBOL], '1Min', start, end, 60)
+    except Exception as exc:
+        meta['reason'] = f'Could not fetch internals: {exc}'
+        return meta
+    tick_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_TICK_SYMBOL, []) if safe_num(b.get('c')) != 0]
+    add_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_ADD_SYMBOL, []) if safe_num(b.get('c')) != 0]
+    if len(tick_series) >= 5:
+        last5 = tick_series[-5:]
+        meta['tick_persistently_negative'] = all(v < 0 for v in last5)
+        meta['tick_last'] = round(last5[-1], 2)
+    if len(add_series) >= 5:
+        recent = add_series[-5:]
+        meta['add_dropping'] = (recent[-1] < recent[0]) and all(recent[i] <= recent[i - 1] for i in range(1, len(recent)))
+        meta['add_last'] = round(recent[-1], 2)
+    meta['longs_blocked'] = bool(meta['tick_persistently_negative'] and meta['add_dropping'])
+    if meta['longs_blocked']:
+        meta['reason'] = 'Blocked: $TICK is persistently below 0 while $ADD is falling.'
+    else:
+        meta['reason'] = 'Breadth filter is not blocking longs.'
+    return meta
+
+
 def score_vwap_hold_reclaim(minute_bars: List[Dict[str, Any]]) -> Tuple[int, Dict[str, Any]]:
     session = filter_bars_for_today_session(minute_bars)
     if len(session) < 8:
@@ -699,7 +759,7 @@ def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, 
     }
 
 
-def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any]) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
     minute_bar = snapshot.get('minuteBar', {})
@@ -713,6 +773,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     atr = calc_atr(daily_bars)
     premarket_notional = premarket_dollar_volume(minute_bars)
     premarket_gap_pct = price_change_pct
+    volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
 
     catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
     liquidity_score, liquidity_meta = score_float_liquidity(profile, premarket_notional, day_volume, spread, atr, current_price)
@@ -750,6 +811,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Gemini flagged the headlines as non-tradeable noise or risk.')
     if liquidity_meta.get('wide_spread_block'):
         skip_reasons.append('Spread is too wide.')
+    if volume_poc and current_price <= volume_poc:
+        skip_reasons.append('Price is below the daily volume POC.')
     if entry_meta.get('extended'):
         skip_reasons.append('Price is extended above the entry zone.')
     if sizing['qty'] < 1:
@@ -762,6 +825,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Opening-range breakout is not confirmed yet.')
     if after_time_gate and not vwap_meta.get('reclaimed_vwap'):
         skip_reasons.append('VWAP reclaim/hold is not strong enough.')
+    if market_internals.get('longs_blocked'):
+        skip_reasons.append(market_internals.get('reason') or 'Market internals are blocking long breakouts.')
 
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
     in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
@@ -825,6 +890,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spy_day_change_pct': round(spy_change_pct, 2),
             'spread': round(spread, 4),
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
+            'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
+            'market_internals': market_internals,
             'skip_reasons': skip_reasons,
             'sizing': sizing,
             'quick_notes': notes,
@@ -865,6 +932,7 @@ def run_scan() -> Dict[str, Any]:
     spy_curr = safe_num(spy_snap.get('dailyBar', {}).get('c')) or safe_num(spy_snap.get('minuteBar', {}).get('c')) or spy_prev
     spy_change_pct = ((spy_curr - spy_prev) / spy_prev * 100.0) if spy_prev > 0 else 0.0
     spy_minute_bars = minute_bars_map.get('SPY', [])
+    market_internals = get_market_internals_bias()
 
     ranked = []
     for symbol in symbols:
@@ -884,7 +952,7 @@ def run_scan() -> Dict[str, Any]:
             continue
         try:
             profile = get_company_profile(symbol)
-            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, spy_minute_bars, sector_snapshots))
+            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, spy_minute_bars, sector_snapshots, market_internals))
         except Exception:
             continue
 
@@ -916,7 +984,7 @@ def run_scan() -> Dict[str, Any]:
     return {
         'generated_at': now_utc().isoformat(),
         'day_of_week': now_et().strftime('%A'),
-        'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2)},
+        'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2), 'market_internals': market_internals},
         'market_call': market_call,
         'best_pick': best,
         'watchlist': ranked[:WATCHLIST_SIZE],
@@ -933,5 +1001,7 @@ def run_scan() -> Dict[str, Any]:
             'a_score': A_SCORE,
             'min_premarket_gap_pct': MIN_PREMARKET_GAP_PCT,
             'min_premarket_dollar_vol': MIN_PREMARKET_DOLLAR_VOL,
+            'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
+        'crypto_watchlist': run_crypto_scan(),
     }

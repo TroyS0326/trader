@@ -1,8 +1,18 @@
-from typing import Any, Dict
+import time
+from typing import Any, Dict, List
 
 import requests
 
-from config import ALPACA_API_KEY, ALPACA_API_SECRET, ALPACA_PAPER_BASE
+from config import (
+    ALPACA_API_KEY,
+    ALPACA_API_SECRET,
+    ALPACA_DATA_BASE,
+    ALPACA_FEED,
+    ALPACA_PAPER_BASE,
+    ENTRY_ORDER_POLL_SECONDS,
+    ENTRY_ORDER_TIMEOUT_SECONDS,
+    TARGET2_TRAILING_STOP_PCT,
+)
 
 TIMEOUT = 20
 
@@ -22,22 +32,48 @@ def _headers() -> Dict[str, str]:
     }
 
 
-def place_bracket_order(symbol: str, qty: int, entry_price: float, stop_price: float, target_price: float) -> Dict[str, Any]:
-    payload = {
-        'symbol': symbol,
-        'qty': str(qty),
-        'side': 'buy',
-        'type': 'limit',
-        'time_in_force': 'day',
-        'limit_price': round(entry_price, 2),
-        'order_class': 'bracket',
-        'take_profit': {'limit_price': round(target_price, 2)},
-        'stop_loss': {'stop_price': round(stop_price, 2)},
-    }
-    resp = requests.post(f'{ALPACA_PAPER_BASE}/v2/orders', json=payload, headers=_headers(), timeout=TIMEOUT)
+def _get_json(url: str, params: Dict[str, Any] | None = None) -> Any:
+    resp = requests.get(url, params=params or {}, headers=_headers(), timeout=TIMEOUT)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
+
+
+def _post_json(url: str, payload: Dict[str, Any]) -> Any:
+    resp = requests.post(url, json=payload, headers=_headers(), timeout=TIMEOUT)
+    if resp.status_code >= 400:
+        raise BrokerError(resp.text)
+    return resp.json()
+
+
+def _patch_json(url: str, payload: Dict[str, Any]) -> Any:
+    resp = requests.patch(url, json=payload, headers=_headers(), timeout=TIMEOUT)
+    if resp.status_code >= 400:
+        raise BrokerError(resp.text)
+    return resp.json()
+
+
+def get_latest_quote(symbol: str) -> Dict[str, Any]:
+    symbol = symbol.upper()
+    data = _get_json(
+        f'{ALPACA_DATA_BASE}/v2/stocks/quotes/latest',
+        params={'symbols': symbol, 'feed': ALPACA_FEED},
+    )
+    return (data.get('quotes') or {}).get(symbol, {})
+
+
+def submit_order(payload: Dict[str, Any]) -> Dict[str, Any]:
+    return _post_json(f'{ALPACA_PAPER_BASE}/v2/orders', payload)
+
+
+def replace_order(order_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    return _patch_json(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', payload)
+
+
+def cancel_order(order_id: str) -> None:
+    resp = requests.delete(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', headers=_headers(), timeout=TIMEOUT)
+    if resp.status_code not in {200, 204, 404, 422}:
+        raise BrokerError(resp.text)
 
 
 def get_order(order_id: str) -> Dict[str, Any]:
@@ -50,3 +86,153 @@ def get_order(order_id: str) -> Dict[str, Any]:
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
+
+
+def get_orders(order_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    for oid in order_ids:
+        if not oid:
+            continue
+        try:
+            out[oid] = get_order(oid)
+        except BrokerError:
+            continue
+    return out
+
+
+def _poll_for_fill(order_id: str, timeout_seconds: float) -> Dict[str, Any]:
+    started = time.time()
+    while True:
+        order = get_order(order_id)
+        status = (order.get('status') or '').lower()
+        if status == 'filled':
+            return order
+        if status in {'canceled', 'expired', 'rejected', 'done_for_day'}:
+            raise BrokerError(f'Entry order {order_id} ended as {status}.')
+        if time.time() - started >= timeout_seconds:
+            cancel_order(order_id)
+            raise BrokerError(
+                f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.'
+            )
+        time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
+
+
+def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy') -> Dict[str, Any]:
+    quote = get_latest_quote(symbol)
+    ask = float(quote.get('ap') or 0)
+    bid = float(quote.get('bp') or 0)
+    if side == 'buy':
+        peg_price = ask or bid
+    else:
+        peg_price = bid or ask
+    if peg_price <= 0:
+        raise BrokerError(f'No valid quote available to peg entry order for {symbol}.')
+    return submit_order(
+        {
+            'symbol': symbol.upper(),
+            'qty': str(qty),
+            'side': side,
+            'type': 'limit',
+            'time_in_force': 'day',
+            'limit_price': round(peg_price, 2),
+        }
+    )
+
+
+def place_managed_entry_order(
+    symbol: str,
+    qty: int,
+    entry_price: float,
+    stop_price: float,
+    target_1_price: float,
+    target_2_price: float,
+) -> Dict[str, Any]:
+    _ = entry_price, target_2_price  # reserved for external broker adapters and journaling.
+    entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy')
+    entry_id = entry.get('id')
+    if not entry_id:
+        raise BrokerError('Broker did not return an order id for entry.')
+    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS)
+    filled_qty = int(float(filled_entry.get('filled_qty') or qty))
+    if filled_qty < 1:
+        raise BrokerError('Entry order reported no shares filled.')
+
+    qty_target_1 = max(1, filled_qty // 2)
+    qty_runner = max(0, filled_qty - qty_target_1)
+
+    target_1_order = submit_order(
+        {
+            'symbol': symbol.upper(),
+            'qty': str(qty_target_1),
+            'side': 'sell',
+            'type': 'limit',
+            'time_in_force': 'gtc',
+            'limit_price': round(target_1_price, 2),
+        }
+    )
+
+    stop_runner_order = None
+    if qty_runner > 0:
+        stop_runner_order = submit_order(
+            {
+                'symbol': symbol.upper(),
+                'qty': str(qty_runner),
+                'side': 'sell',
+                'type': 'stop',
+                'time_in_force': 'gtc',
+                'stop_price': round(stop_price, 2),
+            }
+        )
+
+    return {
+        'id': entry_id,
+        'status': 'filled',
+        'symbol': symbol.upper(),
+        'filled_qty': str(filled_qty),
+        'filled_avg_price': filled_entry.get('filled_avg_price'),
+        'strategy': 'target1_then_trailing_runner',
+        'entry_order': filled_entry,
+        'target_1_order_id': target_1_order.get('id'),
+        'runner_stop_order_id': (stop_runner_order or {}).get('id'),
+        'runner_trailing_pct': TARGET2_TRAILING_STOP_PCT,
+    }
+
+
+def maybe_activate_runner_trailing(raw_trade_payload: Dict[str, Any], breakeven_price: float) -> Dict[str, Any]:
+    if (raw_trade_payload or {}).get('strategy') != 'target1_then_trailing_runner':
+        return raw_trade_payload
+    if raw_trade_payload.get('runner_trailing_activated'):
+        return raw_trade_payload
+
+    target_1_id = raw_trade_payload.get('target_1_order_id')
+    runner_stop_id = raw_trade_payload.get('runner_stop_order_id')
+    if not target_1_id or not runner_stop_id:
+        return raw_trade_payload
+
+    target_1 = get_order(target_1_id)
+    if (target_1.get('status') or '').lower() != 'filled':
+        return raw_trade_payload
+
+    # Lock in a "base hit": move stop to breakeven first, then convert to trailing.
+    replace_order(runner_stop_id, {'stop_price': round(breakeven_price, 2)})
+    cancel_order(runner_stop_id)
+    runner_qty = int(float(target_1.get('qty') or 0))
+    remaining_qty = int(float(raw_trade_payload.get('filled_qty') or 0)) - runner_qty
+    if remaining_qty < 1:
+        raw_trade_payload['runner_trailing_activated'] = True
+        return raw_trade_payload
+
+    trailing = submit_order(
+        {
+            'symbol': raw_trade_payload.get('symbol'),
+            'qty': str(remaining_qty),
+            'side': 'sell',
+            'type': 'trailing_stop',
+            'time_in_force': 'gtc',
+            'trail_percent': str(round(TARGET2_TRAILING_STOP_PCT, 4)),
+        }
+    )
+    raw_trade_payload['runner_trailing_activated'] = True
+    raw_trade_payload['runner_trailing_order_id'] = trailing.get('id')
+    raw_trade_payload['runner_breakeven_price'] = round(breakeven_price, 2)
+    return raw_trade_payload

@@ -10,8 +10,14 @@ This local app is built to follow your playbook in order:
 - Gemini-based catalyst scoring when a Gemini key is present
 - Lightweight Charts for 1-minute and daily charts
 - Live watchlist updates through a browser websocket
-- Alpaca paper-trade bracket order button
+- Alpaca paper-trade managed execution:
+  - bid/ask-pegged limit entry
+  - 15-second entry timeout + auto-cancel
+  - target-1 scale-out, breakeven stop shift, trailing stop runner for target-2
 - SQLite scan history and trade journal
+- Optional market internals long-block filter using $TICK + $ADD
+- Daily volume-profile POC gate (blocks buys below POC)
+- Optional parallel crypto scanner for 24/7 reps
 - Exact plain-English panel for:
   - Day of the Week: What Stock to Watch
   - Buy only after 10:00 AM ET if it is between $X and $Y
@@ -58,3 +64,4 @@ Recommended:
 - The scanner now classifies each day as A+, A, WATCH, or NO TRADE.
 - Paper execution is blocked unless the best setup is graded A or A+.
 - Premarket gap, premarket dollar volume, and sector sympathy now materially affect ranking.
+- Use `python analyze_performance.py` to analyze `veteran_trades.db` for win-rate by confidence level and time-window lockout candidates.
