@@ -38,7 +38,6 @@ from config import (
     TIMEZONE_LABEL,
     WATCHLIST_SIZE,
 )
-from crypto_scanner import run_crypto_scan
 
 TIMEOUT = 20
 VETERAN_BLACKLIST = {
@@ -917,8 +916,24 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan() -> Dict[str, Any]:
-    symbols = get_market_candidates()
-    snapshots = get_snapshots(symbols)
+    raw_symbols = get_market_candidates(100)
+    snapshots = get_snapshots(raw_symbols)
+
+    cheap_symbols = []
+    for sym in raw_symbols:
+        if sym == 'SPY':
+            continue
+        snap = snapshots.get(sym, {})
+        daily_c = safe_num(snap.get('dailyBar', {}).get('c'))
+        prev_c = safe_num(snap.get('prevDailyBar', {}).get('c'))
+        price = daily_c or prev_c
+        if price > 0 and price < 5.0:
+            cheap_symbols.append(sym)
+
+    symbols = cheap_symbols[:SCAN_CANDIDATE_LIMIT]
+    if 'SPY' not in symbols:
+        symbols.append('SPY')
+
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
     sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols])
@@ -1003,5 +1018,4 @@ def run_scan() -> Dict[str, Any]:
             'min_premarket_dollar_vol': MIN_PREMARKET_DOLLAR_VOL,
             'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
-        'crypto_watchlist': run_crypto_scan(),
     }
