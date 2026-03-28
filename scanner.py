@@ -347,7 +347,7 @@ def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str,
         'direction': 'unknown',
         'confidence': 'low',
         'hard_pass': False,
-        'reason': 'Fallback scoring used because Gemini was unavailable.',
+        'reason': ai.get('reason') or 'Fallback scoring used because Gemini was unavailable.',
         'headlines': headlines[:8],
     }
 
