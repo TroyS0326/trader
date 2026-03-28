@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -5,8 +6,8 @@ from flask import Flask, jsonify, render_template, request
 from flask_sock import Sock
 
 import config
-from broker import BrokerError, get_order, place_bracket_order
-from db import get_failed_trades_today, get_recent_scans, get_recent_trades, init_db, insert_scan, insert_trade, update_trade_status
+from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
+from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
@@ -34,6 +35,21 @@ def fail(message: str, status: int = 400, **extras):
 
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
+    if order.get('strategy') == 'target1_then_trailing_runner':
+        t1 = order.get('target_1_order') or {}
+        runner = order.get('runner_order') or {}
+        runner_trailing = order.get('runner_trailing_order') or {}
+        if (runner_trailing.get('status') or '').lower() == 'filled':
+            return 'win'
+        if (runner.get('status') or '').lower() == 'filled':
+            return 'breakeven_or_small_win'
+        if (t1.get('status') or '').lower() == 'filled':
+            return 'partial_win'
+        if status in {'rejected'}:
+            return 'rejected'
+        if status in {'canceled', 'expired'}:
+            return 'failed'
+        return 'open'
     legs = order.get('legs') or []
     for leg in legs:
         leg_type = (leg.get('order_type') or '').lower()
@@ -152,12 +168,13 @@ def api_execute():
         if (entry_price - stop_price) * qty > config.MAX_DOLLAR_LOSS_PER_TRADE + 0.01:
             return fail('Execution blocked because the trade risks more than the max dollar loss.', 403)
 
-        order = place_bracket_order(
+        order = place_managed_entry_order(
             symbol=data['symbol'],
             qty=qty,
             entry_price=entry_price,
             stop_price=stop_price,
-            target_price=target_1,
+            target_1_price=target_1,
+            target_2_price=target_2,
         )
         trade_payload = {
             'scan_id': data.get('scan_id'),
@@ -183,8 +200,11 @@ def api_execute():
             'filled_avg_price': order.get('filled_avg_price'),
             'filled_qty': order.get('filled_qty'),
             'outcome': order_outcome_from_payload(order),
-            'notes': 'Paper-trade bracket order submitted with stricter risk controls.',
-            'raw_json': order,
+            'notes': 'Pegged entry + 15s timeout + target-1 scale-out with trailing runner automation.',
+            'raw_json': {
+                'order_bundle': order,
+                'execution_request': data,
+            },
         }
         trade_id = insert_trade(trade_payload)
         return ok(
@@ -218,13 +238,31 @@ def api_execute():
 @app.route('/api/order-status/<order_id>')
 def api_order_status(order_id: str):
     try:
-        order = get_order(order_id)
+        trade = get_trade_by_order_id(order_id)
+        if not trade:
+            return fail('Trade not found for order id.', 404)
+        raw = trade.get('raw_json') or '{}'
+        if isinstance(raw, str):
+            raw = json.loads(raw or '{}')
+        bundle = raw.get('order_bundle') if isinstance(raw, dict) else None
+        if not isinstance(bundle, dict):
+            order = get_order(order_id)
+        else:
+            order = dict(bundle)
+            if bundle.get('strategy') == 'target1_then_trailing_runner':
+                bundle = maybe_activate_runner_trailing(bundle, breakeven_price=float(trade.get('entry_price') or 0))
+                order['target_1_order'] = get_order(bundle.get('target_1_order_id')) if bundle.get('target_1_order_id') else {}
+                if bundle.get('runner_trailing_order_id'):
+                    order['runner_trailing_order'] = get_order(bundle.get('runner_trailing_order_id'))
+                elif bundle.get('runner_stop_order_id'):
+                    order['runner_order'] = get_order(bundle.get('runner_stop_order_id'))
+                raw['order_bundle'] = bundle
         updates = {
             'order_status': order.get('status'),
             'filled_avg_price': order.get('filled_avg_price'),
             'filled_qty': order.get('filled_qty'),
             'outcome': order_outcome_from_payload(order),
-            'raw_json': order,
+            'raw_json': raw if isinstance(raw, dict) else order,
         }
         update_trade_status(order_id, updates)
         order['risk_controls'] = {
