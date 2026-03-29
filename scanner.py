@@ -20,11 +20,11 @@ from config import (
     ALPACA_API_SECRET,
     ALPACA_DATA_BASE,
     ALPACA_FEED,
+    CURRENT_BANKROLL,
     DEFAULT_RISK_CAPITAL,
     FINNHUB_API_KEY,
     MAX_BUY_SHARES,
     MAX_FLOAT,
-    MAX_DOLLAR_LOSS_PER_TRADE,
     MAX_ENTRY_EXTENSION_PCT,
     MAX_SPREAD_PCT,
     MARKET_INTERNALS_ADD_SYMBOL,
@@ -43,6 +43,7 @@ from config import (
     OPENING_RANGE_START_ET,
     OR_BREAKOUT_BUFFER_PCT,
     PULLBACK_MAX_RETRACE_PCT,
+    RISK_PCT_PER_TRADE,
     SCAN_CANDIDATE_LIMIT,
     TIMEZONE_LABEL,
     WATCHLIST_SIZE,
@@ -970,9 +971,10 @@ def get_trade_decision(model_scores: Dict[str, int], time_et: datetime, relative
 
 
 def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, Any]:
+    dynamic_dollar_risk = CURRENT_BANKROLL * RISK_PCT_PER_TRADE
     risk_per_share = max(0.01, round(entry_price - stop_price, 2))
     capital_qty = int(DEFAULT_RISK_CAPITAL // max(0.01, entry_price))
-    risk_qty = int(MAX_DOLLAR_LOSS_PER_TRADE // risk_per_share)
+    risk_qty = int(dynamic_dollar_risk // risk_per_share)
     qty = max(0, min(MAX_BUY_SHARES, capital_qty, risk_qty))
     return {
         'qty': qty,
@@ -980,6 +982,7 @@ def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, 
         'risk_qty': risk_qty,
         'max_dollar_loss': round(qty * risk_per_share, 2),
         'buying_power_used': round(qty * entry_price, 2),
+        'dynamic_risk_limit': round(dynamic_dollar_risk, 2),
     }
 
 
@@ -1264,7 +1267,9 @@ def run_scan() -> Dict[str, Any]:
             'opening_range_window_et': f'{OPENING_RANGE_START_ET}-{OPENING_RANGE_END_ET}',
             'max_spread_pct': MAX_SPREAD_PCT,
             'max_entry_extension_pct': MAX_ENTRY_EXTENSION_PCT,
-            'max_dollar_loss_per_trade': MAX_DOLLAR_LOSS_PER_TRADE,
+            'current_bankroll': CURRENT_BANKROLL,
+            'risk_pct_per_trade': RISK_PCT_PER_TRADE,
+            'dynamic_dollar_risk_limit': round(CURRENT_BANKROLL * RISK_PCT_PER_TRADE, 2),
             'a_plus_score': A_PLUS_SCORE,
             'a_score': A_SCORE,
             'min_premarket_gap_pct': MIN_PREMARKET_GAP_PCT,
