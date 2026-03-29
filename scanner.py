@@ -9,7 +9,7 @@ import requests
 
 from decision import regime_trade_decision
 from filters import passes_hard_gatekeeper
-from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency
+from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
 from models import ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
@@ -37,6 +37,8 @@ from config import (
     MIN_SECTOR_SYMPATHY_SCORE,
     A_PLUS_SCORE,
     A_SCORE,
+    ATR_STOP_MULT,
+    RS_SECTOR_MULT,
     MIN_SCORE_TO_EXECUTE,
     NO_BUY_BEFORE_ET,
     OPENING_RANGE_END_ET,
@@ -46,6 +48,9 @@ from config import (
     RISK_PCT_PER_TRADE,
     SCAN_CANDIDATE_LIMIT,
     TIMEZONE_LABEL,
+    VA_PERCENT,
+    VIX_CIRCUIT_BREAKER_PCT,
+    VIX_SYMBOL,
     WATCHLIST_SIZE,
 )
 TIMEOUT = 20
@@ -260,6 +265,37 @@ def get_bars(symbols: List[str], timeframe: str, start: datetime, end: datetime,
         headers=_alpaca_headers(),
     )
     return data.get('bars', {})
+
+
+def check_vix_circuit_breaker() -> bool:
+    """Return True when VIX proxy volatility spikes beyond configured threshold."""
+    end = now_utc()
+    start = end - timedelta(hours=2)
+    try:
+        bars = get_bars([VIX_SYMBOL], '1Min', start, end, 180).get(VIX_SYMBOL, [])
+    except Exception:
+        return False
+    if len(bars) < 60:
+        return False
+    last_60 = bars[-60:]
+    first_close = safe_num(last_60[0].get('c'))
+    last_close = safe_num(last_60[-1].get('c'))
+    if first_close <= 0:
+        return False
+    change_pct = ((last_close - first_close) / first_close) * 100.0
+    return change_pct >= VIX_CIRCUIT_BREAKER_PCT
+
+
+def has_positive_mtf_vwap_trend(minute_bars: List[Dict[str, Any]], chunk_size: int = 5) -> bool:
+    session = filter_bars_for_today_session(minute_bars)
+    if len(session) < chunk_size * 6:
+        return False
+    five_minute_blocks = [session[i:i + chunk_size] for i in range(0, len(session), chunk_size)]
+    recent_blocks = [b for b in five_minute_blocks if len(b) == chunk_size][-6:]
+    if len(recent_blocks) < 4:
+        return False
+    vwap_series = [calc_vwap(block) for block in recent_blocks]
+    return all(vwap_series[i] >= vwap_series[i - 1] for i in range(1, len(vwap_series)))
 
 
 def get_company_news(symbol: str, lookback_days: int = 3) -> List[Dict[str, Any]]:
@@ -536,10 +572,11 @@ def choose_sector_etf(profile: Dict[str, Any], symbol: str) -> str:
 def score_sector_sympathy(symbol: str, symbol_change_pct: float, sector_symbol: str, sector_change_pct: float, catalyst_meta: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
     edge = symbol_change_pct - sector_change_pct
     bullish = catalyst_meta.get('direction') not in {'bearish', 'mixed'}
+    is_leader = symbol_change_pct >= (sector_change_pct * RS_SECTOR_MULT) if sector_change_pct > 0 else symbol_change_pct > 1.0
     score = 1
-    if bullish and sector_change_pct > 0 and edge >= 4:
+    if bullish and sector_change_pct > 0 and edge >= 4 and is_leader:
         score = 5
-    elif bullish and sector_change_pct >= -0.2 and edge >= 2.5:
+    elif bullish and sector_change_pct >= -0.2 and edge >= 2.5 and is_leader:
         score = 4
     elif edge >= 1.0:
         score = 3
@@ -549,6 +586,7 @@ def score_sector_sympathy(symbol: str, symbol_change_pct: float, sector_symbol: 
         'sector_symbol': sector_symbol,
         'sector_change_pct': round(sector_change_pct, 2),
         'edge_vs_sector_pct': round(edge, 2),
+        'is_leader_vs_sector': is_leader,
     }
 
 
@@ -819,9 +857,7 @@ def score_entry_quality(current_price: float, daily_bars: List[Dict[str, Any]], 
     coil_low = min(minute_lows)
     or_breakout = safe_num(or_stats.get('breakout_price')) or max(recent_high, coil_high)
     entry = max(recent_high, coil_high, or_breakout) + max(0.02, atr * 0.03)
-    stop_anchor = max(safe_num(or_stats.get('or_low')), safe_num(vwap_meta.get('vwap')) * 0.995, coil_low)
-    stop = min(stop_anchor, entry - max(0.05, atr * 0.35))
-    stop = max(stop, recent_low)
+    stop = max(recent_low, entry - max(0.05, atr * ATR_STOP_MULT))
     risk = max(0.01, entry - stop)
     target1 = entry + risk * 3
     target2 = entry + risk * 4
@@ -1002,7 +1038,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     premarket_gap_pct = price_change_pct
     required_premarket_notional = required_premarket_volume_for_gap(premarket_gap_pct)
     volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
+    value_area = calc_value_area(filter_bars_for_today_session(minute_bars), safe_num, VA_PERCENT)
     red_candle_trap = detect_heavy_red_candle_trap(minute_bars)
+    mtf_aligned = has_positive_mtf_vwap_trend(minute_bars)
+    vix_breaker_active = check_vix_circuit_breaker()
 
     catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
     liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
@@ -1061,8 +1100,12 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append(f"Float is too high ({liquidity_meta.get('float_shares', 0):,.0f} shares).")
     if volume_poc and current_price <= volume_poc:
         skip_reasons.append('Price is below the daily volume POC.')
+    if value_area.get('vah') and current_price < safe_num(value_area.get('vah')):
+        skip_reasons.append('Price inside Value Area (churn zone).')
     if red_candle_trap.get('triggered'):
         skip_reasons.append('Hard skip: opening heavy red candle trap detected.')
+    if not mtf_aligned:
+        skip_reasons.append('5-minute VWAP trend is not aligned.')
     if entry_meta.get('extended'):
         skip_reasons.append('Price is extended above the entry zone.')
     if sizing['qty'] < 1:
@@ -1077,6 +1120,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('VWAP reclaim/hold is not strong enough.')
     if market_internals.get('longs_blocked'):
         skip_reasons.append(market_internals.get('reason') or 'Market internals are blocking long breakouts.')
+    if vix_breaker_active:
+        skip_reasons.append('VIX Volatility Circuit Breaker Active.')
 
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
     in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
@@ -1088,6 +1133,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         decision = 'BUY NOW'
     elif setup_grade in {'A+', 'A', 'WATCH'}:
         decision = regime_decision
+    if decision == 'BUY NOW' and not sector_meta.get('is_leader_vs_sector', False):
+        decision = 'WATCH'
+    if vix_breaker_active:
+        decision = 'WATCH'
 
     notes = []
     if or_stats.get('or_high'):
@@ -1162,12 +1211,15 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spread': round(spread, 4),
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
             'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
+            'value_area': value_area,
             'market_internals': market_internals,
             'rvol': round(rvol, 2),
             'trend_efficiency': round(trend_efficiency, 3),
             'halt_risk': halt_risk,
             'relative_strength_vs_spy': round(safe_num(rel_strength_vs_spy), 2),
             'red_candle_trap': red_candle_trap,
+            'mtf_vwap_aligned': mtf_aligned,
+            'vix_circuit_breaker': vix_breaker_active,
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
             'sizing': sizing,
