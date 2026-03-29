@@ -10,7 +10,7 @@ import requests
 from decision import regime_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency
-from models import ScoreTriplet, SymbolMarketStats
+from models import ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
@@ -1094,36 +1094,54 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     if open_rs_meta.get('edge') is not None:
         notes.append(f"Open RS vs SPY: {open_rs_meta.get('edge', 0)}%")
 
-    return {
-        'symbol': symbol,
-        'score_total': total,
-        'decision': decision,
-        'current_price': round(current_price, 2),
-        'buy_lower': round(buy_lower, 2),
-        'buy_upper': buy_upper,
-        'entry_price': round(entry_meta['entry_price'], 2),
-        'stop_price': round(entry_meta['stop_price'], 2),
-        'target_1': round(entry_meta['target_1'], 2),
-        'target_2': round(entry_meta['target_2'], 2),
-        'qty': sizing['qty'],
-        'risk_per_share': entry_meta['risk_per_share'],
-        'max_dollar_loss': sizing['max_dollar_loss'],
-        'buying_power_used': sizing['buying_power_used'],
-        'rr_ratio_1': entry_meta['rr_ratio_1'],
-        'rr_ratio_2': entry_meta['rr_ratio_2'],
-        'score_models': ScoreTriplet(**model_scores).to_dict(),
-        'scores': {
-            'catalyst': catalyst_score,
-            'liquidity': liquidity_score,
-            'daily_chart_alignment': daily_score,
-            'sector_sympathy': sector_score,
-            'open_relative_strength': open_rs_score,
-            'vwap_hold_reclaim': vwap_score,
-            'first_pullback': pullback_score,
-            'entry_quality': entry_score,
-            'opening_range_confirmation': confirm_score,
-        },
-        'details': {
+    # 1. Build the typed Sub-components
+    component_scores = ComponentScores(
+        catalyst=catalyst_score,
+        liquidity=liquidity_score,
+        daily_chart_alignment=daily_score,
+        sector_sympathy=sector_score,
+        open_relative_strength=open_rs_score,
+        vwap_hold_reclaim=vwap_score,
+        first_pullback=pullback_score,
+        entry_quality=entry_score,
+        opening_range_confirmation=confirm_score
+    )
+
+    watch_panel = WatchPanelDef(
+        label=f"{now_et().strftime('%A')}: Watch {symbol}",
+        buy_after=f'{NO_BUY_BEFORE_ET} ET',
+        buy_range=[round(buy_lower, 2), round(buy_upper, 2)],
+        max_shares=sizing['qty'],
+        stop=round(entry_meta['stop_price'], 2),
+        take_profit_range=[round(entry_meta['target_1'], 2), round(entry_meta['target_2'], 2)],
+        max_dollar_loss=sizing['max_dollar_loss'],
+        opening_range=[or_stats.get('or_low'), or_stats.get('or_high')],
+        vwap=vwap_meta.get('vwap'),
+        status=decision,
+        setup_grade=setup_grade
+    )
+
+    # 2. Build the main typed Result Object
+    analysis_result = SymbolAnalysisResult(
+        symbol=symbol,
+        score_total=total,
+        decision=decision,
+        current_price=round(current_price, 2),
+        buy_lower=round(buy_lower, 2),
+        buy_upper=buy_upper,
+        entry_price=round(entry_meta['entry_price'], 2),
+        stop_price=round(entry_meta['stop_price'], 2),
+        target_1=round(entry_meta['target_1'], 2),
+        target_2=round(entry_meta['target_2'], 2),
+        qty=sizing['qty'],
+        risk_per_share=entry_meta['risk_per_share'],
+        max_dollar_loss=sizing['max_dollar_loss'],
+        buying_power_used=sizing['buying_power_used'],
+        rr_ratio_1=entry_meta['rr_ratio_1'],
+        rr_ratio_2=entry_meta['rr_ratio_2'],
+        score_models=ScoreTriplet(**model_scores).to_dict(),
+        scores=component_scores,
+        details={
             'catalyst': catalyst_meta,
             'liquidity': liquidity_meta,
             'daily_chart_alignment': daily_meta,
@@ -1152,24 +1170,15 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'sizing': sizing,
             'quick_notes': notes,
         },
-        'setup_grade': setup_grade,
-        'watch_panel': {
-            'label': f"{now_et().strftime('%A')}: Watch {symbol}",
-            'buy_after': f'{NO_BUY_BEFORE_ET} ET',
-            'buy_range': [round(buy_lower, 2), round(buy_upper, 2)],
-            'max_shares': sizing['qty'],
-            'stop': round(entry_meta['stop_price'], 2),
-            'take_profit_range': [round(entry_meta['target_1'], 2), round(entry_meta['target_2'], 2)],
-            'max_dollar_loss': sizing['max_dollar_loss'],
-            'opening_range': [or_stats.get('or_low'), or_stats.get('or_high')],
-            'vwap': vwap_meta.get('vwap'),
-            'status': decision,
-            'setup_grade': setup_grade,
-        },
-        'buy_window_open': after_time_gate,
-        'opening_range_complete': bool(or_stats.get('or_complete')),
-        'breakout_confirmed': bool(confirm_meta.get('breakout_confirmed')),
-    }
+        setup_grade=setup_grade,
+        watch_panel=watch_panel,
+        buy_window_open=after_time_gate,
+        opening_range_complete=bool(or_stats.get('or_complete')),
+        breakout_confirmed=bool(confirm_meta.get('breakout_confirmed'))
+    )
+
+    # 3. Return as a dict so it passes safely to Flask and SQLite
+    return analysis_result.to_dict()
 
 
 def run_scan() -> Dict[str, Any]:
