@@ -7,7 +7,13 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from ai_catalyst import classify_news_with_gemini
+from decision import regime_trade_decision
+from filters import passes_hard_gatekeeper
+from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency
+from models import ScoreTriplet, SymbolMarketStats
+from setups import detect_orb
+
+from ai_catalyst import classify_catalyst, classify_news_with_gemini
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -16,6 +22,7 @@ from config import (
     DEFAULT_RISK_CAPITAL,
     FINNHUB_API_KEY,
     MAX_BUY_SHARES,
+    MAX_FLOAT,
     MAX_DOLLAR_LOSS_PER_TRADE,
     MAX_ENTRY_EXTENSION_PCT,
     MAX_SPREAD_PCT,
@@ -24,6 +31,7 @@ from config import (
     MARKET_INTERNALS_TICK_SYMBOL,
     MIN_CATALYST_SCORE,
     MIN_PREMARKET_DOLLAR_VOL,
+    MIN_RVOL,
     MIN_PREMARKET_GAP_PCT,
     MIN_SECTOR_SYMPATHY_SCORE,
     A_PLUS_SCORE,
@@ -39,7 +47,6 @@ from config import (
     WATCHLIST_SIZE,
 )
 TIMEOUT = 20
-MAX_FLOAT_SHARES = 50_000_000
 HIGH_GAP_THRESHOLD_PCT = 20.0
 HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL = 5_000_000
 VETERAN_BLACKLIST = {
@@ -135,6 +142,96 @@ def get_market_candidates(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
     if 'SPY' not in seen:
         deduped.append('SPY')
     return deduped[: max(limit, 8)]
+
+
+
+def _extract_symbols(items: List[Dict[str, Any]]) -> List[str]:
+    out: List[str] = []
+    for item in items:
+        symbol = str(item.get('symbol') or '').upper().strip()
+        if symbol and symbol.isalpha() and len(symbol) <= 5 and symbol not in VETERAN_BLACKLIST:
+            out.append(symbol)
+    return out
+
+
+def get_alpaca_movers(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
+    try:
+        data = _get_json(f'{ALPACA_DATA_BASE}/v1beta1/screener/stocks/movers', params={'top': limit}, headers=_alpaca_headers())
+    except requests.RequestException:
+        return []
+    return _extract_symbols(data.get('gainers', []) if isinstance(data, dict) else [])
+
+
+def get_premarket_leaders(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
+    try:
+        data = _get_json(f'{ALPACA_DATA_BASE}/v1beta1/screener/stocks/most-actives', params={'top': limit}, headers=_alpaca_headers())
+    except requests.RequestException:
+        return []
+    return _extract_symbols(data.get('most_actives', []) if isinstance(data, dict) else [])
+
+
+def get_unusual_relvol(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
+    try:
+        data = _get_json(f'{ALPACA_DATA_BASE}/v1beta1/screener/stocks/movers', params={'top': limit}, headers=_alpaca_headers())
+    except requests.RequestException:
+        return []
+    return _extract_symbols(data.get('gainers', []) if isinstance(data, dict) else [])
+
+
+def get_news_catalyst_list(candidates: List[str], per_symbol: int = 1) -> List[str]:
+    out: List[str] = []
+    for symbol in candidates[: max(6, min(len(candidates), SCAN_CANDIDATE_LIMIT))]:
+        headlines = get_company_news(symbol, lookback_days=1)
+        if len(headlines) >= per_symbol:
+            out.append(symbol)
+    return out
+
+
+def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
+    candidates = set()
+    candidates.update(get_alpaca_movers(limit))
+    candidates.update(get_premarket_leaders(limit))
+    candidates.update(get_unusual_relvol(limit))
+    candidates.update(get_news_catalyst_list(list(candidates) or get_market_candidates(limit)))
+
+    if 'SPY' not in candidates:
+        candidates.add('SPY')
+
+    snapshots = get_snapshots(list(candidates))
+    quotes = get_latest_quotes(list(candidates))
+
+    valid: List[str] = []
+    for symbol in candidates:
+        snap = snapshots.get(symbol, {})
+        quote = quotes.get(symbol, {})
+        daily = snap.get('dailyBar', {})
+        minute = snap.get('minuteBar', {})
+        prev = snap.get('prevDailyBar', {})
+        price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
+        if symbol != 'SPY' and not (1.0 <= price <= 5.0):
+            continue
+        day_vol = safe_num(daily.get('v')) or safe_num(prev.get('v'))
+        dollar_volume = day_vol * max(price, 0)
+        if symbol != 'SPY' and dollar_volume < 2_000_000:
+            continue
+        bid = safe_num(quote.get('bp'))
+        ask = safe_num(quote.get('ap'))
+        spread_pct = calc_spread_pct(bid, ask, price)
+        if symbol != 'SPY':
+            market_stats = SymbolMarketStats(
+                symbol=symbol,
+                price=price,
+                daily_dollar_volume=dollar_volume,
+                spread_pct=spread_pct,
+            )
+            keep, _ = passes_hard_gatekeeper(market_stats)
+            if not keep:
+                continue
+        valid.append(symbol)
+
+    if 'SPY' not in valid:
+        valid.append('SPY')
+    return valid[: max(limit, 12)]
 
 
 def get_snapshots(symbols: List[str]) -> Dict[str, Any]:
@@ -400,7 +497,7 @@ def get_stock_chart_pack(symbol: str) -> Dict[str, Any]:
 def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premarket_notional: float, day_volume: float, spread: float, atr: float, current_price: float) -> Tuple[int, Dict[str, Any]]:
     shares_out = safe_num(profile.get('shareOutstanding')) * 1_000_000
     float_shares = extract_float_shares(profile, asset)
-    high_float_block = bool(float_shares and float_shares > MAX_FLOAT_SHARES)
+    high_float_block = bool(float_shares and float_shares > MAX_FLOAT)
     float_proxy_ok = 10_000_000 <= shares_out <= 50_000_000 if shares_out > 0 else False
     spread_pct = spread / current_price if current_price > 0 else 1.0
     score = 1
@@ -432,17 +529,20 @@ def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str,
     ai = classify_news_with_gemini(symbol, headlines)
     if ai.get('used_ai'):
         score = int(ai.get('score') or 1)
+        category = classify_catalyst(str(ai.get('catalyst_type', 'unknown')))
         if ai.get('direction') == 'bearish':
             score = max(1, score - 1)
+        score = 1 if category['hard_skip'] else max(score, min(5, category['weight']))
         if ai.get('hard_pass'):
             score = 1
         return score, {
             'used_ai': True,
             'headline_count': len(headlines),
             'catalyst_type': ai.get('catalyst_type', 'unknown'),
+            'catalyst_category_weight': category['weight'],
             'direction': ai.get('direction', 'unknown'),
             'confidence': ai.get('confidence', 'low'),
-            'hard_pass': ai.get('hard_pass', False),
+            'hard_pass': bool(ai.get('hard_pass', False) or category['hard_skip']),
             'reason': ai.get('reason', ''),
             'headlines': headlines[:8],
         }
@@ -950,6 +1050,94 @@ def score_opening_range_confirmation(current_price: float, or_stats: Dict[str, A
     }
 
 
+
+def calculate_rvol(minute_bars: List[Dict[str, Any]], lookback_days: int = 3) -> float:
+    if not minute_bars:
+        return 0.0
+    session = filter_bars_for_today_session(minute_bars)
+    current_volume = sum(safe_num(b.get('v')) for b in session)
+    if current_volume <= 0:
+        return 0.0
+    latest_dt = bar_dt_et(minute_bars[-1])
+    if not latest_dt:
+        return 0.0
+    cutoff = latest_dt.hour * 60 + latest_dt.minute
+    volumes_by_day: Dict[Any, float] = {}
+    for b in minute_bars:
+        dt = bar_dt_et(b)
+        if not dt or dt.date() == latest_dt.date():
+            continue
+        mins = dt.hour * 60 + dt.minute
+        if 9 * 60 + 30 <= mins <= cutoff:
+            volumes_by_day[dt.date()] = volumes_by_day.get(dt.date(), 0.0) + safe_num(b.get('v'))
+    hist = list(volumes_by_day.values())[-lookback_days:]
+    avg = mean(hist) if hist else 0.0
+    return (current_volume / avg) if avg > 0 else 0.0
+
+
+def calculate_trend_efficiency(minute_bars: List[Dict[str, Any]], window: int = 30) -> float:
+    session = filter_bars_for_today_session(minute_bars)
+    closes = [safe_num(b.get('c')) for b in session[-window:] if safe_num(b.get('c')) > 0]
+    if len(closes) < 3:
+        return 0.0
+    net_move = abs(closes[-1] - closes[0])
+    path = sum(abs(closes[i] - closes[i - 1]) for i in range(1, len(closes)))
+    return (net_move / path) if path > 0 else 0.0
+
+
+def calculate_halt_risk_probability(minute_bars: List[Dict[str, Any]], bars: int = 5) -> Dict[str, Any]:
+    session = filter_bars_for_today_session(minute_bars)
+    recent = session[-bars:]
+    if not recent:
+        return {'halt_risk': 'unknown', 'max_1m_range_pct': 0.0}
+    max_range = 0.0
+    for b in recent:
+        h = safe_num(b.get('h'))
+        l = safe_num(b.get('l'))
+        if l > 0 and h >= l:
+            max_range = max(max_range, (h - l) / l * 100.0)
+    risk = 'high' if max_range > 8 else 'normal'
+    return {'halt_risk': risk, 'max_1m_range_pct': round(max_range, 2)}
+
+
+def build_model_scores(price_change_pct: float, rvol: float, float_shares: float, catalyst_weight: int, spread_pct: float, trend_efficiency: float, current_price: float, vwap: float, now_label: str) -> Dict[str, int]:
+    gap_component = 100 if 8 <= price_change_pct <= 20 else (70 if price_change_pct > 5 else 40)
+    rvol_component = min(100, int((rvol / max(0.1, MIN_RVOL)) * 100))
+    float_component = 100 if 0 < float_shares <= 20_000_000 else (55 if float_shares <= MAX_FLOAT else 20)
+    catalyst_component = catalyst_weight * 20
+    opportunity = int(0.25 * catalyst_component + 0.20 * rvol_component + 0.15 * float_component + 0.15 * gap_component + 0.25 * 80)
+
+    spread_component = 100 if spread_pct <= 0.003 else (70 if spread_pct <= 0.01 else 35)
+    trend_component = min(100, int(trend_efficiency * 100))
+    tradability = int(0.5 * spread_component + 0.5 * trend_component)
+
+    extension = ((current_price - vwap) / vwap * 100.0) if vwap > 0 else 0.0
+    extension_component = 100 if extension <= 1.5 else (70 if extension <= 3 else 30)
+    tod_component = 95 if '09:' in now_label or '10:' in now_label else (45 if '12:' in now_label or '13:' in now_label else 70)
+    entry_quality = int(0.6 * extension_component + 0.4 * tod_component)
+
+    return {
+        'opportunity': max(1, min(100, opportunity)),
+        'tradability': max(1, min(100, tradability)),
+        'entry_quality': max(1, min(100, entry_quality)),
+    }
+
+
+def get_trade_decision(model_scores: Dict[str, int], time_et: datetime, relative_strength_vs_spy: float) -> str:
+    minutes = time_et.hour * 60 + time_et.minute
+    if 9 * 60 + 30 <= minutes <= 10 * 60 + 30:
+        if model_scores['opportunity'] > 80 and model_scores['tradability'] > 60:
+            return 'BUY NOW'
+    elif 11 * 60 <= minutes <= 14 * 60:
+        if model_scores['opportunity'] > 95 and model_scores['entry_quality'] > 90:
+            return 'BUY NOW'
+        return 'WATCH FOR BREAKOUT'
+    elif 15 * 60 <= minutes <= 16 * 60:
+        if relative_strength_vs_spy > 2.0 and model_scores['tradability'] > 55:
+            return 'BUY NOW'
+    return 'WATCH FOR BREAKOUT'
+
+
 def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, Any]:
     risk_per_share = max(0.01, round(entry_price - stop_price, 2))
     capital_qty = int(DEFAULT_RISK_CAPITAL // max(0.01, entry_price))
@@ -992,11 +1180,28 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     sector_change_pct = ((sector_curr - sector_prev) / sector_prev * 100.0) if sector_prev > 0 else 0.0
     sector_score, sector_meta = score_sector_sympathy(symbol, price_change_pct, sector_symbol, sector_change_pct, catalyst_meta)
     or_stats = get_opening_range_stats(minute_bars)
+    orb_meta = detect_orb(minute_bars, filter_bars_in_et_window, filter_bars_for_today_session, safe_num, OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
     open_rs_score, open_rs_meta = score_relative_strength_open(minute_bars, spy_minute_bars)
     vwap_score, vwap_meta = score_vwap_hold_reclaim(minute_bars)
     pullback_score, pullback_meta = score_first_pullback_quality(minute_bars, or_stats)
     entry_score, entry_meta = score_entry_quality(current_price, daily_bars, minute_bars, or_stats, vwap_meta, pullback_meta)
     confirm_score, confirm_meta = score_opening_range_confirmation(current_price, or_stats, vwap_meta)
+
+    rvol = indicators_calc_rvol(minute_bars, filter_bars_for_today_session, bar_dt_et, safe_num)
+    trend_efficiency = indicators_calc_trend_efficiency(minute_bars, filter_bars_for_today_session, safe_num)
+    halt_risk = calculate_halt_risk_probability(minute_bars)
+    rel_strength_vs_spy = open_rs_meta.get('edge', 0.0)
+    model_scores = build_model_scores(
+        price_change_pct=premarket_gap_pct,
+        rvol=rvol,
+        float_shares=safe_num(liquidity_meta.get('float_shares')),
+        catalyst_weight=int(catalyst_meta.get('catalyst_category_weight') or catalyst_score),
+        spread_pct=safe_num(liquidity_meta.get('spread_pct')),
+        trend_efficiency=trend_efficiency,
+        current_price=current_price,
+        vwap=safe_num(vwap_meta.get('vwap')),
+        now_label=now_et().strftime('%H:%M'),
+    )
 
     total = catalyst_score + liquidity_score + daily_score + sector_score + open_rs_score + vwap_score + pullback_score + entry_score + confirm_score
     buy_lower = entry_meta['entry_price']
@@ -1042,12 +1247,13 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
     in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
     decision = 'SKIP'
+    regime_decision = regime_trade_decision(model_scores, now_et(), safe_num(rel_strength_vs_spy))
     if wait_state and setup_grade in {'A+', 'A', 'WATCH'}:
         decision = 'WAIT'
-    elif setup_grade in {'A+', 'A'} and not skip_reasons and total >= MIN_SCORE_TO_EXECUTE and in_buy_zone:
+    elif setup_grade in {'A+', 'A'} and not skip_reasons and total >= MIN_SCORE_TO_EXECUTE and in_buy_zone and regime_decision == 'BUY NOW':
         decision = 'BUY NOW'
     elif setup_grade in {'A+', 'A', 'WATCH'}:
-        decision = 'WATCH FOR BREAKOUT'
+        decision = regime_decision
 
     notes = []
     if or_stats.get('or_high'):
@@ -1074,6 +1280,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         'buying_power_used': sizing['buying_power_used'],
         'rr_ratio_1': entry_meta['rr_ratio_1'],
         'rr_ratio_2': entry_meta['rr_ratio_2'],
+        'score_models': ScoreTriplet(**model_scores).to_dict(),
         'scores': {
             'catalyst': catalyst_score,
             'liquidity': liquidity_score,
@@ -1095,6 +1302,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'first_pullback': pullback_meta,
             'entry_quality': entry_meta,
             'opening_range': or_stats,
+            'orb_setup': orb_meta,
             'opening_range_confirmation': confirm_meta,
             'price_change_pct': round(price_change_pct, 2),
             'premarket_gap_pct': round(premarket_gap_pct, 2),
@@ -1103,6 +1311,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
             'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
             'market_internals': market_internals,
+            'rvol': round(rvol, 2),
+            'trend_efficiency': round(trend_efficiency, 3),
+            'halt_risk': halt_risk,
+            'relative_strength_vs_spy': round(safe_num(rel_strength_vs_spy), 2),
             'red_candle_trap': red_candle_trap,
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
@@ -1130,7 +1342,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan() -> Dict[str, Any]:
-
+    symbols = get_refined_universe()
+    if not symbols:
+        raise ScanError('No symbols passed the refined universe gatekeeper.')
+    snapshots = get_snapshots(symbols)
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
     sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols])

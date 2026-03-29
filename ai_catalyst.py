@@ -35,6 +35,30 @@ RETRY_DELAYS = [float(x.strip()) for x in os.getenv('GEMINI_RETRY_DELAYS', '2,5,
 
 _COOLDOWN_UNTIL = 0.0
 
+CATALYST_CATEGORY_WEIGHTS = {
+    'earnings': 5,
+    'guidance': 5,
+    'fda': 5,
+    'phase3': 5,
+    'contract': 4,
+    'sympathy': 3,
+    'macro': 3,
+    'partnership': 2,
+    'noise': 2,
+    'dilution': 0,
+    'offering': 0,
+}
+
+
+def classify_catalyst(catalyst_type: str) -> Dict[str, Any]:
+    normalized = (catalyst_type or 'unknown').strip().lower()
+    weight = CATALYST_CATEGORY_WEIGHTS.get(normalized, 1)
+    return {
+        'category': normalized,
+        'weight': weight,
+        'hard_skip': weight == 0,
+    }
+
 
 def _fallback(reason: str) -> Dict[str, Any]:
     return {
@@ -161,14 +185,19 @@ def _coerce_result(parsed: Dict[str, Any]) -> Dict[str, Any]:
 
     score = max(1, min(5, score))
 
+    catalyst_type = str(parsed.get('catalyst_type', 'unknown') or 'unknown')
+    classified = classify_catalyst(catalyst_type)
+    weighted_score = min(5, score) if classified['weight'] <= 0 else min(5, max(score, classified['weight']))
+
     return {
         'used_ai': True,
-        'score': score,
-        'catalyst_type': str(parsed.get('catalyst_type', 'unknown') or 'unknown'),
+        'score': weighted_score,
+        'catalyst_type': catalyst_type,
         'direction': str(parsed.get('direction', 'unknown') or 'unknown'),
         'confidence': str(parsed.get('confidence', 'low') or 'low'),
         'reason': str(parsed.get('reason', 'No reason provided.') or 'No reason provided.'),
-        'hard_pass': bool(parsed.get('hard_pass', False)),
+        'hard_pass': bool(parsed.get('hard_pass', False) or classified['hard_skip']),
+        'category_weight': classified['weight'],
         'cache_hit': False,
     }
 
