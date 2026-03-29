@@ -267,23 +267,24 @@ def get_bars(symbols: List[str], timeframe: str, start: datetime, end: datetime,
     return data.get('bars', {})
 
 
+def get_vix_change() -> float:
+    """Calculates the 1-hour percentage change for VIXY proxy volatility."""
+    end = now_utc()
+    start = end - timedelta(hours=1)
+    try:
+        bars = get_bars([VIX_SYMBOL], '1Min', start, end, 60).get(VIX_SYMBOL, [])
+    except Exception:
+        return 0.0
+    if len(bars) < 2:
+        return 0.0
+    start_price = safe_num(bars[0].get('c'))
+    curr_price = safe_num(bars[-1].get('c'))
+    return ((curr_price - start_price) / start_price * 100.0) if start_price > 0 else 0.0
+
+
 def check_vix_circuit_breaker() -> bool:
     """Return True when VIX proxy volatility spikes beyond configured threshold."""
-    end = now_utc()
-    start = end - timedelta(hours=2)
-    try:
-        bars = get_bars([VIX_SYMBOL], '1Min', start, end, 180).get(VIX_SYMBOL, [])
-    except Exception:
-        return False
-    if len(bars) < 60:
-        return False
-    last_60 = bars[-60:]
-    first_close = safe_num(last_60[0].get('c'))
-    last_close = safe_num(last_60[-1].get('c'))
-    if first_close <= 0:
-        return False
-    change_pct = ((last_close - first_close) / first_close) * 100.0
-    return change_pct >= VIX_CIRCUIT_BREAKER_PCT
+    return get_vix_change() >= VIX_CIRCUIT_BREAKER_PCT
 
 
 def has_positive_mtf_vwap_trend(minute_bars: List[Dict[str, Any]], chunk_size: int = 5) -> bool:
@@ -1038,10 +1039,11 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     premarket_gap_pct = price_change_pct
     required_premarket_notional = required_premarket_volume_for_gap(premarket_gap_pct)
     volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
-    value_area = calc_value_area(filter_bars_for_today_session(minute_bars), safe_num, VA_PERCENT)
+    va_metrics = calc_value_area(filter_bars_for_today_session(minute_bars), safe_num, VA_PERCENT)
+    vah = safe_num(va_metrics.get('vah'))
     red_candle_trap = detect_heavy_red_candle_trap(minute_bars)
     mtf_aligned = has_positive_mtf_vwap_trend(minute_bars)
-    vix_breaker_active = check_vix_circuit_breaker()
+    vixy_change = get_vix_change()
 
     catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
     liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
@@ -1100,8 +1102,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append(f"Float is too high ({liquidity_meta.get('float_shares', 0):,.0f} shares).")
     if volume_poc and current_price <= volume_poc:
         skip_reasons.append('Price is below the daily volume POC.')
-    if value_area.get('vah') and current_price < safe_num(value_area.get('vah')):
-        skip_reasons.append('Price inside Value Area (churn zone).')
+    if vah and current_price <= vah:
+        skip_reasons.append(f'Price (${current_price}) is not above Value Area High (${vah}).')
     if red_candle_trap.get('triggered'):
         skip_reasons.append('Hard skip: opening heavy red candle trap detected.')
     if not mtf_aligned:
@@ -1120,8 +1122,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('VWAP reclaim/hold is not strong enough.')
     if market_internals.get('longs_blocked'):
         skip_reasons.append(market_internals.get('reason') or 'Market internals are blocking long breakouts.')
-    if vix_breaker_active:
-        skip_reasons.append('VIX Volatility Circuit Breaker Active.')
+    if vixy_change >= VIX_CIRCUIT_BREAKER_PCT:
+        skip_reasons.append(f'VIX Volatility Spike: {vixy_change:.1f}% (Limit {VIX_CIRCUIT_BREAKER_PCT:g}%).')
 
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
     in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
@@ -1129,13 +1131,23 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     regime_decision = regime_trade_decision(model_scores, now_et(), safe_num(rel_strength_vs_spy))
     if wait_state and setup_grade in {'A+', 'A', 'WATCH'}:
         decision = 'WAIT'
-    elif setup_grade in {'A+', 'A'} and not skip_reasons and total >= MIN_SCORE_TO_EXECUTE and in_buy_zone and regime_decision == 'BUY NOW':
-        decision = 'BUY NOW'
-    elif setup_grade in {'A+', 'A', 'WATCH'}:
+    else:
         decision = regime_decision
+    is_high_precision = (
+        not skip_reasons
+        and setup_grade in {'A+', 'A'}
+        and decision != 'WAIT'
+        and total >= MIN_SCORE_TO_EXECUTE
+        and in_buy_zone
+        and regime_decision == 'BUY NOW'
+    )
+    if is_high_precision:
+        decision = 'BUY NOW'
+    else:
+        decision = 'WATCH' if setup_grade != 'NO TRADE' else 'SKIP'
     if decision == 'BUY NOW' and not sector_meta.get('is_leader_vs_sector', False):
         decision = 'WATCH'
-    if vix_breaker_active:
+    if vixy_change >= VIX_CIRCUIT_BREAKER_PCT:
         decision = 'WATCH'
 
     notes = []
@@ -1211,7 +1223,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'spread': round(spread, 4),
             'spread_pct': round((spread / current_price) if current_price > 0 else 0.0, 4),
             'volume_profile': {'daily_poc': round(volume_poc, 4) if volume_poc else None, 'price_above_poc': bool(current_price > volume_poc) if volume_poc else None},
-            'value_area': value_area,
+            'value_area': va_metrics,
             'market_internals': market_internals,
             'rvol': round(rvol, 2),
             'trend_efficiency': round(trend_efficiency, 3),
@@ -1219,7 +1231,8 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'relative_strength_vs_spy': round(safe_num(rel_strength_vs_spy), 2),
             'red_candle_trap': red_candle_trap,
             'mtf_vwap_aligned': mtf_aligned,
-            'vix_circuit_breaker': vix_breaker_active,
+            'vix_circuit_breaker': vixy_change >= VIX_CIRCUIT_BREAKER_PCT,
+            'vixy_change_pct_1h': round(vixy_change, 3),
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
             'sizing': sizing,
