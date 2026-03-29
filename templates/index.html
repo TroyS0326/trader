@@ -333,7 +333,6 @@ async function loadHistory() {
 
 async function runScan() {
   runBtn.disabled = true;
-  paperTradeBtn.disabled = true;
   setStatus('Scanning market, scoring catalysts, and checking the open...');
   try {
     const res = await fetch('/api/scan', { method: 'POST' });
