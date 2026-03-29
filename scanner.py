@@ -12,6 +12,7 @@ from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency
 from models import ScoreTriplet, SymbolMarketStats
 from setups import detect_orb
+from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
 from ai_catalyst import classify_catalyst, classify_news_with_gemini
 from config import (
@@ -93,15 +94,6 @@ def _get_json(url: str, params: Dict[str, Any] | None = None, headers: Dict[str,
     resp = requests.get(url, params=params or {}, headers=headers or {}, timeout=TIMEOUT)
     resp.raise_for_status()
     return resp.json()
-
-
-def safe_num(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None:
-            return default
-        return float(value)
-    except (TypeError, ValueError):
-        return default
 
 
 def bar_dt_et(bar: Dict[str, Any]) -> datetime | None:
@@ -360,49 +352,6 @@ def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0
     if not ladder:
         return 0.0
     return max(ladder.items(), key=lambda kv: kv[1])[0]
-
-
-def filter_bars_for_today_session(minute_bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    if not minute_bars:
-        return []
-    latest_dt = bar_dt_et(minute_bars[-1])
-    if not latest_dt:
-        return []
-    target_date = latest_dt.date()
-
-    out: List[Dict[str, Any]] = []
-    for bar in minute_bars:
-        dt = bar_dt_et(bar)
-        if not dt or dt.date() != target_date:
-            continue
-        mins = dt.hour * 60 + dt.minute
-        if 9 * 60 + 30 <= mins <= 16 * 60:
-            out.append(bar)
-    return out
-
-
-def filter_bars_in_et_window(minute_bars: List[Dict[str, Any]], start_label: str, end_label: str) -> List[Dict[str, Any]]:
-    start_h, start_m = parse_hhmm(start_label)
-    end_h, end_m = parse_hhmm(end_label)
-    start_min = start_h * 60 + start_m
-    end_min = end_h * 60 + end_m
-
-    if not minute_bars:
-        return []
-    latest_dt = bar_dt_et(minute_bars[-1])
-    if not latest_dt:
-        return []
-    target_date = latest_dt.date()
-
-    out: List[Dict[str, Any]] = []
-    for bar in minute_bars:
-        dt = bar_dt_et(bar)
-        if not dt or dt.date() != target_date:
-            continue
-        mins = dt.hour * 60 + dt.minute
-        if start_min <= mins < end_min:
-            out.append(bar)
-    return out
 
 
 def premarket_dollar_volume(minute_bars: List[Dict[str, Any]]) -> float:
@@ -1062,7 +1011,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     sector_change_pct = ((sector_curr - sector_prev) / sector_prev * 100.0) if sector_prev > 0 else 0.0
     sector_score, sector_meta = score_sector_sympathy(symbol, price_change_pct, sector_symbol, sector_change_pct, catalyst_meta)
     or_stats = get_opening_range_stats(minute_bars)
-    orb_meta = detect_orb(minute_bars, filter_bars_in_et_window, filter_bars_for_today_session, safe_num, OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
+    orb_meta = detect_orb(minute_bars, OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
     open_rs_score, open_rs_meta = score_relative_strength_open(minute_bars, spy_minute_bars)
     vwap_score, vwap_meta = score_vwap_hold_reclaim(minute_bars)
     pullback_score, pullback_meta = score_first_pullback_quality(minute_bars, or_stats)
