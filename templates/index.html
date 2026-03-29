@@ -170,30 +170,72 @@ function renderBestPick(best) {
   document.getElementById('statT1').textContent = money(best.target_1);
   document.getElementById('statT2').textContent = money(best.target_2);
   document.getElementById('statScore').textContent = best.score_total;
+
   const scoreRows = document.getElementById('scoreRows');
   scoreRows.innerHTML = '';
-  Object.entries(best.scores).forEach(([k, v]) => {
+
+  // 1. Render the new Quant Engine Scores (Out of 100)
+  if (best.score_models) {
+    Object.entries(best.score_models).forEach(([k, v]) => {
+      const div = document.createElement('div');
+      div.className = 'mini-card';
+      // Highlight the new engine scores with a blue tint
+      div.style.borderLeft = '3px solid #3b82f6';
+      div.innerHTML = `
+        <div class="label" style="color:#93c5fd">${k.replace('_',' ').toUpperCase()}</div>
+        <div class="value">${v}<span style="font-size:0.8rem; color:#64748b"> / 100</span></div>
+      `;
+      scoreRows.appendChild(div);
+    });
+  }
+
+  // 2. Render the new Engineering Metrics (RVol, Trend Eff, etc.)
+  const details = best.details || {};
+  const metrics = [
+    { label: 'RVOL', val: details.rvol ? details.rvol + 'x' : '—' },
+    { label: 'TREND EFF', val: details.trend_efficiency ? details.trend_efficiency : '—' },
+    { label: 'GAP %', val: details.premarket_gap_pct ? details.premarket_gap_pct.toFixed(1) + '%' : '—' },
+    { label: 'SPREAD', val: details.spread_pct ? (details.spread_pct * 100).toFixed(2) + '%' : '—' },
+    { label: 'HALT RISK', val: details.halt_risk ? details.halt_risk.halt_risk.toUpperCase() : '—' }
+  ];
+
+  metrics.forEach(m => {
     const div = document.createElement('div');
     div.className = 'mini-card';
-    div.innerHTML = `<div class="label">${k.replaceAll('_',' ')}</div><div class="value">${v}/5</div>`;
+    div.innerHTML = `<div class="label">${m.label}</div><div class="value" style="font-size:1.1rem">${m.val}</div>`;
     scoreRows.appendChild(div);
   });
 
+  // 3. Robust Notes & Skip Reasons Formatting
   const catalyst = best.details?.catalyst || {};
   const notes = [];
-  notes.push(`Catalyst: ${catalyst.catalyst_type || 'unknown'}${catalyst.used_ai ? ' (Gemini scored)' : ''}.`);
-  if (best.setup_grade) notes.push(`Setup grade: ${best.setup_grade}.`);
+
+  notes.push(`<strong>Catalyst:</strong> ${catalyst.catalyst_type || 'unknown'}${catalyst.used_ai ? ' (Gemini scored)' : ''}.`);
+  if (best.setup_grade) notes.push(`<strong>Setup grade:</strong> ${best.setup_grade}.`);
+
   const sector = best.details?.sector_sympathy || {};
-  if (sector.sector_symbol) notes.push(`Sector ${sector.sector_symbol}: ${sector.sector_change_pct}% (edge ${sector.edge_vs_sector_pct}%).`);
-  if (catalyst.reason) notes.push(catalyst.reason);
-  const openRs = best.details?.open_relative_strength || {};
-  if (openRs.edge !== undefined) notes.push(`Open RS vs SPY: ${openRs.edge}%`);
+  if (sector.sector_symbol) notes.push(`<strong>Sector ${sector.sector_symbol}:</strong> ${sector.sector_change_pct}% (edge ${sector.edge_vs_sector_pct}%).`);
+  if (catalyst.reason) notes.push(`<strong>AI Reason:</strong> ${catalyst.reason}`);
+
   const openingRange = best.details?.opening_range || {};
-  if (openingRange.or_high) notes.push(`OR ${openingRange.or_low}-${openingRange.or_high}.`);
-  notes.push(`R/R to target 2: ${best.rr_ratio_2}:1.`);
+  if (openingRange.or_high) notes.push(`<strong>OR:</strong> ${openingRange.or_low} to ${openingRange.or_high}.`);
+  notes.push(`<strong>R/R to Target 2:</strong> ${best.rr_ratio_2}:1.`);
+
+  // Format Skip Reasons as a high-visibility warning box
   const skips = best.details?.skip_reasons || [];
-  if (skips.length) notes.push(`Why not now: ${skips[0]}`);
-  document.getElementById('bestNotes').textContent = notes.join(' ');
+  if (skips.length > 0) {
+    notes.push(`
+      <div style="margin-top: 15px; padding: 12px; background: rgba(220, 38, 38, 0.1); border-left: 4px solid #dc2626; border-radius: 4px;">
+        <strong style="color: #fca5a5; display: block; margin-bottom: 8px;">⚠️ Skip Reasons & Blocks:</strong>
+        <ul style="margin-bottom: 0; padding-left: 20px; color: #cbd5e1; line-height: 1.5;">
+          ${skips.map(s => `<li>${s}</li>`).join('')}
+        </ul>
+      </div>
+    `);
+  }
+
+  // Use innerHTML instead of textContent so our HTML tags render properly
+  document.getElementById('bestNotes').innerHTML = notes.join('<br>');
   setDecisionPill(best.decision);
 }
 
