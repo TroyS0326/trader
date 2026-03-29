@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
-from config import DB_PATH, TIMEZONE_LABEL
+import config
 
 
 def utc_now() -> str:
@@ -13,12 +13,12 @@ def utc_now() -> str:
 
 
 def today_et_prefix() -> str:
-    return datetime.now(ZoneInfo(TIMEZONE_LABEL)).date().isoformat()
+    return datetime.now(ZoneInfo(config.TIMEZONE_LABEL)).date().isoformat()
 
 
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
         yield conn

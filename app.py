@@ -1,4 +1,8 @@
 import json
+import logging
+import os
+import sqlite3
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -7,6 +11,7 @@ from flask_sock import Sock
 
 import config
 from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
+import db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
@@ -14,7 +19,23 @@ from watchlist import watchlist_manager
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 sock = Sock(app)
-init_db()
+logger = logging.getLogger(__name__)
+
+
+def ensure_db_initialized() -> None:
+    try:
+        init_db()
+        return
+    except (sqlite3.OperationalError, PermissionError) as exc:
+        fallback_dir = os.getenv('DB_FALLBACK_DIR', '/tmp')
+        fallback_path = os.path.join(fallback_dir, 'veteran_trades.db')
+        logger.warning('Primary DB path failed (%s). Falling back to %s. Error: %s', config.DB_PATH, fallback_path, exc)
+        config.DB_PATH = fallback_path
+        db.config.DB_PATH = fallback_path
+        init_db()
+
+
+ensure_db_initialized()
 
 LATEST_SCAN = None
 
@@ -71,6 +92,19 @@ def order_outcome_from_payload(order: dict) -> str:
 def index():
     return render_template('index.html', app_title=config.APP_TITLE)
 
+
+
+
+@app.route('/api/runtime-health')
+def api_runtime_health():
+    websocket_upgrade_header = (request.headers.get('Upgrade') or '').lower()
+    return ok(
+        {
+            'db_path': config.DB_PATH,
+            'ws_proxy_hint': 'Ensure proxy forwards Upgrade/Connection headers for /ws/watchlist when using Nginx/Gunicorn.',
+            'ws_upgrade_header_seen': websocket_upgrade_header,
+        }
+    )
 
 @app.route('/api/scan', methods=['POST', 'GET'])
 def api_scan():

@@ -66,3 +66,21 @@ Recommended:
 - Paper execution is blocked unless the best setup is graded A or A+.
 - Premarket gap, premarket dollar volume, and sector sympathy now materially affect ranking.
 - Use `python analyze_performance.py` to analyze `veteran_trades.db` for win-rate by confidence level and time-window lockout candidates.
+
+
+## Startup reliability notes
+- If SQLite cannot write to the default DB path, the app now falls back to `/tmp/veteran_trades.db` (or `DB_FALLBACK_DIR`).
+- Check runtime status at `GET /api/runtime-health` to verify active DB path and websocket proxy hint.
+
+## WebSocket reverse-proxy (Nginx)
+If you run behind Nginx + Gunicorn, include websocket upgrade headers for `/ws/watchlist` or the browser stream may fail with 502:
+
+```nginx
+location /ws/ {
+    proxy_pass http://127.0.0.1:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+}
+```
