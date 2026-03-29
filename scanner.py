@@ -319,33 +319,6 @@ def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> floa
     return 0.0
 
 
-
-def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
-    try:
-        payload = _get_json(f'{ALPACA_DATA_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
-        return payload if isinstance(payload, dict) else {}
-    except requests.RequestException:
-        return {}
-
-
-def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> float:
-    float_candidates = (
-        asset.get('float'),
-        asset.get('shares_float'),
-        asset.get('float_shares'),
-        profile.get('floatShares'),
-        profile.get('shareFloat'),
-    )
-    for raw in float_candidates:
-        val = safe_num(raw)
-        if val > 0:
-            return val
-    finnhub_float_millions = safe_num(profile.get('shareOutstanding'))
-    if finnhub_float_millions > 0:
-        return finnhub_float_millions * 1_000_000
-    return 0.0
-
-
 def calc_atr(bars: List[Dict[str, Any]], period: int = 14) -> float:
     if len(bars) < 2:
         return 0.0
@@ -371,26 +344,6 @@ def calc_vwap(minute_bars: List[Dict[str, Any]]) -> float:
         total_v += vol
     return total_pv / total_v if total_v > 0 else 0.0
     
-def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0.01) -> float:
-    session = filter_bars_for_today_session(minute_bars)
-    if not session:
-        return 0.0
-    ladder: Dict[float, float] = {}
-    tick = max(0.0001, min_tick)
-    for bar in session:
-        typical = (safe_num(bar.get('h')) + safe_num(bar.get('l')) + safe_num(bar.get('c'))) / 3.0
-        vol = safe_num(bar.get('v'))
-        if typical <= 0 or vol <= 0:
-            continue
-        px = round(round(typical / tick) * tick, 4)
-        ladder[px] = ladder.get(px, 0.0) + vol
-    if not ladder:
-        return 0.0
-    return max(ladder.items(), key=lambda kv: kv[1])[0]
-
-    
-
-
 def calc_daily_volume_poc(minute_bars: List[Dict[str, Any]], min_tick: float = 0.01) -> float:
     session = filter_bars_for_today_session(minute_bars)
     if not session:
@@ -833,77 +786,6 @@ def get_market_internals_bias() -> Dict[str, Any]:
     return meta
 
 
-
-
-def detect_heavy_red_candle_trap(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]:
-    morning = filter_bars_in_et_window(filter_bars_for_today_session(minute_bars), OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
-    if len(morning) < 2:
-        return {'triggered': False, 'reason': 'Not enough opening bars to evaluate red-candle trap.'}
-    green_vols = [safe_num(b.get('v')) for b in morning if safe_num(b.get('c')) > safe_num(b.get('o'))]
-    if not green_vols:
-        return {'triggered': False, 'reason': 'No green candles in opening range to compare against.'}
-    max_green_vol = max(green_vols)
-    heavy_red = []
-    for idx, bar in enumerate(morning):
-        open_px = safe_num(bar.get('o'))
-        close_px = safe_num(bar.get('c'))
-        vol = safe_num(bar.get('v'))
-        if close_px < open_px and vol > max_green_vol:
-            heavy_red.append((idx, bar, vol))
-    if not heavy_red:
-        return {
-            'triggered': False,
-            'max_green_volume': round(max_green_vol, 2),
-            'reason': 'No heavy red candle exceeded the strongest green volume.',
-        }
-    first_idx, first_bar, first_vol = heavy_red[0]
-    return {
-        'triggered': True,
-        'first_red_index': first_idx,
-        'first_red_open': round(safe_num(first_bar.get('o')), 4),
-        'first_red_close': round(safe_num(first_bar.get('c')), 4),
-        'first_red_volume': round(first_vol, 2),
-        'max_green_volume': round(max_green_vol, 2),
-        'reason': 'Opening red candle volume exceeded all green candles in the opening range.',
-    }
-
-
-def get_market_internals_bias() -> Dict[str, Any]:
-    meta = {
-        'enabled': MARKET_INTERNALS_BLOCK_ENABLED,
-        'tick_symbol': MARKET_INTERNALS_TICK_SYMBOL,
-        'add_symbol': MARKET_INTERNALS_ADD_SYMBOL,
-        'tick_persistently_negative': False,
-        'add_dropping': False,
-        'longs_blocked': False,
-        'reason': '',
-    }
-    if not MARKET_INTERNALS_BLOCK_ENABLED:
-        meta['reason'] = 'Market internals block disabled.'
-        return meta
-    end = now_utc()
-    start = end - timedelta(minutes=30)
-    try:
-        bars = get_bars([MARKET_INTERNALS_TICK_SYMBOL, MARKET_INTERNALS_ADD_SYMBOL], '1Min', start, end, 60)
-    except Exception as exc:
-        meta['reason'] = f'Could not fetch internals: {exc}'
-        return meta
-    tick_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_TICK_SYMBOL, []) if safe_num(b.get('c')) != 0]
-    add_series = [safe_num(b.get('c')) for b in bars.get(MARKET_INTERNALS_ADD_SYMBOL, []) if safe_num(b.get('c')) != 0]
-    if len(tick_series) >= 5:
-        last5 = tick_series[-5:]
-        meta['tick_persistently_negative'] = all(v < 0 for v in last5)
-        meta['tick_last'] = round(last5[-1], 2)
-    if len(add_series) >= 5:
-        recent = add_series[-5:]
-        meta['add_dropping'] = (recent[-1] < recent[0]) and all(recent[i] <= recent[i - 1] for i in range(1, len(recent)))
-        meta['add_last'] = round(recent[-1], 2)
-    meta['longs_blocked'] = bool(meta['tick_persistently_negative'] and meta['add_dropping'])
-    if meta['longs_blocked']:
-        meta['reason'] = 'Blocked: $TICK is persistently below 0 while $ADD is falling.'
-    else:
-        meta['reason'] = 'Breadth filter is not blocking longs.'
-    return meta
 
 
 def score_vwap_hold_reclaim(minute_bars: List[Dict[str, Any]]) -> Tuple[int, Dict[str, Any]]:
