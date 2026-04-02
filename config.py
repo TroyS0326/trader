@@ -26,7 +26,10 @@ WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
 MAX_BUY_SHARES = int(os.getenv('MAX_BUY_SHARES', '999'))
 DEFAULT_RISK_CAPITAL = float(os.getenv('DEFAULT_RISK_CAPITAL', '300'))
 CURRENT_BANKROLL = float(os.getenv('CURRENT_BANKROLL', '300.0'))
-RISK_PCT_PER_TRADE = float(os.getenv('RISK_PCT_PER_TRADE', '0.02'))
+# --- Dynamic Risk Sizing Parameters (Replaces RISK_PCT_PER_TRADE) ---
+KELLY_FRACTION = float(os.getenv('KELLY_FRACTION', '0.25'))  # We will risk 25% of the mathematically optimal Full Kelly size
+MAX_PORTFOLIO_HEAT = float(os.getenv('MAX_PORTFOLIO_HEAT', '0.06'))  # Hard cap single-trade risk at 6% of portfolio equity
+VIX_PENALTY_MULTIPLIER = float(os.getenv('VIX_PENALTY_MULTIPLIER', '0.5'))  # Cut Kelly sizing in half if VIX circuit breaker triggers
 # Kept as a fallback for any legacy references.
 MAX_DOLLAR_LOSS_PER_TRADE = float(os.getenv('MAX_DOLLAR_LOSS_PER_TRADE', '5'))
 MAX_FAILED_TRADES_PER_DAY = int(os.getenv('MAX_FAILED_TRADES_PER_DAY', '2'))
