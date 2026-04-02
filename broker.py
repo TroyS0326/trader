@@ -146,7 +146,14 @@ def place_managed_entry_order(
     stop_price: float,
     target_1_price: float,
     target_2_price: float,
+    avg_1m_volume: float = 0.0,
 ) -> Dict[str, Any]:
+    # Microstructure liquidity cap (max 5% of 1-minute volume).
+    if avg_1m_volume > 0:
+        max_safe_qty = int(0.05 * avg_1m_volume)
+        if qty > max_safe_qty:
+            qty = max(1, max_safe_qty)
+
     _ = entry_price, target_2_price  # reserved for external broker adapters and journaling.
     entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy')
     entry_id = entry.get('id')
@@ -166,7 +173,7 @@ def place_managed_entry_order(
             'qty': str(qty_target_1),
             'side': 'sell',
             'type': 'limit',
-            'time_in_force': 'gtc',
+            'time_in_force': 'day',
             'limit_price': round(target_1_price, 2),
         }
     )
@@ -179,7 +186,7 @@ def place_managed_entry_order(
                 'qty': str(qty_runner),
                 'side': 'sell',
                 'type': 'stop',
-                'time_in_force': 'gtc',
+                'time_in_force': 'day',
                 'stop_price': round(stop_price, 2),
             }
         )
@@ -228,7 +235,7 @@ def maybe_activate_runner_trailing(raw_trade_payload: Dict[str, Any], breakeven_
             'qty': str(remaining_qty),
             'side': 'sell',
             'type': 'trailing_stop',
-            'time_in_force': 'gtc',
+            'time_in_force': 'day',
             'trail_percent': str(round(TARGET2_TRAILING_STOP_PCT, 4)),
         }
     )

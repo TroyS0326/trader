@@ -13,6 +13,7 @@ import config
 from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
 import db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
+from execution import start_execution_engine
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
@@ -322,4 +323,5 @@ def ws_watchlist(ws):
 
 
 if __name__ == '__main__':
-    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)
+    start_execution_engine()
+    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG, use_reloader=False)
