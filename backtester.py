@@ -188,3 +188,21 @@ class EventDrivenBacktester:
 
         logger.info('Backtest Complete. Calculating Metrics.')
         self.portfolio.print_summary()
+
+# --- 3. IGNITION SWITCH ---
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+
+    # ⚠️ IMPORTANT: You must point this to an actual data file!
+    # For a real test, you would download minute-bars from Alpaca and save them as a CSV or Parquet.
+    target_data_file = "historical_data.csv"
+
+    try:
+        logger.info(f"Loading historical data from {target_data_file}...")
+        backtester = EventDrivenBacktester(target_data_file)
+        backtester.run()
+    except FileNotFoundError:
+        logger.error(f"CRITICAL FAULT: Could not find '{target_data_file}'.")
+        logger.error("You must download historical minute or tick data from Alpaca/Polygon and place it in this directory before the backtester can run.")
+    except Exception as e:
+        logger.error(f"Backtester crashed: {e}")
