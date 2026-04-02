@@ -8,7 +8,7 @@ load_dotenv(BASE_DIR / '.env')
 APP_TITLE = 'Veteran Day Trading Playbook Pro'
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
-HOST = os.getenv('HOST', '127.0.0.1')
+HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 
 ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
