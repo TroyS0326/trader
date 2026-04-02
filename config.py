@@ -27,6 +27,7 @@ MAX_BUY_SHARES = int(os.getenv('MAX_BUY_SHARES', '999'))
 DEFAULT_RISK_CAPITAL = float(os.getenv('DEFAULT_RISK_CAPITAL', '300'))
 CURRENT_BANKROLL = float(os.getenv('CURRENT_BANKROLL', '300.0'))
 # --- Dynamic Risk Sizing Parameters (Replaces RISK_PCT_PER_TRADE) ---
+RISK_PCT_PER_TRADE = 0.02
 KELLY_FRACTION = float(os.getenv('KELLY_FRACTION', '0.25'))  # We will risk 25% of the mathematically optimal Full Kelly size
 MAX_PORTFOLIO_HEAT = float(os.getenv('MAX_PORTFOLIO_HEAT', '0.06'))  # Hard cap single-trade risk at 6% of portfolio equity
 VIX_PENALTY_MULTIPLIER = float(os.getenv('VIX_PENALTY_MULTIPLIER', '0.5'))  # Cut Kelly sizing in half if VIX circuit breaker triggers
