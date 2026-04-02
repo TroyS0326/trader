@@ -26,6 +26,7 @@ from config import (
     MAX_BUY_SHARES,
     MAX_FLOAT,
     MAX_ENTRY_EXTENSION_PCT,
+    MAX_PORTFOLIO_HEAT,
     MAX_SPREAD_PCT,
     MARKET_INTERNALS_ADD_SYMBOL,
     MARKET_INTERNALS_BLOCK_ENABLED,
@@ -45,11 +46,12 @@ from config import (
     OPENING_RANGE_START_ET,
     OR_BREAKOUT_BUFFER_PCT,
     PULLBACK_MAX_RETRACE_PCT,
-    RISK_PCT_PER_TRADE,
+    KELLY_FRACTION,
     SCAN_CANDIDATE_LIMIT,
     TIMEZONE_LABEL,
     VA_PERCENT,
     VIX_CIRCUIT_BREAKER_PCT,
+    VIX_PENALTY_MULTIPLIER,
     VIX_SYMBOL,
     WATCHLIST_SIZE,
 )
@@ -986,12 +988,47 @@ def get_trade_decision(model_scores: Dict[str, int], time_et: datetime, relative
     return 'WATCH FOR BREAKOUT'
 
 
-def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, Any]:
-    dynamic_dollar_risk = CURRENT_BANKROLL * RISK_PCT_PER_TRADE
-    risk_per_share = max(0.01, round(entry_price - stop_price, 2))
+def calculate_position_size(
+    entry_price: float,
+    stop_price: float,
+    target_price: float,
+    p_success: float,
+    vix_spike_active: bool,
+) -> Dict[str, Any]:
+    """Calculates position size using Fractional Kelly driven by ML win probability."""
+
+    risk_per_share = max(0.01, entry_price - stop_price)
+    reward_per_share = max(0.01, target_price - entry_price)
+    reward_to_risk = reward_per_share / risk_per_share
+
+    # 1. Full Kelly Formula: f = (P * R - (1 - P)) / R
+    kelly_full = (p_success * reward_to_risk - (1.0 - p_success)) / reward_to_risk
+
+    # If Kelly is <= 0, the mathematical expectancy is negative. Skip trade.
+    if kelly_full <= 0:
+        return {
+            'qty': 0, 'capital_qty': 0, 'risk_qty': 0,
+            'max_dollar_loss': 0.0, 'buying_power_used': 0.0,
+            'dynamic_risk_limit': 0.0, 'kelly_fraction_used': 0.0,
+            'reason': 'Negative mathematical expectancy.',
+        }
+
+    # 2. Fractional Kelly & Volatility Brakes
+    current_k_fraction = KELLY_FRACTION
+    if vix_spike_active:
+        current_k_fraction *= VIX_PENALTY_MULTIPLIER  # Cut risk in volatile regimes
+
+    # Calculate optimal risk percentage, capped by max portfolio heat
+    fractional_kelly_pct = min(current_k_fraction * kelly_full, MAX_PORTFOLIO_HEAT)
+    dynamic_dollar_risk = CURRENT_BANKROLL * fractional_kelly_pct
+
+    # 3. Share Quantity Calculation
     capital_qty = int(DEFAULT_RISK_CAPITAL // max(0.01, entry_price))
     risk_qty = int(dynamic_dollar_risk // risk_per_share)
+
+    # We take the minimum of constraints to ensure capital limits are respected
     qty = max(0, min(MAX_BUY_SHARES, capital_qty, risk_qty))
+
     return {
         'qty': qty,
         'capital_qty': capital_qty,
@@ -999,6 +1036,7 @@ def calculate_position_size(entry_price: float, stop_price: float) -> Dict[str, 
         'max_dollar_loss': round(qty * risk_per_share, 2),
         'buying_power_used': round(qty * entry_price, 2),
         'dynamic_risk_limit': round(dynamic_dollar_risk, 2),
+        'kelly_fraction_used': round(fractional_kelly_pct, 4),
     }
 
 
@@ -1075,7 +1113,15 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     total = int(p_success * 100)
     buy_lower = entry_meta['entry_price']
     buy_upper = round(entry_meta['entry_price'] * (1 + MAX_ENTRY_EXTENSION_PCT), 2)
-    sizing = calculate_position_size(entry_meta['entry_price'], entry_meta['stop_price'])
+    p_success = catalyst_meta.get('p_success', 0.0)
+    vix_spike_active = vixy_change >= VIX_CIRCUIT_BREAKER_PCT
+    sizing = calculate_position_size(
+        entry_price=entry_meta['entry_price'],
+        stop_price=entry_meta['stop_price'],
+        target_price=entry_meta['target_1'],
+        p_success=p_success,
+        vix_spike_active=vix_spike_active,
+    )
     after_time_gate = buy_window_open()
     wait_state = not after_time_gate
 
