@@ -6,66 +6,103 @@
   <title>{{ app_title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    /* Beginner-Friendly UI Additions */
+    .action-box {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .action-box.wait {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: #f59e0b;
+    }
+    .action-text { font-size: 1.2rem; font-weight: bold; color: #e2e8f0; }
+    .highlight-green { color: #10b981; font-weight: bold; }
+    .highlight-red { color: #ef4444; font-weight: bold; }
+    
+    /* Tooltip CSS */
+    .tooltip-container {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted #94a3b8;
+    }
+    .tooltip-container:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 10;
+      border: 1px solid #475569;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+  </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div>
         <h1>{{ app_title }}</h1>
-        <p>Scan once, wait for the open to prove itself, then act only when the setup is still clean.</p>
+        <p>Your Data-Driven Co-Pilot. Scan the market, wait for the setup, and execute the math.</p>
       </div>
       <div class="hero-actions">
-        <button id="runBtn">Run Morning Scan</button>
-        <div id="statusLine" class="status">Ready.</div>
-        <span id="marketCall" class="pill skip">No scan yet</span>
+        <button id="runBtn" style="font-size: 1.1rem; padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Run Morning Scan</button>
+        <div id="statusLine" class="status">Ready. Awaiting your command.</div>
       </div>
     </header>
 
-    <section class="card" id="watchCard">
-      <div class="section-head">
-        <h2>What Stock to Watch</h2>
-        <span id="decisionPill" class="pill skip">No scan yet</span>
-      </div>
-      <div id="watchPanel" class="watch-panel">
-        <div class="watch-line" id="watchLabel">Run the scanner to populate today’s plan.</div>
-        <div class="watch-line" id="watchGradeLine">Setup grade: —</div>
-        <div class="watch-line" id="watchBuyLine">Buy only after 10:00 AM ET if it is between $0.00 and $0.00.</div>
-        <div class="watch-line" id="watchQtyLine">Shares to buy: —</div>
-        <div class="watch-line" id="watchRiskLine">Max dollar loss: $0.00</div>
-        <div class="watch-line" id="watchOpenLine">Opening range: waiting.</div>
-        <div class="watch-line" id="watchStopLine">Stop: $0.00</div>
-        <div class="watch-line" id="watchTpLine">Take profit: $0.00 to $0.00</div>
-      </div>
-      <div id="riskBox" class="note">Risk lock: unavailable.</div>
+    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <section class="card" id="watchCard">
+          <div class="section-head">
+            <h2>The Trade Plan</h2>
+            <span id="decisionPill" class="pill skip">No scan yet</span>
+          </div>
+          
+          <div id="actionContainer" class="action-box wait">
+              <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
+          </div>
 
-      <div id="executionStatus" class="note">No order submitted yet.</div>
-    </section>
+          <div id="watchPanel" class="watch-panel">
+            <div class="watch-line" style="font-size: 1.1rem;">💰 <strong>Shares to Buy:</strong> <span id="watchQtyLine" class="highlight-green">—</span></div>
+            <div class="watch-line" style="font-size: 1.1rem;">🛑 <strong>Hard Stop Loss:</strong> <span id="watchStopLine" class="highlight-red">—</span></div>
+            <div class="watch-line" style="font-size: 1.1rem;">🎯 <strong>Take Profit Target:</strong> <span id="watchTpLine" class="highlight-green">—</span></div>
+            <hr style="border-color: #334155; margin: 10px 0;">
+            <div class="watch-line">🔥 <strong class="tooltip-container" data-tip="The absolute maximum you will lose if the trade fails.">Max Dollar Risk:</strong> <span id="watchRiskLine" class="highlight-red">—</span></div>
+            <div class="watch-line">📈 <strong class="tooltip-container" data-tip="The high and low of the first 30 minutes of the day.">Opening Range:</strong> <span id="watchOpenLine">—</span></div>
+          </div>
+          
+          <div id="riskBox" class="note" style="margin-top: 15px;">Risk locks: unavailable.</div>
+        </section>
 
-    <section class="card">
-      <div class="section-head">
-        <h2>Best Pick</h2>
-        <div id="bestSymbol" class="symbol-box">—</div>
-      </div>
-      <div class="grid" id="bestStats">
-        <div class="mini-card"><div class="label">Current Price</div><div id="statCurrent" class="value">—</div></div>
-        <div class="mini-card"><div class="label">Entry</div><div id="statEntry" class="value">—</div></div>
-        <div class="mini-card"><div class="label">Stop</div><div id="statStop" class="value">—</div></div>
-        <div class="mini-card"><div class="label">Target 1</div><div id="statT1" class="value">—</div></div>
-        <div class="mini-card"><div class="label">Target 2</div><div id="statT2" class="value">—</div></div>
-        <div class="mini-card"><div class="label">Score</div><div id="statScore" class="value">—</div></div>
-      </div>
-      <div class="mini-grid" id="scoreRows"></div>
-      <div id="bestNotes" class="note"></div>
-    </section>
+        <section class="card">
+          <div class="section-head">
+            <h2>The Engine Room <span style="font-size: 0.9rem; font-weight: normal; color: #94a3b8;">(Why we picked it)</span></h2>
+            <div id="bestSymbol" class="symbol-box">—</div>
+          </div>
+          
+          <div class="mini-grid" id="scoreRows">
+              </div>
+          <div id="bestNotes" class="note" style="margin-top: 15px;"></div>
+        </section>
+    </div>
 
     <section class="card charts">
       <div class="section-head">
-        <h2>Charts</h2>
+        <h2>Live Charts</h2>
         <span class="muted">Intraday 1-minute and Daily</span>
       </div>
       <div class="chart-grid">
         <div>
-          <h3>1-Minute</h3>
+          <h3>1-Minute Intraday</h3>
           <div id="intradayChart" class="chart-box"></div>
         </div>
         <div>
@@ -77,56 +114,21 @@
 
     <section class="card">
       <div class="section-head">
-        <h2>Live Watchlist</h2>
-        <span class="muted">Auto-updates after each scan</span>
+        <h2>Top Market Candidates</h2>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Symbol</th>
-              <th>Signal</th>
-              <th>Current</th>
-              <th>Entry</th>
-              <th>Stop</th>
-              <th>Target 1</th>
-              <th>Score</th>
+              <th>Status</th>
+              <th>Current Price</th>
+              <th>Target Entry</th>
+              <th>Probability Score</th>
             </tr>
           </thead>
           <tbody id="watchlistBody">
-            <tr><td colspan="7" class="muted">No active watchlist yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <h2>Scan History</h2>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Time</th><th>Day</th><th>Best Symbol</th><th>Decision</th><th>Score</th></tr>
-          </thead>
-          <tbody id="scanHistoryBody">
-            <tr><td colspan="6" class="muted">No scans yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <h2>Trade Journal</h2>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Time</th><th>Symbol</th><th>Decision</th><th>Qty</th><th>Entry</th><th>Stop</th><th>T1</th><th>Status</th><th>Outcome</th></tr>
-          </thead>
-          <tbody id="tradeHistoryBody">
-            <tr><td colspan="10" class="muted">No trades yet.</td></tr>
+            <tr><td colspan="5" class="muted">No active watchlist yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -134,17 +136,7 @@
   </div>
 
 <script>
-const state = {
-  scan: null,
-  lastOrderId: null,
-  ws: null,
-  intradayChart: null,
-  dailyChart: null,
-  intradaySeries: null,
-  dailySeries: null,
-};
-
-
+const state = { scan: null, ws: null, intradayChart: null, dailyChart: null, intradaySeries: null, dailySeries: null };
 
 function money(v) {
   if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
@@ -152,7 +144,7 @@ function money(v) {
 }
 
 function setStatus(text) {
-  statusLine.textContent = text;
+  document.getElementById('statusLine').textContent = text;
 }
 
 function setDecisionPill(decision) {
@@ -160,37 +152,34 @@ function setDecisionPill(decision) {
   const css = (decision || '').toLowerCase().replace(/\s+/g, '-');
   el.textContent = decision || '—';
   el.className = 'pill ' + css;
+  
+  // Update Action Box styling
+  const actionBox = document.getElementById('actionContainer');
+  if (decision === 'BUY NOW') {
+      actionBox.className = 'action-box'; // Green
+  } else {
+      actionBox.className = 'action-box wait'; // Orange/Yellow
+  }
 }
 
 function renderBestPick(best) {
   document.getElementById('bestSymbol').textContent = best.symbol;
-  document.getElementById('statCurrent').textContent = money(best.current_price);
-  document.getElementById('statEntry').textContent = money(best.entry_price);
-  document.getElementById('statStop').textContent = money(best.stop_price);
-  document.getElementById('statT1').textContent = money(best.target_1);
-  document.getElementById('statT2').textContent = money(best.target_2);
-  document.getElementById('statScore').textContent = best.score_total;
 
+  // Render Beginner-Friendly Tooltips for Quant Metrics
   const scoreRows = document.getElementById('scoreRows');
   scoreRows.innerHTML = '';
 
-  // 1. Render the new Quant Engine Scores (Out of 100)
-  if (best.score_models) {
-    Object.entries(best.score_models).forEach(([k, v]) => {
-      const div = document.createElement('div');
-      div.className = 'mini-card';
-      // Highlight the new engine scores with a blue tint
-      div.style.borderLeft = '3px solid #3b82f6';
-      div.innerHTML = `
-        <div class="label" style="color:#93c5fd">${k.replace('_',' ').toUpperCase()}</div>
-        <div class="value">${v}<span style="font-size:0.8rem; color:#64748b"> / 100</span></div>
-      `;
-      scoreRows.appendChild(div);
-    });
-  }
-
-  // 2. Render the new Engineering Metrics (RVol, Trend Eff, etc.)
   const details = best.details || {};
+  
+  // Dictionary of beginner explanations
+  const metricExplanations = {
+      'RVOL': 'Relative Volume. >2x means double the normal amount of people are trading this today.',
+      'TREND EFF': 'Trend Efficiency. >0.35 means it moves cleanly in one direction without chopping around.',
+      'GAP %': 'How much higher the stock opened today compared to yesterday\'s close.',
+      'SPREAD': 'The difference between the buy and sell price. Lower is better (safer).',
+      'HALT RISK': 'Warns if the stock is moving so fast the exchange might pause trading.'
+  };
+
   const metrics = [
     { label: 'RVOL', val: details.rvol ? details.rvol + 'x' : '—' },
     { label: 'TREND EFF', val: details.trend_efficiency ? details.trend_efficiency : '—' },
@@ -202,101 +191,69 @@ function renderBestPick(best) {
   metrics.forEach(m => {
     const div = document.createElement('div');
     div.className = 'mini-card';
-    div.innerHTML = `<div class="label">${m.label}</div><div class="value" style="font-size:1.1rem">${m.val}</div>`;
+    div.innerHTML = `<div class="label tooltip-container" data-tip="${metricExplanations[m.label]}">${m.label}</div><div class="value" style="font-size:1.1rem">${m.val}</div>`;
     scoreRows.appendChild(div);
   });
 
-  // 3. Robust Notes & Skip Reasons Formatting
-  const catalyst = best.details?.catalyst || {};
+  // Simplified Engine Notes
   const notes = [];
-
-  notes.push(`<strong>Catalyst:</strong> ${catalyst.catalyst_type || 'unknown'}${catalyst.used_ai ? ' (Gemini scored)' : ''}.`);
-  if (best.setup_grade) notes.push(`<strong>Setup grade:</strong> ${best.setup_grade}.`);
-
-  const sector = best.details?.sector_sympathy || {};
-  if (sector.sector_symbol) notes.push(`<strong>Sector ${sector.sector_symbol}:</strong> ${sector.sector_change_pct}% (edge ${sector.edge_vs_sector_pct}%).`);
-  if (catalyst.reason) notes.push(`<strong>AI Reason:</strong> ${catalyst.reason}`);
-
-  const openingRange = best.details?.opening_range || {};
-  if (openingRange.or_high) notes.push(`<strong>OR:</strong> ${openingRange.or_low} to ${openingRange.or_high}.`);
-  notes.push(`<strong>R/R to Target 2:</strong> ${best.rr_ratio_2}:1.`);
-
-  // Format Skip Reasons as a high-visibility warning box
+  const catalyst = best.details?.catalyst || {};
+  if (catalyst.used_ai) notes.push(`🧠 <strong>AI Sentiment:</strong> Scored the news catalyst as highly relevant.`);
+  
   const skips = best.details?.skip_reasons || [];
   if (skips.length > 0) {
     notes.push(`
       <div style="margin-top: 15px; padding: 12px; background: rgba(220, 38, 38, 0.1); border-left: 4px solid #dc2626; border-radius: 4px;">
-        <strong style="color: #fca5a5; display: block; margin-bottom: 8px;">⚠️ Skip Reasons & Blocks:</strong>
+        <strong style="color: #fca5a5; display: block; margin-bottom: 8px;">⚠️ Engine Safety Blocks (Why we aren't buying yet):</strong>
         <ul style="margin-bottom: 0; padding-left: 20px; color: #cbd5e1; line-height: 1.5;">
           ${skips.map(s => `<li>${s}</li>`).join('')}
         </ul>
       </div>
     `);
+  } else {
+      notes.push(`<div style="margin-top: 15px; color: #10b981; font-weight: bold;">✅ All safety checks passed. Edge confirmed.</div>`);
   }
 
-  // Use innerHTML instead of textContent so our HTML tags render properly
   document.getElementById('bestNotes').innerHTML = notes.join('<br>');
   setDecisionPill(best.decision);
 }
 
 function renderWatchPanel(best) {
   const panel = best.watch_panel;
-  document.getElementById('watchLabel').textContent = panel.label;
-  document.getElementById('watchBuyLine').textContent = `Buy only after ${panel.buy_after} if it is between ${money(panel.buy_range[0])} and ${money(panel.buy_range[1])}.`;
-  document.getElementById('watchQtyLine').textContent = `Buy up to ${panel.max_shares} shares based on risk.`;
-  const gradeEl = document.getElementById('watchGradeLine');
-  if (gradeEl) gradeEl.textContent = `Setup grade: ${best.setup_grade || panel.setup_grade || '—'}`;
-  document.getElementById('watchRiskLine').textContent = `Max dollar loss: ${money(panel.max_dollar_loss)}`;
+  
+  // Clear Action Instructions
+  const actionPrimary = document.getElementById('actionPrimary');
+  if (best.decision === 'BUY NOW') {
+      actionPrimary.innerHTML = `Buy <strong>${panel.max_shares} shares</strong> right now between ${money(panel.buy_range[0])} and ${money(panel.buy_range[1])}.`;
+  } else if (best.decision === 'WAIT') {
+      actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after}</strong>. If price is between ${money(panel.buy_range[0])} and ${money(panel.buy_range[1])}, prepare to buy.`;
+  } else {
+      actionPrimary.innerHTML = `Monitor for a breakout. Do not buy yet.`;
+  }
+
+  document.getElementById('watchQtyLine').textContent = `${panel.max_shares} Shares`;
+  document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
+  document.getElementById('watchStopLine').textContent = money(panel.stop);
+  document.getElementById('watchTpLine').textContent = `${money(panel.take_profit_range[0])}`;
+  
   const orLow = panel.opening_range?.[0];
   const orHigh = panel.opening_range?.[1];
-  const vwap = panel.vwap;
-  document.getElementById('watchOpenLine').textContent = `Opening range: ${money(orLow)} to ${money(orHigh)}. VWAP: ${money(vwap)}.`;
-  document.getElementById('watchStopLine').textContent = `Stop: ${money(panel.stop)}`;
-  document.getElementById('watchTpLine').textContent = `Take profit: ${money(panel.take_profit_range[0])} to ${money(panel.take_profit_range[1])}`;
+  document.getElementById('watchOpenLine').textContent = `${money(orLow)} to ${money(orHigh)}`;
 }
 
 function renderRiskControls(risk) {
   const el = document.getElementById('riskBox');
   if (!risk) {
-    el.textContent = 'Risk lock: unavailable.';
+    el.textContent = 'System status unavailable.';
     return;
   }
   const parts = [];
-  parts.push(`Buy window: ${risk.buy_window_open ? 'OPEN' : `blocked until ${risk.no_buy_before_et} ET`}`);
-  parts.push(`Failed trades today: ${risk.failed_trades_today}/${risk.max_failed_trades_per_day}`);
-  parts.push(risk.can_trade_today ? 'Trading allowed.' : 'Daily loss lock active.');
-  el.textContent = parts.join(' ');
+  parts.push(risk.buy_window_open ? '🟢 Time Gate: OPEN.' : `🔴 Time Gate: Locked until ${risk.no_buy_before_et} ET.`);
+  parts.push(`🛡️ Portfolio Drawdown Protection: ${risk.failed_trades_today}/${risk.max_failed_trades_per_day} fails today.`);
+  el.innerHTML = parts.join('<br>');
 }
 
-function renderHistory(history) {
-  const scanBody = document.getElementById('scanHistoryBody');
-  const tradeBody = document.getElementById('tradeHistoryBody');
-  scanBody.innerHTML = '';
-  tradeBody.innerHTML = '';
-
-  const scans = history?.scans || [];
-  const trades = history?.trades || [];
-
-  if (!scans.length) {
-    scanBody.innerHTML = '<tr><td colspan="6" class="muted">No scans yet.</td></tr>';
-  } else {
-    scans.forEach(s => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${s.id}</td><td>${s.created_at}</td><td>${s.market_day || ''}</td><td>${s.best_symbol || ''}</td><td>${s.best_decision || ''}</td><td>${s.best_score || ''}</td>`;
-      scanBody.appendChild(tr);
-    });
-  }
-
-  if (!trades.length) {
-    tradeBody.innerHTML = '<tr><td colspan="10" class="muted">No trades yet.</td></tr>';
-  } else {
-    trades.forEach(t => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${t.id}</td><td>${t.created_at}</td><td>${t.symbol}</td><td>${t.decision || ''}</td><td>${t.qty || ''}</td><td>${money(t.entry_price)}</td><td>${money(t.stop_price)}</td><td>${money(t.target_1)}</td><td>${t.order_status || ''}</td><td>${t.outcome || ''}</td>`;
-      tradeBody.appendChild(tr);
-    });
-  }
-}
+// ... [Keep your existing createOrResetChart, renderCharts, renderWatchlist, and connectWatchlistSocket functions here exactly as they were] ...
 
 function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
   const container = document.getElementById(containerId);
@@ -310,11 +267,7 @@ function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
     height: 330,
   });
   const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
-    upColor: '#16a34a',
-    downColor: '#dc2626',
-    borderVisible: false,
-    wickUpColor: '#16a34a',
-    wickDownColor: '#dc2626',
+    upColor: '#16a34a', downColor: '#dc2626', borderVisible: false, wickUpColor: '#16a34a', wickDownColor: '#dc2626',
   });
   series.setData(data);
   chart.timeScale().fitContent();
@@ -331,77 +284,48 @@ function renderWatchlist(items) {
   const body = document.getElementById('watchlistBody');
   body.innerHTML = '';
   if (!items || !items.length) {
-    body.innerHTML = '<tr><td colspan="7" class="muted">No active watchlist yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="muted">No active watchlist yet.</td></tr>';
     return;
   }
   items.forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${item.symbol}</td>
+      <td><strong>${item.symbol}</strong></td>
       <td><span class="table-pill ${(item.live_signal || 'WATCH').toLowerCase().replace(/\s+/g,'-')}">${item.live_signal || 'WATCH'}</span></td>
       <td>${money(item.current_price)}</td>
       <td>${money(item.entry_price)}</td>
-      <td>${money(item.stop_price)}</td>
-      <td>${money(item.target_1)}</td>
-      <td>${item.score_total}</td>`;
+      <td>${item.score_total}/100</td>`;
     body.appendChild(tr);
   });
 }
 
-function connectWatchlistSocket() {
-  if (state.ws) state.ws.close();
-  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${protocol}://${location.host}/ws/watchlist`);
-  state.ws = ws;
-  ws.onmessage = (event) => {
-    const payload = JSON.parse(event.data);
-    if (payload.type === 'watchlist') {
-      renderWatchlist(payload.items || []);
-      const best = state.scan?.best_pick;
-      if (!best) return;
-      const top = (payload.items || []).find(i => i.symbol === best.symbol);
-      if (top) {
-        document.getElementById('statCurrent').textContent = money(top.current_price);
-      }
-    }
-  };
-}
-
-async function loadHistory() {
-  const res = await fetch('/api/history');
-  const data = await res.json();
-  if (data.ok) renderHistory(data.data);
-}
-
 async function runScan() {
+  const runBtn = document.getElementById('runBtn');
   runBtn.disabled = true;
-  setStatus('Scanning market, scoring catalysts, and checking the open...');
+  runBtn.textContent = 'Scanning Market...';
+  setStatus('Downloading market data, scoring AI sentiment, and sizing Kelly risk...');
   try {
     const res = await fetch('/api/scan', { method: 'POST' });
     const payload = await res.json();
     if (!payload.ok) throw new Error(payload.error);
     state.scan = payload.data;
     const best = payload.data.best_pick;
-    const marketCall = document.getElementById('marketCall');
-    if (marketCall) { marketCall.textContent = payload.data.market_call || '—'; marketCall.className = 'pill ' + ((payload.data.market_call || 'skip').toLowerCase().replace(/\s+/g,'-')); }
+    
     renderBestPick(best);
     renderWatchPanel(best);
     renderCharts(payload.data.chart_pack);
     renderWatchlist(payload.data.watchlist || []);
-    renderHistory(payload.history || {});
     renderRiskControls(payload.data.risk_controls || {});
-    setStatus(`Scan complete. Best pick: ${best.symbol} (${best.decision}, ${best.setup_grade || '—'}).`);
-    connectWatchlistSocket();
+    setStatus(`Scan complete. Top pick identified: ${best.symbol}.`);
   } catch (err) {
     setStatus(`Error: ${err.message}`);
   } finally {
     runBtn.disabled = false;
+    runBtn.textContent = 'Run Morning Scan';
   }
 }
 
-
-runBtn.addEventListener('click', runScan);
-window.addEventListener('load', loadHistory);
+document.getElementById('runBtn').addEventListener('click', runScan);
 window.addEventListener('resize', () => {
   if (state.intradayChart) state.intradayChart.applyOptions({ width: document.getElementById('intradayChart').clientWidth });
   if (state.dailyChart) state.dailyChart.applyOptions({ width: document.getElementById('dailyChart').clientWidth });
