@@ -209,3 +209,18 @@ def get_failed_trades_today() -> int:
             (prefix,),
         ).fetchone()
         return int(row['c'] or 0)
+
+
+
+def get_trade_by_target1_id(target_1_id: str) -> Optional[Dict[str, Any]]:
+    """Finds a trade based on its Target 1 order ID stored in raw_json."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM trades
+            WHERE json_extract(raw_json, '$.order_bundle.target_1_order_id') = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (target_1_id,),
+        ).fetchone()
+        return dict(row) if row else None
