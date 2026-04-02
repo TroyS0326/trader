@@ -83,7 +83,39 @@ class PortfolioHandler:
         _ = event
 
     def print_summary(self):
-        logger.info('Portfolio summary placeholder. Implement metrics/reporting here.')
+        """Calculates and logs professional quant metrics."""
+        completed_trades = getattr(self, "completed_trades", [])
+        if not completed_trades:
+            logger.info("No trades completed during this period.")
+            return
+
+        winning_trades = [trade for trade in completed_trades if trade["pnl"] > 0]
+        losing_trades = [trade for trade in completed_trades if trade["pnl"] <= 0]
+
+        total_trades = len(completed_trades)
+        win_rate = len(winning_trades) / total_trades
+        gross_profit = sum(trade["pnl"] for trade in winning_trades)
+        gross_loss = abs(sum(trade["pnl"] for trade in losing_trades))
+
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+        avg_win = gross_profit / len(winning_trades) if winning_trades else 0
+        avg_loss = gross_loss / len(losing_trades) if losing_trades else 0
+        reward_to_risk = avg_win / avg_loss if avg_loss > 0 else 0
+        net_pnl = gross_profit - gross_loss
+
+        logger.info("\n" + "=" * 50)
+        logger.info("📊 VETERAN PRO v2.0 - BACKTEST METRICS")
+        logger.info("=" * 50)
+        logger.info(f"Total Trades Taken:   {total_trades}")
+        logger.info(f"Win Rate:             {win_rate * 100:.2f}%")
+        logger.info(
+            f"Profit Factor:        {'inf' if profit_factor == float('inf') else f'{profit_factor:.2f}'}"
+        )
+        logger.info(f"Realized Reward:Risk: {reward_to_risk:.2f}:1")
+        logger.info(f"Average Win:          ${avg_win:.2f}")
+        logger.info(f"Average Loss:         ${avg_loss:.2f}")
+        logger.info(f"Net PnL (w/ fees):    ${net_pnl:.2f}")
+        logger.info("=" * 50 + "\n")
 
 
 # --- 3. MICROSTRUCTURE EXECUTION HANDLER ---
