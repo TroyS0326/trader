@@ -208,7 +208,8 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
         minute = snap.get('minuteBar', {})
         prev = snap.get('prevDailyBar', {})
         price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
-        if symbol != 'SPY' and not (1.0 <= price <= 5.0):
+        # Allow stocks between $1.00 and $500.00 (except SPY which is always included).
+        if symbol != 'SPY' and not (1.0 <= price <= 500.0):
             continue
         day_vol = safe_num(daily.get('v')) or safe_num(prev.get('v'))
         dollar_volume = day_vol * max(price, 0)
@@ -1321,7 +1322,7 @@ def run_scan() -> Dict[str, Any]:
         minute_close = safe_num(snapshot.get('minuteBar', {}).get('c'))
         daily_close = safe_num(snapshot.get('dailyBar', {}).get('c'))
         current_price = ask or minute_close or daily_close
-        if current_price and current_price >= 5.0:
+        if current_price and current_price >= 500.0:
             continue
         if not snapshot or not daily_bars or not minute_bars:
             continue
