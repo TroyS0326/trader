@@ -14,7 +14,7 @@ from models import ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelD
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
-from ai_catalyst import classify_catalyst, classify_news_with_gemini
+from feature_store import store
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -465,44 +465,23 @@ def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premar
 
 
 def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str, Any]]:
-    headlines = get_company_news(symbol)
-    ai = classify_news_with_gemini(symbol, headlines)
-    if ai.get('used_ai'):
-        score = int(ai.get('score') or 1)
-        category = classify_catalyst(str(ai.get('catalyst_type', 'unknown')))
-        if ai.get('direction') == 'bearish':
-            score = max(1, score - 1)
-        score = 1 if category['hard_skip'] else max(score, min(5, category['weight']))
-        if ai.get('hard_pass'):
-            score = 1
-        return score, {
-            'used_ai': True,
-            'headline_count': len(headlines),
-            'catalyst_type': ai.get('catalyst_type', 'unknown'),
-            'catalyst_category_weight': category['weight'],
-            'direction': ai.get('direction', 'unknown'),
-            'confidence': ai.get('confidence', 'low'),
-            'hard_pass': bool(ai.get('hard_pass', False) or category['hard_skip']),
-            'reason': ai.get('reason', ''),
-            'headlines': headlines[:8],
-        }
+    _ = price_change_pct
+    ml_features = store.get_symbol_features(symbol)
+    p_success = float(ml_features.get('p_success', 0.0) or 0.0)
+    sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
+    catalyst_score = max(1, min(5, int(round(p_success * 5))))
 
-    score = 1
-    if len(headlines) >= 6 and abs(price_change_pct) >= 8:
-        score = 4
-    elif len(headlines) >= 3 and abs(price_change_pct) >= 4:
-        score = 3
-    elif len(headlines) >= 1 or abs(price_change_pct) >= 5:
-        score = 2
-    return score, {
-        'used_ai': False,
-        'headline_count': len(headlines),
-        'catalyst_type': 'unknown',
-        'direction': 'unknown',
-        'confidence': 'low',
-        'hard_pass': False,
-        'reason': ai.get('reason') or 'Fallback scoring used because Gemini was unavailable.',
-        'headlines': headlines[:8],
+    return catalyst_score, {
+        'used_ai': True,
+        'model': 'FinBERT + XGBoost',
+        'sentiment_score': sentiment,
+        'p_success': p_success,
+        'headline_count': int(ml_features.get('headline_count', 0) or 0),
+        'hard_pass': p_success < 0.20,
+        'catalyst_category_weight': catalyst_score,
+        'direction': 'bullish' if sentiment >= 0 else 'mixed',
+        'confidence': 'medium',
+        'reason': 'Loaded from pre-market feature store.',
     }
 
 
@@ -1045,7 +1024,22 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     mtf_aligned = has_positive_mtf_vwap_trend(minute_bars)
     vixy_change = get_vix_change()
 
-    catalyst_score, catalyst_meta = score_catalyst(symbol, price_change_pct)
+    ml_features = store.get_symbol_features(symbol)
+    p_success = float(ml_features.get('p_success', 0.0) or 0.0)
+    sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
+    catalyst_score = max(1, min(5, int(round(p_success * 5))))
+    catalyst_meta = {
+        'used_ai': True,
+        'model': 'FinBERT + XGBoost',
+        'sentiment_score': sentiment,
+        'p_success': p_success,
+        'headline_count': int(ml_features.get('headline_count', 0) or 0),
+        'hard_pass': p_success < 0.20,
+        'catalyst_category_weight': catalyst_score,
+        'direction': 'bullish' if sentiment >= 0 else 'mixed',
+        'confidence': 'medium',
+        'reason': 'Loaded from pre-market feature store.',
+    }
     liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
     daily_score, daily_meta = score_daily_alignment(current_price, daily_bars)
     sector_symbol = choose_sector_etf(profile, symbol)
@@ -1078,7 +1072,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         now_label=now_et().strftime('%H:%M'),
     )
 
-    total = catalyst_score + liquidity_score + daily_score + sector_score + open_rs_score + vwap_score + pullback_score + entry_score + confirm_score
+    total = int(p_success * 100)
     buy_lower = entry_meta['entry_price']
     buy_upper = round(entry_meta['entry_price'] * (1 + MAX_ENTRY_EXTENSION_PCT), 2)
     sizing = calculate_position_size(entry_meta['entry_price'], entry_meta['stop_price'])
