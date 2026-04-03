@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ app_title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     /* Beginner-Friendly UI Additions */
     .action-box {
@@ -329,7 +328,7 @@ async function runScan() {
     
     renderBestPick(best);
     renderWatchPanel(best);
-    renderCharts(payload.data.chart_pack);
+    // renderCharts(payload.data.chart_pack);
     renderWatchlist(payload.data.watchlist || []);
     renderRiskControls(payload.data.risk_controls || {});
     setStatus(`Scan complete. Top pick identified: ${best.symbol}.`);
