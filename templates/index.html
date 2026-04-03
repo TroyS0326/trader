@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ app_title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     /* Beginner-Friendly UI Additions */
     .action-box {
@@ -135,7 +136,7 @@
   </div>
 
 <script>
-const state = { scan: null, ws: null, intradayChart: null, dailyChart: null, intradaySeries: null, dailySeries: null, chartInterval: null };
+const state = { scan: null, ws: null, intradayChart: null, dailyChart: null, intradaySeries: null, dailySeries: null };
 
 function money(v) {
   if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
@@ -152,25 +153,29 @@ function setDecisionPill(decision) {
   el.textContent = decision || '—';
   el.className = 'pill ' + css;
   
+  // Update Action Box styling
   const actionBox = document.getElementById('actionContainer');
   if (decision === 'BUY NOW') {
-      actionBox.className = 'action-box';
+      actionBox.className = 'action-box'; // Green
   } else {
-      actionBox.className = 'action-box wait';
+      actionBox.className = 'action-box wait'; // Orange/Yellow
   }
 }
 
 function renderBestPick(best) {
   document.getElementById('bestSymbol').textContent = best.symbol;
 
+  // Render Beginner-Friendly Tooltips for Quant Metrics
   const scoreRows = document.getElementById('scoreRows');
   scoreRows.innerHTML = '';
+
   const details = best.details || {};
   
+  // Dictionary of beginner explanations
   const metricExplanations = {
       'RVOL': 'Relative Volume. >2x means double the normal amount of people are trading this today.',
       'TREND EFF': 'Trend Efficiency. >0.35 means it moves cleanly in one direction without chopping around.',
-      'GAP %': 'How much higher the stock opened today compared to yesterday's close.',
+      'GAP %': 'How much higher the stock opened today compared to yesterday\'s close.',
       'SPREAD': 'The difference between the buy and sell price. Lower is better (safer).',
       'HALT RISK': 'Warns if the stock is moving so fast the exchange might pause trading.'
   };
@@ -190,6 +195,7 @@ function renderBestPick(best) {
     scoreRows.appendChild(div);
   });
 
+  // Simplified Engine Notes
   const notes = [];
   const catalyst = best.details?.catalyst || {};
   if (catalyst.used_ai) notes.push(`🧠 <strong>AI Sentiment:</strong> Scored the news catalyst as highly relevant.`);
@@ -214,6 +220,8 @@ function renderBestPick(best) {
 
 function renderWatchPanel(best) {
   const panel = best.watch_panel;
+  
+  // Clear Action Instructions
   const actionPrimary = document.getElementById('actionPrimary');
   if (best.decision === 'BUY NOW') {
       actionPrimary.innerHTML = `Buy <strong>${panel.max_shares} shares</strong> right now between ${money(panel.buy_range[0])} and ${money(panel.buy_range[1])}.`;
@@ -246,29 +254,23 @@ function renderRiskControls(risk) {
 }
 
 function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
-  // FIX: Don't destroy the chart if it already exists. Just stream the data.
-  if (!state[chartRefName]) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = '';
-      const chart = LightweightCharts.createChart(container, {
-        layout: { background: { color: '#0b1220' }, textColor: '#dbe4ff' },
-        grid: { vertLines: { color: 'rgba(148,163,184,0.08)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
-        rightPriceScale: { borderColor: 'rgba(148,163,184,0.2)' },
-        timeScale: { borderColor: 'rgba(148,163,184,0.2)', timeVisible: true },
-        width: container.clientWidth,
-        height: 330,
-      });
-      const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
-        upColor: '#16a34a', downColor: '#dc2626', borderVisible: false, wickUpColor: '#16a34a', wickDownColor: '#dc2626',
-      });
-      series.setData(data);
-      chart.timeScale().fitContent();
-      state[chartRefName] = chart;
-      state[seriesRefName] = series;
-  } else {
-      // Smoothly update the existing chart without flickering
-      state[seriesRefName].setData(data);
-  }
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const chart = LightweightCharts.createChart(container, {
+    layout: { background: { color: '#0b1220' }, textColor: '#dbe4ff' },
+    grid: { vertLines: { color: 'rgba(148,163,184,0.08)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
+    rightPriceScale: { borderColor: 'rgba(148,163,184,0.2)' },
+    timeScale: { borderColor: 'rgba(148,163,184,0.2)' },
+    width: container.clientWidth,
+    height: 330,
+  });
+  const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
+    upColor: '#16a34a', downColor: '#dc2626', borderVisible: false, wickUpColor: '#16a34a', wickDownColor: '#dc2626',
+  });
+  series.setData(data);
+  chart.timeScale().fitContent();
+  state[chartRefName] = chart;
+  state[seriesRefName] = series;
 }
 
 function renderCharts(chartPack) {
@@ -328,25 +330,11 @@ async function runScan() {
     
     renderBestPick(best);
     renderWatchPanel(best);
-    // renderCharts(payload.data.chart_pack);
+    renderCharts(payload.data.chart_pack);
     renderWatchlist(payload.data.watchlist || []);
     renderRiskControls(payload.data.risk_controls || {});
     setStatus(`Scan complete. Top pick identified: ${best.symbol}.`);
     connectWatchlistSocket();
-
-    // LIVE CHART ENGINE: Fetch new candles every 15 seconds
-    if (state.chartInterval) clearInterval(state.chartInterval);
-    state.chartInterval = setInterval(async () => {
-        if (!state.scan?.best_pick?.symbol) return;
-        try {
-            const chartRes = await fetch(`/api/chart/${state.scan.best_pick.symbol}`);
-            const chartData = await chartRes.json();
-            if (chartData.ok) {
-                renderCharts(chartData.data);
-            }
-        } catch (err) { console.error("Live chart sync failed", err); }
-    }, 15000);
-
   } catch (err) {
     setStatus(`Error: ${err.message}`);
   } finally {
