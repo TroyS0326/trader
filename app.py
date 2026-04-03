@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request
 from flask_sock import Sock
 
 import config
@@ -91,7 +91,17 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    return render_template('index.html', app_title=config.APP_TITLE)
+    response = make_response(render_template('index.html', app_title=config.APP_TITLE))
+
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self' ws: wss:; "
+        "img-src 'self' data:;"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    return response
 
 
 
