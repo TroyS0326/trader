@@ -3,11 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: ws: wss:;">
-  
   <title>{{ app_title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     /* Beginner-Friendly UI Additions */
     .action-box {
