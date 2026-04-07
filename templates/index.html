@@ -192,11 +192,11 @@ function renderRiskControls(risk) {
   el.innerHTML = (risk.buy_window_open ? '🟢 Time Gate: OPEN.' : `🔴 Time Gate: Locked until ${risk.no_buy_before_et} ET.`) + `<br>🛡️ Drawdown Protection: ${risk.failed_trades_today}/${risk.max_failed_trades_per_day} fails today.`;
 }
 
-// FIX 2: Smooth updating. Only create the chart once, then just push new data into it.
 function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
   if (!state[chartRefName]) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
+
       const chart = LightweightCharts.createChart(container, {
         layout: { background: { color: '#0b1220' }, textColor: '#dbe4ff' },
         grid: { vertLines: { color: 'rgba(148,163,184,0.08)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
@@ -205,15 +205,23 @@ function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
         width: container.clientWidth,
         height: 330,
       });
-      const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
-        upColor: '#16a34a', downColor: '#dc2626', borderVisible: false, wickUpColor: '#16a34a', wickDownColor: '#dc2626',
+
+      // FIX: Use addCandlestickSeries instead of the generic addSeries
+      const series = chart.addCandlestickSeries({
+        upColor: '#16a34a',
+        downColor: '#dc2626',
+        borderVisible: false,
+        wickUpColor: '#16a34a',
+        wickDownColor: '#dc2626',
       });
+
       series.setData(data);
       chart.timeScale().fitContent();
+
       state[chartRefName] = chart;
       state[seriesRefName] = series;
   } else {
-      // If it exists, just smoothly update the data
+      // Smoothly update existing series
       state[seriesRefName].setData(data);
   }
 }
