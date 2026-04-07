@@ -26,22 +26,27 @@ WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
 MAX_BUY_SHARES = int(os.getenv('MAX_BUY_SHARES', '999'))
 DEFAULT_RISK_CAPITAL = float(os.getenv('DEFAULT_RISK_CAPITAL', '300'))
 CURRENT_BANKROLL = float(os.getenv('CURRENT_BANKROLL', '300.0'))
+
 # --- Dynamic Risk Sizing Parameters (Replaces RISK_PCT_PER_TRADE) ---
 RISK_PCT_PER_TRADE = 0.02
 KELLY_FRACTION = float(os.getenv('KELLY_FRACTION', '0.25'))  # We will risk 25% of the mathematically optimal Full Kelly size
 MAX_PORTFOLIO_HEAT = float(os.getenv('MAX_PORTFOLIO_HEAT', '0.06'))  # Hard cap single-trade risk at 6% of portfolio equity
 VIX_PENALTY_MULTIPLIER = float(os.getenv('VIX_PENALTY_MULTIPLIER', '0.5'))  # Cut Kelly sizing in half if VIX circuit breaker triggers
+
 # Kept as a fallback for any legacy references.
 MAX_DOLLAR_LOSS_PER_TRADE = float(os.getenv('MAX_DOLLAR_LOSS_PER_TRADE', '5'))
 MAX_FAILED_TRADES_PER_DAY = int(os.getenv('MAX_FAILED_TRADES_PER_DAY', '2'))
 WATCHLIST_PUSH_SECONDS = float(os.getenv('WATCHLIST_PUSH_SECONDS', '4'))
 ORDER_STATUS_POLL_SECONDS = float(os.getenv('ORDER_STATUS_POLL_SECONDS', '8'))
 MIN_SCORE_TO_EXECUTE = int(os.getenv('MIN_SCORE_TO_EXECUTE', '25'))
-MIN_CATALYST_SCORE = int(os.getenv('MIN_CATALYST_SCORE', '4'))
-NO_BUY_BEFORE_ET = os.getenv('NO_BUY_BEFORE_ET', '10:00').strip() or '10:00'
+
+# --- CALIBRATED ENGINE SETTINGS (LOOSENED FOR MORE ACTION) ---
+MIN_CATALYST_SCORE = int(os.getenv('MIN_CATALYST_SCORE', '2'))
+NO_BUY_BEFORE_ET = os.getenv('NO_BUY_BEFORE_ET', '09:45').strip() or '09:45'
 OPENING_RANGE_START_ET = os.getenv('OPENING_RANGE_START_ET', '09:30').strip() or '09:30'
-OPENING_RANGE_END_ET = os.getenv('OPENING_RANGE_END_ET', '10:00').strip() or '10:00'
-MAX_SPREAD_PCT = float(os.getenv('MAX_SPREAD_PCT', '0.0015'))
+OPENING_RANGE_END_ET = os.getenv('OPENING_RANGE_END_ET', '09:45').strip() or '09:45'
+MAX_SPREAD_PCT = float(os.getenv('MAX_SPREAD_PCT', '0.003'))
+
 MAX_ENTRY_EXTENSION_PCT = float(os.getenv('MAX_ENTRY_EXTENSION_PCT', '0.01'))
 OR_BREAKOUT_BUFFER_PCT = float(os.getenv('OR_BREAKOUT_BUFFER_PCT', '0.0015'))
 PULLBACK_MAX_RETRACE_PCT = float(os.getenv('PULLBACK_MAX_RETRACE_PCT', '0.45'))
@@ -54,11 +59,13 @@ MARKET_INTERNALS_ADD_SYMBOL = os.getenv('MARKET_INTERNALS_ADD_SYMBOL', 'ADD').st
 CRYPTO_SCAN_ENABLED = os.getenv('CRYPTO_SCAN_ENABLED', '1') == '1'
 CRYPTO_SYMBOLS = [s.strip().upper() for s in os.getenv('CRYPTO_SYMBOLS', 'BTC/USD,ETH/USD,SOL/USD,XRP/USD,DOGE/USD').split(',') if s.strip()]
 
-MIN_PREMARKET_GAP_PCT = float(os.getenv('MIN_PREMARKET_GAP_PCT', '6.0'))
+# --- BROADER MARKET CAPS AND GAPS ---
+MIN_PREMARKET_GAP_PCT = float(os.getenv('MIN_PREMARKET_GAP_PCT', '2.0'))
 MIN_PREMARKET_DOLLAR_VOL = float(os.getenv('MIN_PREMARKET_DOLLAR_VOL', '2000000'))
-MIN_SECTOR_SYMPATHY_SCORE = int(os.getenv('MIN_SECTOR_SYMPATHY_SCORE', '3'))
-MIN_RVOL = float(os.getenv('MIN_RVOL', '3.0'))
-MAX_FLOAT = int(os.getenv('MAX_FLOAT', '50000000'))
+MIN_SECTOR_SYMPATHY_SCORE = int(os.getenv('MIN_SECTOR_SYMPATHY_SCORE', '1'))
+MIN_RVOL = float(os.getenv('MIN_RVOL', '1.5'))
+MAX_FLOAT = int(os.getenv('MAX_FLOAT', '2000000000'))
+
 A_PLUS_SCORE = int(os.getenv('A_PLUS_SCORE', '34'))
 A_SCORE = int(os.getenv('A_SCORE', '30'))
 TIMEZONE_LABEL = 'America/New_York'
