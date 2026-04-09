@@ -182,10 +182,19 @@ def update_settings():
 @app.route('/connect_broker', methods=['POST'])
 @login_required
 def connect_broker():
+    # Grab the keys AND the radio button selection from the form
     api_key = request.form.get('api_key')
     api_secret = request.form.get('api_secret')
-    result = verify_alpaca_data_feed(current_user.id, api_key, api_secret)
-    flash(result['message'], 'success' if result['success'] else 'error')
+    claimed_feed = request.form.get('claimed_feed')  # Will be 'iex' or 'sip'
+
+    # Run the "Trust, But Verify" script
+    result = verify_alpaca_data_feed(current_user.id, api_key, api_secret, claimed_feed)
+
+    if result['success']:
+        flash(result['message'], 'success')
+    else:
+        flash(result['message'], 'error')
+
     return redirect(url_for('dashboard'))
 
 
