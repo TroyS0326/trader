@@ -130,7 +130,7 @@ def signup():
         login_user(new_user)
         return redirect(url_for('dashboard'))
 
-    return render_template('login.html')
+    return render_template('signup.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
