@@ -84,3 +84,4 @@ location /ws/ {
     proxy_set_header Host $host;
 }
 ```
+# trader
