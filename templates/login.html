@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Veteran Pro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Adding specific styles for forms to match your dark theme */
+    .auth-wrap { max-width: 400px; margin: 100px auto; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    input[type="email"], input[type="password"], input[type="text"], input[type="number"] {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--text); font-size: 1rem;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .btn-block { width: 100%; display: block; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap auth-wrap">
+    <section class="card">
+      <div class="section-head" style="justify-content: center; margin-bottom: 24px;">
+        <h2>Veteran Pro Access</h2>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="status" style="border-color: #ef4444; color: #fecaca; background: rgba(127,29,29,0.2); margin-bottom: 20px;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="/login" method="POST">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required placeholder="trader@example.com">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn-block" style="margin-bottom: 12px;">Secure Login</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <span class="muted">Need an account?</span>
+        <a href="/signup" style="color: var(--accent); text-decoration: none; font-weight: bold;">Sign Up Here</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

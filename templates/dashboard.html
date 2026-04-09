@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Dashboard - Veteran Pro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem; }
+    input:focus { outline: none; border-color: var(--accent); }
+    .feed-badge { padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+    .feed-sip { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
+    .feed-iex { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>Welcome, {{ current_user.email }}</h1>
+          <p>Subscription Status:
+            <span class="pill {% if current_user.subscription_status == 'active' %}triggered{% else %}skip{% endif %}">
+              {{ current_user.subscription_status | upper }}
+            </span>
+          </p>
+        </div>
+        <div class="hero-actions">
+          <a href="/logout"><button class="ghost">Logout</button></a>
+          <a href="/"><button>Go to Live Scanner</button></a>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+
+        <section class="card">
+          <div class="section-head">
+            <h2>Risk Engine Settings</h2>
+          </div>
+          <p class="muted" style="margin-bottom: 20px;">The master scanner will use these exact parameters to size your trades dynamically.</p>
+
+          <form action="/update_settings" method="POST">
+            <div class="form-group">
+              <label for="bankroll">Trading Bankroll ($)</label>
+              <input type="number" step="0.01" id="bankroll" name="bankroll" value="{{ current_user.bankroll }}" required>
+            </div>
+            <div class="form-group">
+              <label for="risk_pct" class="tooltip-container" data-tip="The percentage of your bankroll risked per trade.">Max Risk Per Trade (%)</label>
+              <input type="number" step="0.1" id="risk_pct" name="risk_pct" value="{{ current_user.risk_pct }}" required>
+            </div>
+            <button type="submit">Save Parameters</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h2>Broker Connection</h2>
+            {% if current_user.data_feed == 'sip' %}
+              <span class="feed-badge feed-sip">Market Data+ (SIP) Active</span>
+            {% else %}
+              <span class="feed-badge feed-iex">Free Feed (IEX) Active</span>
+            {% endif %}
+          </div>
+
+          {% if current_user.data_feed == 'iex' %}
+            <div class="status" style="border-color: #f59e0b; color: #fde68a; margin-bottom: 20px;">
+              ⚠️ <strong>Performance Warning:</strong> You are on the delayed free data feed. For optimal execution on A+ breakouts, upgrade your Alpaca account to Pro.
+            </div>
+          {% endif %}
+
+          <p class="muted" style="margin-bottom: 20px;">Connect your Alpaca Paper Trading account. Keys are encrypted and used solely for your execution.</p>
+
+          <form action="/connect_broker" method="POST">
+            <div class="form-group">
+              <label for="api_key">Alpaca API Key ID</label>
+              <input type="text" id="api_key" name="api_key" placeholder="PK..." required>
+            </div>
+            <div class="form-group">
+              <label for="api_secret">Alpaca API Secret Key</label>
+              <input type="password" id="api_secret" name="api_secret" placeholder="Secret..." required>
+            </div>
+            <button type="submit" class="secondary">Verify & Connect Broker</button>
+          </form>
+        </section>
+
+    </div>
+  </div>
+</body>
+</html>
