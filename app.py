@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import requests
 import sqlite3
 
 from datetime import datetime
@@ -31,6 +32,10 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
+
+ALPACA_CLIENT_ID = os.getenv('ALPACA_CLIENT_ID', '')
+ALPACA_CLIENT_SECRET = os.getenv('ALPACA_CLIENT_SECRET', '')
+REDIRECT_URI = os.getenv('ALPACA_REDIRECT_URI', 'https://hushgifter.com/alpaca/callback')
 
 
 @login_manager.user_loader
@@ -125,6 +130,11 @@ def signup():
         state = request.form.get('state')
         zip_code = request.form.get('zip_code')
         phone = request.form.get('phone')
+        tos = request.form.get('tos')
+
+        if not tos:
+            flash('You must agree to the Terms acknowledgement to create an account.', 'error')
+            return redirect(url_for('signup'))
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
@@ -213,6 +223,60 @@ def connect_broker():
     else:
         flash(result['message'], 'error')
 
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/alpaca/login')
+@login_required
+def alpaca_login():
+    alpaca_auth_url = (
+        f"https://app.alpaca.markets/oauth/authorize"
+        f"?response_type=code"
+        f"&client_id={ALPACA_CLIENT_ID}"
+        f"&redirect_uri={REDIRECT_URI}"
+        f"&scope=trading"
+    )
+    return redirect(alpaca_auth_url)
+
+
+@app.route('/alpaca/callback')
+@login_required
+def alpaca_callback():
+    code = request.args.get('code')
+    if not code:
+        flash('Authorization code missing from Alpaca callback.', 'error')
+        return redirect(url_for('dashboard'))
+
+    token_url = "https://api.alpaca.markets/oauth/token"
+    payload = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'client_id': ALPACA_CLIENT_ID,
+        'client_secret': ALPACA_CLIENT_SECRET,
+        'redirect_uri': REDIRECT_URI,
+    }
+
+    response = requests.post(token_url, data=payload, timeout=15)
+    data = response.json()
+
+    if 'access_token' in data:
+        current_user.alpaca_access_token = data['access_token']
+        current_user.alpaca_account_id = data.get('account_id')
+        db.session.commit()
+        flash("Successfully connected to Alpaca!", "success")
+    else:
+        flash("Failed to connect to Alpaca.", "error")
+
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/alpaca/logout')
+@login_required
+def alpaca_logout():
+    current_user.alpaca_access_token = None
+    current_user.alpaca_account_id = None
+    db.session.commit()
+    flash('Alpaca account disconnected.', 'success')
     return redirect(url_for('dashboard'))
 
 
