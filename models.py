@@ -1,6 +1,11 @@
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List, Optional
 
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
 @dataclass
 class ScoreTriplet:
     opportunity: int
@@ -73,3 +78,13 @@ class SymbolAnalysisResult:
     def to_dict(self) -> Dict[str, Any]:
         """Converts the dataclass back to a dict for Flask jsonify and SQLite storage."""
         return asdict(self)
+
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    subscription_status = db.Column(db.String(50), nullable=False, default='free')
+    bankroll = db.Column(db.Float, nullable=False, default=0.0)
+    risk_pct = db.Column(db.Float, nullable=False, default=1.0)
+    alpaca_access_token = db.Column(db.String(255), nullable=True)
