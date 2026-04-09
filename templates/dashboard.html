@@ -64,15 +64,15 @@
               <span class="feed-badge feed-iex">Free Feed (IEX) Active</span>
             {% endif %}
           </div>
-
+          
           {% if current_user.data_feed == 'iex' %}
-            <div class="status" style="border-color: #f59e0b; color: #fde68a; margin-bottom: 20px;">
-              ⚠️ <strong>Performance Warning:</strong> You are on the delayed free data feed. For optimal execution on A+ breakouts, upgrade your Alpaca account to Pro.
+            <div class="status" style="border-color: #f59e0b; color: #fde68a; margin-bottom: 20px; background: rgba(245, 158, 11, 0.1);">
+              ⚠️ <strong>Performance Warning:</strong> You are currently using delayed IEX data. For faster execution and a higher win probability on breakouts, upgrade your Alpaca account to Market Data+ (SIP).
             </div>
           {% endif %}
 
-          <p class="muted" style="margin-bottom: 20px;">Connect your Alpaca Paper Trading account. Keys are encrypted and used solely for your execution.</p>
-
+          <p class="muted" style="margin-bottom: 20px;">Connect your Alpaca account. Keys are encrypted and used solely for your execution.</p>
+          
           <form action="/connect_broker" method="POST">
             <div class="form-group">
               <label for="api_key">Alpaca API Key ID</label>
@@ -82,7 +82,20 @@
               <label for="api_secret">Alpaca API Secret Key</label>
               <input type="password" id="api_secret" name="api_secret" placeholder="Secret..." required>
             </div>
-            <button type="submit" class="secondary">Verify & Connect Broker</button>
+
+            <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);">
+              <label style="margin-bottom: 12px;">Which Alpaca Data Plan do you use?</label>
+              <div style="margin-bottom: 10px;">
+                <input type="radio" id="feed_iex" name="claimed_feed" value="iex" checked style="width: auto; margin-right: 8px;">
+                <label for="feed_iex" style="display: inline; text-transform: none; color: var(--text); font-size: 1rem; cursor: pointer;">Free / Paper (IEX Feed)</label>
+              </div>
+              <div>
+                <input type="radio" id="feed_sip" name="claimed_feed" value="sip" style="width: auto; margin-right: 8px;">
+                <label for="feed_sip" style="display: inline; text-transform: none; color: var(--text); font-size: 1rem; cursor: pointer;">Pro / Market Data+ (SIP Feed)</label>
+              </div>
+            </div>
+
+            <button type="submit" class="secondary" style="margin-top: 10px;">Verify & Connect Broker</button>
           </form>
         </section>
 
