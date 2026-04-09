@@ -119,6 +119,12 @@ def signup():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        full_name = request.form.get('full_name')
+        address = request.form.get('address')
+        city = request.form.get('city')
+        state = request.form.get('state')
+        zip_code = request.form.get('zip_code')
+        phone = request.form.get('phone')
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
@@ -128,6 +134,12 @@ def signup():
         new_user = User(
             email=email,
             password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
+            full_name=full_name,
+            address=address,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+            phone=phone,
             subscription_status='free',
         )
         db.session.add(new_user)
