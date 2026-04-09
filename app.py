@@ -106,6 +106,12 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
+    # 1. Check if the user is logged in
+    if not current_user.is_authenticated:
+        # 2. If not, kick them to the login page
+        return redirect(url_for('login'))
+
+    # 3. If they ARE logged in, let them see the Live Scanner
     return render_template('index.html', app_title="Veteran Pro")
 
 
