@@ -6,21 +6,36 @@ import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_sock import Sock
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
 from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
-import db
+import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_execution_engine
+from models import db, User
+from onboarding import verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///veteran_saas.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 def ensure_db_initialized() -> None:
@@ -32,7 +47,7 @@ def ensure_db_initialized() -> None:
         fallback_path = os.path.join(fallback_dir, 'veteran_trades.db')
         logger.warning('Primary DB path failed (%s). Falling back to %s. Error: %s', config.DB_PATH, fallback_path, exc)
         config.DB_PATH = fallback_path
-        db.config.DB_PATH = fallback_path
+        trade_db.config.DB_PATH = fallback_path
         init_db()
 
 
@@ -92,6 +107,80 @@ def order_outcome_from_payload(order: dict) -> str:
 @app.route('/')
 def index():
     return render_template('index.html', app_title="Veteran Pro")
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email address already exists.', 'error')
+            return redirect(url_for('signup'))
+
+        new_user = User(
+            email=email,
+            password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
+            subscription_status='free',
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return redirect(url_for('dashboard'))
+
+    return render_template('login.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        user = User.query.filter_by(email=email).first()
+        if not user or not check_password_hash(user.password_hash, password):
+            flash('Please check your login details and try again.', 'error')
+            return redirect(url_for('login'))
+
+        login_user(user)
+        return redirect(url_for('dashboard'))
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', current_user=current_user)
+
+
+@app.route('/update_settings', methods=['POST'])
+@login_required
+def update_settings():
+    current_user.bankroll = float(request.form.get('bankroll'))
+    current_user.risk_pct = float(request.form.get('risk_pct'))
+    db.session.commit()
+    flash('Risk parameters updated successfully.', 'success')
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/connect_broker', methods=['POST'])
+@login_required
+def connect_broker():
+    api_key = request.form.get('api_key')
+    api_secret = request.form.get('api_secret')
+    result = verify_alpaca_data_feed(current_user.id, api_key, api_secret)
+    flash(result['message'], 'success' if result['success'] else 'error')
+    return redirect(url_for('dashboard'))
 
 
 
@@ -320,6 +409,10 @@ def ws_watchlist(ws):
         watchlist_manager.stream(ws)
     except Exception:
         return
+
+
+with app.app_context():
+    db.create_all()
 
 
 if __name__ == '__main__':
