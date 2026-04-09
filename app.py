@@ -106,13 +106,12 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    # 1. Check if the user is logged in
+    # 1. If they aren't logged in, kick them to the login page
     if not current_user.is_authenticated:
-        # 2. If not, kick them to the login page
         return redirect(url_for('login'))
 
-    # 3. If they ARE logged in, let them see the Live Scanner
-    return render_template('index.html', app_title="Veteran Pro")
+    # 2. If they ARE logged in, the front door is ALWAYS the Dashboard
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -167,6 +166,13 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html', current_user=current_user)
+
+
+@app.route('/scanner')
+@login_required
+def scanner():
+    # This is where the morning scan actually lives now
+    return render_template('index.html', app_title="Veteran Pro")
 
 
 @app.route('/update_settings', methods=['POST'])
