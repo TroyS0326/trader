@@ -37,50 +37,48 @@
       <form action="/signup" method="POST">
         <div class="form-group">
           <label for="full_name">Full Legal Name</label>
-          <input type="text" id="full_name" name="full_name" required placeholder="John Doe">
+          <input type="text" id="full_name" name="full_name" required>
         </div>
 
         <div class="form-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="trader@example.com">
+          <input type="email" id="email" name="email" required>
         </div>
 
         <div class="form-group">
           <label for="phone">Phone Number</label>
-          <input type="text" id="phone" name="phone" placeholder="(555) 555-5555">
+          <input type="text" id="phone" name="phone" required>
         </div>
 
         <div class="form-group">
           <label for="address">Street Address</label>
-          <input type="text" id="address" name="address" placeholder="123 Trading Way">
+          <input type="text" id="address" name="address" required>
         </div>
 
         <div style="display: flex; gap: 10px;">
           <div class="form-group" style="flex: 2;">
             <label for="city">City</label>
-            <input type="text" id="city" name="city">
+            <input type="text" id="city" name="city" required>
           </div>
           <div class="form-group" style="flex: 1;">
             <label for="state">State</label>
-            <input type="text" id="state" name="state" placeholder="FL">
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="zip_code">Zip</label>
-            <input type="text" id="zip_code" name="zip_code">
+            <input type="text" id="state" name="state" required maxlength="2">
           </div>
         </div>
 
         <div class="form-group">
-          <label for="password">Create Password</label>
+          <label for="password">Create Secure Password</label>
           <input type="password" id="password" name="password" required>
         </div>
-        <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px;">
-          <input type="checkbox" id="tos" name="tos" required style="width: auto; margin-top: 5px;">
-          <label for="tos" style="text-transform: none; color: var(--muted); font-size: 0.8rem;">
-            I understand this is an <strong>automated execution tool</strong> based on technical parameters. I acknowledge that I am responsible for my own trading risk and that Veteran Pro is not a financial advisor.
+
+        <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <input type="checkbox" id="tos" name="tos_agreement" required style="width: auto; margin-top: 5px;">
+          <label for="tos" style="text-transform: none; color: var(--muted); font-size: 0.85rem; line-height: 1.4;">
+            I acknowledge that this is an <strong>automated execution software tool</strong> based on <strong>technical parameters</strong>. I understand that I am responsible for my own trading risk. I am aware that this platform does not provide financial advice or guarantee any specific market outcomes.
           </label>
         </div>
-        <button type="submit" class="btn-block" style="margin-top: 10px;">Create My Account</button>
+
+        <button type="submit" class="btn-block" style="margin-top: 15px;">Accept & Create Account</button>
       </form>
       
       <div style="text-align: center; margin-top: 20px;">
