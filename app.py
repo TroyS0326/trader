@@ -120,6 +120,7 @@ def index():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        # 1) Collect Hushgifter account data first (local DB user creation flow)
         tos_accepted = request.form.get('tos_agreement')
 
         if not tos_accepted:
@@ -136,6 +137,7 @@ def signup():
             flash('An account with that email already exists.', 'error')
             return redirect(url_for('signup'))
 
+        # 2) Save user in our DB immediately
         new_user = User(
             email=email,
             password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
@@ -151,6 +153,7 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
+        # 3) Log user into Hushgifter and send them to dashboard
         login_user(new_user)
         return redirect(url_for('dashboard'))
 

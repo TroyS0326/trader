@@ -57,7 +57,7 @@
 
         <section class="card">
           <div class="section-head">
-            <h2>Broker Connection</h2>
+            <h2>Step 2: Connect Trading Engine</h2>
             {% if current_user.alpaca_access_token %}
               <span class="feed-badge feed-sip">Connected to Alpaca</span>
             {% else %}
@@ -66,12 +66,12 @@
           </div>
 
           <p class="muted" style="margin-bottom: 20px;">
-            We use secure OAuth to connect to your broker. We never see your login credentials.
+            To execute trades based on your technical parameters, link your Alpaca account.
           </p>
 
           {% if not current_user.alpaca_access_token %}
             <a href="/alpaca/login" class="btn-block" style="text-align: center; background: #21ce99; color: black; text-decoration: none; padding: 15px; border-radius: 8px; font-weight: bold; display: block;">
-              Connect to Alpaca
+              Link My Alpaca Account
             </a>
           {% else %}
             <div class="status" style="border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.1);">
