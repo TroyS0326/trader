@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | Veteran Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .legal-wrap { max-width: 800px; margin: 60px auto; padding: 40px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border); }
+        .legal-wrap h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--accent-blue); }
+        .legal-wrap h2 { font-size: 1.5rem; margin-top: 30px; margin-bottom: 15px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .legal-wrap p, .legal-wrap li { font-size: 1.05rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 15px; }
+        .legal-wrap ul { margin-left: 20px; margin-bottom: 20px; }
+        .legal-wrap strong { color: var(--text-main); }
+        .last-updated { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 40px; }
+    </style>
+</head>
+<body>
+    <nav style="padding: 1.5rem 0; border-bottom: 1px solid var(--border); background: var(--bg-primary);">
+        <div class="wrap" style="display: flex; justify-content: space-between; align-items: center; margin: 0 auto;">
+            <a href="/" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); text-decoration: none;">Veteran<span style="color: var(--accent-blue);">Pro</span></a>
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="legal-wrap">
+        <h1>Privacy Policy</h1>
+        <div class="last-updated">Last Updated: April 2026</div>
+
+        <h2>1. Introduction</h2>
+        <p>Veteran Pro ("we," "our," or "us") respects your privacy. This Privacy Policy explains how we collect, use, and protect your personal and financial information when you use our algorithmic trading software and website.</p>
+
+        <h2>2. Information We Collect</h2>
+        <p>To provide our algorithmic trading services, we collect the following types of information:</p>
+        <ul>
+            <li><strong>Personal Identification Data:</strong> Full legal name, email address, physical address, and phone number (collected during registration).</li>
+            <li><strong>Brokerage & Financial Data:</strong> OAuth access tokens and account IDs used to securely connect to your third-party brokerage (e.g., Alpaca). <em>We do not directly collect or store your banking information or social security numbers.</em></li>
+            <li><strong>Trading Data:</strong> Trading parameters (bankroll size, risk percentages), executed order history, and portfolio performance metrics necessary to run the algorithm.</li>
+            <li><strong>Device & Usage Data:</strong> IP addresses, browser types, and interaction metrics with our platform.</li>
+        </ul>
+
+        <h2>3. How We Use Your Information</h2>
+        <p>We use your information exclusively to:</p>
+        <ul>
+            <li>Provide, maintain, and secure the execution engine.</li>
+            <li>Route your selected trades securely to your linked brokerage API.</li>
+            <li>Calculate dynamic position sizing based on your defined risk parameters.</li>
+            <li>Communicate critical system updates, margin warnings, or account notices.</li>
+        </ul>
+
+        <h2>4. Information Sharing and Disclosure</h2>
+        <p>We do not sell, rent, or trade your personal data. We only share information in the following circumstances:</p>
+        <ul>
+            <li><strong>Service Providers:</strong> With third-party brokerages (like Alpaca) strictly to facilitate your requested trades.</li>
+            <li><strong>Legal Compliance:</strong> If required to do so by law, subpoena, or regulatory authority (such as the SEC or FINRA).</li>
+        </ul>
+
+        <h2>5. Data Security</h2>
+        <p>We implement strict security measures to protect your data. Brokerage API tokens are encrypted at rest using enterprise-grade cryptography. Passwords are cryptographically hashed, and all web traffic is secured via SSL/TLS encryption.</p>
+
+        <h2>6. Your Data Rights</h2>
+        <p>You have the right to access, correct, or delete your personal data. If you disconnect your brokerage account or delete your Veteran Pro profile, we will securely destroy your OAuth tokens and trading history, retaining only basic account records required for legal compliance.</p>
+
+        <h2>7. Contact Us</h2>
+        <p>For questions or concerns regarding your privacy or data security, please contact our support team through your user dashboard.</p>
+    </div>
+</body>
+</html>
