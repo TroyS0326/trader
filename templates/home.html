@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veteran Pro | Algorithmic Day Trading Software & AI Stock Scanner</title>
+
+    <meta name="description" content="Veteran Pro is an elite algorithmic day trading software featuring an AI stock scanner, automated trade execution, and quantitative trading tools. Trade smarter today.">
+    <meta name="keywords" content="algorithmic day trading software, AI stock scanner, automated trade execution, day trading platform, fractional Kelly sizing, quantitative trading tools, market internals scanner, trade risk management, Alpaca trading integration, real-time stock charts">
+    <meta name="author" content="Veteran Pro Systems">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="Veteran Pro | Elite Day Trading Platform">
+    <meta property="og:description" content="Automate your edge with advanced trade risk management and AI-driven market analysis.">
+    <meta property="og:type" content="website">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Veteran Pro",
+      "operatingSystem": "Web, Windows, macOS",
+      "applicationCategory": "FinanceApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "USD"
+      },
+      "description": "An advanced algorithmic day trading software and AI stock scanner for quantitative traders."
+    }
+    </script>
+
+    <style>
+        /* Base Variables - Dark SaaS Theme */
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        /* Reset & Base Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        /* Typography */
+        h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+        h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
+        h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+        p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+        /* Layout */
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+
+        /* Navigation */
+        nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
+        .logo span { color: var(--accent-blue); }
+        .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent-blue); }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .btn-secondary { background-color: var(--bg-secondary); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
+
+        /* Sections */
+        .hero { padding: 8rem 0; position: relative; overflow: hidden; }
+        .hero::before {
+            content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1;
+        }
+        .hero-content { max-width: 700px; }
+
+        .features { padding: 6rem 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border); }
+        .feature-card {
+            background: var(--bg-primary); padding: 2.5rem; border-radius: 16px;
+            border: 1px solid var(--border); transition: transform 0.3s ease;
+        }
+        .feature-card:hover { transform: translateY(-5px); border-color: var(--accent-blue); }
+        .feature-icon { font-size: 2rem; margin-bottom: 1rem; color: var(--accent-blue); }
+
+        .cta-section { padding: 8rem 0; text-align: center; }
+        .cta-box {
+            background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            padding: 4rem; border-radius: 24px; border: 1px solid var(--border);
+        }
+
+        /* Footer */
+        footer { padding: 3rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
+            .hero { padding: 4rem 0; text-align: center; }
+            .hero-content { margin: 0 auto; }
+            .nav-links { display: none; } /* Mobile menu implementation recommended for production */
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container nav-inner">
+            <div class="logo">Veteran<span>Pro</span></div>
+            <div class="nav-links">
+                <a href="#features">Platform Features</a>
+                <a href="#technology">Infrastructure</a>
+                <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">Client Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container grid-2">
+            <div class="hero-content">
+                <h1>The Ultimate <span style="color: var(--accent-blue);">Algorithmic Day Trading Software</span></h1>
+                <p>Deploy institutional-grade strategies with zero code. Veteran Pro is the definitive day trading platform combining an AI stock scanner, market internals logic, and flawless automated trade execution.</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                    <a href="/signup" class="btn btn-primary">Start Trading Smarter</a>
+                    <a href="#features" class="btn btn-secondary">Explore the Technology</a>
+                </div>
+            </div>
+            <div class="hero-visual" style="border-radius: 16px; border: 1px solid var(--border); overflow: hidden; background: var(--bg-secondary); padding: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+                <div style="height: 20px; border-bottom: 1px solid var(--border); margin-bottom: 1rem; display: flex; gap: 8px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></div>
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></div>
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                </div>
+                <div style="height: 300px; background: repeating-linear-gradient(0deg, transparent, transparent 19px, var(--border) 20px); position: relative;">
+                    <svg viewBox="0 0 100 50" style="width: 100%; height: 100%; overflow: visible;">
+                        <polyline fill="none" stroke="var(--success)" stroke-width="2" points="0,40 20,35 40,45 60,20 80,25 100,5" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
+                <h2>Quantitative Trading Tools Built for Alpha</h2>
+                <p>We eliminated emotional decision-making. Our system relies on pure math and machine learning to scan, size, and execute.</p>
+            </div>
+
+            <div class="grid-3">
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>AI Stock Scanner</h3>
+                    <p>Stop manually searching for setups. Our proprietary engine processes pre-market volume, relative strength, and news sentiment instantly to serve you the highest probability trades.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Automated Trade Execution</h3>
+                    <p>Experience zero-latency entries. Through deep Alpaca trading integration, limit orders are pegged to the bid/ask spread and managed dynamically with trailing stops.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Trade Risk Management</h3>
+                    <p>Protect your capital automatically. The system implements fractional Kelly sizing protocols, dynamically adjusting your share quantity based on total account equity and exact stop distances.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Real-Time Stock Charts</h3>
+                    <p>Visualize the data that matters. View lightweight, lightning-fast 1-minute and daily charts natively within your dashboard without draining browser memory.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Market Internals Scanner</h3>
+                    <p>Never trade against the broader market trend again. Our system utilizes a hard-coded market internals scanner analyzing $TICK and $ADD to block long executions during breadth drops.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>SaaS Infrastructure</h3>
+                    <p>Run your strategies reliably. Built on a robust Python/Flask backend with background task queues, ensuring your execution logic never misses a millisecond.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-box">
+                <h2>Ready to formalize your trading edge?</h2>
+                <p style="max-width: 600px; margin: 0 auto 2rem;">Join elite traders who have automated their playbook. Stop guessing and start relying on mathematical probabilities.</p>
+                <a href="/signup" class="btn btn-primary" style="font-size: 1.125rem; padding: 1.25rem 2.5rem;">Create Your Account Today</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Veteran Pro Systems. Algorithmic Trading Platform.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. This software executes trades based on user-defined technical parameters. Past performance does not guarantee future results.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
