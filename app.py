@@ -28,7 +28,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sq
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['ALPACA_CLIENT_ID'] = os.getenv('ALPACA_CLIENT_ID', '')
 app.config['ALPACA_CLIENT_SECRET'] = os.getenv('ALPACA_CLIENT_SECRET', '')
-app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://hushgifter.com/alpaca/callback')
+app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://broker-api.sandbox.alpaca.markets/v1/oauth/callback')
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -235,6 +235,7 @@ def alpaca_login():
         f"&client_id={app.config['ALPACA_CLIENT_ID']}"
         f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
         f"&scope=trading"
+        f"&env=paper"
     )
     return redirect(alpaca_auth_url)
 
@@ -247,7 +248,7 @@ def alpaca_callback():
         flash("Authorization failed or was cancelled.", "error")
         return redirect(url_for('dashboard'))
 
-    token_url = "https://api.alpaca.markets/oauth/token"
+    token_url = "https://broker-api.sandbox.alpaca.markets/v1/oauth/token"
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -271,6 +272,11 @@ def alpaca_callback():
         flash(f"Connection error: {str(e)}", "error")
 
     return redirect(url_for('dashboard'))
+
+
+@app.route('/v1/oauth/callback')
+def sandbox_callback():
+    return alpaca_callback()
 
 
 @app.route('/alpaca/logout')
