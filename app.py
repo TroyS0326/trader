@@ -205,7 +205,7 @@ def dashboard():
 @login_required
 def scanner():
     # This is where the morning scan actually lives now
-    return render_template('index.html', app_title="Veteran Pro")
+    return render_template('index.html', app_title="XeanVI")
 
 
 @app.route('/update_settings', methods=['POST'])
