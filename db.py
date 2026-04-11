@@ -43,6 +43,7 @@ def init_db() -> None:
 
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 scan_id INTEGER,
@@ -76,8 +77,16 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_trades_created_at ON trades(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_trades_order_id ON trades(order_id);
+            CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id);
             '''
         )
+        trade_columns = {
+            row['name']
+            for row in conn.execute('PRAGMA table_info(trades)').fetchall()
+        }
+        if 'user_id' not in trade_columns:
+            conn.execute("ALTER TABLE trades ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)")
 
 
 def insert_scan(payload: Dict[str, Any]) -> int:
@@ -101,18 +110,22 @@ def insert_scan(payload: Dict[str, Any]) -> int:
 
 
 def insert_trade(trade: Dict[str, Any]) -> int:
+    if 'user_id' not in trade:
+        raise KeyError('trade["user_id"] is required')
+
     now = utc_now()
     with get_conn() as conn:
         cur = conn.execute(
             '''
             INSERT INTO trades (
-                created_at, updated_at, scan_id, symbol, side, decision, score_total, current_price,
+                user_id, created_at, updated_at, scan_id, symbol, side, decision, score_total, current_price,
                 entry_price, buy_lower, buy_upper, stop_price, target_1, target_2, qty,
                 risk_per_share, reward_to_target_1, reward_to_target_2, rr_ratio_1, rr_ratio_2,
                 order_id, order_status, filled_avg_price, filled_qty, outcome, notes, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
+                trade['user_id'],
                 now,
                 now,
                 trade.get('scan_id'),
@@ -181,7 +194,7 @@ def get_recent_trades(limit: int = 20) -> Iterable[Dict[str, Any]]:
     with get_conn() as conn:
         rows = conn.execute(
             '''
-            SELECT id, created_at, symbol, decision, score_total, qty, entry_price, stop_price,
+            SELECT id, user_id, created_at, symbol, decision, score_total, qty, entry_price, stop_price,
                    target_1, target_2, order_id, order_status, filled_avg_price, filled_qty, outcome
             FROM trades ORDER BY id DESC LIMIT ?
             ''',
