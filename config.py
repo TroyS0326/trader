@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
 
-APP_TITLE = 'Veteran Day Trading Playbook Pro'
+APP_TITLE = 'XeanVI'
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
 HOST = os.getenv('HOST', '0.0.0.0')
