@@ -26,17 +26,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///veteran_saas.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['ALPACA_CLIENT_ID'] = os.getenv('ALPACA_CLIENT_ID', '')
+app.config['ALPACA_CLIENT_SECRET'] = os.getenv('ALPACA_CLIENT_SECRET', '')
+app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://hushgifter.com/alpaca/callback')
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
-
-ALPACA_CLIENT_ID = os.getenv('ALPACA_CLIENT_ID', '')
-ALPACA_CLIENT_SECRET = os.getenv('ALPACA_CLIENT_SECRET', '')
-REDIRECT_URI = os.getenv('ALPACA_REDIRECT_URI', 'https://hushgifter.com/alpaca/callback')
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -231,8 +229,8 @@ def alpaca_login():
     alpaca_auth_url = (
         f"https://app.alpaca.markets/oauth/authorize"
         f"?response_type=code"
-        f"&client_id={ALPACA_CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
+        f"&client_id={app.config['ALPACA_CLIENT_ID']}"
+        f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
         f"&scope=trading"
     )
     return redirect(alpaca_auth_url)
@@ -243,28 +241,31 @@ def alpaca_login():
 def alpaca_callback():
     code = request.args.get('code')
     if not code:
-        flash('Authorization code missing from Alpaca callback.', 'error')
+        flash("Authorization failed or was cancelled.", "error")
         return redirect(url_for('dashboard'))
 
     token_url = "https://api.alpaca.markets/oauth/token"
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
-        'client_id': ALPACA_CLIENT_ID,
-        'client_secret': ALPACA_CLIENT_SECRET,
-        'redirect_uri': REDIRECT_URI,
+        'client_id': app.config['ALPACA_CLIENT_ID'],
+        'client_secret': app.config['ALPACA_CLIENT_SECRET'],
+        'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
     }
 
-    response = requests.post(token_url, data=payload, timeout=15)
-    data = response.json()
+    try:
+        response = requests.post(token_url, data=payload, timeout=15)
+        data = response.json()
 
-    if 'access_token' in data:
-        current_user.alpaca_access_token = data['access_token']
-        current_user.alpaca_account_id = data.get('account_id')
-        db.session.commit()
-        flash("Successfully connected to Alpaca!", "success")
-    else:
-        flash("Failed to connect to Alpaca.", "error")
+        if 'access_token' in data:
+            current_user.alpaca_access_token = data['access_token']
+            current_user.alpaca_account_id = data.get('account_id')
+            db.session.commit()
+            flash("Broker connected successfully!", "success")
+        else:
+            flash(f"Error from Alpaca: {data.get('error_description', 'Unknown error')}", "error")
+    except Exception as e:
+        flash(f"Connection error: {str(e)}", "error")
 
     return redirect(url_for('dashboard'))
 
