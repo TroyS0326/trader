@@ -109,9 +109,9 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    # 1. If they aren't logged in, kick them to the login page
+    # 1. If they aren't logged in, show the new SEO marketing page
     if not current_user.is_authenticated:
-        return redirect(url_for('login'))
+        return render_template('landing.html')
 
     # 2. If they ARE logged in, the front door is ALWAYS the Dashboard
     return redirect(url_for('dashboard'))
