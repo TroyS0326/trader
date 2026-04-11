@@ -1,10 +1,23 @@
 from dataclasses import dataclass, asdict
+import base64
+import hashlib
+import os
 from typing import Dict, Any, List, Optional
 
+from cryptography.fernet import Fernet, InvalidToken
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+
+
+def _build_fernet() -> Fernet:
+    secret_seed = os.getenv('TOKEN_ENCRYPTION_KEY') or os.getenv('SECRET_KEY', 'change-me')
+    digest = hashlib.sha256(secret_seed.encode('utf-8')).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+TOKEN_CIPHER = _build_fernet()
 
 @dataclass
 class ScoreTriplet:
@@ -93,5 +106,21 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50), nullable=False, default='free')
     bankroll = db.Column(db.Float, nullable=False, default=0.0)
     risk_pct = db.Column(db.Float, nullable=False, default=1.0)
-    alpaca_access_token = db.Column(db.String(500), nullable=True)
+    _alpaca_access_token = db.Column('alpaca_access_token', db.Text, nullable=True)
     alpaca_account_id = db.Column(db.String(100), nullable=True)
+
+    @property
+    def alpaca_access_token(self) -> Optional[str]:
+        if not self._alpaca_access_token:
+            return None
+        try:
+            return TOKEN_CIPHER.decrypt(self._alpaca_access_token.encode('utf-8')).decode('utf-8')
+        except (InvalidToken, ValueError, TypeError):
+            return self._alpaca_access_token
+
+    @alpaca_access_token.setter
+    def alpaca_access_token(self, token: Optional[str]) -> None:
+        if not token:
+            self._alpaca_access_token = None
+            return
+        self._alpaca_access_token = TOKEN_CIPHER.encrypt(token.encode('utf-8')).decode('utf-8')

@@ -245,7 +245,7 @@ def alpaca_login():
 def alpaca_callback():
     code = request.args.get('code')
     if not code:
-        flash("Authorization failed or was cancelled.", "error")
+        flash("Authorization failed.", "error")
         return redirect(url_for('dashboard'))
 
     token_url = "https://broker-api.sandbox.alpaca.markets/v1/oauth/token"
@@ -259,15 +259,16 @@ def alpaca_callback():
 
     try:
         response = requests.post(token_url, data=payload, timeout=15)
+        response.raise_for_status()
         data = response.json()
 
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
             db.session.commit()
-            flash("Broker connected successfully!", "success")
+            flash("Broker connected successfully via OAuth!", "success")
         else:
-            flash(f"Error from Alpaca: {data.get('error_description', 'Unknown error')}", "error")
+            flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
