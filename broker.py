@@ -21,7 +21,18 @@ class BrokerError(Exception):
     pass
 
 
-def _headers() -> Dict[str, str]:
+def _headers(token: str | None = None) -> Dict[str, str]:
+    """
+    If a token is provided, use OAuth Bearer auth.
+    Otherwise, fall back to master keys (used for the scanner).
+    """
+    if token:
+        return {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'Authorization': f'Bearer {token}',
+        }
+
     if not ALPACA_API_KEY or not ALPACA_API_SECRET:
         raise BrokerError('Missing Alpaca paper-trading credentials in .env')
     return {
