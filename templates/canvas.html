@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Canvas | XeanVI</title>
+    <style>
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --bg-panel: #1e293b;
+            --accent-blue: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); padding: 2rem; }
+
+        .canvas-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 2rem;
+            height: 80vh;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        /* Sidebar Panels */
+        .panel { padding: 1.5rem; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+        .panel-right { border-right: none; border-left: 1px solid var(--border); }
+        .panel-title { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+
+        /* Draggable / Clickable Blocks */
+        .logic-block {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logic-block:active { transform: scale(0.98); }
+
+        .block-condition { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue); }
+        .block-trigger { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: var(--warning); }
+        .block-action { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); }
+
+        .block-add-icon { font-size: 1.2rem; font-weight: bold; }
+
+        /* Main Canvas Area */
+        .canvas-area { padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; position: relative; }
+        .canvas-empty { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-muted); text-align: center; }
+
+        .canvas-chain { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; z-index: 10; }
+
+        .chain-node { width: 100%; padding: 1.5rem; border-radius: 12px; margin-bottom: 0; text-align: center; font-size: 1.1rem; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+
+        .chain-arrow { font-size: 1.5rem; color: var(--text-muted); margin: 0.5rem 0; }
+
+        /* Compiler Panel */
+        .compiler-code { font-family: 'Courier New', monospace; background: var(--bg-primary); padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: var(--success); min-height: 200px; margin-bottom: 1.5rem; overflow-x: auto; }
+
+        .btn-compile { width: 100%; padding: 1rem; background: var(--accent-blue); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-compile:hover { background: #2563eb; }
+        .btn-clear { width: 100%; padding: 1rem; background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+
+    <h2 style="margin-bottom: 1.5rem; font-size: 1.8rem;">Visual Logic Builder</h2>
+
+    <div class="canvas-layout">
+
+        <div class="panel">
+            <div class="panel-title">1. Conditions (If)</div>
+            <div class="logic-block block-condition" onclick="addNode('Xean-Core Sentiment is BULLISH', 'block-condition')">
+                Xean-Core Bullish <span class="block-add-icon">+</span>
+            </div>
+            <div class="logic-block block-condition" onclick="addNode('Macro-Breadth TICK > +500', 'block-condition')">
+                TICK > +500 <span class="block-add-icon">+</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 1.5rem;">2. Triggers (And)</div>
+            <div class="logic-block block-trigger" onclick="addNode('1-Min Volume Spike > 200%', 'block-trigger')">
+                Vol Spike > 200% <span class="block-add-icon">+</span>
+            </div>
+            <div class="logic-block block-trigger" onclick="addNode('Price crosses above VWAP', 'block-trigger')">
+                Crosses VWAP <span class="block-add-icon">+</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 1.5rem;">3. Actions (Then)</div>
+            <div class="logic-block block-action" onclick="addNode('EXECUTE: Buy 2% Portfolio Risk', 'block-action')">
+                Buy 2% Risk <span class="block-add-icon">+</span>
+            </div>
+            <div class="logic-block block-action" onclick="addNode('MANAGE: Trailing Stop at 1.5%', 'block-action')">
+                Trailing Stop 1.5% <span class="block-add-icon">+</span>
+            </div>
+        </div>
+
+        <div class="canvas-area" id="canvas-area">
+            <div class="canvas-empty" id="canvas-empty">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🧩</div>
+                <h3>Canvas is Empty</h3>
+                <p>Click logic blocks on the left to build your algorithm chain.</p>
+            </div>
+            <div class="canvas-chain" id="canvas-chain"></div>
+        </div>
+
+        <div class="panel panel-right">
+            <div class="panel-title">Neural Compiler</div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Your visual blocks translate to live Python execution logic in real-time.</p>
+
+            <div class="compiler-code" id="compiler-code">
+                // Awaiting logic blocks...
+            </div>
+
+            <button class="btn-compile" onclick="compileLogic()">Compile & Deploy to Sandbox</button>
+            <button class="btn-clear" onclick="clearCanvas()">Clear Canvas</button>
+        </div>
+
+    </div>
+
+    <script>
+        let nodeCount = 0;
+
+        function addNode(text, className) {
+            const emptyState = document.getElementById('canvas-empty');
+            const chain = document.getElementById('canvas-chain');
+            const codeDisplay = document.getElementById('compiler-code');
+
+            // Hide empty state
+            emptyState.style.display = 'none';
+
+            // Add an arrow if it's not the first node
+            if (nodeCount > 0) {
+                const arrow = document.createElement('div');
+                arrow.className = 'chain-arrow';
+                arrow.innerText = '↓';
+                chain.appendChild(arrow);
+            }
+
+            // Create the node
+            const node = document.createElement('div');
+            node.className = `chain-node ${className}`;
+            node.innerText = text;
+            chain.appendChild(node);
+
+            nodeCount++;
+
+            // Update pseudo-code compiler visually
+            if (nodeCount === 1) {
+                codeDisplay.innerHTML = `<span style="color: var(--text-muted)">def custom_algo():</span><br>&nbsp;&nbsp;if ${text}:`;
+            } else if (className.includes('action')) {
+                codeDisplay.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;${text}()`;
+            } else {
+                codeDisplay.innerHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;and ${text}:`;
+            }
+        }
+
+        function clearCanvas() {
+            document.getElementById('canvas-chain').innerHTML = '';
+            document.getElementById('canvas-empty').style.display = 'block';
+            document.getElementById('compiler-code').innerHTML = '// Awaiting logic blocks...';
+            nodeCount = 0;
+        }
+
+        function compileLogic() {
+            if (nodeCount === 0) {
+                alert('Cannot compile an empty canvas.');
+                return;
+            }
+            alert('Algorithm successfully compiled and deployed to XeanVI Sandbox!');
+            // In production, this button would serialize the chain data into JSON and POST it to your Python backend.
+        }
+    </script>
+</body>
+</html>

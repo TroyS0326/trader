@@ -214,6 +214,12 @@ def scanner():
     return render_template('index.html', app_title="XeanVI")
 
 
+@app.route('/canvas')
+@login_required
+def canvas():
+    return render_template('canvas.html')
+
+
 @app.route('/update_settings', methods=['POST'])
 @login_required
 def update_settings():
