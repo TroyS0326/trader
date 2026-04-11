@@ -344,6 +344,7 @@ def api_chart(symbol: str):
 
 
 @app.route('/api/execute', methods=['POST'])
+@login_required
 def api_execute():
     data = request.get_json(silent=True) or {}
     required = ['symbol', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty', 'current_price', 'buy_upper', 'score_total', 'decision']
@@ -408,6 +409,7 @@ def api_execute():
             target_2_price=target_2,
         )
         trade_payload = {
+            'user_id': current_user.id,
             'scan_id': data.get('scan_id'),
             'symbol': data['symbol'],
             'side': 'buy',
