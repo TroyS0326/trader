@@ -179,6 +179,12 @@ def login():
 
 
 
+
+
+@app.route('/features')
+def features():
+    return render_template('features.html')
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')

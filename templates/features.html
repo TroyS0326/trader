@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Arsenal | XeanVI</title>
+
+    <meta name="description" content="Explore the XeanVI algorithmic execution engine. Features include 24/7 crypto scanning, fractional Kelly sizing, and Alpaca API integration.">
+
+    <style>
+        /* Base Variables - Dark SaaS Theme */
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background-color: var(--bg-primary); color: var(--text-main); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+
+        nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border); background: var(--bg-primary); position: sticky; top: 0; z-index: 100; }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
+        .logo span { color: var(--accent-blue); }
+        .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent-blue); }
+
+        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; text-align: center; transition: all 0.2s ease; border: none; cursor: pointer; }
+        .btn-primary { background-color: var(--accent-blue); color: #fff; box-shadow: 0 4px 14px var(--accent-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .btn-secondary { background-color: var(--bg-secondary); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
+
+        .page-header { padding: 6rem 0 4rem; text-align: center; border-bottom: 1px solid var(--border); background: radial-gradient(circle at top, rgba(59,130,246,0.1) 0%, transparent 70%); }
+        .page-header h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; margin-bottom: 1rem; }
+
+        .section-pad { padding: 6rem 0; }
+        .feature-box { background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border); }
+
+        .step-number { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0; }
+
+        footer { padding: 3rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container nav-inner">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/features" style="color: var(--accent-blue);">The Arsenal</a>
+                <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">Client Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <div style="color: var(--accent-blue); font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 15px;">The Architecture of an Edge</div>
+            <h1>The XeanVI Arsenal</h1>
+            <p style="max-width: 700px; margin: 0 auto; font-size: 1.2rem; color: var(--text-muted);">A deep dive into the technical parameters and automated execution systems that power your unfair advantage.</p>
+        </div>
+    </header>
+
+    <section class="section-pad">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; text-align: center; margin-bottom: 4rem;">The Execution Lifecycle</h2>
+
+            <div style="display: flex; flex-direction: column; gap: 3rem; max-width: 900px; margin: 0 auto;">
+                <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                    <div class="step-number" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue);">01</div>
+                    <div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">The AI Catalyst (Discovery)</h3>
+                        <p style="color: var(--text-muted);">Before the bell rings, the FinBERT machine learning model scrapes thousands of financial headlines. It calculates news sentiment, pre-market volume, and relative strength to isolate tickers preparing for aggressive volume expansion. No human research required.</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                    <div class="step-number" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success);">02</div>
+                    <div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">The Breadth Gatekeeper (Verification)</h3>
+                        <p style="color: var(--text-muted);">Manual traders get destroyed by buying fake breakouts. XeanVI plugs directly into the New York Stock Exchange internals ($TICK and $ADD). If the broader market is quietly dumping, the software hard-blocks the trade. It acts as a ruthless filter to protect your bankroll.</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                    <div class="step-number" style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: var(--warning);">03</div>
+                    <div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Microstructure Execution (The Strike)</h3>
+                        <p style="color: var(--text-muted);">When the parameters align, the system takes control. Using dynamic Fractional Kelly math, it sizes your position based on your total equity. It fires the order, scales out at Target 1, and activates a trailing stop for the runner. Zero hesitation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad" style="background-color: var(--bg-secondary); border-top: 1px solid var(--border);">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; text-align: center; margin-bottom: 4rem;">Platform Features</h2>
+
+            <div class="grid-3">
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🧪</div>
+                    <h3>Zero-Risk Paper Sandbox</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Prove the math before risking a dime. Connect XeanVI to Alpaca's Paper Trading API. Run the algorithm in the live market using a simulated $10,000 account until you are ready to flip the switch.</p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">⚡</div>
+                    <h3>24/7 Crypto Engine</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">The stock market closes. The algorithm doesn't. While Wall Street sleeps, XeanVI scans Bitcoin, Ethereum, and Solana order books 24/7, executing algorithmic strikes while you are offline.</p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
+                    <h3>1-Click Strategy Profiles</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">No coding required. Choose your mathematical aggression level: Conservative Scalper, Balanced Momentum, or Aggressive Breakout. Select a template and let the engine take the wheel.</p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">📸</div>
+                    <h3>Verified PnL Graphics</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Share your automated wins. XeanVI generates sleek, verified cryptographic proof of your daily PnL, designed specifically for you to post directly to your X (Twitter) or Discord communities.</p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🔔</div>
+                    <h3>Discord & Telegram Alerts</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Total detachment. Link XeanVI to your private Discord or Telegram via Webhook. Go live your life and get an instant push notification the millisecond the algorithm locks in a profitable scale-out.</p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">☁️</div>
+                    <h3>Cloud-Hosted Infrastructure</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Our backend handles the heavy lifting. You don't need to keep your browser open or your computer turned on. Configure your parameters and close your laptop.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad" style="text-align: center;">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Ready to deploy the machine?</h2>
+            <p style="max-width: 600px; margin: 0 auto 2.5rem; color: var(--text-muted);">Stop letting emotion dictate your executions. Formalize your edge with XeanVI today.</p>
+            <a href="/signup" class="btn btn-primary" style="font-size: 1.1rem; padding: 1.25rem 3rem;">Get Access Now</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 XeanVI. Automated Execution Platform.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Execution software carries risk. XeanVI operates strictly based on user-defined technical parameters. Past performance does not guarantee future results.</p>
+            <div style="margin-top: 1rem; font-size: 0.85rem;">
+                <a href="/terms" style="color: var(--accent-blue); margin-right: 15px;">Terms of Use</a>
+                <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
