@@ -27,7 +27,8 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///veteran_saas.db')
+# Force SQLAlchemy to use the exact same database file as your raw SQLite connections
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath(config.DB_PATH)}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['ALPACA_CLIENT_ID'] = os.getenv('ALPACA_CLIENT_ID', '')
 app.config['ALPACA_CLIENT_SECRET'] = os.getenv('ALPACA_CLIENT_SECRET', '')
