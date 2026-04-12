@@ -8,7 +8,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import LoginManager
 from flask_sock import Sock
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -18,7 +19,8 @@ from broker import BrokerError, get_order, maybe_activate_runner_trailing, place
 import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
-from models import db, User
+from models import db
+from models import User
 from onboarding import verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
