@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import requests
+import secrets
 import sqlite3
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
@@ -299,12 +300,16 @@ def connect_broker():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
+    oauth_state = secrets.token_urlsafe(32)
+    session['oauth_state'] = oauth_state
+
     alpaca_auth_url = (
         f"https://app.alpaca.markets/oauth/authorize"
         f"?response_type=code"
         f"&client_id={app.config['ALPACA_CLIENT_ID']}"
         f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
         f"&scope=trading"
+        f"&state={oauth_state}"
         f"&env=paper"
     )
     return redirect(alpaca_auth_url)
@@ -313,6 +318,13 @@ def alpaca_login():
 @app.route('/alpaca/callback')
 @login_required
 def alpaca_callback():
+    returned_state = request.args.get('state')
+    saved_state = session.pop('oauth_state', None)
+
+    if not returned_state or returned_state != saved_state:
+        flash("Security Error: Invalid OAuth state token. Request aborted.", "error")
+        return redirect(url_for('settings'))
+
     code = request.args.get('code')
     if not code:
         flash("Authorization failed.", "error")
@@ -336,13 +348,13 @@ def alpaca_callback():
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
             db.session.commit()
-            flash("Broker connected successfully via OAuth!", "success")
+            flash("Broker connected successfully via secure OAuth!", "success")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('settings'))
 
 
 @app.route('/v1/oauth/callback')
