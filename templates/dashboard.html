@@ -304,6 +304,7 @@
     <script>
         // Global state for websockets
         const state = { ws: null };
+        const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
 
         // Helper: Format Money
         function money(v) {
@@ -318,6 +319,24 @@
             terminal.innerHTML += `<div style="margin-bottom: 5px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
+
+        async function updateLiveMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) throw new Error('Metrics endpoint unavailable');
+                const payload = await response.json();
+                if (payload?.ok) {
+                    console.log(`Pinging APIs every ${userRefreshRate / 1000} seconds.`);
+                }
+            } catch (err) {
+                console.debug(`Live metrics refresh skipped: ${err.message}`);
+            }
+        }
+
+        setInterval(() => {
+            updateLiveMetrics();
+            addLog("Updating market data...", "var(--text-muted)");
+        }, userRefreshRate);
 
         // Feature: Load TradingView Chart
         function loadChart(ticker) {

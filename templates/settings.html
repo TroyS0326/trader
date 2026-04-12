@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings | XeanVI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --bg-primary: #060b14;
@@ -40,6 +41,40 @@
         .input-group label { display: block; font-size: 0.95rem; font-weight: bold; margin-bottom: 0.5rem; }
         .text-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 1.1rem; outline: none; }
         .text-input:focus { border-color: var(--accent-blue); }
+        .config-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 1rem; outline: none; }
+        .config-input:focus { border-color: var(--accent-blue); }
+
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            margin-left: 6px;
+            cursor: help;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .info-tip:hover { color: var(--accent-blue); }
+        .info-tip .tip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .info-tip:hover .tip-text { visibility: visible; opacity: 1; }
 
         /* Radio Toggle for Live/Paper */
         .mode-toggle { display: flex; gap: 1rem; margin-bottom: 1rem; }
@@ -131,6 +166,19 @@
                         <span style="position: absolute; left: 15px; top: 15px; color: var(--text-muted); font-weight: bold; font-size: 1.1rem;">$</span>
                         <input type="number" name="bankroll" class="text-input" style="padding-left: 35px; font-weight: bold;" value="{{ current_user.bankroll or 5000 }}" required>
                     </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Data Refresh Intensity
+                        <div class="info-tip"><i class="fas fa-info-circle"></i>
+                            <span class="tip-text">How often the dashboard updates prices. High intensity uses more data.</span>
+                        </div>
+                    </label>
+                    <select name="refresh_interval" class="config-input">
+                        <option value="10000" {% if current_user.refresh_interval == 10000 %}selected{% endif %}>Turbo (10s) - Active Trading</option>
+                        <option value="30000" {% if current_user.refresh_interval == 30000 %}selected{% endif %}>Balanced (30s) - Recommended</option>
+                        <option value="60000" {% if current_user.refresh_interval == 60000 %}selected{% endif %}>Eco (1m) - Background Monitoring</option>
+                    </select>
                 </div>
             </div>
 

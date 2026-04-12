@@ -90,6 +90,7 @@ def ensure_db_initialized() -> None:
 ensure_db_initialized()
 
 LATEST_SCAN = None
+VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
 
 
 def ok(data=None, **kwargs):
@@ -104,6 +105,21 @@ def fail(message: str, status: int = 400, **extras):
     payload = {'ok': False, 'error': message}
     payload.update(extras)
     return jsonify(payload), status
+
+
+def ensure_user_refresh_interval_column() -> None:
+    """Backfill schema for existing SQLite DBs that predate refresh_interval."""
+    conn = sqlite3.connect(config.DB_PATH)
+    try:
+        cursor = conn.execute("PRAGMA table_info(user)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        if 'refresh_interval' not in existing_columns:
+            conn.execute(
+                "ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 def order_outcome_from_payload(order: dict) -> str:
@@ -270,6 +286,10 @@ def settings():
     if request.method == 'POST':
         # Update their bankroll and risk settings
         current_user.bankroll = float(request.form.get('bankroll', 0.0))
+        refresh_interval = int(request.form.get('refresh_interval', 30000))
+        current_user.refresh_interval = (
+            refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
+        )
         # Note: If you want to save the Paper/Live toggle, you will need to add a
         # 'trading_mode' column to your User model in models.py later!
 
@@ -303,6 +323,10 @@ def canvas():
 def update_settings():
     current_user.bankroll = float(request.form.get('bankroll'))
     current_user.risk_pct = float(request.form.get('risk_pct'))
+    refresh_interval = int(request.form.get('refresh_interval', 30000))
+    current_user.refresh_interval = (
+        refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
+    )
     db.session.commit()
     flash('Risk parameters updated successfully.', 'success')
     return redirect(url_for('dashboard'))
@@ -673,6 +697,7 @@ def ws_watchlist(ws):
 
 with app.app_context():
     db.create_all()
+    ensure_user_refresh_interval_column()
 
 
 if __name__ == '__main__':
