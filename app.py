@@ -121,7 +121,7 @@ def index():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        # 1) Collect Hushgifter account data first (local DB user creation flow)
+        # (Keep your existing code here that grabs the email/password and saves to DB)
         tos_accepted = request.form.get('tos_agreement')
 
         if not tos_accepted:
@@ -138,7 +138,7 @@ def signup():
             flash('An account with that email already exists.', 'error')
             return redirect(url_for('signup'))
 
-        # 2) Save user in our DB immediately
+        # Save user in our DB immediately
         new_user = User(
             email=email,
             password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
@@ -154,8 +154,9 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
-        # 3) Log user in immediately and send them to broker linking flow
+        # Log the user in immediately after creating the account
         login_user(new_user)
+        # THE FIX: Send them straight to the broker uplink page
         return redirect(url_for('settings'))
 
     return render_template('signup.html')
