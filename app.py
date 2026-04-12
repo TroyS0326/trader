@@ -8,7 +8,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import LoginManager
 from flask_sock import Sock
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -18,7 +19,8 @@ from broker import BrokerError, get_order, maybe_activate_runner_trailing, place
 import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
-from models import db, User
+from models import db
+from models import User
 from onboarding import verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
@@ -165,19 +167,27 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        try:
+            email = request.form.get('email')
+            password = request.form.get('password')
 
-        user = User.query.filter_by(email=email).first()
+            print(f"--- ATTEMPTING LOGIN FOR: {email} ---")
 
-        if user and check_password_hash(user.password_hash, password):
+            user = User.query.filter_by(email=email).first()
+
+            if not user or not check_password_hash(user.password_hash, password):
+                print("FAILED: Wrong password or user doesn't exist.")
+                flash('Invalid email or password', 'error')
+                return redirect(url_for('login'))
+
+            print("SUCCESS: Logging user in...")
             login_user(user)
-
-            # THE FIX: Send them to the Command Center
             return redirect(url_for('dashboard'))
 
-        flash('Invalid email or password', 'error')
-        return redirect(url_for('login'))
+        except Exception as e:
+            print(f"CRITICAL BACKEND ERROR: {str(e)}")
+            flash(f"System Error: {str(e)}", 'error')
+            return redirect(url_for('login'))
 
     return render_template('login.html')
 
