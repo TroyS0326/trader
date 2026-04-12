@@ -5,19 +5,30 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
 
+
+def require_env(var_name: str) -> str:
+    value = os.getenv(var_name)
+    if not value:
+        raise ValueError(f"CRITICAL SECURITY ERROR: Environment variable '{var_name}' is missing.")
+    return value
+
+
 APP_TITLE = 'XeanVI'
-SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
+SECRET_KEY = require_env('SECRET_KEY')
+TOKEN_ENCRYPTION_KEY = require_env('TOKEN_ENCRYPTION_KEY')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 
-ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
-ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
+ALPACA_CLIENT_ID = require_env('ALPACA_CLIENT_ID')
+ALPACA_CLIENT_SECRET = require_env('ALPACA_CLIENT_SECRET')
+ALPACA_API_KEY = require_env('ALPACA_API_KEY').strip()
+ALPACA_API_SECRET = require_env('ALPACA_API_SECRET').strip()
 ALPACA_PAPER_BASE = os.getenv('ALPACA_PAPER_BASE', 'https://paper-api.alpaca.markets').rstrip('/')
 ALPACA_DATA_BASE = os.getenv('ALPACA_DATA_BASE', 'https://data.alpaca.markets').rstrip('/')
 ALPACA_FEED = os.getenv('ALPACA_FEED', 'iex').strip() or 'iex'
-FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', '').strip()
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+FINNHUB_API_KEY = require_env('FINNHUB_API_KEY').strip()
+GEMINI_API_KEY = require_env('GEMINI_API_KEY').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
 
 DB_PATH = str(BASE_DIR / 'veteran_trades.db')

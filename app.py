@@ -2,15 +2,17 @@ import json
 import logging
 import os
 import requests
+import secrets
 import sqlite3
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
+from flask_talisman import Talisman
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
@@ -26,12 +28,23 @@ from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, ru
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
+
+# Enforce HTTPS, HSTS, and strict Content Security Policies
+if os.getenv('FLASK_ENV') == 'production':
+    # Start with CSP disabled until configured for external scripts (TradingView, etc.)
+    Talisman(app, content_security_policy=None)
+
+# Force cookies to only travel over HTTPS
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath(config.DB_PATH)}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['ALPACA_CLIENT_ID'] = os.getenv('ALPACA_CLIENT_ID', '')
-app.config['ALPACA_CLIENT_SECRET'] = os.getenv('ALPACA_CLIENT_SECRET', '')
+app.config['ALPACA_CLIENT_ID'] = config.ALPACA_CLIENT_ID
+app.config['ALPACA_CLIENT_SECRET'] = config.ALPACA_CLIENT_SECRET
 app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://broker-api.sandbox.alpaca.markets/v1/oauth/callback')
 db.init_app(app)
 login_manager = LoginManager()
@@ -299,12 +312,16 @@ def connect_broker():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
+    oauth_state = secrets.token_urlsafe(32)
+    session['oauth_state'] = oauth_state
+
     alpaca_auth_url = (
         f"https://app.alpaca.markets/oauth/authorize"
         f"?response_type=code"
         f"&client_id={app.config['ALPACA_CLIENT_ID']}"
         f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
         f"&scope=trading"
+        f"&state={oauth_state}"
         f"&env=paper"
     )
     return redirect(alpaca_auth_url)
@@ -313,6 +330,13 @@ def alpaca_login():
 @app.route('/alpaca/callback')
 @login_required
 def alpaca_callback():
+    returned_state = request.args.get('state')
+    saved_state = session.pop('oauth_state', None)
+
+    if not returned_state or returned_state != saved_state:
+        flash("Security Error: Invalid OAuth state token. Request aborted.", "error")
+        return redirect(url_for('settings'))
+
     code = request.args.get('code')
     if not code:
         flash("Authorization failed.", "error")
@@ -336,13 +360,13 @@ def alpaca_callback():
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
             db.session.commit()
-            flash("Broker connected successfully via OAuth!", "success")
+            flash("Broker connected successfully via secure OAuth!", "success")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('settings'))
 
 
 @app.route('/v1/oauth/callback')
