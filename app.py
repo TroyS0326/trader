@@ -12,6 +12,7 @@ from flask import Flask, jsonify, render_template, request, redirect, session, u
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
+from flask_talisman import Talisman
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
@@ -27,12 +28,23 @@ from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, ru
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
+
+# Enforce HTTPS, HSTS, and strict Content Security Policies
+if os.getenv('FLASK_ENV') == 'production':
+    # Start with CSP disabled until configured for external scripts (TradingView, etc.)
+    Talisman(app, content_security_policy=None)
+
+# Force cookies to only travel over HTTPS
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath(config.DB_PATH)}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['ALPACA_CLIENT_ID'] = os.getenv('ALPACA_CLIENT_ID', '')
-app.config['ALPACA_CLIENT_SECRET'] = os.getenv('ALPACA_CLIENT_SECRET', '')
+app.config['ALPACA_CLIENT_ID'] = config.ALPACA_CLIENT_ID
+app.config['ALPACA_CLIENT_SECRET'] = config.ALPACA_CLIENT_SECRET
 app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://broker-api.sandbox.alpaca.markets/v1/oauth/callback')
 db.init_app(app)
 login_manager = LoginManager()
