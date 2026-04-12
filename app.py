@@ -13,6 +13,9 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
 from flask_talisman import Talisman
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
@@ -28,6 +31,19 @@ from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, ru
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
+
+# 1. Enable Global CSRF Protection
+csrf = CSRFProtect(app)
+
+# 2. Setup the Rate Limiter
+# Note: "memory://" works great for a single server. If you scale to multiple
+# servers later, switch this to a shared store such as Redis.
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["500 per day", "100 per hour"],
+    storage_uri="memory://",
+)
 
 # Enforce HTTPS, HSTS, and strict Content Security Policies
 if os.getenv('FLASK_ENV') == 'production':
@@ -135,6 +151,7 @@ def index():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
+@limiter.limit("3 per hour")  # 🛑 Blocks botnet mass-account creation
 def signup():
     if request.method == 'POST':
         # (Keep your existing code here that grabs the email/password and saves to DB)
@@ -179,6 +196,7 @@ def signup():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # 🛑 Blocks brute-force password guessing
 def login():
     if request.method == 'POST':
         try:

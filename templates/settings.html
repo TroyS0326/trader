@@ -105,6 +105,7 @@
         </div>
 
         <form action="/settings" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="config-panel">
                 <div class="panel-title">2. Trading Mode & Bankroll</div>
 
