@@ -247,6 +247,14 @@
                     <strong id="ai-score">--</strong>
                 </div>
                 <div class="metric-mini">
+                    <span>Setup Grade
+                        <span class="info-tip"><i class="fas fa-info-circle"></i>
+                            <span class="tip-text">The algorithmic tier of the current setup.</span>
+                        </span>
+                    </span>
+                    <strong id="setup-grade">--</strong>
+                </div>
+                <div class="metric-mini">
                     <span>Max Risk
                         <span class="info-tip"><i class="fas fa-info-circle"></i>
                             <span class="tip-text">The maximum amount you stand to lose on this specific trade if the Stop Loss is hit.</span>
@@ -462,6 +470,15 @@
                 scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
             });
 
+            // Inject Setup Grade
+            const gradeEl = document.getElementById('setup-grade');
+            const grade = best.setup_grade || 'NO TRADE';
+            let gradeClass = 'grade-none';
+            if (grade === 'A+') gradeClass = 'grade-a-plus';
+            else if (grade === 'A') gradeClass = 'grade-a';
+            else if (grade === 'WATCH') gradeClass = 'grade-watch';
+            gradeEl.innerHTML = `<span class="grade-badge ${gradeClass}">${grade}</span>`;
+
             // Status Notes
             const notes = [];
             if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">🧠 AI Sentiment Validated.</span>`);
@@ -508,6 +525,7 @@
             statusHeader.innerText = "Working...";
             statusHeader.style.color = "var(--warning)";
             document.getElementById('ai-score').textContent = '--';
+            document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
 
