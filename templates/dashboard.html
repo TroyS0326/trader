@@ -6,6 +6,7 @@
     <title>Command Center | XeanVI</title>
     
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root {
@@ -42,6 +43,45 @@
         .metric-mini { text-align: right; background-color: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
         .metric-mini span, label { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
         .metric-mini strong { color: var(--text-main); font-size: 1.5rem; }
+
+        /* Tooltip Container */
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            margin-left: 6px;
+            cursor: help;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .info-tip:hover { color: var(--accent-blue); }
+
+        /* Tooltip Text */
+        .info-tip .tip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .info-tip:hover .tip-text {
+            visibility: visible;
+            opacity: 1;
+        }
 
         /* Main Workspace Scrollable Area */
         .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
@@ -139,8 +179,28 @@
                     <strong style="color: var(--success);">Paper Trading (Safe)</strong>
                 </div>
                 <div class="metric-mini">
-                    <span>Available Cash</span>
+                    <span>Available Cash
+                        <span class="info-tip"><i class="fas fa-info-circle"></i>
+                            <span class="tip-text">Total capital available for today's trading session.</span>
+                        </span>
+                    </span>
                     <strong>${{ "{:,.2f}".format(current_user.bankroll) }}</strong>
+                </div>
+                <div class="metric-mini">
+                    <span>AI Confidence
+                        <span class="info-tip"><i class="fas fa-info-circle"></i>
+                            <span class="tip-text">XeanVI's score based on technical analysis, news sentiment, and volume.</span>
+                        </span>
+                    </span>
+                    <strong id="ai-score">--</strong>
+                </div>
+                <div class="metric-mini">
+                    <span>Max Risk
+                        <span class="info-tip"><i class="fas fa-info-circle"></i>
+                            <span class="tip-text">The maximum amount you stand to lose on this specific trade if the Stop Loss is hit.</span>
+                        </span>
+                    </span>
+                    <strong id="risk-amount">--</strong>
                 </div>
             </div>
             
@@ -370,6 +430,8 @@
             btn.disabled = true;
             statusHeader.innerText = "Working...";
             statusHeader.style.color = "var(--warning)";
+            document.getElementById('ai-score').textContent = '--';
+            document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
 
             addLog("Initiating AI Scanner...", "var(--warning)");
@@ -383,11 +445,14 @@
                 if (!payload.ok) throw new Error(payload.error);
                 
                 const best = payload.data.best_pick;
+                const watchPanel = best.watch_panel || {};
                 
                 addLog(`Scan complete. Top setup found: ${best.symbol}.`, "var(--success)");
                 
                 // 3. Update the UI
                 tickerHeader.innerText = best.symbol;
+                document.getElementById('ai-score').textContent = `${best.score_total || '--'}/100`;
+                document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
                 document.getElementById('liveIndicator').style.display = 'inline';
                 loadChart(best.symbol); 
                 
