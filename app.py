@@ -194,6 +194,11 @@ def terms():
 def privacy():
     return render_template('privacy.html')
 
+
+@app.route('/simulate')
+def simulate():
+    return render_template('simulate.html')
+
 @app.route('/logout')
 @login_required
 def logout():

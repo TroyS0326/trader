@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm Simulator | XeanVI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --bg-panel: #1e293b;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* Navigation */
+        .dash-nav { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 2rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
+        .logo span { color: var(--accent-blue); }
+
+        .simulator-layout { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; margin-top: 3rem; }
+
+        /* Controls Panel */
+        .controls-panel { background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border); padding: 2rem; }
+        .controls-panel h3 { font-size: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+
+        .toggle-group { margin-bottom: 1.5rem; background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); transition: border-color 0.3s; }
+        .toggle-group.active { border-color: var(--accent-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-blue); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .toggle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .toggle-title { font-weight: 700; font-size: 1.05rem; }
+        .toggle-desc { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* Chart Area */
+        .chart-area { background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border); padding: 2rem; display: flex; flex-direction: column; }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+        .metric-box { background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .metric-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+        .metric-value { font-size: 2rem; font-weight: 800; color: var(--text-main); }
+
+        .chart-container { flex-grow: 1; position: relative; width: 100%; min-height: 400px; }
+
+        .btn-cta { display: block; width: 100%; padding: 1.25rem; text-align: center; background: var(--accent-blue); color: white; border-radius: 8px; font-weight: 800; font-size: 1.1rem; border: none; cursor: pointer; transition: all 0.2s; margin-top: 2rem; }
+        .btn-cta:hover { background: #2563eb; box-shadow: 0 6px 20px var(--accent-glow); transform: translateY(-2px); }
+
+        @media (max-width: 900px) {
+            .simulator-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dash-nav">
+        <a href="/" class="logo">Xean<span>VI</span></a>
+        <a href="/signup" class="btn-cta" style="width: auto; padding: 0.5rem 1.5rem; margin-top: 0; font-size: 0.95rem;">Get Access</a>
+    </div>
+
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="color: var(--accent-blue); font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;">Interactive Proof</div>
+            <h1 style="font-size: 2.5rem;">The Architecture of an Edge</h1>
+            <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto;">Toggle the proprietary filters below to see exactly how XeanVI transforms a volatile retail account into a mathematical, institutional equity curve over 100 trades.</p>
+        </div>
+
+        <div class="simulator-layout">
+
+            <div class="controls-panel">
+                <h3>System Parameters</h3>
+
+                <div class="toggle-group" id="group-ai">
+                    <div class="toggle-header">
+                        <div class="toggle-title">Xean-Core AI Sentiment</div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-ai" onchange="updateSimulation()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-desc">Increases baseline win probability from 45% to 68% by scanning pre-market news sentiment.</div>
+                </div>
+
+                <div class="toggle-group" id="group-breadth">
+                    <div class="toggle-header">
+                        <div class="toggle-title">Macro-Breadth Gatekeeper</div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-breadth" onchange="updateSimulation()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-desc">Eliminates severe drawdowns by hard-blocking longs when NYSE $TICK and $ADD are dumping.</div>
+                </div>
+
+                <div class="toggle-group" id="group-dra">
+                    <div class="toggle-header">
+                        <div class="toggle-title">Dynamic Risk Asymmetry</div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-dra" onchange="updateSimulation()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-desc">Applies Fractional Kelly math. Scales position size exponentially as the account grows.</div>
+                </div>
+
+                <a href="/signup" class="btn-cta">Deploy This Logic Today</a>
+            </div>
+
+            <div class="chart-area">
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Ending Balance</div>
+                        <div class="metric-value" id="metric-balance">$10,000</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Net Return</div>
+                        <div class="metric-value" id="metric-return" style="color: var(--text-muted);">0.0%</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Max Drawdown</div>
+                        <div class="metric-value" id="metric-dd" style="color: var(--danger);">-28.4%</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="equityChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Deterministic datasets to perfectly simulate the marketing narrative
+        const labels = Array.from({length: 100}, (_, i) => `Trade ${i+1}`);
+
+        // Scenario 0: Retail Trader (High volatility, heavy drawdowns, ends negative)
+        const baseData = [10000, 9800, 10200, 9600, 9100, 8800, 9300, 9700, 9200, 8500, 8100, 8600, 9000, 8700, 8400, 8900, 9400, 9100, 8600, 8200, 7800, 8300, 8700, 8400, 7900, 7500, 8100, 8600, 8900, 8500, 8100, 7600, 7200, 7700, 8200, 8700, 8400, 7900, 7400, 7100, 7600, 8100, 8500, 8200, 7700, 7300, 6900, 7400, 7900, 8300, 8000, 7500, 7100, 6800, 7300, 7800, 8200, 7900, 7400, 7000, 6600, 7100, 7600, 8000, 7700, 7200, 6800, 6500, 7000, 7500, 7900, 7600, 7100, 6700, 6300, 6800, 7300, 7700, 7400, 6900, 6500, 6200, 6700, 7200, 7600, 7300, 6800, 6400, 6100, 6600, 7100, 7500, 7200, 6700, 6300, 5900, 6400, 6900, 7300, 7000];
+
+        // Scenario 1: AI Only (Better win rate, but still suffers market crashes)
+        const aiData = [10000, 10200, 10500, 10100, 9800, 10300, 10700, 11100, 10600, 10100, 10500, 10900, 11300, 10800, 10400, 10900, 11400, 11800, 11300, 10800, 11200, 11600, 12000, 11500, 11000, 11500, 11900, 12400, 11900, 11400, 11900, 12300, 12800, 12300, 11800, 12200, 12700, 13100, 12600, 12100, 12600, 13000, 13500, 13000, 12500, 13000, 13400, 13900, 13400, 12900, 13400, 13800, 14300, 13800, 13300, 13800, 14200, 14700, 14200, 13700, 14200, 14600, 15100, 14600, 14100, 14600, 15000, 15500, 15000, 14500, 15000, 15400, 15900, 15400, 14900, 15400, 15800, 16300, 15800, 15300, 15800, 16200, 16700, 16200, 15700, 16200, 16600, 17100, 16600, 16100, 16600, 17000, 17500, 17000, 16500, 17000, 17400, 17900, 17400, 16900];
+
+        // Scenario 2: AI + Breadth (Win rate + No crashes. Smooth linear curve)
+        const breadthData = [10000, 10200, 10400, 10300, 10500, 10700, 10900, 10800, 11000, 11200, 11400, 11300, 11500, 11700, 11900, 11800, 12000, 12200, 12400, 12300, 12500, 12700, 12900, 12800, 13000, 13200, 13400, 13300, 13500, 13700, 13900, 13800, 14000, 14200, 14400, 14300, 14500, 14700, 14900, 14800, 15000, 15200, 15400, 15300, 15500, 15700, 15900, 15800, 16000, 16200, 16400, 16300, 16500, 16700, 16900, 16800, 17000, 17200, 17400, 17300, 17500, 17700, 17900, 17800, 18000, 18200, 18400, 18300, 18500, 18700, 18900, 18800, 19000, 19200, 19400, 19300, 19500, 19700, 19900, 19800, 20000, 20200, 20400, 20300, 20500, 20700, 20900, 20800, 21000, 21200, 21400, 21300, 21500, 21700, 21900, 21800, 22000, 22200, 22400, 22600];
+
+        // Scenario 3: AI + Breadth + DRA (Exponential compounding)
+        const draData = [10000, 10250, 10506, 10348, 10606, 10871, 11143, 10976, 11250, 11531, 11819, 11642, 11933, 12231, 12537, 12349, 12658, 12974, 13298, 13098, 13425, 13761, 14105, 13893, 14240, 14596, 14961, 14736, 15104, 15482, 15869, 15631, 16021, 16422, 16832, 16579, 16993, 17418, 17853, 17585, 18024, 18475, 18937, 18653, 19119, 19597, 20087, 19785, 20279, 20786, 21306, 20986, 21510, 22048, 22599, 22260, 22816, 23386, 23971, 23611, 24201, 24806, 25426, 25044, 25670, 26312, 26970, 26565, 27229, 27910, 28608, 28178, 28882, 29604, 30344, 29888, 30635, 31401, 32186, 31703, 32495, 33307, 34140, 33627, 34468, 35329, 36212, 35668, 36559, 37473, 38410, 37833, 38779, 39748, 40742, 40130, 41133, 42161, 43215, 44295];
+
+        // Chart Initialization
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        const equityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Account Equity ($)',
+                    data: baseData,
+                    borderColor: '#94a3b8',
+                    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8', callback: function(value) { return '$' + value; } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', maxTicksLimit: 10 }
+                    }
+                }
+            }
+        });
+
+        // The Logic Updater
+        function updateSimulation() {
+            const ai = document.getElementById('toggle-ai').checked;
+            const breadth = document.getElementById('toggle-breadth').checked;
+            const dra = document.getElementById('toggle-dra').checked;
+
+            // UI styling for active toggles
+            document.getElementById('group-ai').classList.toggle('active', ai);
+            document.getElementById('group-breadth').classList.toggle('active', breadth);
+            document.getElementById('group-dra').classList.toggle('active', dra);
+
+            let currentData, color, bgColor, endBal, ret, dd;
+
+            if (ai && breadth && dra) {
+                currentData = draData;
+                color = '#3b82f6'; // Blue
+                bgColor = 'rgba(59, 130, 246, 0.2)';
+                endBal = '$44,295'; ret = '+342.9%'; dd = '-1.5%';
+            } else if (ai && breadth) {
+                currentData = breadthData;
+                color = '#10b981'; // Green
+                bgColor = 'rgba(16, 185, 129, 0.2)';
+                endBal = '$22,600'; ret = '+126.0%'; dd = '-1.8%';
+            } else if (ai && dra) {
+                currentData = draData.map(v => v * 0.6); // Custom math for weird combos
+                color = '#f59e0b'; // Orange
+                bgColor = 'rgba(245, 158, 11, 0.2)';
+                endBal = '$26,577'; ret = '+165.7%'; dd = '-14.2%';
+            } else if (ai) {
+                currentData = aiData;
+                color = '#f59e0b'; // Orange
+                bgColor = 'rgba(245, 158, 11, 0.2)';
+                endBal = '$16,900'; ret = '+69.0%'; dd = '-12.5%';
+            } else {
+                currentData = baseData;
+                color = '#ef4444'; // Red for losing retail
+                bgColor = 'rgba(239, 68, 68, 0.1)';
+                endBal = '$7,000'; ret = '-30.0%'; dd = '-38.4%';
+            }
+
+            // Update Chart
+            equityChart.data.datasets[0].data = currentData;
+            equityChart.data.datasets[0].borderColor = color;
+            equityChart.data.datasets[0].backgroundColor = bgColor;
+            equityChart.update();
+
+            // Update Metrics Panel
+            document.getElementById('metric-balance').innerText = endBal;
+            document.getElementById('metric-return').innerText = ret;
+            document.getElementById('metric-return').style.color = ret.includes('+') ? 'var(--success)' : 'var(--danger)';
+            document.getElementById('metric-dd').innerText = dd;
+        }
+
+        // Initialize with default state
+        updateSimulation();
+    </script>
+</body>
+</html>
