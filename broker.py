@@ -109,7 +109,7 @@ def get_latest_quote(symbol: str) -> Dict[str, Any]:
 
 
 def submit_order(payload: Dict[str, Any]) -> Dict[str, Any]:
-    return _post_json(f'{ALPACA_PAPER_BASE}/v2/orders', payload)
+    return _post_json(f'{ALPACA_PAPER_BASE}/orders', payload)
 
 
 def replace_order(order_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
