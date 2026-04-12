@@ -169,7 +169,7 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if not user or not check_password_hash(user.password_hash, password):
-            flash('Please check your login details and try again.', 'error')
+            flash('Invalid email or password', 'error')
             return redirect(url_for('login'))
 
         login_user(user)
