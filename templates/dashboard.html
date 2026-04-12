@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Command Center | XeanVI</title>
+    <title>Dashboard | XeanVI</title>
     <style>
         :root {
             --bg-primary: #060b14;
@@ -22,61 +22,60 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        a { text-decoration: none; color: inherit; }
-
+        
         /* Navigation */
         .dash-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
         .logo span { color: var(--accent-blue); }
 
         .top-metrics { display: flex; gap: 2rem; }
-        .metric-mini { text-align: right; }
-        .metric-mini span { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-mini { text-align: right; background: var(--bg-primary); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); }
+        .metric-mini span { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
         .metric-mini strong { font-size: 1.1rem; color: var(--text-main); }
 
         /* Main Workspace */
         .workspace { display: grid; grid-template-columns: 350px 1fr; flex-grow: 1; overflow: hidden; }
 
-        /* Left Panel: Engine Controls */
+        /* Left Panel: Simple Controls */
         .control-panel { background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; }
         
-        .panel-header { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.75rem; }
+        .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
 
-        .strategy-select { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; cursor: pointer; outline: none; }
+        .strategy-select { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 2rem; font-size: 1rem; cursor: pointer; outline: none; }
         
-        .btn-scan { background: var(--accent-blue); color: white; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 2rem; }
+        .btn-scan { background: var(--accent-blue); color: white; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 2rem; }
         .btn-scan:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
         .btn-scan:active { transform: translateY(0); }
 
-        /* Terminal Window */
+        /* Live Activity Log */
         .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
-        .terminal-output { padding: 1rem; font-family: var(--font-mono); font-size: 0.85rem; color: var(--success); overflow-y: auto; flex-grow: 1; line-height: 1.5; }
-        .log-time { color: var(--text-muted); margin-right: 10px; }
-        .log-alert { color: var(--accent-blue); font-weight: bold; }
+        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.75rem 1rem; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .terminal-output { padding: 1rem; font-family: var(--font-sans); font-size: 0.9rem; color: var(--text-main); overflow-y: auto; flex-grow: 1; line-height: 1.6; }
+        
+        .log-time { color: var(--text-muted); font-size: 0.8rem; margin-right: 8px; }
 
         /* Right Panel: Live Charting */
         .chart-panel { padding: 1.5rem; display: flex; flex-direction: column; background: var(--bg-primary); }
         .chart-container { flex-grow: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
-        
     </style>
 </head>
 <body>
 
     <div class="dash-nav">
-        <a href="/" class="logo">Xean<span>VI</span></a>
+        <div class="logo">Xean<span>VI</span></div>
         
         <div class="top-metrics">
             <div class="metric-mini">
-                <span>Mode</span>
-                <strong style="color: var(--success);">Sandbox Active</strong>
+                <span>Account Status</span>
+                <strong style="color: var(--success);">Paper Trading (Safe)</strong>
             </div>
             <div class="metric-mini">
-                <span>Available Capital</span>
+                <span>Available Cash</span>
                 <strong>$10,000.00</strong>
             </div>
             <div class="metric-mini">
-                <span>Today's PnL</span>
+                <span>Today's Profit</span>
                 <strong style="color: var(--success);">+$0.00</strong>
             </div>
         </div>
@@ -86,30 +85,33 @@
         
         <div class="control-panel">
             
-            <div class="panel-header">1. Select Strategy</div>
+            <div class="step-title">1. Pick Your Trading Style</div>
+            <div class="step-desc">How aggressive do you want the bot to be today?</div>
             <select class="strategy-select" id="strategy-selector">
-                <option value="momentum">Momentum Vault (Recommended)</option>
-                <option value="defensive">Defensive Scalper Vault</option>
-                <option value="crypto">24/7 Digital Asset Engine</option>
+                <option value="balanced">Standard Growth (Balanced Risk) - Recommended</option>
+                <option value="safe">Safe Mode (Low Risk, Smaller Wins)</option>
+                <option value="crypto">Crypto Autopilot (High Risk, 24/7)</option>
             </select>
 
-            <div class="panel-header">2. Execute</div>
-            <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Run Morning Scan</button>
+            <div class="step-title">2. Start the Bot</div>
+            <div class="step-desc">Click below to let the AI scan the news and find the best stock to trade right now.</div>
+            <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Start AI Scanner</button>
 
-            <div class="panel-header">Engine Output Log</div>
             <div class="terminal-container">
                 <div class="terminal-header">
-                    <span>Xean-Core Terminal</span>
-                    <span>Status: IDLE</span>
+                    <span>Live AI Activity Log</span>
+                    <span id="bot-status" style="color: var(--text-muted);">Waiting...</span>
                 </div>
                 <div class="terminal-output" id="terminal-log">
-                    <div><span class="log-time">[08:00:00]</span> System initialized. Awaiting manual scan execution.</div>
+                    <div><span class="log-time">Now</span> Ready to go. Waiting for you to start the scanner.</div>
                 </div>
             </div>
         </div>
 
         <div class="chart-panel">
-            <div class="panel-header" style="margin-bottom: 1rem;">Live Target Acquisition: <span id="target-ticker" style="color: var(--accent-blue); font-weight: bold; font-size: 1.2rem;">AWAITING SCAN</span></div>
+            <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: bold; font-size: 1.1rem;">Current Stock in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
+            </div>
             
             <div class="chart-container" id="chart-widget-container">
                 <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
@@ -134,8 +136,7 @@
                             "container_id": "tradingview_chart"
                         });
                     }
-                    // Load a default blank/SPY chart on startup
-                    loadChart("SPY");
+                    loadChart("SPY"); // Default chart before scan
                     </script>
                 </div>
             </div>
@@ -148,57 +149,60 @@
             const btn = document.getElementById('run-scan-btn');
             const terminal = document.getElementById('terminal-log');
             const tickerHeader = document.getElementById('target-ticker');
+            const statusHeader = document.getElementById('bot-status');
             const strategy = document.getElementById('strategy-selector').value;
-
-            // 1. Lock the UI and show loading state
-            btn.innerText = "SCANNING MARKET...";
-            btn.style.background = "#f59e0b"; // Warning orange
-            btn.style.boxShadow = "0 4px 15px rgba(245, 158, 11, 0.5)";
+            
+            // 1. Lock the button so they don't spam it
+            btn.innerText = "Scanning News & Charts...";
+            btn.style.background = "#f59e0b";
+            btn.style.boxShadow = "none";
             btn.disabled = true;
+            statusHeader.innerText = "Working...";
+            statusHeader.style.color = "#f59e0b";
 
-            terminal.innerHTML += `<div><span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-alert">INITIATING REAL-TIME XEAN-CORE SCAN...</span></div>`;
+            terminal.innerHTML += `<div><span class="log-time">Now</span> <strong>Starting the AI Scanner...</strong></div>`;
             terminal.scrollTop = terminal.scrollHeight;
 
             try {
-                // 2. Call your actual Python Backend (app.py -> /api/run-scan)
+                // 2. Call your actual Python Backend
                 const response = await fetch('/api/run-scan', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ strategy: strategy })
                 });
-
+                
                 const data = await response.json();
 
-                // 3. Print the real Python logs to the terminal
+                // 3. Print the easy-to-read logs
                 if (data.logs && data.logs.length > 0) {
                     data.logs.forEach(log => {
                         addLog(log.msg, log.color);
                     });
                 }
 
-                // 4. Update the Chart with the REAL ticker your Python bot found
+                // 4. Show the chart of the stock the bot found
                 if (data.target_ticker) {
-                    tickerHeader.innerText = data.target_ticker + " (Live)";
-                    loadChart("NASDAQ:" + data.target_ticker); // Note: You may need to format exchange based on stock
+                    tickerHeader.innerText = data.target_ticker;
+                    loadChart("NASDAQ:" + data.target_ticker);
                 }
 
             } catch (error) {
-                addLog("CONNECTION FAILED: Could not reach Xean-Core Backend.", "var(--danger)");
+                addLog("Error: Could not connect to the bot.", "var(--danger)");
             } finally {
-                // 5. Unlock the button when the Python script finishes
-                addLog("Scan Cycle Complete.", "var(--text-muted)");
-                btn.innerText = "RUN MORNING SCAN";
+                // 5. Unlock the button
+                addLog("Scan complete. Bot is ready for the next move.", "var(--text-muted)");
+                btn.innerText = "Start AI Scanner";
                 btn.style.background = "var(--accent-blue)";
-                btn.style.boxShadow = "0 4px 15px var(--accent-glow)";
                 btn.disabled = false;
+                statusHeader.innerText = "Idle";
+                statusHeader.style.color = "var(--text-muted)";
             }
         }
 
         function addLog(message, color) {
             const terminal = document.getElementById('terminal-log');
-            terminal.innerHTML += `<div><span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span style="color: ${color};">${message}</span></div>`;
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            terminal.innerHTML += `<div style="margin-bottom: 8px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
     </script>
