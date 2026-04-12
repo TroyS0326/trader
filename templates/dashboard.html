@@ -159,6 +159,57 @@
         .table-pill { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
         .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+
+
+        /* =========================================
+           ACTUAL MOBILE RESPONSIVENESS FIX
+           ========================================= */
+        @media (max-width: 992px) {
+            /* 1. Stack the Top Navigation */
+            .dash-nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 1rem;
+                height: auto;
+            }
+            .dash-nav > div {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            /* 2. Turn the top metrics into a 2x2 grid so they don't scroll off-screen */
+            .top-metrics {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                width: 100%;
+            }
+
+            /* 3. STOP THE SQUISH: Stack the Control Panel and Chart */
+            .top-row {
+                display: flex !important;
+                flex-direction: column !important;
+                height: auto !important; /* Removes the hardcoded 550px lock */
+            }
+
+            /* Make both panels take full width of the phone */
+            .control-panel, .chart-panel {
+                width: 100% !important;
+            }
+
+            /* 4. Give the chart room to display properly */
+            .chart-container {
+                height: 450px !important;
+                min-height: 450px;
+            }
+
+            /* 5. Stack the bottom panels vertically */
+            .bottom-row {
+                display: flex !important;
+                flex-direction: column !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -306,6 +357,8 @@
     </div>
 
     <script>
+        const csrfToken = "{{ csrf_token() }}";
+
         // Global state for websockets
         const state = { ws: null };
         const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
@@ -463,7 +516,12 @@
 
             try {
                 // 2. Call the REAL robust Python Scanner
-                const res = await fetch('/api/scan', { method: 'POST' });
+                const res = await fetch('/api/scan', { 
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
                 const payload = await res.json();
                 
                 if (!payload.ok) throw new Error(payload.error);
@@ -497,7 +555,10 @@
                         // Send the exact math to the execution engine
                         const execRes = await fetch('/api/execute', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
                             body: JSON.stringify({
                                 symbol: best.symbol,
                                 entry_price: best.entry_price,
