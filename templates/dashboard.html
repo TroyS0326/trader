@@ -345,13 +345,13 @@
             btn.disabled = true;
             statusHeader.innerText = "Working...";
             statusHeader.style.color = "var(--warning)";
-            document.getElementById('data-panels').style.display = 'none'; // Hide data until done
+            document.getElementById('data-panels').style.display = 'none';
 
             addLog("Initiating AI Scanner...", "var(--warning)");
             addLog("Downloading live market data...", "var(--text-muted)");
 
             try {
-                // 2. Call the REAL robust Python Backend
+                // 2. Call the REAL robust Python Scanner
                 const res = await fetch('/api/scan', { method: 'POST' });
                 const payload = await res.json();
                 
@@ -364,15 +364,64 @@
                 // 3. Update the UI
                 tickerHeader.innerText = best.symbol;
                 document.getElementById('liveIndicator').style.display = 'inline';
-                
-                loadChart(best.symbol); // Let TV figure out the exchange automatically
+                loadChart(best.symbol); 
                 
                 renderWatchPanel(best);
                 renderBestPick(best);
                 renderWatchlist(payload.data.watchlist || []);
                 
-                // 4. Reveal the Data Panels!
+                // Reveal the Data Panels
                 document.getElementById('data-panels').style.display = 'grid';
+
+                // ==========================================
+                // 4. AUTOPILOT TRIGGER (THE "SIT & COLLECT" MODULE)
+                // ==========================================
+                if (best.decision === 'BUY NOW') {
+                    addLog("⚡ PERFECT SETUP DETECTED. INITIATING AUTOPILOT EXECUTION...", "var(--accent-blue)");
+
+                    try {
+                        // Send the exact math to the execution engine
+                        const execRes = await fetch('/api/execute', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                symbol: best.symbol,
+                                entry_price: best.entry_price,
+                                stop_price: best.stop_price,
+                                target_1: best.target_1,
+                                target_2: best.target_2,
+                                qty: best.qty,
+                                current_price: best.current_price,
+                                buy_upper: best.buy_upper,
+                                score_total: best.score_total,
+                                decision: best.decision,
+                                scan_id: payload.data.scan_id
+                            })
+                        });
+
+                        const execData = await execRes.json();
+
+                        if (execData.ok) {
+                            addLog(`✅ Order Confirmed! Bot bought ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                            addLog(`🛡️ Hard Stop Loss set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
+                            addLog(`🎯 Profit Target set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
+                            
+                            // Make the UI scream "Live Position"
+                            const pill = document.getElementById('decisionPill');
+                            pill.textContent = 'POSITION LIVE';
+                            pill.className = 'table-pill buy-now';
+                            pill.style.boxShadow = '0 0 10px var(--success)';
+                        } else {
+                            addLog(`⚠️ Execution Blocked: ${execData.error}`, "var(--danger)");
+                        }
+                    } catch (err) {
+                        addLog(`Error firing execution: ${err.message}`, "var(--danger)");
+                    }
+                } else {
+                    // If it's a "WAIT" or "WATCH" signal
+                    addLog("No perfect 'BUY NOW' setups found right now. Bot entering Watch Mode.", "var(--warning)");
+                }
+                // ==========================================
 
                 // 5. Connect WebSocket for live watchlist price updates
                 if (state.ws) state.ws.close();
