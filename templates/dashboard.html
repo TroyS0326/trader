@@ -42,7 +42,14 @@
         .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 
         /* Top Row: Controls & Chart */
-        .top-row { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; min-height: 450px; margin-bottom: 2.5rem; }
+        .top-row { 
+            display: grid; 
+            grid-template-columns: 350px 1fr; 
+            gap: 2rem; 
+            height: 550px; /* THE FIX: A strictly locked height stops the chart from overflowing */
+            margin-bottom: 2rem; 
+            flex-shrink: 0; /* Prevents the row from collapsing weirdly */
+        }
 
         /* Control Panel */
         .control-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; }
@@ -65,7 +72,13 @@
         .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg-primary); border: 1px solid var(--border); }
 
         /* Bottom Row: Data Panels */
-        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .bottom-row { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 2rem; 
+            margin-top: 2rem; /* THE FIX: Forces a physical barrier above the panels */
+            padding-bottom: 2rem; /* Extra breathing room at the very bottom of the page */
+        }
         .data-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
         .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 
