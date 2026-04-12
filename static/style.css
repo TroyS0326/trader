@@ -1,4 +1,15 @@
+/*
+  Shared stylesheet for the trader prototype
+
+  This file defines a central color palette via CSS custom properties, common
+  component classes (cards, grids, tables, buttons) and responsive
+  breakpoints.  All page‑specific inline styles have been consolidated here
+  to avoid duplication and to make the site easier to maintain.  Media
+  queries ensure that layouts adapt gracefully to smaller screens.
+*/
+
 :root {
+  /* Colour palette */
   --bg-main: #0f172a;
   --bg-card: #1e293b;
   --bg-input: #334155;
@@ -9,8 +20,8 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --border-color: #334155;
-
-  /* Backward-compatible aliases */
+  
+  /* Backward‑compatible aliases */
   --bg: var(--bg-main);
   --panel: var(--bg-card);
   --panel-2: var(--bg-input);
@@ -25,35 +36,65 @@
   --red: var(--danger);
   --red-text: #fecaca;
 }
+
+/* Reset & base typography */
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-main);
   color: var(--text-main);
 }
+
+/* Generic container that centers content with a max‑width */
 .wrap {
   width: min(1240px, 94vw);
   margin: 24px auto 60px;
   display: grid;
   gap: 18px;
 }
-.card, .config-panel, .metric-mini {
+
+/* Cards and panels */
+/* Cards and panels
+   Only the `.card` selector remains here.  The dashboard‑specific panel
+   classes from the original project have been removed since this
+   prototype doesn’t use them.  Removing unused selectors keeps the
+   stylesheet lean and focused on the landing and legal pages. */
+.card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 14px 32px rgba(0,0,0,0.26);
 }
-.hero-top, .section-head, .action-row {
+
+/* Shared headings */
+.section-head,
+.hero-top,
+.action-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
-.hero h1, h2, h3 { margin: 0 0 8px; }
-.hero p, .sub, .note, .muted { color: var(--muted); }
+ .hero h1,
+h1,
+h2,
+h3 {
+  margin: 0 0 8px;
+}
+ .hero p,
+.sub,
+.note,
+.muted {
+  color: var(--muted);
+}
+
+/* Buttons
+   Base button styles with disabled state.  Variant classes for
+   `.secondary` and `.ghost` have been removed because this prototype
+   doesn’t use them. */
 button {
   border: 0;
   border-radius: 14px;
@@ -63,10 +104,14 @@ button {
   cursor: pointer;
   background: var(--accent);
   color: #082f49;
+  transition: all 0.2s ease;
 }
-button.secondary { background: #dbeafe; color: #172554; }
-button.ghost { background: #223047; color: #dbeafe; }
-button:disabled { cursor: not-allowed; opacity: 0.65; }
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Status boxes */
 .status {
   margin-top: 12px;
   padding: 12px 14px;
@@ -74,16 +119,34 @@ button:disabled { cursor: not-allowed; opacity: 0.65; }
   background: var(--panel-2);
   border: 1px solid var(--line);
 }
-.pill, .table-pill {
+
+/* Pills for small status indicators */
+.pill,
+.table-pill {
   display: inline-block;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 700;
 }
-.buy-now, .triggered { background: rgba(20,83,45,0.45); color: var(--green-text); }
-.watch-for-breakout, .near-entry, .watch { background: rgba(120,53,15,0.45); color: var(--amber-text); }
-.skip, .broken { background: rgba(127,29,29,0.42); color: var(--red-text); }
+.buy-now,
+.triggered {
+  background: rgba(20,83,45,0.45);
+  color: var(--green-text);
+}
+.watch-for-breakout,
+.near-entry,
+.watch {
+  background: rgba(120,53,15,0.45);
+  color: var(--amber-text);
+}
+.skip,
+.broken {
+  background: rgba(127,29,29,0.42);
+  color: var(--red-text);
+}
+
+/* Watch panel on the landing page */
 .watch-panel {
   display: grid;
   gap: 8px;
@@ -96,13 +159,175 @@ button:disabled { cursor: not-allowed; opacity: 0.65; }
   font-size: 19px;
   line-height: 1.5;
 }
-.grid, .mini-grid, .chart-grid {
+
+/* Grid utilities */
+.grid,
+.mini-grid,
+.chart-grid {
+  /* Base grid utilities used by the landing page.  Each defines
+     a responsive number of columns and a uniform gap between cards. */
   display: grid;
   gap: 14px;
 }
-.grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-.mini-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 14px; }
-.chart-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.mini-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-top: 14px;
+}
+.chart-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* Chart container on index */
+.chart-box {
+  height: 330px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #0b1220;
+}
+
+/* Table styling */
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+th {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* Responsive typography tweaks */
+@media (max-width: 720px) {
+  .watch-line { font-size: 17px; }
+  .value { font-size: 24px; }
+}
+
+/*
+  The dashboard and control panel breakpoints from the original project
+  have been removed here because this simplified prototype focuses on the
+  landing page and legal pages.  Responsive behaviour for the landing
+  page is handled via flexible grid definitions and a single 720px
+  breakpoint for typography.  Additional breakpoints can be reintroduced
+  if more complex layouts are needed in the future.
+*/
+
+/* === Legal page styles === */
+/*
+  The privacy and terms pages share the same structural wrapper.  These rules
+  provide a central column, subtle borders and typography sizes tuned for
+  readability.  They rely on the global colour variables defined above.
+*/
+.legal-wrap {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 40px;
+  background: var(--panel);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+}
+.legal-wrap h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: var(--accent);
+}
+.legal-wrap h2 {
+  font-size: 1.5rem;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 5px;
+}
+.legal-wrap p,
+.legal-wrap li {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+.legal-wrap ul {
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+.legal-wrap strong {
+  color: var(--text-main);
+}
+.last-updated {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+/* === Landing page components === */
+/*
+  The landing page uses a number of utility classes (e.g. `.action-box`,
+  `.highlight-green`) previously defined inline.  They now live here so
+  that other pages can reuse them and to avoid duplicate declarations.
+*/
+.action-box {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--success);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+.action-box.wait {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--warning);
+}
+.action-text {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-main);
+}
+.highlight-green {
+  color: var(--success);
+  font-weight: bold;
+}
+.highlight-red {
+  color: var(--danger);
+  font-weight: bold;
+}
+.tooltip-container {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted var(--muted);
+}
+.tooltip-container:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 10;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Mini score cards used in the engine room.  These definitions were
+   originally part of the dashboard styles but are required for the
+   landing page. */
 .mini-card {
   background: var(--panel-2);
   border: 1px solid var(--line);
@@ -128,116 +353,624 @@ button:disabled { cursor: not-allowed; opacity: 0.65; }
   background: var(--panel-2);
   border: 1px solid var(--line);
 }
-.chart-box {
-  height: 330px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: #0b1220;
-}
-.table-wrap {
-  overflow-x: auto;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  padding: 12px 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  white-space: nowrap;
-}
-th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-@media (max-width: 720px) {
-  .watch-line { font-size: 17px; }
-  .value { font-size: 24px; }
+
+/* Small subtitle text used in headings (e.g. the “Why we picked it”
+   annotation on the engine room card). */
+.subtitle {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--muted);
 }
 
-label, .metric-mini span {
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+/* Margin utility class for adding top spacing without inline styles. */
+.mt-15 {
+  margin-top: 15px;
 }
 
-.metric-mini strong {
-  color: var(--text-main);
-  font-size: 1.5rem;
-}
-
-.buy-now {
+/* Indicator badge shown when live data is streaming.  Hidden by
+   default; toggled via JavaScript by removing the `display: none`. */
+.live-indicator {
+  display: none;
   color: var(--success);
+  font-size: 0.8rem;
+  margin-left: 10px;
+}
+
+/* === Custom variants and navigation === */
+/* Primary button used for the “Run Morning Scan” call‑to‑action.  It
+   inherits from the base button styles but increases the font size,
+   padding and sets the text colour to white. */
+button.primary {
+  font-size: 1.1rem;
+  padding: 12px 24px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Simplified navigation bar used on the privacy and terms pages.  It
+   leverages the existing .wrap utility and provides spacing and borders.
+   The .nav-inner wrapper ensures proper alignment on small screens. */
+.nav {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-main);
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+/* Logo styling in the nav.  Use <span> within the anchor to colour the
+   accent portion separately. */
+.logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--text-main);
+  text-decoration: none;
+}
+.logo span {
+  color: var(--accent);
+}
+/* Button link variant for nav actions such as “Back to Home”.  Apply
+   shared padding, border and hover state without affecting button
+   elements elsewhere. */
+.btn.secondary {
+  background: var(--panel-2);
+  color: var(--text-main);
+  border: 1px solid var(--line);
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn.secondary:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* Active navigation link highlights the current page with the accent colour */
+.nav-link-active {
+  color: var(--accent);
+}
+
+/* Footer wrapper used on marketing pages and elsewhere.  Provides padding,
+   border and muted text colour. */
+.footer {
+  padding: 3rem 0;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.footer a {
+  color: var(--accent);
+  margin-right: 1.5rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.footer a:last-child {
+  margin-right: 0;
+}
+
+/* Flash message for error notifications on forms */
+.flash-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   Marketing & Feature Pages
+   ========================================================================== */
+/* Containers for consistent horizontal spacing on marketing pages.  Use this
+   instead of padding on individual elements so that content remains centred
+   on large screens and flush on small screens. */
+.container {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* Section padding for vertical spacing between bands of content. */
+.section-pad {
+  padding: 5rem 0;
+}
+
+/* Header at the top of feature pages.  Centres text and applies a subtle
+   radial gradient behind the title for visual interest. */
+.page-header {
+  text-align: center;
+  padding: 5rem 0 3rem;
+  border-bottom: 1px solid var(--line);
+  background: radial-gradient(circle at top, rgba(59,130,246,0.1) 0%, transparent 70%);
+}
+.page-header h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+.page-header p {
+  max-width: 700px;
+  margin: 0 auto;
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+/* Three-column grid used for listing features.  Auto‑fits down to one
+   column on narrow screens using minmax(). */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* Feature card used on the marketing pages. */
+.feature-box {
+  background: var(--panel);
+  padding: 2.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+}
+
+/* Numbered steps on the “How it Works” page.  Colours are customised by
+   adding a modifier class (e.g. .step-blue, .step-green) which controls
+   the border and text colour. */
+.step {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+.step-number {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.step-blue {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.step-green {
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid var(--success);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+  color: var(--success);
+}
+.step-yellow {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warning);
+  color: var(--warning);
 }
 
-#run-scan-btn {
-  background-color: var(--accent-blue);
-  color: #000;
+/* Generic call‑to‑action section aligned to the center. */
+.cta {
+  text-align: center;
+}
+
+/* Buttons for anchors on marketing pages.  Extend the base button styles to
+   links by adding the `.btn` class.  Variants can be added via modifier
+   classes (e.g. .primary, .secondary). */
+a.btn,
+button.btn {
+  display: inline-block;
+  text-align: center;
+  border-radius: 8px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+a.btn.primary,
+button.btn.primary {
+  background-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.5);
+}
+a.btn.primary:hover,
+button.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+a.btn.secondary,
+button.btn.secondary {
+  background-color: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+a.btn.secondary:hover,
+button.btn.secondary:hover {
+  background-color: rgba(255,255,255,0.05);
+}
+
+/* ==========================================================================
+   Authentication Pages (Login & Signup)
+   ========================================================================== */
+/* Shared wrapper for login and signup forms. */
+.auth-box {
+  max-width: 450px;
+  width: 90%;
+  background: var(--panel);
+  padding: 3rem;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.auth-box h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.auth-box p {
+  color: var(--muted);
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  text-align: center;
+}
+.input-group {
+  margin-bottom: 1.5rem;
+}
+.input-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.auth-input {
+  width: 100%;
+  background: var(--bg-main);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.auth-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(59,130,246,0.1);
+}
+.forgot-pass {
+  display: block;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+.forgot-pass:hover {
+  text-decoration: underline;
+}
+.btn-auth {
+  width: 100%;
+  padding: 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  display: block;
+  text-align: center;
+}
+.btn-auth:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+}
+.auth-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.auth-footer a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Signup specific containers */
+.auth-container {
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  background: var(--panel);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.auth-form-side {
+  flex: 1;
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+}
+.auth-marketing-side {
+  flex: 1;
+  background: linear-gradient(135deg, var(--bg-main) 0%, #0a1429 100%);
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  color: var(--text);
+}
+.auth-marketing-side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, transparent 70%);
+}
+.trust-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+.trust-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.trust-title span {
+  color: var(--success);
+  font-size: 1.2rem;
+}
+.trust-desc {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 850px) {
+  .auth-marketing-side {
+    display: none;
+  }
+  .auth-form-side {
+    padding: 3rem 2rem;
+  }
+  body.auth-body {
+    padding: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Settings Page
+   ========================================================================== */
+/* Navigation for dashboard/settings pages */
+.dash-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Page container */
+.settings-container {
+  max-width: 800px;
+  margin: 3rem auto;
+  padding: 0 2rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+.page-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+.config-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+.panel-title {
+  font-size: 1.2rem;
   font-weight: 700;
-  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+}
+.config-panel .input-group {
+  margin-bottom: 1.5rem;
+}
+.config-panel label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.text-input,
+.config-input {
+  width: 100%;
+  background: var(--bg-main);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+}
+.text-input:focus,
+.config-input:focus {
+  border-color: var(--accent);
+}
+.info-tip {
+  position: relative;
+  display: inline-block;
+  margin-left: 6px;
+  cursor: help;
+  font-size: 0.75rem;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.info-tip:hover {
+  color: var(--accent);
+}
+.info-tip .tip-text {
+  visibility: hidden;
+  width: 220px;
+  background-color: var(--bg-main);
+  color: var(--text);
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 10;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -110px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.info-tip:hover .tip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
-#run-scan-btn:hover {
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
-  transform: translateY(-1px);
+.mode-toggle {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
-
-/* =========================================
-   MOBILE RESPONSIVENESS (Screens under 900px)
-   ========================================= */
-@media (max-width: 900px) {
-    
-    /* 1. FIX THE HEADER & METRICS */
-    /* Forces the top nav and the stat boxes to wrap instead of flowing off-screen */
-    .header-container, .top-nav {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 10px;
-    }
-
-    /* Create a 2x2 grid for the metrics so they fit nicely on a phone screen */
-    .metrics-row, .top-metrics-container {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr; /* Two boxes per row */
-        gap: 10px;
-        width: 100%;
-        margin-top: 15px;
-    }
-
-    /* 2. FIX THE SQUISHED CHART & CONTROLS */
-    /* Forces the control panel and the chart to stack on top of each other */
-    .main-content-row, .dashboard-body {
-        display: flex !important;
-        flex-direction: column !important;
-        width: 100%;
-        gap: 20px;
-    }
-
-    /* Ensure both panels take up the full width of the phone */
-    .control-panel, .chart-panel {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box;
-    }
-
-    /* 3. GIVE THE CHART ROOM TO BREATHE */
-    /* Ensure the TradingView widget gets enough height now that it has full width */
-    #chart-container {
-        height: 400px !important;
-        min-height: 400px;
-        width: 100% !important;
-    }
+.mode-label {
+  flex: 1;
+  text-align: center;
+  background: var(--bg-main);
+  border: 1px solid var(--line);
+  padding: 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
 }
-
-/* For very small phones (like iPhone SE) */
-@media (max-width: 480px) {
-    .metrics-row, .top-metrics-container {
-        grid-template-columns: 1fr; /* Stack metrics 1-by-1 if screen is super thin */
-    }
+.mode-label input {
+  display: none;
+}
+#label-paper:has(input:checked) {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success);
+  color: var(--success);
+}
+#label-live:has(input:checked) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.status-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.status-connected {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+.status-disconnected {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: bold;
+  display: inline-block;
+}
+/* Toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-input);
+  transition: .4s;
+  border-radius: 34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--accent);
+}
+input:checked + .slider:before {
+  transform: translateX(20px);
 }
