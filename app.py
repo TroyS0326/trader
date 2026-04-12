@@ -340,30 +340,39 @@ def api_runtime_health():
 
 @app.route('/api/run-scan', methods=['POST'])
 @login_required
-def run_scan_bridge():
-    data = request.get_json(silent=True) or {}
-    strategy = data.get('strategy', 'momentum')
-
+def run_scan_api():
     try:
-        scan_result = scanner_module.run_scan()
-        best_pick = scan_result.get('best_pick') or {}
-        real_target_ticker = best_pick.get('symbol') or 'SPY'
+        # 1. Run your ACTUAL Python scanner from scanner.py
+        result = run_scan()
+
+        # 2. Extract the winning stock from the scanner's results
+        best_pick = result.get('best_pick', {})
+        real_target_ticker = best_pick.get('symbol', 'SPY')
+        score = best_pick.get('score_total', 'N/A')
+
+        # 3. Build live logs based on real data to send back to the dashboard
         real_logs = [
-            {'msg': 'Executing Real Python Backend...', 'color': 'var(--text-muted)'},
-            {'msg': f'Loading Strategy Profile: {str(strategy).upper()}', 'color': 'var(--text-muted)'},
-            {'msg': 'Xean-Core AI analysis complete.', 'color': 'var(--success)'},
-            {'msg': f'Real Target Acquired: {real_target_ticker}', 'color': 'var(--accent-blue)'},
+            {'msg': 'Running full market analysis via scanner.py...', 'color': 'var(--text-muted)'},
+            {'msg': f'AI Engine found top setup. Score: {score}/100', 'color': 'var(--success)'},
+            {'msg': f'Real Target Acquired: {real_target_ticker}', 'color': 'var(--accent-blue)'}
         ]
+
+        # Save the scan to your database history (optional but recommended)
+        from db import insert_scan
+        insert_scan(result)
+
         return jsonify({
             'status': 'success',
             'target_ticker': real_target_ticker,
-            'logs': real_logs,
+            'logs': real_logs
         })
+
     except Exception as e:
+        # If your bot crashes (e.g. no stocks found), show it on the dashboard
         return jsonify({
             'status': 'error',
-            'target_ticker': None,
-            'logs': [{'msg': f'SYSTEM ERROR: {str(e)}', 'color': 'var(--danger)'}],
+            'target_ticker': 'SPY',  # Default to SPY if it crashes so the chart doesn't break
+            'logs': [{'msg': f'BOT ERROR: {str(e)}', 'color': 'var(--danger)'}]
         }), 500
 
 

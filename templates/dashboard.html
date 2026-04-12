@@ -183,7 +183,7 @@
                 // 4. Show the chart of the stock the bot found
                 if (data.target_ticker) {
                     tickerHeader.innerText = data.target_ticker;
-                    loadChart("NASDAQ:" + data.target_ticker);
+                    loadChart(data.target_ticker);
                 }
 
             } catch (error) {
