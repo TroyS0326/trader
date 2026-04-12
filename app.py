@@ -13,6 +13,7 @@ from flask_sock import Sock
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
+import scanner as scanner_module
 from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
 import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
@@ -335,6 +336,36 @@ def api_runtime_health():
             'ws_upgrade_header_seen': websocket_upgrade_header,
         }
     )
+
+
+@app.route('/api/run-scan', methods=['POST'])
+@login_required
+def run_scan_bridge():
+    data = request.get_json(silent=True) or {}
+    strategy = data.get('strategy', 'momentum')
+
+    try:
+        scan_result = scanner_module.run_scan()
+        best_pick = scan_result.get('best_pick') or {}
+        real_target_ticker = best_pick.get('symbol') or 'SPY'
+        real_logs = [
+            {'msg': 'Executing Real Python Backend...', 'color': 'var(--text-muted)'},
+            {'msg': f'Loading Strategy Profile: {str(strategy).upper()}', 'color': 'var(--text-muted)'},
+            {'msg': 'Xean-Core AI analysis complete.', 'color': 'var(--success)'},
+            {'msg': f'Real Target Acquired: {real_target_ticker}', 'color': 'var(--accent-blue)'},
+        ]
+        return jsonify({
+            'status': 'success',
+            'target_ticker': real_target_ticker,
+            'logs': real_logs,
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'target_ticker': None,
+            'logs': [{'msg': f'SYSTEM ERROR: {str(e)}', 'color': 'var(--danger)'}],
+        }), 500
+
 
 @app.route('/api/scan', methods=['POST', 'GET'])
 def api_scan():

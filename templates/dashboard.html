@@ -144,37 +144,56 @@
     </div>
 
     <script>
-        function startScanner() {
+        async function startScanner() {
             const btn = document.getElementById('run-scan-btn');
             const terminal = document.getElementById('terminal-log');
             const tickerHeader = document.getElementById('target-ticker');
-            
+            const strategy = document.getElementById('strategy-selector').value;
+
+            // 1. Lock the UI and show loading state
             btn.innerText = "SCANNING MARKET...";
             btn.style.background = "#f59e0b"; // Warning orange
             btn.style.boxShadow = "0 4px 15px rgba(245, 158, 11, 0.5)";
             btn.disabled = true;
 
-            terminal.innerHTML += `<div><span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-alert">INITIATING XEAN-CORE SCAN...</span></div>`;
+            terminal.innerHTML += `<div><span class="log-time">[${new Date().toLocaleTimeString()}]</span> <span class="log-alert">INITIATING REAL-TIME XEAN-CORE SCAN...</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
 
-            // Simulated Scan Sequence (To show the user the "Magic")
-            setTimeout(() => addLog("Fetching pre-market volume leaders...", "var(--text-muted)"), 1000);
-            setTimeout(() => addLog("Analyzing 4,203 tickers against Macro-Breadth...", "var(--text-muted)"), 2500);
-            setTimeout(() => addLog("Rejecting TSLA: $TICK divergence detected.", "var(--danger)"), 4000);
-            setTimeout(() => addLog("Rejecting AAPL: Sentiment score below threshold.", "var(--danger)"), 5000);
-            setTimeout(() => addLog("Target Identified: NVDA. Volume +214%, Sentiment Bullish.", "var(--accent-blue)"), 7000);
-            
-            setTimeout(() => {
-                addLog("Executing DRA Sizing... Locked. Sending order to Alpaca.", "var(--success)");
+            try {
+                // 2. Call your actual Python Backend (app.py -> /api/run-scan)
+                const response = await fetch('/api/run-scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ strategy: strategy })
+                });
+
+                const data = await response.json();
+
+                // 3. Print the real Python logs to the terminal
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(log => {
+                        addLog(log.msg, log.color);
+                    });
+                }
+
+                // 4. Update the Chart with the REAL ticker your Python bot found
+                if (data.target_ticker) {
+                    tickerHeader.innerText = data.target_ticker + " (Live)";
+                    loadChart("NASDAQ:" + data.target_ticker); // Note: You may need to format exchange based on stock
+                }
+
+            } catch (error) {
+                addLog("CONNECTION FAILED: Could not reach Xean-Core Backend.", "var(--danger)");
+            } finally {
+                // 5. Unlock the button when the Python script finishes
+                addLog("Scan Cycle Complete.", "var(--text-muted)");
                 btn.innerText = "RUN MORNING SCAN";
                 btn.style.background = "var(--accent-blue)";
                 btn.style.boxShadow = "0 4px 15px var(--accent-glow)";
                 btn.disabled = false;
-                
-                // Update the Header and load the new TradingView Chart
-                tickerHeader.innerText = "NVDA (Long)";
-                loadChart("NASDAQ:NVDA");
-            }, 8500);
+            }
         }
 
         function addLog(message, color) {
