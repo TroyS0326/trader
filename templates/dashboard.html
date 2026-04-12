@@ -63,21 +63,36 @@
 <body>
 
     <div class="dash-nav">
-        <div class="logo">Xean<span>VI</span></div>
+        <div style="display: flex; align-items: center; gap: 2.5rem;">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            
+            <div style="display: flex; gap: 1.5rem; font-size: 0.95rem; font-weight: 600;">
+                <a href="/" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">Home</a>
+                <a href="/features" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">How it Works</a>
+            </div>
+        </div>
         
-        <div class="top-metrics">
-            <div class="metric-mini">
-                <span>Account Status</span>
-                <strong style="color: var(--success);">Paper Trading (Safe)</strong>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <div class="top-metrics">
+                <div class="metric-mini">
+                    <span>Account Status</span>
+                    <strong style="color: var(--success);">Paper Trading (Safe)</strong>
+                </div>
+                <div class="metric-mini">
+                    <span>Available Cash</span>
+                    <strong>$10,000.00</strong>
+                </div>
+                <div class="metric-mini">
+                    <span>Today's Profit</span>
+                    <strong style="color: var(--success);">+$0.00</strong>
+                </div>
             </div>
-            <div class="metric-mini">
-                <span>Available Cash</span>
-                <strong>$10,000.00</strong>
-            </div>
-            <div class="metric-mini">
-                <span>Today's Profit</span>
-                <strong style="color: var(--success);">+$0.00</strong>
-            </div>
+            
+            <a href="/logout" style="padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem; font-weight: bold; transition: all 0.2s; background: var(--bg-primary);" 
+               onmouseover="this.style.color='var(--danger)'; this.style.borderColor='var(--danger)';" 
+               onmouseout="this.style.color='var(--text-muted)'; this.style.borderColor='var(--border)';">
+               Log Out
+            </a>
         </div>
     </div>
 
