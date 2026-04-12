@@ -125,7 +125,7 @@ def cancel_order(order_id: str) -> None:
 def get_order(order_id: str) -> Dict[str, Any]:
     resp = _request_with_retry(
         'GET',
-        f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}',
+        f'{ALPACA_PAPER_BASE}/orders/{order_id}',
         params={'nested': 'true'},
     )
     if resp.status_code >= 400:
