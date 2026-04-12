@@ -23,8 +23,7 @@
 
         .auth-container { display: flex; width: 1000px; max-width: 95%; background: var(--bg-secondary); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
 
-        /* Left Side: Form */
-        .auth-form-side { flex: 1; padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+        .auth-form-side { flex: 1; padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
         .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 2rem; }
         .logo span { color: var(--accent-blue); }
 
@@ -43,7 +42,6 @@
         .auth-footer a { color: var(--accent-blue); font-weight: 600; }
         .auth-footer a:hover { text-decoration: underline; }
 
-        /* Right Side: Marketing/Trust */
         .auth-marketing-side { flex: 1; background: linear-gradient(135deg, var(--bg-primary) 0%, #0a1429 100%); padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; position: relative; }
         .auth-marketing-side::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, transparent 70%); }
 
@@ -68,10 +66,18 @@
             <h2>Start Trading on Autopilot</h2>
             <p>Create your account and get instant access to the AI scanner and automated execution engine.</p>
 
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <div style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center; font-weight: bold;">
+                  {{ messages[0] }}
+                </div>
+              {% endif %}
+            {% endwith %}
+
             <form action="/signup" method="POST">
                 <div class="input-group">
                     <label>Full Name</label>
-                    <input type="text" name="name" class="auth-input" placeholder="John Doe" required>
+                    <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
                 </div>
                 <div class="input-group">
                     <label>Email Address</label>
@@ -80,6 +86,11 @@
                 <div class="input-group">
                     <label>Password</label>
                     <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                </div>
+
+                <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" name="tos_agreement" id="tos" value="yes" required style="width: 18px; height: 18px;">
+                    <label for="tos" style="margin-bottom: 0; text-transform: none; letter-spacing: normal;">I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Use</a></label>
                 </div>
 
                 <button type="submit" class="btn-auth">Create Account</button>
