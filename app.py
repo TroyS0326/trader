@@ -210,7 +210,28 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Force new users to connect their broker before seeing the scanner
+    if not current_user.alpaca_access_token:
+        flash("Welcome! Please connect your Alpaca account to continue.", "warning")
+        return redirect(url_for('settings'))
+
     return render_template('dashboard.html', current_user=current_user)
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    if request.method == 'POST':
+        # Update their bankroll and risk settings
+        current_user.bankroll = float(request.form.get('bankroll', 0.0))
+        # Note: If you want to save the Paper/Live toggle, you will need to add a
+        # 'trading_mode' column to your User model in models.py later!
+
+        db.session.commit()
+        flash('Settings saved successfully.', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('settings.html', current_user=current_user)
 
 
 @app.route('/syndicate')
