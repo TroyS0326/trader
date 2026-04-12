@@ -154,9 +154,9 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
-        # 3) Log user into Hushgifter and send them to dashboard
+        # 3) Log user in immediately and send them to broker linking flow
         login_user(new_user)
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('settings'))
 
     return render_template('signup.html')
 
