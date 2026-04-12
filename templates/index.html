@@ -1,77 +1,70 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ app_title }}</title>
+  <!-- Pull in the shared stylesheet.  All component styles and responsive
+       layouts live in static/style.css so there are no inline style blocks. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  
+  <!-- Lightweight charts for rendering intraday/daily candlestick charts -->
   <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-  
-  <style>
-    .action-box { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    .action-box.wait { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; }
-    .action-text { font-size: 1.2rem; font-weight: bold; color: #e2e8f0; }
-    .highlight-green { color: #10b981; font-weight: bold; }
-    .highlight-red { color: #ef4444; font-weight: bold; }
-    .tooltip-container { position: relative; cursor: help; border-bottom: 1px dotted #94a3b8; }
-    .tooltip-container:hover::after {
-      content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-      background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem;
-      white-space: nowrap; z-index: 10; border: 1px solid #475569; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-  </style>
 </head>
 <body>
   <div class="wrap">
+    <!-- Hero section introducing the product and scan button -->
     <header class="hero">
       <div>
         <h1>{{ app_title }}</h1>
-        <p>Your Data-Driven Co-Pilot. Scan the market, wait for the setup, and execute the math.</p>
+        <p>Your Data‑Driven Co‑Pilot. Scan the market, wait for the setup, and execute the math.</p>
       </div>
       <div class="hero-actions">
-        <button id="runBtn" style="font-size: 1.1rem; padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Run Morning Scan</button>
+        <button id="runBtn" class="primary">Run Morning Scan</button>
         <div id="statusLine" class="status">Ready. Awaiting your command.</div>
       </div>
     </header>
 
-    <div class="grid" style="grid-template-columns: 1fr 1fr;">
-        <section class="card" id="watchCard">
-          <div class="section-head">
-            <h2>The Trade Plan</h2>
-            <span id="decisionPill" class="pill skip">No scan yet</span>
-          </div>
-          <div id="actionContainer" class="action-box wait">
-              <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
-          </div>
-          <div id="watchPanel" class="watch-panel">
-            <div class="watch-line" style="font-size: 1.1rem;">💰 <strong>Shares to Buy:</strong> <span id="watchQtyLine" class="highlight-green">—</span></div>
-            <div class="watch-line" style="font-size: 1.1rem;">🛑 <strong>Hard Stop Loss:</strong> <span id="watchStopLine" class="highlight-red">—</span></div>
-            <div class="watch-line" style="font-size: 1.1rem;">🎯 <strong>Take Profit Target:</strong> <span id="watchTpLine" class="highlight-green">—</span></div>
-            <hr style="border-color: #334155; margin: 10px 0;">
-            <div class="watch-line">🔥 <strong class="tooltip-container" data-tip="The absolute maximum you will lose if the trade fails.">Max Dollar Risk:</strong> <span id="watchRiskLine" class="highlight-red">—</span></div>
-            <div class="watch-line">📈 <strong class="tooltip-container" data-tip="The high and low of the first 30 minutes of the day.">Opening Range:</strong> <span id="watchOpenLine">—</span></div>
-          </div>
-          <div id="riskBox" class="note" style="margin-top: 15px;">Risk locks: unavailable.</div>
-        </section>
-
-        <section class="card">
-          <div class="section-head">
-            <h2>The Engine Room <span style="font-size: 0.9rem; font-weight: normal; color: #94a3b8;">(Why we picked it)</span></h2>
-            <div id="bestSymbol" class="symbol-box">—</div>
-          </div>
-          <div class="mini-grid" id="scoreRows"></div>
-          <div id="bestNotes" class="note" style="margin-top: 15px;"></div>
-        </section>
+    <!-- Two‑column layout for the trade plan and engine room.  The grid
+         automatically collapses to a single column on narrow screens. -->
+    <div class="grid">
+      <section class="card" id="watchCard">
+        <div class="section-head">
+          <h2>The Trade Plan</h2>
+          <!-- The decision pill updates based on the scan state.  Colours are
+               defined via CSS classes (see style.css) -->
+          <span id="decisionPill" class="pill skip">No scan yet</span>
+        </div>
+        <div id="actionContainer" class="action-box wait">
+          <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
+        </div>
+        <div id="watchPanel" class="watch-panel">
+          <div class="watch-line">💰 <strong>Shares to Buy:</strong> <span id="watchQtyLine" class="highlight-green">—</span></div>
+          <div class="watch-line">🛑 <strong>Hard Stop Loss:</strong> <span id="watchStopLine" class="highlight-red">—</span></div>
+          <div class="watch-line">🎯 <strong>Take Profit Target:</strong> <span id="watchTpLine" class="highlight-green">—</span></div>
+          <hr>
+          <div class="watch-line">🔥 <strong class="tooltip-container" data-tip="The absolute maximum you will lose if the trade fails.">Max Dollar Risk:</strong> <span id="watchRiskLine" class="highlight-red">—</span></div>
+          <div class="watch-line">📈 <strong class="tooltip-container" data-tip="The high and low of the first 30 minutes of the day.">Opening Range:</strong> <span id="watchOpenLine">—</span></div>
+        </div>
+        <div id="riskBox" class="note mt-15">Risk locks: unavailable.</div>
+      </section>
+      <section class="card">
+        <div class="section-head">
+        <h2>The Engine Room <span class="subtitle">(Why we picked it)</span></h2>
+          <div id="bestSymbol" class="symbol-box">—</div>
+        </div>
+        <div class="mini-grid" id="scoreRows"></div>
+        <div id="bestNotes" class="note mt-15"></div>
+      </section>
     </div>
 
+    <!-- Live charts panel with intraday and daily series -->
     <section class="card charts">
       <div class="section-head">
-        <h2>Live Charts <span id="liveIndicator" style="display:none; color: #10b981; font-size: 0.8rem; margin-left: 10px;">● LIVE</span></h2>
+        <h2>Live Charts <span id="liveIndicator" class="live-indicator">● LIVE</span></h2>
       </div>
       <div class="chart-grid">
         <div>
-          <h3>1-Minute Intraday</h3>
+          <h3>1‑Minute Intraday</h3>
           <div id="intradayChart" class="chart-box"></div>
         </div>
         <div>
@@ -81,6 +74,7 @@
       </div>
     </section>
 
+    <!-- Watchlist table -->
     <section class="card">
       <div class="section-head">
         <h2>Top Market Candidates</h2>
@@ -104,7 +98,10 @@
     </section>
   </div>
 
-<script>
+  <!-- Client‑side logic for rendering scans, charts and watchlists.
+       The original script has been preserved but remains unaffected by the
+       removal of inline styles. -->
+  <script>
 const state = { scan: null, ws: null, intradayChart: null, dailyChart: null, intradaySeries: null, dailySeries: null, chartInterval: null };
 
 function money(v) {
@@ -130,7 +127,6 @@ function renderBestPick(best) {
   const scoreRows = document.getElementById('scoreRows');
   scoreRows.innerHTML = '';
   const details = best.details || {};
-  
   const metricExplanations = {
       'RVOL': 'Relative Volume. >1.5x means higher than normal trading volume today.',
       'TREND EFF': 'Trend Efficiency. Higher means it moves cleanly without chopping.',
@@ -138,7 +134,6 @@ function renderBestPick(best) {
       'SPREAD': 'The difference between the buy and sell price.',
       'HALT RISK': 'Warns if the stock is moving too fast.'
   };
-
   const metrics = [
     { label: 'RVOL', val: details.rvol ? details.rvol + 'x' : '—' },
     { label: 'TREND EFF', val: details.trend_efficiency ? details.trend_efficiency : '—' },
@@ -146,23 +141,20 @@ function renderBestPick(best) {
     { label: 'SPREAD', val: details.spread_pct ? (details.spread_pct * 100).toFixed(2) + '%' : '—' },
     { label: 'HALT RISK', val: details.halt_risk ? details.halt_risk.halt_risk.toUpperCase() : '—' }
   ];
-
   metrics.forEach(m => {
     const div = document.createElement('div');
     div.className = 'mini-card';
-    div.innerHTML = `<div class="label tooltip-container" data-tip="${metricExplanations[m.label]}">${m.label}</div><div class="value" style="font-size:1.1rem">${m.val}</div>`;
+    div.innerHTML = `<div class="label tooltip-container" data-tip="${metricExplanations[m.label]}">${m.label}</div><div class="value">${m.val}</div>`;
     scoreRows.appendChild(div);
   });
-
   const notes = [];
   const catalyst = best.details?.catalyst || {};
   if (catalyst.used_ai) notes.push(`🧠 <strong>AI Sentiment:</strong> Analyzed catalyst parameters.`);
-  
   const skips = best.details?.skip_reasons || [];
   if (skips.length > 0) {
     notes.push(`<div style="margin-top: 15px; padding: 12px; background: rgba(220, 38, 38, 0.1); border-left: 4px solid #dc2626; border-radius: 4px;"><strong style="color: #fca5a5; display: block; margin-bottom: 8px;">⚠️ Engine Safety Blocks:</strong><ul style="margin-bottom: 0; padding-left: 20px; color: #cbd5e1;">${skips.map(s => `<li>${s}</li>`).join('')}</ul></div>`);
   } else {
-      notes.push(`<div style="margin-top: 15px; color: #10b981; font-weight: bold;">✅ Edge confirmed. Waiting for price action.</div>`);
+      notes.push(`<div style="margin-top: 15px; color: var(--success); font-weight: bold;">✅ Edge confirmed. Waiting for price action.</div>`);
   }
   document.getElementById('bestNotes').innerHTML = notes.join('<br>');
   setDecisionPill(best.decision);
@@ -178,7 +170,6 @@ function renderWatchPanel(best) {
   } else {
       actionPrimary.innerHTML = `Monitor for a breakout. Do not buy yet.`;
   }
-
   document.getElementById('watchQtyLine').textContent = `${panel.max_shares} Shares`;
   document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
   document.getElementById('watchStopLine').textContent = money(panel.stop);
@@ -196,7 +187,6 @@ function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
   if (!state[chartRefName]) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
-
       const chart = LightweightCharts.createChart(container, {
         layout: { background: { color: '#0b1220' }, textColor: '#dbe4ff' },
         grid: { vertLines: { color: 'rgba(148,163,184,0.08)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
@@ -205,8 +195,6 @@ function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
         width: container.clientWidth,
         height: 330,
       });
-
-      // FIX: Use addCandlestickSeries instead of the generic addSeries
       const series = chart.addCandlestickSeries({
         upColor: '#16a34a',
         downColor: '#dc2626',
@@ -214,14 +202,11 @@ function createOrResetChart(containerId, seriesRefName, chartRefName, data) {
         wickUpColor: '#16a34a',
         wickDownColor: '#dc2626',
       });
-
       series.setData(data);
       chart.timeScale().fitContent();
-
       state[chartRefName] = chart;
       state[seriesRefName] = series;
   } else {
-      // Smoothly update existing series
       state[seriesRefName].setData(data);
   }
 }
@@ -268,27 +253,20 @@ async function runScan() {
   runBtn.disabled = true;
   runBtn.textContent = 'Scanning Market...';
   setStatus('Downloading market data, scoring AI sentiment...');
-  
   try {
     const res = await fetch('/api/scan', { method: 'POST' });
     const payload = await res.json();
     if (!payload.ok) throw new Error(payload.error);
-    
     state.scan = payload.data;
     const best = payload.data.best_pick;
-    
     renderBestPick(best);
     renderWatchPanel(best);
     renderCharts(payload.data.chart_pack);
     renderWatchlist(payload.data.watchlist || []);
     renderRiskControls(payload.data.risk_controls || {});
     setStatus(`Scan complete. Top pick identified: ${best.symbol}.`);
-    
-    // Connect the WebSocket for live price action in the Watchlist table
     connectWatchlistSocket();
     document.getElementById('liveIndicator').style.display = 'inline';
-
-    // FIX 3: Start the background pulse to update the 1-minute chart every 10 seconds
     if (state.chartInterval) clearInterval(state.chartInterval);
     state.chartInterval = setInterval(async () => {
         if (!state.scan?.best_pick?.symbol) return;
@@ -298,9 +276,8 @@ async function runScan() {
             if (chartData.ok) {
                 renderCharts(chartData.data);
             }
-        } catch (err) { console.error("Live chart update failed quietly in background."); }
+        } catch (err) { console.error('Live chart update failed quietly in background.'); }
     }, 10000);
-
   } catch (err) {
     setStatus(`Error: ${err.message}`);
   } finally {
@@ -308,12 +285,11 @@ async function runScan() {
     runBtn.textContent = 'Run Morning Scan';
   }
 }
-
 document.getElementById('runBtn').addEventListener('click', runScan);
 window.addEventListener('resize', () => {
   if (state.intradayChart) state.intradayChart.applyOptions({ width: document.getElementById('intradayChart').clientWidth });
   if (state.dailyChart) state.dailyChart.applyOptions({ width: document.getElementById('dailyChart').clientWidth });
 });
-</script>
+  </script>
 </body>
 </html>
