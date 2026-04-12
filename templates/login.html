@@ -1,57 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login - XeanVI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    /* Adding specific styles for forms to match your dark theme */
-    .auth-wrap { max-width: 400px; margin: 100px auto; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    input[type="email"], input[type="password"], input[type="text"], input[type="number"] {
-      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--panel-2); color: var(--text); font-size: 1rem;
-    }
-    input:focus { outline: none; border-color: var(--accent); }
-    .btn-block { width: 100%; display: block; text-align: center; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In | XeanVI</title>
+    <style>
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Subtle background glow */
+        body::before { content: ''; position: absolute; top: -20%; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 60%); z-index: -1; }
+
+        .logo { font-size: 2rem; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 2rem; text-align: center; }
+        .logo span { color: var(--accent-blue); }
+
+        .auth-box { width: 450px; max-width: 90%; background: var(--bg-secondary); padding: 3rem; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+        .auth-box h2 { font-size: 1.8rem; margin-bottom: 0.5rem; text-align: center; }
+        .auth-box p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; text-align: center; }
+
+        .input-group { margin-bottom: 1.5rem; }
+        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .auth-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        .auth-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 10px rgba(59,130,246,0.1); }
+
+        .forgot-pass { display: block; text-align: right; font-size: 0.85rem; color: var(--accent-blue); margin-top: 0.5rem; font-weight: 600; }
+        .forgot-pass:hover { text-decoration: underline; }
+
+        .btn-auth { width: 100%; padding: 1rem; background: var(--accent-blue); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; margin-top: 1rem; box-shadow: 0 4px 15px var(--accent-glow); }
+        .btn-auth:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+
+        .auth-footer { margin-top: 2rem; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+        .auth-footer a { color: var(--accent-blue); font-weight: 600; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* Flash Messages (for wrong passwords) */
+        .flash-message { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; text-align: center; font-weight: 600; }
+
+    </style>
 </head>
 <body>
-  <div class="wrap auth-wrap">
-    <section class="card">
-      <div class="section-head" style="justify-content: center; margin-bottom: 24px;">
-        <h2>XeanVI Access</h2>
-      </div>
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="status" style="border-color: #ef4444; color: #fecaca; background: rgba(127,29,29,0.2); margin-bottom: 20px;">
-              {{ message }}
+    <a href="/" class="logo">Xean<span>VI</span></a>
+
+    <div class="auth-box">
+        <h2>Welcome Back</h2>
+        <p>Log in to access your Command Center.</p>
+
+        <form action="/login" method="POST">
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" name="email" class="auth-input" placeholder="you@example.com" required>
             </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
 
-      <form action="/login" method="POST">
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="trader@example.com">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit" class="btn-block" style="margin-bottom: 12px;">Secure Login</button>
-      </form>
+            <div class="input-group" style="margin-bottom: 1rem;">
+                <label>Password</label>
+                <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                <a href="#" class="forgot-pass">Forgot Password?</a>
+            </div>
 
-      <div style="text-align: center; margin-top: 20px;">
-        <span class="muted">Need an account?</span>
-        <a href="/signup" style="color: var(--accent); text-decoration: none; font-weight: bold;">Sign Up Here</a>
-      </div>
-    </section>
-  </div>
+            <button type="submit" class="btn-auth">Access Dashboard</button>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account? <a href="/signup">Sign Up Free</a>
+        </div>
+    </div>
+
 </body>
 </html>
