@@ -4,78 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account | XeanVI</title>
-    <style>
-        :root {
-            --bg-primary: #060b14;
-            --bg-secondary: #101826;
-            --accent-blue: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --success: #10b981;
-            --text-main: #eef4ff;
-            --text-muted: #94a3b8;
-            --border: rgba(148, 163, 184, 0.15);
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        a { text-decoration: none; color: inherit; }
-
-        .auth-container { display: flex; width: 1000px; max-width: 95%; background: var(--bg-secondary); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-
-        .auth-form-side { flex: 1; padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
-        .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 2rem; }
-        .logo span { color: var(--accent-blue); }
-
-        .auth-form-side h2 { font-size: 2rem; margin-bottom: 0.5rem; }
-        .auth-form-side p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; }
-
-        .input-group { margin-bottom: 1.25rem; }
-        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .auth-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
-        .auth-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 10px rgba(59,130,246,0.1); }
-
-        .btn-auth { width: 100%; padding: 1rem; background: var(--accent-blue); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; margin-top: 1rem; box-shadow: 0 4px 15px var(--accent-glow); }
-        .btn-auth:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-
-        .auth-footer { margin-top: 2rem; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
-        .auth-footer a { color: var(--accent-blue); font-weight: 600; }
-        .auth-footer a:hover { text-decoration: underline; }
-
-        .auth-marketing-side { flex: 1; background: linear-gradient(135deg, var(--bg-primary) 0%, #0a1429 100%); padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; position: relative; }
-        .auth-marketing-side::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, transparent 70%); }
-
-        .trust-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; position: relative; z-index: 10; backdrop-filter: blur(10px); }
-        .trust-title { display: flex; align-items: center; gap: 10px; font-weight: bold; margin-bottom: 0.5rem; }
-        .trust-title span { color: var(--success); font-size: 1.2rem; }
-        .trust-desc { color: var(--text-muted); font-size: 0.9rem; }
-
-        @media (max-width: 850px) {
-            .auth-marketing-side { display: none; }
-            .auth-form-side { padding: 3rem 2rem; }
-            body { padding: 1rem; }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="auth-body">
 
     <div class="auth-container">
-
+        <!-- Form side -->
         <div class="auth-form-side">
             <a href="/" class="logo">Xean<span>VI</span></a>
             <h2>Start Trading on Autopilot</h2>
             <p>Create your account and get instant access to the AI scanner and automated execution engine.</p>
 
             {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                <div style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center; font-weight: bold;">
-                  {{ messages[0] }}
-                </div>
-              {% endif %}
+                {% if messages %}
+                    <div class="flash-error">{{ messages[0] }}</div>
+                {% endif %}
             {% endwith %}
 
             <form action="/signup" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="input-group">
                     <label>Full Name</label>
                     <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
@@ -88,12 +35,10 @@
                     <label>Password</label>
                     <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
                 </div>
-
                 <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" name="tos_agreement" id="tos" value="yes" required style="width: 18px; height: 18px;">
-                    <label for="tos" style="margin-bottom: 0; text-transform: none; letter-spacing: normal;">I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Use</a></label>
+                    <label for="tos" style="margin-bottom: 0; text-transform: none; letter-spacing: normal;">I agree to the <a href="/terms" style="color: var(--accent); text-decoration: underline;">Terms of Use</a></label>
                 </div>
-
                 <button type="submit" class="btn-auth">Create Account</button>
             </form>
 
@@ -102,25 +47,22 @@
             </div>
         </div>
 
+        <!-- Marketing side -->
         <div class="auth-marketing-side">
-            <h3 style="font-size: 1.8rem; margin-bottom: 2rem; z-index: 10; position: relative;">The smarter way to trade.</h3>
-
+            <h3 style="font-size: 1.8rem; margin-bottom: 2rem; position: relative; z-index: 10;">The smarter way to trade.</h3>
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> 1-Click Setup</div>
-                <div class="trust-desc">No coding required. Just pick a trading style (Safe, Standard, or Crypto) and let the bot take over.</div>
+                <div class="trust-title"><span>✓</span> 1‑Click Setup</div>
+                <div class="trust-desc">No coding required. Just pick a trading style (Safe, Standard or Crypto) and let the bot take over.</div>
             </div>
-
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> Built-in Crash Protection</div>
+                <div class="trust-title"><span>✓</span> Built‑in Crash Protection</div>
                 <div class="trust-desc">The AI actively monitors the overall stock market. If things look risky, it hits the brakes to protect your cash.</div>
             </div>
-
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> Zero-Risk Practice Mode</div>
+                <div class="trust-title"><span>✓</span> Zero‑Risk Practice Mode</div>
                 <div class="trust-desc">Use our simulated $10,000 Sandbox to watch the bot make money before you risk a single dime of your own.</div>
             </div>
         </div>
-
     </div>
 
 </body>
