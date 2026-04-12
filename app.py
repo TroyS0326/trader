@@ -169,12 +169,15 @@ def login():
         password = request.form.get('password')
 
         user = User.query.filter_by(email=email).first()
-        if not user or not check_password_hash(user.password_hash, password):
-            flash('Invalid email or password', 'error')
-            return redirect(url_for('login'))
 
-        login_user(user)
-        return redirect(url_for('dashboard'))
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+
+            # THE FIX: Send them to the Command Center
+            return redirect(url_for('dashboard'))
+
+        flash('Invalid email or password', 'error')
+        return redirect(url_for('login'))
 
     return render_template('login.html')
 
