@@ -185,3 +185,59 @@ label, .metric-mini span {
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
   transform: translateY(-1px);
 }
+
+/* =========================================
+   MOBILE RESPONSIVENESS (Screens under 900px)
+   ========================================= */
+@media (max-width: 900px) {
+    
+    /* 1. FIX THE HEADER & METRICS */
+    /* Forces the top nav and the stat boxes to wrap instead of flowing off-screen */
+    .header-container, .top-nav {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+    }
+
+    /* Create a 2x2 grid for the metrics so they fit nicely on a phone screen */
+    .metrics-row, .top-metrics-container {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr; /* Two boxes per row */
+        gap: 10px;
+        width: 100%;
+        margin-top: 15px;
+    }
+
+    /* 2. FIX THE SQUISHED CHART & CONTROLS */
+    /* Forces the control panel and the chart to stack on top of each other */
+    .main-content-row, .dashboard-body {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100%;
+        gap: 20px;
+    }
+
+    /* Ensure both panels take up the full width of the phone */
+    .control-panel, .chart-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 3. GIVE THE CHART ROOM TO BREATHE */
+    /* Ensure the TradingView widget gets enough height now that it has full width */
+    #chart-container {
+        height: 400px !important;
+        min-height: 400px;
+        width: 100% !important;
+    }
+}
+
+/* For very small phones (like iPhone SE) */
+@media (max-width: 480px) {
+    .metrics-row, .top-metrics-container {
+        grid-template-columns: 1fr; /* Stack metrics 1-by-1 if screen is super thin */
+    }
+}
