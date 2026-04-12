@@ -132,6 +132,7 @@
             padding-bottom: 2rem; /* Extra breathing room at the very bottom of the page */
         }
         .data-card { }
+        .full-width { grid-column: 1 / -1; }
         .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 
         /* Trade Plan Styles */
@@ -228,15 +229,6 @@
                 <div class="step-desc">Click below to let the AI scan the market.</div>
                 <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Run Morning Scan</button>
 
-                <div class="terminal-container">
-                    <div class="terminal-header">
-                        <span>Live AI Activity Log</span>
-                        <span id="bot-status">Waiting...</span>
-                    </div>
-                    <div class="terminal-output" id="terminal-log">
-                        <div><span class="log-time">Now</span> Ready to go. Waiting for command.</div>
-                    </div>
-                </div>
             </div>
 
             <div class="chart-panel">
@@ -252,7 +244,6 @@
         </div>
 
         <div class="bottom-row" id="data-panels" style="display: none;">
-            
             <div class="data-card">
                 <div class="card-header">
                     The Trade Plan
@@ -270,17 +261,20 @@
                 </div>
             </div>
 
-            <div class="data-card">
-                <div class="card-header">AI Analysis <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Why we picked it)</span></div>
+            {% if current_user.show_news %}
+            <div class="data-card" id="news-panel">
+                <div class="card-header">Market Sentiment <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Why we picked it)</span></div>
                 <div class="mini-grid" id="scoreRows">
                     </div>
                 <div id="bestNotes" style="margin-top: 15px; font-size: 0.9rem; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
                     Waiting for data...
                 </div>
             </div>
+            {% endif %}
 
-            <div class="data-card">
-                <div class="card-header">Top Candidates Watchlist</div>
+            {% if current_user.show_watchlist %}
+            <div class="data-card" id="watchlist-panel">
+                <div class="card-header">Watchlist</div>
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -297,6 +291,16 @@
                     </table>
                 </div>
             </div>
+            {% endif %}
+
+            {% if current_user.show_terminal %}
+            <div class="data-card full-width" id="terminal-panel">
+                <div class="card-header">Live Terminal <span id="bot-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">Waiting...</span></div>
+                <div class="terminal-output" id="log-container">
+                    <div><span class="log-time">Now</span> Ready to go. Waiting for command.</div>
+                </div>
+            </div>
+            {% endif %}
 
         </div>
     </div>
@@ -314,7 +318,8 @@
 
         // Helper: Add log to terminal
         function addLog(message, color) {
-            const terminal = document.getElementById('terminal-log');
+            const terminal = document.getElementById('log-container');
+            if (!terminal) return;
             const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             terminal.innerHTML += `<div style="margin-bottom: 5px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;

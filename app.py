@@ -122,6 +122,25 @@ def ensure_user_refresh_interval_column() -> None:
         conn.close()
 
 
+def ensure_user_layout_columns() -> None:
+    """Backfill schema for dashboard layout toggles on older SQLite DBs."""
+    conn = sqlite3.connect(config.DB_PATH)
+    try:
+        cursor = conn.execute("PRAGMA table_info(user)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        additions = {
+            'show_news': "ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1",
+            'show_watchlist': "ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1",
+            'show_terminal': "ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1",
+        }
+        for column_name, ddl in additions.items():
+            if column_name not in existing_columns:
+                conn.execute(ddl)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
     if order.get('strategy') == 'target1_then_trailing_runner':
@@ -290,6 +309,9 @@ def settings():
         current_user.refresh_interval = (
             refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
         )
+        current_user.show_news = 'show_news' in request.form
+        current_user.show_watchlist = 'show_watchlist' in request.form
+        current_user.show_terminal = 'show_terminal' in request.form
         # Note: If you want to save the Paper/Live toggle, you will need to add a
         # 'trading_mode' column to your User model in models.py later!
 
@@ -698,6 +720,7 @@ def ws_watchlist(ws):
 with app.app_context():
     db.create_all()
     ensure_user_refresh_interval_column()
+    ensure_user_layout_columns()
 
 
 if __name__ == '__main__':
