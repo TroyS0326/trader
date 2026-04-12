@@ -106,6 +106,7 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50), nullable=False, default='free')
     bankroll = db.Column(db.Float, nullable=False, default=0.0)
     risk_pct = db.Column(db.Float, nullable=False, default=1.0)
+    refresh_interval = db.Column(db.Integer, nullable=False, default=30000)
     _alpaca_access_token = db.Column('alpaca_access_token', db.Text, nullable=True)
     alpaca_account_id = db.Column(db.String(100), nullable=True)
 
