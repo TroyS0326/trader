@@ -207,6 +207,11 @@ def dashboard():
     return render_template('dashboard.html', current_user=current_user)
 
 
+@app.route('/syndicate')
+@login_required
+def syndicate():
+    return render_template('leaderboard.html')
+
 @app.route('/scanner')
 @login_required
 def scanner():
