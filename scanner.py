@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Tuple
 from zoneinfo import ZoneInfo
 
 import requests
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from decision import regime_trade_decision
 from filters import passes_hard_gatekeeper
@@ -99,9 +100,36 @@ def _alpaca_headers() -> Dict[str, str]:
 
 
 def _get_json(url: str, params: Dict[str, Any] | None = None, headers: Dict[str, str] | None = None) -> Any:
-    resp = requests.get(url, params=params or {}, headers=headers or {}, timeout=TIMEOUT)
-    resp.raise_for_status()
+    resp = _get_json_with_retry(url, params=params, headers=headers)
+    if resp.status_code >= 400:
+        resp.raise_for_status()
     return resp.json()
+
+
+def _is_retryable_request_error(exc: BaseException) -> bool:
+    if isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+        return True
+    if isinstance(exc, requests.exceptions.HTTPError):
+        response = getattr(exc, 'response', None)
+        return bool(response is not None and response.status_code >= 500)
+    return False
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=10),
+    retry=retry_if_exception(_is_retryable_request_error),
+    reraise=True,
+)
+def _get_json_with_retry(
+    url: str,
+    params: Dict[str, Any] | None = None,
+    headers: Dict[str, str] | None = None,
+) -> requests.Response:
+    resp = requests.get(url, params=params or {}, headers=headers or {}, timeout=TIMEOUT)
+    if resp.status_code >= 500:
+        resp.raise_for_status()
+    return resp
 
 
 def bar_dt_et(bar: Dict[str, Any]) -> datetime | None:

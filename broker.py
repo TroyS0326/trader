@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict, List
 
 import requests
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from config import (
     ALPACA_API_KEY,
@@ -19,6 +20,15 @@ TIMEOUT = 20
 
 class BrokerError(Exception):
     pass
+
+
+def _is_retryable_request_error(exc: BaseException) -> bool:
+    if isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+        return True
+    if isinstance(exc, requests.exceptions.HTTPError):
+        response = getattr(exc, 'response', None)
+        return bool(response is not None and response.status_code >= 500)
+    return False
 
 
 def _headers(token: str | None = None) -> Dict[str, str]:
@@ -44,24 +54,49 @@ def _headers(token: str | None = None) -> Dict[str, str]:
 
 
 def _get_json(url: str, params: Dict[str, Any] | None = None) -> Any:
-    resp = requests.get(url, params=params or {}, headers=_headers(), timeout=TIMEOUT)
+    resp = _request_with_retry('GET', url, params=params)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
 
 
 def _post_json(url: str, payload: Dict[str, Any]) -> Any:
-    resp = requests.post(url, json=payload, headers=_headers(), timeout=TIMEOUT)
+    resp = _request_with_retry('POST', url, payload=payload)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
 
 
 def _patch_json(url: str, payload: Dict[str, Any]) -> Any:
-    resp = requests.patch(url, json=payload, headers=_headers(), timeout=TIMEOUT)
+    resp = _request_with_retry('PATCH', url, payload=payload)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=10),
+    retry=retry_if_exception(_is_retryable_request_error),
+    reraise=True,
+)
+def _request_with_retry(
+    method: str,
+    url: str,
+    params: Dict[str, Any] | None = None,
+    payload: Dict[str, Any] | None = None,
+) -> requests.Response:
+    resp = requests.request(
+        method=method,
+        url=url,
+        params=params or {},
+        json=payload,
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+    if resp.status_code >= 500:
+        resp.raise_for_status()
+    return resp
 
 
 def get_latest_quote(symbol: str) -> Dict[str, Any]:
@@ -82,17 +117,16 @@ def replace_order(order_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def cancel_order(order_id: str) -> None:
-    resp = requests.delete(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', headers=_headers(), timeout=TIMEOUT)
+    resp = _request_with_retry('DELETE', f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}')
     if resp.status_code not in {200, 204, 404, 422}:
         raise BrokerError(resp.text)
 
 
 def get_order(order_id: str) -> Dict[str, Any]:
-    resp = requests.get(
+    resp = _request_with_retry(
+        'GET',
         f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}',
         params={'nested': 'true'},
-        headers=_headers(),
-        timeout=TIMEOUT,
     )
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
