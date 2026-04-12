@@ -9,23 +9,28 @@
 
     <style>
         :root {
-            --bg-primary: #060b14;
-            --bg-secondary: #101826;
-            --bg-panel: #1e293b;
-            --accent-blue: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #eef4ff;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --border: rgba(148, 163, 184, 0.15);
+            --accent-blue: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border-color: #334155;
+
+            /* Backward-compatible aliases for existing selectors */
+            --bg-primary: var(--bg-main);
+            --bg-secondary: var(--bg-card);
+            --bg-panel: var(--bg-card);
+            --border: var(--border-color);
             --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { font-family: var(--font-sans); background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         a { text-decoration: none; color: inherit; }
         
         /* Navigation */
@@ -34,9 +39,9 @@
         .logo span { color: var(--accent-blue); }
 
         .top-metrics { display: flex; gap: 2rem; align-items: center; }
-        .metric-mini { text-align: right; background: var(--bg-primary); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); }
-        .metric-mini span { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
-        .metric-mini strong { font-size: 1.1rem; color: var(--text-main); }
+        .metric-mini { text-align: right; background-color: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
+        .metric-mini span, label { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
+        .metric-mini strong { color: var(--text-main); font-size: 1.5rem; }
 
         /* Main Workspace Scrollable Area */
         .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
@@ -52,13 +57,20 @@
         }
 
         /* Control Panel */
-        .control-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; }
+        .card, .config-panel, .control-panel, .chart-panel, .data-card, .metric-mini {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .control-panel { display: flex; flex-direction: column; }
         .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.5rem; }
         .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
-        .strategy-select { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
+        .strategy-select { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
         
-        .btn-scan { background: var(--accent-blue); color: white; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .btn-scan:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-scan { background: var(--accent-blue); color: #000; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        #run-scan-btn { background-color: var(--accent-blue); color: #000; font-weight: 700; transition: all 0.3s ease; }
+        #run-scan-btn:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); transform: translateY(-1px); }
         .btn-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
 
         /* Terminal */
@@ -68,7 +80,7 @@
         .log-time { color: var(--text-muted); font-size: 0.75rem; margin-right: 8px; }
 
         /* Chart Panel */
-        .chart-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; }
+        .chart-panel { display: flex; flex-direction: column; }
         .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg-primary); border: 1px solid var(--border); }
 
         /* Bottom Row: Data Panels */
@@ -79,7 +91,7 @@
             margin-top: 2rem; /* THE FIX: Forces a physical barrier above the panels */
             padding-bottom: 2rem; /* Extra breathing room at the very bottom of the page */
         }
-        .data-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+        .data-card { }
         .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 
         /* Trade Plan Styles */
@@ -104,7 +116,7 @@
         td { padding: 0.75rem 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
         tr:last-child td { border-bottom: none; }
         .table-pill { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .table-pill.buy-now { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
     </style>
 </head>
