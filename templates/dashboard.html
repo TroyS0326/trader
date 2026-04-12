@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | XeanVI</title>
+    <title>Command Center | XeanVI</title>
+    
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
     <style>
         :root {
             --bg-primary: #060b14;
@@ -12,6 +15,7 @@
             --accent-blue: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.5);
             --success: #10b981;
+            --warning: #f59e0b;
             --danger: #ef4444;
             --text-main: #eef4ff;
             --text-muted: #94a3b8;
@@ -22,42 +26,73 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        a { text-decoration: none; color: inherit; }
         
         /* Navigation */
         .dash-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
         .logo span { color: var(--accent-blue); }
 
-        .top-metrics { display: flex; gap: 2rem; }
+        .top-metrics { display: flex; gap: 2rem; align-items: center; }
         .metric-mini { text-align: right; background: var(--bg-primary); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); }
         .metric-mini span { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
         .metric-mini strong { font-size: 1.1rem; color: var(--text-main); }
 
-        /* Main Workspace */
-        .workspace { display: grid; grid-template-columns: 350px 1fr; flex-grow: 1; overflow: hidden; }
+        /* Main Workspace Scrollable Area */
+        .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 
-        /* Left Panel: Simple Controls */
-        .control-panel { background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; }
-        
-        .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.75rem; }
+        /* Top Row: Controls & Chart */
+        .top-row { display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; min-height: 450px; }
+
+        /* Control Panel */
+        .control-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; }
+        .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.5rem; }
         .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
-
-        .strategy-select { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 2rem; font-size: 1rem; cursor: pointer; outline: none; }
+        .strategy-select { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
         
-        .btn-scan { background: var(--accent-blue); color: white; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 2rem; }
-        .btn-scan:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-        .btn-scan:active { transform: translateY(0); }
+        .btn-scan { background: var(--accent-blue); color: white; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .btn-scan:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
 
-        /* Live Activity Log */
-        .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.75rem 1rem; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
-        .terminal-output { padding: 1rem; font-family: var(--font-sans); font-size: 0.9rem; color: var(--text-main); overflow-y: auto; flex-grow: 1; line-height: 1.6; }
-        
-        .log-time { color: var(--text-muted); font-size: 0.8rem; margin-right: 8px; }
+        /* Terminal */
+        .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 150px; }
+        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .terminal-output { padding: 1rem; font-family: var(--font-sans); font-size: 0.85rem; color: var(--text-main); overflow-y: auto; flex-grow: 1; line-height: 1.6; }
+        .log-time { color: var(--text-muted); font-size: 0.75rem; margin-right: 8px; }
 
-        /* Right Panel: Live Charting */
-        .chart-panel { padding: 1.5rem; display: flex; flex-direction: column; background: var(--bg-primary); }
-        .chart-container { flex-grow: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
+        /* Chart Panel */
+        .chart-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; }
+        .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg-primary); border: 1px solid var(--border); }
+
+        /* Bottom Row: Data Panels */
+        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .data-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+        .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Trade Plan Styles */
+        .action-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .action-box.wait { background: rgba(245, 158, 11, 0.1); border-color: var(--warning); }
+        .action-text { font-size: 1.1rem; font-weight: bold; color: var(--text-main); }
+        .watch-panel { background: var(--bg-primary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+        .watch-line { font-size: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+        .highlight-green { color: var(--success); font-weight: bold; }
+        .highlight-red { color: var(--danger); font-weight: bold; }
+
+        /* Engine Room Styles */
+        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mini-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; }
+        .mini-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
+        .mini-card .value { font-size: 1.2rem; font-weight: bold; }
+
+        /* Watchlist Table */
+        .table-wrap { overflow-x: auto; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 0.75rem 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        .table-pill { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .table-pill.buy-now { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
     </style>
 </head>
 <body>
@@ -65,7 +100,6 @@
     <div class="dash-nav">
         <div style="display: flex; align-items: center; gap: 2.5rem;">
             <a href="/" class="logo">Xean<span>VI</span></a>
-            
             <div style="display: flex; gap: 1.5rem; font-size: 0.95rem; font-weight: 600;">
                 <a href="/" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">Home</a>
                 <a href="/features" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">How it Works</a>
@@ -82,10 +116,6 @@
                     <span>Available Cash</span>
                     <strong>$10,000.00</strong>
                 </div>
-                <div class="metric-mini">
-                    <span>Today's Profit</span>
-                    <strong style="color: var(--success);">+$0.00</strong>
-                </div>
             </div>
             
             <a href="/logout" style="padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem; font-weight: bold; transition: all 0.2s; background: var(--bg-primary);" 
@@ -98,127 +128,269 @@
 
     <div class="workspace">
         
-        <div class="control-panel">
-            
-            <div class="step-title">1. Pick Your Trading Style</div>
-            <div class="step-desc">How aggressive do you want the bot to be today?</div>
-            <select class="strategy-select" id="strategy-selector">
-                <option value="balanced">Standard Growth (Balanced Risk) - Recommended</option>
-                <option value="safe">Safe Mode (Low Risk, Smaller Wins)</option>
-                <option value="crypto">Crypto Autopilot (High Risk, 24/7)</option>
-            </select>
+        <div class="top-row">
+            <div class="control-panel">
+                <div class="step-title">1. Pick Your Trading Style</div>
+                <div class="step-desc">How aggressive do you want the bot to be today?</div>
+                <select class="strategy-select" id="strategy-selector">
+                    <option value="balanced">Standard Growth (Balanced Risk) - Recommended</option>
+                    <option value="safe">Safe Mode (Low Risk, Smaller Wins)</option>
+                    <option value="crypto">Crypto Autopilot (High Risk, 24/7)</option>
+                </select>
 
-            <div class="step-title">2. Start the Bot</div>
-            <div class="step-desc">Click below to let the AI scan the news and find the best stock to trade right now.</div>
-            <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Start AI Scanner</button>
+                <div class="step-title">2. Start the Bot</div>
+                <div class="step-desc">Click below to let the AI scan the market.</div>
+                <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Run Morning Scan</button>
 
-            <div class="terminal-container">
-                <div class="terminal-header">
-                    <span>Live AI Activity Log</span>
-                    <span id="bot-status" style="color: var(--text-muted);">Waiting...</span>
-                </div>
-                <div class="terminal-output" id="terminal-log">
-                    <div><span class="log-time">Now</span> Ready to go. Waiting for you to start the scanner.</div>
+                <div class="terminal-container">
+                    <div class="terminal-header">
+                        <span>Live AI Activity Log</span>
+                        <span id="bot-status">Waiting...</span>
+                    </div>
+                    <div class="terminal-output" id="terminal-log">
+                        <div><span class="log-time">Now</span> Ready to go. Waiting for command.</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="chart-panel">
-            <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: bold; font-size: 1.1rem;">Current Stock in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
-            </div>
-            
-            <div class="chart-container" id="chart-widget-container">
-                <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+            <div class="chart-panel">
+                <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: bold; font-size: 1.1rem;">Current Stock in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
+                    <div id="liveIndicator" style="display:none; color: var(--success); font-size: 0.8rem; font-weight: bold;">● LIVE DATA</div>
+                </div>
+                
+                <div class="chart-container">
                     <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                    <script type="text/javascript">
-                    function loadChart(ticker) {
-                        new TradingView.widget({
-                            "autosize": true,
-                            "symbol": ticker,
-                            "interval": "1",
-                            "timezone": "Etc/UTC",
-                            "theme": "dark",
-                            "style": "1",
-                            "locale": "en",
-                            "enable_publishing": false,
-                            "backgroundColor": "#101826",
-                            "gridColor": "rgba(148, 163, 184, 0.1)",
-                            "hide_top_toolbar": false,
-                            "hide_legend": false,
-                            "save_image": false,
-                            "container_id": "tradingview_chart"
-                        });
-                    }
-                    loadChart("SPY"); // Default chart before scan
-                    </script>
                 </div>
             </div>
         </div>
 
+        <div class="bottom-row" id="data-panels" style="display: none;">
+            
+            <div class="data-card">
+                <div class="card-header">
+                    The Trade Plan
+                    <span id="decisionPill" class="table-pill watch">AWAITING SCAN</span>
+                </div>
+                <div id="actionContainer" class="action-box wait">
+                    <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
+                </div>
+                <div class="watch-panel">
+                    <div class="watch-line"><span>💰 Shares to Buy:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
+                    <div class="watch-line"><span>🛑 Hard Stop Loss:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>🎯 Profit Target:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
+                    <hr style="border-color: var(--border); margin: 10px 0;">
+                    <div class="watch-line"><span>🔥 Max Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="card-header">AI Analysis <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Why we picked it)</span></div>
+                <div class="mini-grid" id="scoreRows">
+                    </div>
+                <div id="bestNotes" style="margin-top: 15px; font-size: 0.9rem; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
+                    Waiting for data...
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="card-header">Top Candidates Watchlist</div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlistBody">
+                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">Run scan to populate.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script>
+        // Global state for websockets
+        const state = { ws: null };
+
+        // Helper: Format Money
+        function money(v) {
+            if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
+            return `$${Number(v).toFixed(2)}`;
+        }
+
+        // Helper: Add log to terminal
+        function addLog(message, color) {
+            const terminal = document.getElementById('terminal-log');
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            terminal.innerHTML += `<div style="margin-bottom: 5px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Feature: Load TradingView Chart
+        function loadChart(ticker) {
+            document.getElementById('tradingview_chart').innerHTML = ''; // Clear old chart
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": ticker,
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "enable_publishing": false,
+                "backgroundColor": "#101826",
+                "gridColor": "rgba(148, 163, 184, 0.1)",
+                "hide_top_toolbar": false,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "tradingview_chart"
+            });
+        }
+        // Load default SPY chart on startup
+        loadChart("SPY");
+
+        // Feature: Populate "The Trade Plan" panel
+        function renderWatchPanel(best) {
+            const panel = best.watch_panel || {};
+            const actionContainer = document.getElementById('actionContainer');
+            const actionPrimary = document.getElementById('actionPrimary');
+            const decisionPill = document.getElementById('decisionPill');
+
+            // Set Pill and Box Color
+            decisionPill.textContent = best.decision || 'WATCH';
+            if (best.decision === 'BUY NOW') {
+                decisionPill.className = 'table-pill buy-now';
+                actionContainer.className = 'action-box';
+                actionPrimary.innerHTML = `Buy <strong>${panel.max_shares || 0} shares</strong> right now between ${money(panel.buy_range?.[0])} and ${money(panel.buy_range?.[1])}.`;
+            } else {
+                decisionPill.className = 'table-pill watch';
+                actionContainer.className = 'action-box wait';
+                actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after || 'Open'}</strong>. Do not buy yet.`;
+            }
+
+            // Populate Math
+            document.getElementById('watchQtyLine').textContent = `${panel.max_shares || 0} Shares`;
+            document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
+            document.getElementById('watchStopLine').textContent = money(panel.stop);
+            document.getElementById('watchTpLine').textContent = money(panel.take_profit_range?.[0]);
+        }
+
+        // Feature: Populate "AI Analysis" panel
+        function renderBestPick(best) {
+            const scoreRows = document.getElementById('scoreRows');
+            scoreRows.innerHTML = '';
+            const details = best.details || {};
+            
+            const metrics = [
+                { label: 'Rel. Volume', val: details.rvol ? details.rvol + 'x' : '—' },
+                { label: 'Trend Score', val: details.trend_efficiency ? details.trend_efficiency : '—' },
+                { label: 'Morning Gap', val: details.premarket_gap_pct ? details.premarket_gap_pct.toFixed(1) + '%' : '—' },
+                { label: 'Spread', val: details.spread_pct ? (details.spread_pct * 100).toFixed(2) + '%' : '—' }
+            ];
+
+            metrics.forEach(m => {
+                scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
+            });
+
+            // Status Notes
+            const notes = [];
+            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">🧠 AI Sentiment Validated.</span>`);
+            
+            const skips = details.skip_reasons || [];
+            if (skips.length > 0) {
+                notes.push(`<strong style="color: var(--danger);">⚠️ Safety Blocks Active:</strong><br><span style="color: var(--text-muted); font-size: 0.8rem;">${skips[0]}</span>`);
+            } else {
+                notes.push(`<strong style="color: var(--success);">✅ Edge Confirmed. Ready to execute.</strong>`);
+            }
+            document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
+        }
+
+        // Feature: Populate "Watchlist" panel
+        function renderWatchlist(items) {
+            const body = document.getElementById('watchlistBody');
+            body.innerHTML = '';
+            if (!items || !items.length) {
+                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No candidates found.</td></tr>';
+                return;
+            }
+            items.slice(0, 5).forEach(item => { // Show top 5
+                const signal = item.live_signal || item.decision || 'WATCH';
+                const cssClass = signal === 'BUY NOW' ? 'buy-now' : 'watch';
+                body.innerHTML += `
+                    <tr>
+                        <td><strong>${item.symbol}</strong></td>
+                        <td><span class="table-pill ${cssClass}">${signal}</span></td>
+                        <td>${money(item.current_price)}</td>
+                        <td>${item.score_total || '--'}/100</td>
+                    </tr>`;
+            });
+        }
+
+        // MAIN EXECUTION LOOP
         async function startScanner() {
             const btn = document.getElementById('run-scan-btn');
-            const terminal = document.getElementById('terminal-log');
-            const tickerHeader = document.getElementById('target-ticker');
             const statusHeader = document.getElementById('bot-status');
-            const strategy = document.getElementById('strategy-selector').value;
+            const tickerHeader = document.getElementById('target-ticker');
             
-            // 1. Lock the button so they don't spam it
-            btn.innerText = "Scanning News & Charts...";
-            btn.style.background = "#f59e0b";
-            btn.style.boxShadow = "none";
+            // 1. Lock UI
+            btn.innerText = "SCANNING MARKET...";
             btn.disabled = true;
             statusHeader.innerText = "Working...";
-            statusHeader.style.color = "#f59e0b";
+            statusHeader.style.color = "var(--warning)";
+            document.getElementById('data-panels').style.display = 'none'; // Hide data until done
 
-            terminal.innerHTML += `<div><span class="log-time">Now</span> <strong>Starting the AI Scanner...</strong></div>`;
-            terminal.scrollTop = terminal.scrollHeight;
+            addLog("Initiating AI Scanner...", "var(--warning)");
+            addLog("Downloading live market data...", "var(--text-muted)");
 
             try {
-                // 2. Call your actual Python Backend
-                const response = await fetch('/api/run-scan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ strategy: strategy })
-                });
+                // 2. Call the REAL robust Python Backend
+                const res = await fetch('/api/scan', { method: 'POST' });
+                const payload = await res.json();
                 
-                const data = await response.json();
+                if (!payload.ok) throw new Error(payload.error);
+                
+                const best = payload.data.best_pick;
+                
+                addLog(`Scan complete. Top setup found: ${best.symbol}.`, "var(--success)");
+                
+                // 3. Update the UI
+                tickerHeader.innerText = best.symbol;
+                document.getElementById('liveIndicator').style.display = 'inline';
+                
+                loadChart(best.symbol); // Let TV figure out the exchange automatically
+                
+                renderWatchPanel(best);
+                renderBestPick(best);
+                renderWatchlist(payload.data.watchlist || []);
+                
+                // 4. Reveal the Data Panels!
+                document.getElementById('data-panels').style.display = 'grid';
 
-                // 3. Print the easy-to-read logs
-                if (data.logs && data.logs.length > 0) {
-                    data.logs.forEach(log => {
-                        addLog(log.msg, log.color);
-                    });
-                }
+                // 5. Connect WebSocket for live watchlist price updates
+                if (state.ws) state.ws.close();
+                const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+                state.ws = new WebSocket(`${protocol}://${location.host}/ws/watchlist`);
+                state.ws.onmessage = (event) => {
+                    const wsPayload = JSON.parse(event.data);
+                    if (wsPayload.type === 'watchlist') renderWatchlist(wsPayload.items || []);
+                };
 
-                // 4. Show the chart of the stock the bot found
-                if (data.target_ticker) {
-                    tickerHeader.innerText = data.target_ticker;
-                    loadChart(data.target_ticker);
-                }
-
-            } catch (error) {
-                addLog("Error: Could not connect to the bot.", "var(--danger)");
+            } catch (err) {
+                addLog(`Error: ${err.message}`, "var(--danger)");
             } finally {
-                // 5. Unlock the button
-                addLog("Scan complete. Bot is ready for the next move.", "var(--text-muted)");
-                btn.innerText = "Start AI Scanner";
-                btn.style.background = "var(--accent-blue)";
+                // Unlock UI
+                btn.innerText = "RUN MORNING SCAN";
                 btn.disabled = false;
                 statusHeader.innerText = "Idle";
                 statusHeader.style.color = "var(--text-muted)";
             }
-        }
-
-        function addLog(message, color) {
-            const terminal = document.getElementById('terminal-log');
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            terminal.innerHTML += `<div style="margin-bottom: 8px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
-            terminal.scrollTop = terminal.scrollHeight;
         }
     </script>
 </body>
