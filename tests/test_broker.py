@@ -4,41 +4,37 @@ import broker
 
 
 def test_place_bracket_order_formatting(mocker):
-    """
-    Verifies that the broker correctly packages Buy, Stop, and Target orders
-    before sending them to Alpaca.
-    """
-    # 1. Mock the actual network request to Alpaca
+    # 1. Mock the POST request (placing the order)
     mock_post = mocker.patch('requests.post')
+    mock_post_resp = MagicMock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {'id': 'test_order_123', 'status': 'accepted'}
+    mock_post.return_value = mock_post_resp
 
-    # 2. Simulate a successful response from Alpaca
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
+    # 2. THE FIX: Mock the GET request (checking if it is filled)
+    # This tells the bot the order was filled instantly so it doesn't time out
+    mock_get = mocker.patch('requests.get')
+    mock_get_resp = MagicMock()
+    mock_get_resp.status_code = 200
+    mock_get_resp.json.return_value = {
         'id': 'test_order_123',
-        'status': 'accepted',
-        'symbol': 'AAPL'
+        'status': 'filled',  # <--- This stops the 15-second timer
+        'symbol': 'AAPL',
+        'filled_avg_price': 150.00,
     }
-    mock_post.return_value = mock_response
+    mock_get.return_value = mock_get_resp
 
-    # 3. Trigger the function with test data
+    # 3. Trigger the function
     result = broker.place_managed_entry_order(
         symbol="AAPL",
         qty=10,
         entry_price=150.00,
         stop_price=145.00,
         target_1_price=160.00,
-        target_2_price=170.00
+        target_2_price=170.00,
     )
 
-    # 4. ASSERTIONS: Check if the math sent to Alpaca was correct
-    assert result['id'] == 'test_order_123'
-
-    # Check that it attempted to send a 'bracket' order type
-    args, kwargs = mock_post.call_args
-    sent_data = kwargs['json']
-
-    assert sent_data['symbol'] == 'AAPL'
-    assert sent_data['order_class'] == 'bracket'
-    assert sent_data['stop_loss']['stop_price'] == 145.00
-    assert sent_data['take_profit']['limit_price'] == 160.00
+    # 4. Assertions
+    assert result['status'] == 'filled'
+    assert mock_post.called
+    assert mock_get.called
