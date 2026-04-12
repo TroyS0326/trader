@@ -3,29 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XeanVI | Algorithmic Day Trading Software & AI Stock Scanner</title>
-
-    <meta name="description" content="XeanVI is an elite algorithmic day trading software featuring an AI stock scanner, automated trade execution, and quantitative trading tools. Trade smarter today.">
+    <title>XeanVI | Automated AI Trading Bot</title>
+    
+    <meta name="description" content="XeanVI is an automated AI trading bot that scans the news, manages your risk, and executes trades on autopilot. Stop staring at charts and let the machine work.">
     <meta name="author" content="XeanVI Systems">
     <meta name="robots" content="index, follow">
-
-    <meta property="og:title" content="XeanVI | Elite Day Trading Platform">
-    <meta property="og:description" content="Automate your edge with advanced trade risk management and AI-driven market analysis.">
-    <meta property="og:type" content="website">
-
+    
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "XeanVI",
-      "operatingSystem": "Web, Windows, macOS",
+      "operatingSystem": "Web",
       "applicationCategory": "FinanceApplication",
       "offers": {
         "@type": "Offer",
-        "price": "0.00",
+        "price": "19.99",
         "priceCurrency": "USD"
       },
-      "description": "An advanced algorithmic day trading software and AI stock scanner for quantitative traders."
+      "description": "An automated AI trading bot and stock scanner."
     }
     </script>
 
@@ -43,87 +39,44 @@
             --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        /* Reset & Base Styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-primary);
-            color: var(--text-main);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+        body { font-family: var(--font-sans); background-color: var(--bg-primary); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
         a { text-decoration: none; color: inherit; }
-
-        /* Typography */
+        
         h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
         h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
         h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
         p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-
-        /* Layout */
+        
         .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-
-        /* Navigation */
+        
         nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
         .nav-inner { display: flex; justify-content: space-between; align-items: center; }
         .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
         .logo span { color: var(--accent-blue); }
         .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
         .nav-links a:hover { color: var(--accent-blue); }
-
-        /* Buttons */
-        .btn {
-            display: inline-block;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-align: center;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-        }
-        .btn-primary {
-            background-color: var(--accent-blue);
-            color: #ffffff;
-            box-shadow: 0 4px 14px var(--accent-glow);
-        }
+        
+        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; }
+        .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
         .btn-secondary { background-color: var(--bg-secondary); color: var(--text-main); border: 1px solid var(--border); }
         .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
 
-        /* Sections */
         .hero { padding: 8rem 0; position: relative; overflow: hidden; }
-        .hero::before {
-            content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px;
-            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1;
-        }
+        .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
         .hero-content { max-width: 700px; }
-
-        .features { padding: 6rem 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border); }
-        .feature-card {
-            background: var(--bg-primary); padding: 2.5rem; border-radius: 16px;
-            border: 1px solid var(--border); transition: transform 0.3s ease;
-        }
-        .feature-card:hover { transform: translateY(-5px); border-color: var(--accent-blue); }
-        .feature-icon { font-size: 2rem; margin-bottom: 1rem; color: var(--accent-blue); }
-
-        .cta-section { padding: 8rem 0; text-align: center; }
-        .cta-box {
-            background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-            padding: 4rem; border-radius: 24px; border: 1px solid var(--border);
-        }
-
-        /* Footer */
+        
+        .features { padding: 6rem 0; background-color: var(--bg-primary); border-top: 1px solid var(--border); }
+        
         footer { padding: 3rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
             .hero { padding: 4rem 0; text-align: center; }
             .hero-content { margin: 0 auto; }
-            .nav-links { display: none; } /* Mobile menu implementation recommended for production */
+            .nav-links { display: none; }
         }
     </style>
 </head>
@@ -133,8 +86,9 @@
         <div class="container nav-inner">
             <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="nav-links">
-                <a href="/features">The Arsenal</a>
-                <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">Client Login</a>
+                <a href="/features">How it Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">Log In</a>
             </div>
         </div>
     </nav>
@@ -142,139 +96,104 @@
     <section class="hero">
         <div class="container grid-2">
             <div class="hero-content">
-                <h1>The Ultimate <span style="color: var(--accent-blue);">Algorithmic Day Trading Software</span></h1>
-                <p>Deploy institutional-grade strategies with zero code. XeanVI is the definitive day trading platform combining an AI stock scanner, market internals logic, and flawless automated trade execution.</p>
+                <h1>Stop Staring at Charts. <span style="color: var(--accent-blue);">Let the AI Trade.</span></h1>
+                <p>XeanVI is an automated trading bot that scans the news, finds the best setups, and safely executes trades while you live your life. Zero coding or financial degree required.</p>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-                    <a href="/signup" class="btn btn-primary">Start Trading Smarter</a>
-                    <a href="/features" class="btn btn-secondary">Explore the Arsenal</a>
+                    <a href="/signup" class="btn btn-primary">Start Trading on Autopilot</a>
+                    <a href="/features" class="btn btn-secondary">See How it Works</a>
                 </div>
             </div>
-            <div class="hero-visual" style="border-radius: 16px; border: 1px solid var(--border); overflow: hidden; background: var(--bg-secondary); padding: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
-                <div style="height: 20px; border-bottom: 1px solid var(--border); margin-bottom: 1rem; display: flex; gap: 8px;">
-                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></div>
-                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></div>
-                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+            
+            <div style="border-radius: 16px; border: 1px solid var(--border); overflow: hidden; background: var(--bg-secondary); padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Bot Status</div>
+                        <div style="color: var(--success); font-weight: bold;">🟢 Active & Scanning</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Today's Automated Profit</div>
+                        <div style="color: var(--success); font-weight: bold; font-size: 1.2rem;">+$142.50</div>
+                    </div>
                 </div>
-                <div style="height: 300px; background: repeating-linear-gradient(0deg, transparent, transparent 19px, var(--border) 20px); position: relative;">
-                    <svg viewBox="0 0 100 50" style="width: 100%; height: 100%; overflow: visible;">
-                        <polyline fill="none" stroke="var(--success)" stroke-width="2" points="0,40 20,35 40,45 60,20 80,25 100,5" />
-                    </svg>
+                <div style="color: var(--text-muted); font-family: monospace; font-size: 0.9rem;">
+                    > Scanning news for catalysts...<br>
+                    > Found high volume on NVDA.<br>
+                    > Checking Crash Protection Filter... Safe.<br>
+                    > <span style="color: var(--accent-blue);">Executing Buy Order.</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <section class="features">
+        <div class="container">
+            <div class="grid-2" style="align-items: start;">
+                <div>
+                    <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">The ultimate cheat code against Wall Street.</h2>
+                    <p>Most beginners lose money because they get emotional, buy at the wrong time, or bet too much on one stock. XeanVI removes the human error entirely.</p>
+                    <ul style="list-style: none; padding: 0; color: var(--text-main); font-size: 1.1rem;">
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Smart Risk Sizing:</strong> Never bets your whole account.
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Crash Protection:</strong> Pauses the bot if the market is dumping.
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Paper Trading Sandbox:</strong> Test it with fake money first!
+                        </li>
+                    </ul>
+                </div>
+                <div style="background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">AI</div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 1.1rem;">Zero Emotion. Pure Logic.</h4>
+                            <span style="color: var(--text-muted); font-size: 0.9rem;">The Bot's Promise</span>
+                        </div>
+                    </div>
+                    <p style="font-style: italic; margin-bottom: 0;">"The machine doesn't care if a stock looks cool on Twitter. It waits for the exact pre-market volume and news sentiment to align, buys it, takes the profit, and gets out."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
         <div class="container">
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
                 <div style="max-width: 600px;">
                     <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Look Under the Hood</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 0;">Explore the proprietary architecture that powers your edge. Discover our 24/7 Crypto Engine, the Xean-Core AI, and the Macro-Breadth Gatekeeper that protects your capital.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 0;">Want to know exactly how it works? Read about our AI News Scanner, 24/7 Crypto Autopilot, and the built-in Crash Protection filters.</p>
                 </div>
                 <div>
                     <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
-                        Explore the Arsenal <span style="color: var(--accent-blue);">→</span>
+                        See the Features <span style="color: var(--accent-blue);">→</span>
                     </a>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="features" class="features">
+    <section id="pricing" style="padding: 6rem 0; background-color: var(--bg-secondary);">
         <div class="container">
             <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
-                <h2>Quantitative Trading Tools Built for Alpha</h2>
-                <p>We eliminated emotional decision-making. Our system relies on pure math and machine learning to scan, size, and execute.</p>
-            </div>
-
-            <div class="grid-3">
-                <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
-                    <h3>AI Stock Scanner</h3>
-                    <p>Stop manually searching for setups. Our proprietary engine processes pre-market volume, relative strength, and news sentiment instantly to serve you the highest probability trades.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Automated Trade Execution</h3>
-                    <p>Experience zero-latency entries. Through deep Alpaca trading integration, limit orders are pegged to the bid/ask spread and managed dynamically with trailing stops.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Trade Risk Management</h3>
-                    <p>Protect your capital automatically. The system implements fractional Kelly sizing protocols, dynamically adjusting your share quantity based on total account equity and exact stop distances.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Real-Time Stock Charts</h3>
-                    <p>Visualize the data that matters. View lightweight, lightning-fast 1-minute and daily charts natively within your dashboard without draining browser memory.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🧠</div>
-                    <h3>Market Internals Scanner</h3>
-                    <p>Never trade against the broader market trend again. Our system utilizes a hard-coded market internals scanner analyzing $TICK and $ADD to block long executions during breadth drops.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚙️</div>
-                    <h3>SaaS Infrastructure</h3>
-                    <p>Run your strategies reliably. Built on a robust Python/Flask backend with background task queues, ensuring your execution logic never misses a millisecond.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="features" style="background-color: var(--bg-primary); border-top: none;">
-        <div class="container">
-            <div class="grid-2" style="align-items: start;">
-                <div>
-                    <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">Trade the Math. <br><span style="color: var(--accent-blue);">Remove the Emotion.</span></h2>
-                    <p>Retail traders fail because of hesitation, FOMO, and poor risk sizing. Veteran Pro removes the human element entirely.</p>
-                    <ul style="list-style: none; padding: 0; color: var(--text-muted);">
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> Dynamic Fractional Kelly Risk Sizing
-                        </li>
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> Automated $TICK and $ADD Breadth Filtering
-                        </li>
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> Direct Alpaca API Integration
-                        </li>
-                    </ul>
-                </div>
-                <div style="background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">V</div>
-                        <div>
-                            <h4 style="margin: 0; font-size: 1.1rem;">Systematic Edge</h4>
-                            <span style="color: var(--text-muted); font-size: 0.9rem;">Backtest Verified Logic</span>
-                        </div>
-                    </div>
-                    <p style="font-style: italic; margin-bottom: 0;">"The difference between a gambler and a professional is the adherence to technical parameters. Our engine doesn't guess; it waits for the exact pre-market volume, relative strength, and news sentiment alignment before firing an automated execution."</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="pricing" style="padding: 6rem 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border);">
-        <div class="container">
-            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
-                <h2>Institutional Tools. Retail Pricing.</h2>
-                <p>Equip yourself with the same algorithmic execution technology used by quantitative firms, for less than the cost of one bad trade.</p>
+                <h2>Pro Tools. Beginner Price.</h2>
+                <p>Equip yourself with the same automation technology used by the pros, for less than the cost of one bad trade.</p>
             </div>
 
             <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem;">
-                <div class="feature-card" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: var(--bg-primary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
                         <div style="margin: 1.5rem 0;">
                             <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$19.99</span>
                             <span style="color: var(--text-muted);">/mo</span>
                         </div>
-                        <p style="font-size: 0.95rem;">Full access to the AI scanner and automated execution engine on a month-to-month basis.</p>
+                        <p style="font-size: 0.95rem;">Full access to the AI scanner and automated trading bot on a month-to-month basis.</p>
                     </div>
                     <a href="/signup" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
                 </div>
 
-                <div class="feature-card" style="text-align: center; border-color: var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: var(--bg-primary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em;">RECOMMENDED (SAVE 16%)</div>
                     <div>
                         <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
@@ -282,7 +201,7 @@
                             <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$199.99</span>
                             <span style="color: var(--text-muted);">/yr</span>
                         </div>
-                        <p style="font-size: 0.95rem;">Commit to your technical edge. Get two months completely free when you pay annually.</p>
+                        <p style="font-size: 0.95rem;">Commit to your growth. Get two months completely free when you pay for the year upfront.</p>
                     </div>
                     <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Start Annual Plan</a>
                 </div>
@@ -290,22 +209,10 @@
         </div>
     </section>
 
-    <section class="cta-section">
-        <div class="container">
-            <div class="cta-box">
-                <h2>Ready to formalize your trading edge?</h2>
-                <p style="max-width: 600px; margin: 0 auto 2rem;">Join elite traders who have automated their playbook. Stop guessing and start relying on mathematical probabilities.</p>
-                <a href="/signup" class="btn btn-primary" style="font-size: 1.125rem; padding: 1.25rem 2.5rem;">Create Your Account Today</a>
-            </div>
-        </div>
-    </section>
-
     <footer>
         <div class="container">
-            <p>&copy; 2026 XeanVI Systems. Algorithmic Trading Platform.</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">
-                Disclaimer: Trading involves significant risk. This software executes trades based on user-defined technical parameters. Past performance does not guarantee future results.
-            </p>
+            <p>&copy; 2026 XeanVI. Automated Trading Bot.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. This software executes trades based on logic parameters. Past performance does not guarantee future results. Test in Sandbox mode before using real capital.</p>
             <div style="margin-top: 1rem; font-size: 0.85rem;">
                 <a href="/terms" style="color: var(--accent-blue); margin-right: 15px;">Terms of Use</a>
                 <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>
