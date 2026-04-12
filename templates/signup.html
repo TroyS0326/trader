@@ -1,91 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Account - XeanVI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .auth-wrap { max-width: 400px; margin: 100px auto; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    input[type="email"], input[type="password"], input[type="text"] {
-      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--panel-2); color: var(--text); font-size: 1rem;
-    }
-    input:focus { outline: none; border-color: var(--accent); }
-    .btn-block { width: 100%; display: block; text-align: center; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | XeanVI</title>
+    <style>
+        :root {
+            --bg-primary: #060b14;
+            --bg-secondary: #101826;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+            --text-main: #eef4ff;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.15);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        a { text-decoration: none; color: inherit; }
+
+        .auth-container { display: flex; width: 1000px; max-width: 95%; background: var(--bg-secondary); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+        /* Left Side: Form */
+        .auth-form-side { flex: 1; padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+        .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 2rem; }
+        .logo span { color: var(--accent-blue); }
+
+        .auth-form-side h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .auth-form-side p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; }
+
+        .input-group { margin-bottom: 1.25rem; }
+        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .auth-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        .auth-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 10px rgba(59,130,246,0.1); }
+
+        .btn-auth { width: 100%; padding: 1rem; background: var(--accent-blue); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; margin-top: 1rem; box-shadow: 0 4px 15px var(--accent-glow); }
+        .btn-auth:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+
+        .auth-footer { margin-top: 2rem; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+        .auth-footer a { color: var(--accent-blue); font-weight: 600; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* Right Side: Marketing/Trust */
+        .auth-marketing-side { flex: 1; background: linear-gradient(135deg, var(--bg-primary) 0%, #0a1429 100%); padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; position: relative; }
+        .auth-marketing-side::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, transparent 70%); }
+
+        .trust-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; position: relative; z-index: 10; backdrop-filter: blur(10px); }
+        .trust-title { display: flex; align-items: center; gap: 10px; font-weight: bold; margin-bottom: 0.5rem; }
+        .trust-title span { color: var(--success); font-size: 1.2rem; }
+        .trust-desc { color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 850px) {
+            .auth-marketing-side { display: none; }
+            .auth-form-side { padding: 3rem 2rem; }
+            body { padding: 1rem; }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap auth-wrap">
-    <section class="card">
-      <div class="section-head" style="justify-content: center; margin-bottom: 24px;">
-        <h2>Create Your Account</h2>
-      </div>
-      
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="status" style="border-color: #ef4444; color: #fecaca; background: rgba(127,29,29,0.2); margin-bottom: 20px;">
-              {{ message }}
+
+    <div class="auth-container">
+
+        <div class="auth-form-side">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            <h2>Start Trading on Autopilot</h2>
+            <p>Create your account and get instant access to the AI scanner and automated execution engine.</p>
+
+            <form action="/signup" method="POST">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" class="auth-input" placeholder="John Doe" required>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" class="auth-input" placeholder="you@example.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-auth">Create Account</button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="/login">Log In Here</a>
             </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <form action="/signup" method="POST">
-        <div class="form-group">
-          <label for="full_name">Full Legal Name</label>
-          <input type="text" id="full_name" name="full_name" required>
         </div>
 
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required>
+        <div class="auth-marketing-side">
+            <h3 style="font-size: 1.8rem; margin-bottom: 2rem; z-index: 10; position: relative;">The smarter way to trade.</h3>
+
+            <div class="trust-box">
+                <div class="trust-title"><span>✓</span> 1-Click Setup</div>
+                <div class="trust-desc">No coding required. Just pick a trading style (Safe, Standard, or Crypto) and let the bot take over.</div>
+            </div>
+
+            <div class="trust-box">
+                <div class="trust-title"><span>✓</span> Built-in Crash Protection</div>
+                <div class="trust-desc">The AI actively monitors the overall stock market. If things look risky, it hits the brakes to protect your cash.</div>
+            </div>
+
+            <div class="trust-box">
+                <div class="trust-title"><span>✓</span> Zero-Risk Practice Mode</div>
+                <div class="trust-desc">Use our simulated $10,000 Sandbox to watch the bot make money before you risk a single dime of your own.</div>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label for="phone">Phone Number</label>
-          <input type="text" id="phone" name="phone" required>
-        </div>
+    </div>
 
-        <div class="form-group">
-          <label for="address">Street Address</label>
-          <input type="text" id="address" name="address" required>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <div class="form-group" style="flex: 2;">
-            <label for="city">City</label>
-            <input type="text" id="city" name="city" required>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="state">State</label>
-            <input type="text" id="state" name="state" required maxlength="2">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="password">Create Secure Password</label>
-          <input type="password" id="password" name="password" required>
-        </div>
-
-        <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <input type="checkbox" id="tos" name="tos_agreement" required style="width: auto; margin-top: 5px;">
-          <label for="tos" style="text-transform: none; color: var(--muted); font-size: 0.85rem; line-height: 1.4;">
-            I acknowledge that this is an <strong>automated execution software tool</strong> based on <strong>technical parameters</strong>. I understand that I am responsible for my own trading risk. I am aware that this platform does not provide financial advice or guarantee any specific market outcomes.
-          </label>
-        </div>
-
-        <button type="submit" class="btn-block" style="margin-top: 15px;">Accept & Create Account</button>
-      </form>
-      
-      <div style="text-align: center; margin-top: 20px;">
-        <span class="muted">Already have an account?</span> 
-        <a href="/login" style="color: var(--accent); text-decoration: none; font-weight: bold;">Log In Here</a>
-      </div>
-    </section>
-  </div>
 </body>
 </html>
