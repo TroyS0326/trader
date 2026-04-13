@@ -8,19 +8,23 @@
   queries ensure that layouts adapt gracefully to smaller screens.
 */
 
+/* =========================================
+   THEME VARIABLES & ACCESSIBILITY
+   ========================================= */
+/* Default: Light Mode */
 :root {
-  /* Colour palette */
-  --bg-main: #0f172a;
-  --bg-card: #1e293b;
-  --bg-input: #334155;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent-blue: #38bdf8;
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.4);
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --border-color: #334155;
-  
+
   /* Backward‑compatible aliases */
   --bg: var(--bg-main);
   --panel: var(--bg-card);
@@ -35,6 +39,37 @@
   --amber-text: #fde68a;
   --red: var(--danger);
   --red-text: #fecaca;
+}
+
+/* Dark Mode (Activates based on OS preference OR data-theme attribute) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --bg-input: #334155;
+    --border-color: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+  }
+}
+
+/* Explicit Dark Mode Override */
+[data-theme="dark"] {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #334155;
+  --border-color: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-blue: #38bdf8;
+}
+
+/* Keyboard Navigation Accessibility */
+*:focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Reset & base typography */
