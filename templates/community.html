@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Syndicate | XeanVI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="dash-body">
+
+    <header class="dash-nav">
+        <a href="/" class="logo">Xean<span>VI</span></a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="/dashboard" class="btn-action" style="background: var(--bg-card);">Dashboard</a>
+            <a href="/playbook" class="btn-action" style="background: transparent; border: 1px solid var(--border-color);">Playbook</a>
+        </div>
+    </header>
+
+    <div class="community-layout">
+        <div>
+            <h2 style="margin-bottom: 1rem;">The Syndicate Feed</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="flash-{{ category }}" style="margin-bottom: 1rem;">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <div class="post-composer">
+                <form action="/api/post_idea" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="composer-controls">
+                        <input type="text" name="ticker" placeholder="$TICKER" style="width: 100px; font-weight: bold;" required>
+                        <select name="setup_grade">
+                            <option value="WATCH">Watchlist</option>
+                            <option value="A+">A+ Setup</option>
+                            <option value="A">A Setup</option>
+                        </select>
+                    </div>
+                    <textarea name="content" placeholder="What's your thesis? (e.g., Reclaiming VWAP on high relative volume...)" required></textarea>
+                    <button type="submit" class="btn-action" style="width: 100%;"><i class="fas fa-paper-plane"></i> Share Idea</button>
+                </form>
+            </div>
+
+            <div id="feed-container">
+                {% for post in posts %}
+                <div class="idea-card">
+                    <div class="idea-avatar">
+                        {{ post.author.full_name[0]|upper if post.author.full_name else 'U' }}
+                    </div>
+                    <div class="idea-content">
+                        <div class="idea-header">
+                            <div>
+                                <span class="idea-author">{{ post.author.full_name or 'Anonymous Trader' }}</span>
+                                <span class="idea-time">• {{ post.created_at.strftime('%b %d, %H:%M') }}</span>
+                            </div>
+
+                            {% if post.setup_grade == 'A+' %}
+                                <span class="grade-badge grade-a-plus" style="font-size: 0.8rem; padding: 2px 8px;">A+</span>
+                            {% elif post.setup_grade == 'A' %}
+                                <span class="grade-badge grade-a" style="font-size: 0.8rem; padding: 2px 8px;">A</span>
+                            {% else %}
+                                <span class="grade-badge grade-watch" style="font-size: 0.8rem; padding: 2px 8px;">WATCH</span>
+                            {% endif %}
+                        </div>
+
+                        <div style="font-weight: 900; color: var(--text-main); font-size: 1.1rem; margin-top: 0.5rem;">
+                            ${{ post.ticker }}
+                        </div>
+
+                        <div class="idea-body">
+                            {{ post.content }}
+                        </div>
+
+                        <div class="idea-footer">
+                            <span><i class="far fa-heart"></i> {{ post.upvotes }}</span>
+                            <span><i class="far fa-comment"></i> Discuss</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                    <i class="fas fa-ghost" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p>The feed is quiet. Be the first to post a setup today.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="disclaimer-sidebar">
+            <h4><i class="fas fa-shield-alt"></i> Risk & Compliance</h4>
+            <p><strong>Not Financial Advice.</strong> All posts in the Syndicate Feed are the personal opinions of individual users and are generated for educational and brainstorming purposes only.</p>
+            <br>
+            <p>Do not blindly follow trade ideas. Always run setups through your own risk management parameters and the XeanVI AI scanner before executing.</p>
+        </div>
+    </div>
+
+</body>
+</html>
