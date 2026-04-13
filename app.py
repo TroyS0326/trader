@@ -225,7 +225,7 @@ def signup():
         # Log the user in immediately after creating the account
         login_user(new_user)
         # THE FIX: Send them straight to the broker uplink page
-        return redirect(url_for('settings'))
+        return redirect(url_for('onboarding'))
 
     return render_template('signup.html')
 
@@ -298,6 +298,20 @@ def dashboard():
 
     return render_template('dashboard.html', current_user=current_user)
 
+
+
+
+@app.route('/onboarding', methods=['GET', 'POST'])
+@login_required
+def onboarding():
+    if request.method == 'POST':
+        current_user.bankroll = float(request.form.get('bankroll', 5000.0))
+        current_user.trading_mode = 'paper'
+        db.session.commit()
+        flash('Setup complete! Welcome to Command Center.', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('onboarding.html', current_user=current_user)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -430,6 +444,8 @@ def alpaca_callback():
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
+    if current_user.bankroll == 0.0:
+        return redirect(url_for('onboarding'))
     return redirect(url_for('settings'))
 
 
