@@ -658,6 +658,18 @@ def api_execute():
             },
         }
         trade_id = insert_trade(trade_payload)
+        # --- NEW: Trigger Real-Time Notification ---
+        alert_payload = {
+            'action': 'trade_alert',
+            'title': 'Execution Confirmed',
+            'message': f'Bought {qty} shares of {data["symbol"]} at ${entry_price}. AI Stop-loss active.',
+            'level': 'success',
+        }
+        try:
+            watchlist_manager.broadcast_all(json.dumps(alert_payload))
+        except Exception as e:
+            logger.error(f"Failed to push ws notification: {e}")
+        # -------------------------------------------
         return ok(
             {
                 'trade_id': trade_id,

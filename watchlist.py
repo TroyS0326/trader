@@ -11,6 +11,7 @@ class WatchlistManager:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._items: List[Dict[str, Any]] = []
+        self._clients = set()
 
     def set_items(self, items: List[Dict[str, Any]]) -> None:
         with self._lock:
@@ -50,14 +51,34 @@ class WatchlistManager:
         return refreshed
 
     def stream(self, ws) -> None:
-        while True:
-            payload = {
-                'type': 'watchlist',
-                'items': self.refresh(),
-                'ts': time.time(),
-            }
-            ws.send(json.dumps(payload))
-            time.sleep(WATCHLIST_PUSH_SECONDS)
+        with self._lock:
+            self._clients.add(ws)
+        try:
+            while True:
+                payload = {
+                    'type': 'watchlist',
+                    'items': self.refresh(),
+                    'ts': time.time(),
+                }
+                ws.send(json.dumps(payload))
+                time.sleep(WATCHLIST_PUSH_SECONDS)
+        finally:
+            with self._lock:
+                self._clients.discard(ws)
+
+    def broadcast_all(self, payload: str) -> None:
+        with self._lock:
+            clients = list(self._clients)
+        dead_clients = []
+        for ws in clients:
+            try:
+                ws.send(payload)
+            except Exception:
+                dead_clients.append(ws)
+        if dead_clients:
+            with self._lock:
+                for ws in dead_clients:
+                    self._clients.discard(ws)
 
 
 watchlist_manager = WatchlistManager()
