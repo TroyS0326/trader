@@ -165,28 +165,47 @@
            ACTUAL MOBILE RESPONSIVENESS FIX
            ========================================= */
         @media (max-width: 992px) {
-            /* 1. Stack the Top Navigation */
+            /* 1. Tighter Top Navigation */
             .dash-nav {
                 flex-direction: column;
-                gap: 15px;
-                padding: 1rem;
+                gap: 10px;
+                padding: 1rem 0.5rem;
                 height: auto;
             }
             .dash-nav > div {
                 flex-wrap: wrap;
                 justify-content: center;
                 gap: 10px;
-            }
-
-            /* 2. Turn the top metrics into a 2x2 grid so they don't scroll off-screen */
-            .top-metrics {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
                 width: 100%;
             }
 
-            /* 3. STOP THE SQUISH: Stack the Control Panel and Chart */
+            /* 2. Turn top metrics into a native-feeling swipeable row */
+            .top-metrics {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 10px;
+                width: 100%;
+                padding: 0 5px 10px 5px; /* Breathing room for scrolling */
+                scrollbar-width: none; /* Hide scrollbar Firefox */
+            }
+            .top-metrics::-webkit-scrollbar {
+                display: none; /* Hide scrollbar Chrome/Safari */
+            }
+
+            /* 3. Shrink the cards so they fit nicely in the carousel */
+            .metric-mini {
+                flex: 0 0 auto; /* Force them to stay in a row */
+                min-width: 130px;
+                padding: 0.75rem; /* Cut padding in half */
+                text-align: left; /* Left align reads better in carousels */
+            }
+            .metric-mini strong {
+                font-size: 1.2rem; /* Shrink the numbers slightly */
+            }
+
+            /* 4. STOP THE SQUISH: Stack the Control Panel and Chart */
             .top-row {
                 display: flex !important;
                 flex-direction: column !important;
