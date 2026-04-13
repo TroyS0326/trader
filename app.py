@@ -267,6 +267,11 @@ def login():
 def features():
     return render_template('features.html')
 
+@app.route('/playbook')
+def playbook():
+    # Make it accessible to both logged-in users and public marketing traffic
+    return render_template('playbook.html')
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
