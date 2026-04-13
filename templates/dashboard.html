@@ -532,6 +532,60 @@
             });
         }
 
+        function showNotification(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `trade-toast ${type}`;
+
+            let icon = '<i class="fas fa-info-circle"></i>';
+            if (type === 'success') icon = '<i class="fas fa-check-circle" style="color: var(--success)"></i>';
+            if (type === 'danger') icon = '<i class="fas fa-exclamation-circle" style="color: var(--danger)"></i>';
+
+            toast.innerHTML = `
+                <div class="toast-header">${icon} ${title}</div>
+                <div class="toast-body">${message}</div>
+            `;
+
+            toast.onclick = () => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            };
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        function connectWatchlistSocket() {
+            if (state.ws) state.ws.close();
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            state.ws = new WebSocket(`${protocol}//${window.location.host}/ws/watchlist`);
+
+            state.ws.onopen = () => {
+                console.log("Live connection established to XeanVI Core.");
+            };
+
+            state.ws.onmessage = (event) => {
+                try {
+                    const wsPayload = JSON.parse(event.data);
+                    if (wsPayload.action === 'trade_alert') {
+                        showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
+                    } else if (wsPayload.type === 'watchlist') {
+                        renderWatchlist(wsPayload.items || []);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse websocket message", e);
+                }
+            };
+        }
+
         // MAIN EXECUTION LOOP
         async function startScanner() {
             const btn = document.getElementById('run-scan-btn');
@@ -635,14 +689,8 @@
                 }
                 // ==========================================
 
-                // 5. Connect WebSocket for live watchlist price updates
-                if (state.ws) state.ws.close();
-                const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-                state.ws = new WebSocket(`${protocol}://${location.host}/ws/watchlist`);
-                state.ws.onmessage = (event) => {
-                    const wsPayload = JSON.parse(event.data);
-                    if (wsPayload.type === 'watchlist') renderWatchlist(wsPayload.items || []);
-                };
+                // 5. Connect WebSocket for live watchlist updates + alerts
+                connectWatchlistSocket();
 
             } catch (err) {
                 addLog(`Error: ${err.message}`, "var(--danger)");
@@ -654,6 +702,9 @@
                 statusHeader.style.color = "var(--text-muted)";
             }
         }
+
+        connectWatchlistSocket();
     </script>
+    <div id="toast-container"></div>
 </body>
 </html>

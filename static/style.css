@@ -1009,3 +1009,57 @@ input:checked + .slider:before {
     color: white;
   }
 }
+
+/* =========================================
+   REAL-TIME TOAST NOTIFICATIONS
+   ========================================= */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none; /* Let clicks pass through to the app */
+}
+
+/* On mobile, bump it up so it doesn't block the sticky scan button */
+@media (max-width: 992px) {
+  #toast-container {
+    bottom: 90px;
+    right: 10px;
+    left: 10px;
+    align-items: center;
+  }
+}
+
+.trade-toast {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 5px solid var(--accent-blue);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: var(--text-main);
+  min-width: 280px;
+  max-width: 350px;
+  animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: auto; /* Allow clicking the toast to dismiss */
+  cursor: pointer;
+}
+
+.trade-toast.success { border-left-color: var(--success); }
+.trade-toast.danger { border-left-color: var(--danger); }
+.trade-toast.warning { border-left-color: #f59e0b; }
+
+.toast-header { font-weight: bold; margin-bottom: 0.25rem; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.toast-body { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: scale(0.9); }
+}
