@@ -25,7 +25,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import User
+from models import Post, User
 from onboarding import verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
@@ -345,6 +345,43 @@ def settings():
 @login_required
 def syndicate():
     return render_template('leaderboard.html')
+
+@app.route('/community')
+@login_required
+def community():
+    posts = Post.query.order_by(Post.created_at.desc()).limit(50).all()
+    return render_template('community.html', posts=posts, current_user=current_user)
+
+
+@app.route('/api/post_idea', methods=['POST'])
+@login_required
+@limiter.limit("10 per hour")
+def post_idea():
+    ticker = request.form.get('ticker', '').strip().upper()
+    setup_grade = request.form.get('setup_grade', 'WATCH')
+    content = request.form.get('content', '').strip()
+
+    if not ticker or not content:
+        flash('Ticker and trade notes are required.', 'error')
+        return redirect(url_for('community'))
+
+    new_post = Post(
+        user_id=current_user.id,
+        ticker=ticker,
+        setup_grade=setup_grade,
+        content=content,
+    )
+
+    try:
+        db.session.add(new_post)
+        db.session.commit()
+        flash('Trade idea shared with the syndicate!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Failed to post idea. Please try again.', 'error')
+
+    return redirect(url_for('community'))
+
 
 @app.route('/scanner')
 @login_required

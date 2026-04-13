@@ -1063,3 +1063,30 @@ input:checked + .slider:before {
 @keyframes fadeOut {
   to { opacity: 0; transform: scale(0.9); }
 }
+
+/* =========================================
+   COMMUNITY / IDEAS BOARD
+   ========================================= */
+.community-layout { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+@media (max-width: 992px) { .community-layout { grid-template-columns: 1fr; } }
+
+.post-composer { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem; }
+.post-composer textarea { width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; margin: 1rem 0; resize: vertical; min-height: 100px; }
+.post-composer .composer-controls { display: flex; gap: 10px; align-items: center; }
+.post-composer input, .post-composer select { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; }
+
+.idea-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; display: flex; gap: 1rem; transition: transform 0.2s; }
+.idea-card:hover { border-color: rgba(56, 189, 248, 0.4); }
+.idea-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), #2563eb); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+.idea-content { flex-grow: 1; }
+.idea-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center; }
+.idea-author { font-weight: bold; color: var(--text-main); }
+.idea-time { color: var(--text-muted); font-size: 0.8rem; }
+.idea-body { color: var(--text-muted); line-height: 1.5; margin: 1rem 0; }
+.idea-footer { display: flex; gap: 15px; color: var(--text-muted); font-size: 0.9rem; }
+.idea-footer span { cursor: pointer; transition: color 0.2s; }
+.idea-footer span:hover { color: var(--accent-blue); }
+
+.disclaimer-sidebar { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.5rem; border-radius: 12px; height: fit-content; }
+.disclaimer-sidebar h4 { color: #f59e0b; margin-bottom: 1rem; }
+.disclaimer-sidebar p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }

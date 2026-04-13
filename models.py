@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 import base64
 import hashlib
 import os
@@ -128,3 +129,15 @@ class User(UserMixin, db.Model):
             self._alpaca_access_token = None
             return
         self._alpaca_access_token = TOKEN_CIPHER.encrypt(token.encode('utf-8')).decode('utf-8')
+
+
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ticker = db.Column(db.String(10), nullable=False)
+    setup_grade = db.Column(db.String(5), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    upvotes = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User', backref=db.backref('posts', lazy=True))
