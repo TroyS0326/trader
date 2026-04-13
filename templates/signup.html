@@ -24,16 +24,16 @@
             <form action="/signup" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="input-group">
-                    <label>Full Name</label>
-                    <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" class="auth-input" placeholder="John Doe" required>
                 </div>
                 <div class="input-group">
-                    <label>Email Address</label>
-                    <input type="email" name="email" class="auth-input" placeholder="you@example.com" required>
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="auth-input" placeholder="you@example.com" required>
                 </div>
                 <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="auth-input" placeholder="••••••••" required>
                 </div>
                 <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" name="tos_agreement" id="tos" value="yes" required style="width: 18px; height: 18px;">

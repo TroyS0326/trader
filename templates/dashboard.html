@@ -30,6 +30,40 @@
             --font-mono: 'Courier New', Courier, monospace;
         }
 
+
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-main: #0f172a;
+                --bg-card: #1e293b;
+                --bg-input: #334155;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --accent-blue: #38bdf8;
+                --border-color: #334155;
+            }
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --border-color: #e2e8f0;
+            --bg-primary: var(--bg-main);
+            --bg-secondary: var(--bg-card);
+            --bg-panel: var(--bg-card);
+            --border: var(--border-color);
+        }
+
+        *:focus-visible {
+            outline: 3px solid var(--accent-blue);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-sans); background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         a { text-decoration: none; color: inherit; }
@@ -282,6 +316,10 @@
                     <strong id="risk-amount">--</strong>
                 </div>
             </div>
+
+            <button id="theme-toggle" class="btn-action" aria-label="Toggle Dark Mode" style="background: transparent; border: 1px solid var(--border-color); padding: 0.5rem 1rem;">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
             
             <a href="/logout" style="padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem; font-weight: bold; transition: all 0.2s; background: var(--bg-primary);" 
                onmouseover="this.style.color='var(--danger)'; this.style.borderColor='var(--danger)';" 
@@ -703,8 +741,45 @@
             }
         }
 
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        // Check local storage for a saved theme, otherwise check OS preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            htmlElement.setAttribute('data-theme', savedTheme);
+            updateIcon(savedTheme);
+        }
+
+        if (themeToggle && themeIcon) {
+            themeToggle.addEventListener('click', () => {
+                let currentTheme = htmlElement.getAttribute('data-theme');
+
+                // If no explicit theme is set, deduce it from the OS preference
+                if (!currentTheme) {
+                    currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateIcon(newTheme);
+            });
+        }
+
+        function updateIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        }
+
         connectWatchlistSocket();
     </script>
-    <div id="toast-container"></div>
+    <div id="toast-container" aria-live="polite" aria-atomic="true" role="status"></div>
 </body>
 </html>

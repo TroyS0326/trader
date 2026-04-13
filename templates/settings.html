@@ -13,7 +13,12 @@
     <!-- Dashboard navigation -->
     <div class="dash-nav">
         <a href="/" class="logo">Xean<span>VI</span></a>
-        <a href="/dashboard" class="btn secondary" style="font-weight: bold; font-size: 0.95rem;">← Back to Dashboard</a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="theme-toggle" class="btn-action" aria-label="Toggle Dark Mode" style="background: transparent; border: 1px solid var(--border-color); padding: 0.5rem 1rem;">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+            <a href="/dashboard" class="btn secondary" style="font-weight: bold; font-size: 0.95rem;">← Back to Dashboard</a>
+        </div>
     </div>
 
     <div class="settings-container">
@@ -61,31 +66,31 @@
                     <label>Select Trading Mode</label>
                     <div class="mode-toggle">
                         <label class="mode-label" id="label-paper">
-                            <input type="radio" name="trading_mode" value="paper" {% if not current_user or current_user.trading_mode == 'paper' %}checked{% endif %}>
+                            <input type="radio" name="trading_mode" value="paper" aria-label="Paper trading mode" {% if not current_user or current_user.trading_mode == 'paper' %}checked{% endif %}>
                             🧪 Paper Trading (Fake Money)
                         </label>
                         <label class="mode-label" id="label-live">
-                            <input type="radio" name="trading_mode" value="live" {% if current_user and current_user.trading_mode == 'live' %}checked{% endif %}>
+                            <input type="radio" name="trading_mode" value="live" aria-label="Live trading mode" {% if current_user and current_user.trading_mode == 'live' %}checked{% endif %}>
                             ⚠️ Live Market (Real Money)
                         </label>
                     </div>
                     <p class="sub" style="font-size: 0.85rem;">Always test the bot in Paper Trading mode before switching to Live.</p>
                 </div>
                 <div class="input-group" style="margin-top: 2rem;">
-                    <label>Daily Bankroll Limit (USD)</label>
+                    <label for="bankroll">Daily Bankroll Limit (USD)</label>
                     <p class="sub" style="font-size: 0.85rem; margin-bottom: 10px;">The maximum amount of cash you want the bot to use today.</p>
                     <div style="position: relative;">
                         <span style="position: absolute; left: 15px; top: 15px; color: var(--muted); font-weight: bold; font-size: 1.1rem;">$</span>
-                        <input type="number" name="bankroll" class="text-input" value="{{ current_user.bankroll or 5000 }}" style="padding-left: 35px; font-weight: bold;" required>
+                        <input type="number" id="bankroll" name="bankroll" class="text-input" value="{{ current_user.bankroll or 5000 }}" style="padding-left: 35px; font-weight: bold;" required>
                     </div>
                 </div>
                 <div class="input-group">
-                    <label>Data Refresh Intensity
+                    <label for="refresh_interval">Data Refresh Intensity
                         <div class="info-tip"><i class="fas fa-info-circle"></i>
                             <span class="tip-text">How often the dashboard updates prices. High intensity uses more data.</span>
                         </div>
                     </label>
-                    <select name="refresh_interval" class="config-input">
+                    <select id="refresh_interval" name="refresh_interval" class="config-input">
                         <option value="10000" {% if current_user.refresh_interval == 10000 %}selected{% endif %}>Turbo (10s) - Active Trading</option>
                         <option value="30000" {% if current_user.refresh_interval == 30000 %}selected{% endif %}>Balanced (30s) - Recommended</option>
                         <option value="60000" {% if current_user.refresh_interval == 60000 %}selected{% endif %}>Eco (1m) - Background Monitoring</option>
@@ -97,21 +102,21 @@
                 <div class="panel-title">3. Dashboard Layout</div>
                 <div class="input-group-inline">
                     <label class="switch">
-                        <input type="checkbox" name="show_news" {% if current_user.show_news %}checked{% endif %}>
+                        <input type="checkbox" name="show_news" aria-label="Display market news" {% if current_user.show_news %}checked{% endif %}>
                         <span class="slider"></span>
                     </label>
                     <span>Display Market News</span>
                 </div>
                 <div class="input-group-inline">
                     <label class="switch">
-                        <input type="checkbox" name="show_watchlist" {% if current_user.show_watchlist %}checked{% endif %}>
+                        <input type="checkbox" name="show_watchlist" aria-label="Display watchlist" {% if current_user.show_watchlist %}checked{% endif %}>
                         <span class="slider"></span>
                     </label>
                     <span>Display Watchlist</span>
                 </div>
                 <div class="input-group-inline">
                     <label class="switch">
-                        <input type="checkbox" name="show_terminal" {% if current_user.show_terminal %}checked{% endif %}>
+                        <input type="checkbox" name="show_terminal" aria-label="Display live terminal" {% if current_user.show_terminal %}checked{% endif %}>
                         <span class="slider"></span>
                     </label>
                     <span>Display Live Terminal</span>
@@ -120,6 +125,42 @@
             <button type="submit" class="btn-auth" style="margin-top: 1rem;">Save Settings</button>
         </form>
     </div>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            htmlElement.setAttribute('data-theme', savedTheme);
+            updateIcon(savedTheme);
+        }
+
+        if (themeToggle && themeIcon) {
+            themeToggle.addEventListener('click', () => {
+                let currentTheme = htmlElement.getAttribute('data-theme');
+                if (!currentTheme) {
+                    currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateIcon(newTheme);
+            });
+        }
+
+        function updateIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        }
+    </script>
 
 </body>
 </html>

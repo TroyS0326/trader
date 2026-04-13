@@ -14,6 +14,9 @@
         <div style="display: flex; gap: 10px; align-items: center;">
             <a href="/dashboard" class="btn-action" style="background: var(--bg-card);">Dashboard</a>
             <a href="/playbook" class="btn-action" style="background: transparent; border: 1px solid var(--border-color);">Playbook</a>
+            <button id="theme-toggle" class="btn-action" aria-label="Toggle Dark Mode" style="background: transparent; border: 1px solid var(--border-color); padding: 0.5rem 1rem;">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
         </div>
     </header>
 
@@ -33,7 +36,7 @@
                 <form action="/api/post_idea" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="composer-controls">
-                        <input type="text" name="ticker" placeholder="$TICKER" style="width: 100px; font-weight: bold;" required>
+                        <input type="text" name="ticker" placeholder="$TICKER" aria-label="Enter stock ticker symbol" style="width: 100px; font-weight: bold;" required>
                         <select name="setup_grade">
                             <option value="WATCH">Watchlist</option>
                             <option value="A+">A+ Setup</option>
@@ -97,6 +100,45 @@
             <p>Do not blindly follow trade ideas. Always run setups through your own risk management parameters and the XeanVI AI scanner before executing.</p>
         </div>
     </div>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        // Check local storage for a saved theme, otherwise check OS preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            htmlElement.setAttribute('data-theme', savedTheme);
+            updateIcon(savedTheme);
+        }
+
+        if (themeToggle && themeIcon) {
+            themeToggle.addEventListener('click', () => {
+                let currentTheme = htmlElement.getAttribute('data-theme');
+
+                // If no explicit theme is set, deduce it from the OS preference
+                if (!currentTheme) {
+                    currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateIcon(newTheme);
+            });
+        }
+
+        function updateIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        }
+    </script>
 
 </body>
 </html>
