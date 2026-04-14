@@ -253,22 +253,27 @@
                 font-size: 1.2rem; /* Shrink the numbers slightly */
             }
 
-            /* 4. STOP THE SQUISH: Stack the Control Panel and Chart */
+            /* THE FIX: Reorder the top row so Control Panel stays on TOP */
             .top-row {
                 display: flex !important;
-                flex-direction: column !important;
-                height: auto !important; /* Removes the hardcoded 550px lock */
+                flex-direction: column !important; /* Stacks them */
+                height: auto !important;
             }
 
-            /* Make both panels take full width of the phone */
-            .control-panel, .chart-panel {
+            .control-panel {
+                order: 1; /* Explicitly forces the button/selector to the top */
+                width: 100% !important;
+                margin-bottom: 1.5rem;
+            }
+
+            .chart-panel {
+                order: 2; /* Forces chart below the controls */
                 width: 100% !important;
             }
 
-            /* 4. Give the chart room to display properly */
             .chart-container {
-                height: 450px !important;
-                min-height: 450px;
+                height: 400px !important;
+                min-height: 400px;
             }
 
             /* 5. Stack the bottom panels vertically */
@@ -532,16 +537,21 @@
             const actionPrimary = document.getElementById('actionPrimary');
             const decisionPill = document.getElementById('decisionPill');
 
-            // Set Pill and Box Color
             decisionPill.textContent = best.decision || 'WATCH';
+            
             if (best.decision === 'BUY NOW') {
+                // This turns the box green and removes the "WAIT" text
                 decisionPill.className = 'table-pill buy-now';
-                actionContainer.className = 'action-box';
-                actionPrimary.innerHTML = `Buy <strong>${panel.max_shares || 0} shares</strong> right now between ${money(panel.buy_range?.[0])} and ${money(panel.buy_range?.[1])}.`;
+                actionContainer.className = 'action-box'; 
+                actionPrimary.innerHTML = `Buy <strong>${panel.max_shares || 0} shares</strong> at ${money(best.current_price)}. Target: ${money(best.target_1)}.`;
+            } else if (best.decision === 'WAIT') {
+                decisionPill.className = 'table-pill watch';
+                actionContainer.className = 'action-box wait';
+                actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after || '09:45'} ET</strong>. Market open volatility protection active.`;
             } else {
                 decisionPill.className = 'table-pill watch';
                 actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after || 'Open'}</strong>. Do not buy yet.`;
+                actionPrimary.innerHTML = `Scanning for setup... Current Status: <strong>${best.decision}</strong>`;
             }
 
             // Populate Math
