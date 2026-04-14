@@ -322,6 +322,13 @@ def article(article_slug):
 def simulate():
     return render_template('simulate.html')
 
+
+@app.route('/transparency')
+def transparency():
+    # In a fully fleshed-out app, you might pass dynamic backtest stats here
+    # from your analyze_performance.py script. For now, we render the hub.
+    return render_template('transparency.html', current_user=current_user)
+
 @app.route('/logout')
 @login_required
 def logout():
