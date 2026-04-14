@@ -1247,29 +1247,34 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append(f'VIX Volatility Spike: {vixy_change:.1f}% (Limit {VIX_CIRCUIT_BREAKER_PCT:g}%).')
 
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
-    in_buy_zone = current_price >= buy_lower * 0.995 and current_price <= buy_upper
     decision = 'SKIP'
-    regime_decision = regime_trade_decision(model_scores, now_et(), safe_num(rel_strength_vs_spy))
-    if wait_state and setup_grade in {'A+', 'A', 'WATCH'}:
+
+    # --- FIXED DECISION LOGIC ---
+    after_time_gate = buy_window_open()
+
+    # If the gate is still closed (it's before 09:45 ET), we MUST wait.
+    if not after_time_gate:
         decision = 'WAIT'
     else:
-        decision = regime_decision
-    is_high_precision = (
-        not skip_reasons
-        and setup_grade in {'A+', 'A'}
-        and decision != 'WAIT'
-        and total >= MIN_SCORE_TO_EXECUTE
-        and in_buy_zone
-        and regime_decision == 'BUY NOW'
-    )
-    if is_high_precision:
-        decision = 'BUY NOW'
-    else:
-        decision = 'WATCH' if setup_grade != 'NO TRADE' else 'SKIP'
-    if decision == 'BUY NOW' and not sector_meta.get('is_leader_vs_sector', False):
-        decision = 'WATCH'
-    if vixy_change >= VIX_CIRCUIT_BREAKER_PCT:
-        decision = 'WATCH'
+        # Once the gate is open, we use the regime trade decision logic
+        regime_decision = regime_trade_decision(model_scores, now_et(), safe_num(rel_strength_vs_spy))
+
+        # Check if it meets the "BUY NOW" high-precision requirements
+        is_high_precision = (
+            not skip_reasons
+            and setup_grade in {'A+', 'A'}
+            and total >= MIN_SCORE_TO_EXECUTE
+            and current_price >= buy_lower * 0.995
+            and current_price <= buy_upper
+            and regime_decision == 'BUY NOW'
+            and sector_meta.get('is_leader_vs_sector', False)
+            and not vix_spike_active
+        )
+
+        if is_high_precision:
+            decision = 'BUY NOW'
+        else:
+            decision = 'WATCH' if setup_grade != 'NO TRADE' else 'SKIP'
 
     notes = []
     if or_stats.get('or_high'):
