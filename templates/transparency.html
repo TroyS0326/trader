@@ -10,7 +10,38 @@
 <body class="dash-body">
 
     <nav class="xean-nav">
-        </nav>
+        <div class="xean-nav-inner">
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+
+            <div class="xean-nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/community">Trade Discussions</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency" style="color: var(--text-main);">AI Logic</a>
+                {% else %}
+                    <a href="/features">How it Works</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency" style="color: var(--text-main);">AI Logic</a>
+                    <a href="#pricing">Pricing</a>
+                {% endif %}
+            </div>
+
+            <div class="xean-nav-actions">
+                {% if current_user.is_authenticated %}
+                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
+                    <a href="/settings" style="text-decoration: none;">
+                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
+                    </a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
 
     <div class="container" style="max-width: 1000px; margin: 4rem auto; padding: 0 2rem;">
         <div style="text-align: center; margin-bottom: 4rem;">
@@ -19,24 +50,23 @@
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-            
             <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
                 <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-line" style="color: var(--success);"></i> Performance Audits</h3>
                 <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">View our latest simulated vs. live execution delta reports. We provide raw CSV exports of AI decision logs for independent verification.</p>
-                <a href="#" class="btn-secondary" style="display: block; text-align: center; padding: 0.75rem; border-radius: 6px;">Download Q1 Audit (.pdf)</a>
+                <a href="#" class="btn-secondary" style="display: block; text-align: center; padding: 0.75rem; border-radius: 6px; text-decoration: none;">Download Q1 Audit (.pdf)</a>
             </div>
 
             <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
                 <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-shield" style="color: var(--accent-blue);"></i> Data Privacy</h3>
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your Alpaca OAuth tokens are encrypted using AES-256-GCM. XeanVI never stores your brokerage passwords or personal banking details.</p>
-                <a href="/privacy" style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem;">Review Privacy Policy →</a>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your Alpaca OAuth tokens are encrypted using AES-256-GCM. XeanVI never stores your brokerage passwords.</p>
+                <a href="/privacy" style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem; text-decoration: none;">Review Privacy Policy →</a>
             </div>
 
             <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); grid-column: 1 / -1;">
                 <h3 style="margin-bottom: 1rem;"><i class="fas fa-gavel" style="color: var(--warning);"></i> Regulatory Disclosures</h3>
                 <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; background: var(--bg-main); padding: 1.5rem; border-radius: 8px;">
                     <p style="margin-bottom: 1rem;"><strong>Hypothetical Performance:</strong> Hypothetical performance results have many inherent limitations. No representation is being made that any account will or is likely to achieve profits or losses similar to those shown.</p>
-                    <p style="margin-bottom: 1rem;"><strong>Execution Risk:</strong> Algorithmic trading involves significant risk of loss. Market volatility, liquidity, and system latency can affect execution prices. By using XeanVI, you acknowledge that the AI scanner is a tool, and all final trade authority rests with the account holder.</p>
+                    <p style="margin-bottom: 1rem;"><strong>Execution Risk:</strong> Algorithmic trading involves significant risk of loss. Market volatility, liquidity, and system latency can affect execution prices.</p>
                     <p><strong>Affiliation:</strong> XeanVI is an independent software provider. We are not a registered broker-dealer or financial advisor.</p>
                 </div>
             </div>
