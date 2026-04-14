@@ -359,6 +359,7 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Clean, quiet entry into the command center
     return render_template('dashboard.html', current_user=current_user)
 
 
@@ -409,34 +410,33 @@ def onboarding():
 @login_required
 def settings():
     if request.method == 'POST':
-        # Update their bankroll and risk settings
+        # 1. Update Core Settings
         current_user.bankroll = float(request.form.get('bankroll', 0.0))
         refresh_interval = int(request.form.get('refresh_interval', 30000))
         current_user.refresh_interval = (
             refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
         )
+
+        # 2. Update Layout Preferences
         current_user.show_news = 'show_news' in request.form
         current_user.show_watchlist = 'show_watchlist' in request.form
         current_user.show_terminal = 'show_terminal' in request.form
-        current_user.esg_fossil_fuels = 'esg_fossil_fuels' in request.form
-        current_user.esg_weapons = 'esg_weapons' in request.form
-        current_user.esg_tobacco = 'esg_tobacco' in request.form
-        current_user.exclude_penny_stocks = 'exclude_penny_stocks' in request.form
-        current_user.exclude_biotech = 'exclude_biotech' in request.form
-        # Note: If you want to save the Paper/Live toggle, you will need to add a
-        # 'trading_mode' column to your User model in models.py later!
+
+        # 3. Update ESG & Personalization Filters (Step 11)
+        # Note: getattr() is used as a safety fallback just in case the DB hasn't migrated yet
+        if hasattr(current_user, 'esg_fossil_fuels'):
+            current_user.esg_fossil_fuels = 'esg_fossil_fuels' in request.form
+            current_user.esg_weapons = 'esg_weapons' in request.form
+            current_user.esg_tobacco = 'esg_tobacco' in request.form
+            current_user.exclude_penny_stocks = 'exclude_penny_stocks' in request.form
+            current_user.exclude_biotech = 'exclude_biotech' in request.form
 
         db.session.commit()
-        flash('Settings saved successfully.', 'success')
+        flash('Settings and Risk Parameters saved successfully.', 'success')
         return redirect(url_for('dashboard'))
 
     return render_template('settings.html', current_user=current_user)
 
-
-@app.route('/syndicate')
-@login_required
-def syndicate():
-    return render_template('leaderboard.html')
 
 @app.route('/community')
 @login_required
@@ -473,47 +473,6 @@ def post_idea():
         flash('Failed to post idea. Please try again.', 'error')
 
     return redirect(url_for('community'))
-
-
-@app.route('/scanner')
-@login_required
-def scanner():
-    # This is where the morning scan actually lives now
-    return render_template('index.html', app_title="XeanVI")
-
-
-
-@app.route('/update_settings', methods=['POST'])
-@login_required
-def update_settings():
-    current_user.bankroll = float(request.form.get('bankroll'))
-    current_user.risk_pct = float(request.form.get('risk_pct'))
-    refresh_interval = int(request.form.get('refresh_interval', 30000))
-    current_user.refresh_interval = (
-        refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
-    )
-    db.session.commit()
-    flash('Risk parameters updated successfully.', 'success')
-    return redirect(url_for('dashboard'))
-
-
-@app.route('/connect_broker', methods=['POST'])
-@login_required
-def connect_broker():
-    # Grab the keys AND the radio button selection from the form
-    api_key = request.form.get('api_key')
-    api_secret = request.form.get('api_secret')
-    claimed_feed = request.form.get('claimed_feed')  # Will be 'iex' or 'sip'
-
-    # Run the "Trust, But Verify" script
-    result = verify_alpaca_data_feed(current_user.id, api_key, api_secret, claimed_feed)
-
-    if result['success']:
-        flash(result['message'], 'success')
-    else:
-        flash(result['message'], 'error')
-
-    return redirect(url_for('dashboard'))
 
 
 @app.route('/alpaca/login')
