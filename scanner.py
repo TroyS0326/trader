@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from statistics import mean
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 from zoneinfo import ZoneInfo
 
 import requests
@@ -213,6 +213,53 @@ def get_news_catalyst_list(candidates: List[str], per_symbol: int = 1) -> List[s
         if len(headlines) >= per_symbol:
             out.append(symbol)
     return out
+
+
+def _matches_industry(industry: str, keywords: List[str]) -> bool:
+    text = (industry or '').lower()
+    return any(keyword in text for keyword in keywords)
+
+
+def apply_user_symbol_filters(
+    symbols: List[str],
+    snapshots: Dict[str, Any],
+    quotes: Dict[str, Any],
+    user: Optional[Any] = None,
+) -> List[str]:
+    if user is None:
+        return symbols
+
+    filtered: List[str] = []
+    for symbol in symbols:
+        if symbol == 'SPY':
+            filtered.append(symbol)
+            continue
+
+        snapshot = snapshots.get(symbol, {})
+        quote = quotes.get(symbol, {})
+        daily = snapshot.get('dailyBar', {})
+        minute = snapshot.get('minuteBar', {})
+        prev = snapshot.get('prevDailyBar', {})
+        price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
+        if bool(getattr(user, 'exclude_penny_stocks', True)) and price < 5.0:
+            continue
+
+        profile = get_company_profile(symbol)
+        industry = str(profile.get('finnhubIndustry') or profile.get('gind') or '')
+        if bool(getattr(user, 'exclude_biotech', False)) and _matches_industry(industry, ['biotech', 'biotechnology', 'pharmaceutical']):
+            continue
+        if bool(getattr(user, 'esg_fossil_fuels', False)) and _matches_industry(industry, ['oil', 'gas', 'coal', 'energy']):
+            continue
+        if bool(getattr(user, 'esg_weapons', False)) and _matches_industry(industry, ['defense', 'firearm', 'weapons', 'aerospace']):
+            continue
+        if bool(getattr(user, 'esg_tobacco', False)) and _matches_industry(industry, ['tobacco', 'nicotine']):
+            continue
+
+        filtered.append(symbol)
+
+    if 'SPY' not in filtered and 'SPY' in symbols:
+        filtered.append('SPY')
+    return filtered
 
 
 def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
@@ -1323,10 +1370,15 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     return analysis_result.to_dict()
 
 
-def run_scan() -> Dict[str, Any]:
+def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     symbols = get_refined_universe()
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
+    snapshots = get_snapshots(symbols)
+    quotes = get_latest_quotes(symbols)
+    symbols = apply_user_symbol_filters(symbols, snapshots, quotes, user=user)
+    if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
+        raise ScanError('No symbols remained after applying your personalization and ESG filters.')
     snapshots = get_snapshots(symbols)
     quotes = get_latest_quotes(symbols)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
