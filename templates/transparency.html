@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Transparency & Performance | XeanVI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .transparency-header { text-align: center; padding: 3rem 1rem; background: var(--bg-card); border-bottom: 1px solid var(--border-color); }
+        .pipeline-container { max-width: 1000px; margin: 3rem auto; padding: 0 1rem; }
+
+        /* The AI Pipeline Visual */
+        .pipeline-step { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; position: relative; }
+        .pipeline-step::after { content: '\f0dd'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 2rem; color: var(--border-color); }
+        .pipeline-step:last-child::after { display: none; }
+
+        .step-title { color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
+        .data-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+        .data-tag { background: var(--bg-input); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-family: monospace; }
+
+        /* Performance Report CSS */
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .report-metric { background: var(--bg-input); padding: 1.5rem; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); }
+        .report-metric h4 { margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        .report-metric .value { font-size: 2rem; font-weight: 900; color: var(--text-main); }
+        .report-metric .value.positive { color: var(--success); }
+
+        .equity-curve-placeholder { width: 100%; height: 250px; background: linear-gradient(to bottom, rgba(16, 185, 129, 0.1), transparent); border-bottom: 2px solid var(--success); border-radius: 8px; margin-top: 2rem; position: relative; display: flex; align-items: flex-end; padding: 1rem; }
+
+        .disclaimer-box { max-width: 1000px; margin: 4rem auto 2rem; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.5rem; border-radius: 8px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
+    </style>
+</head>
+<body class="dash-body">
+
+    <header class="dash-nav">
+        <a href="/" class="logo">Xean<span>VI</span></a>
+        <div>
+            <a href="/dashboard" class="btn-action" style="background: var(--bg-card);">Back to Dashboard</a>
+        </div>
+    </header>
+
+    <div class="transparency-header">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">System Transparency Report</h1>
+        <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">An under-the-hood look at how the XeanVI AI processes market data, scores catalysts, and performs in historical simulations.</p>
+    </div>
+
+    <div class="pipeline-container">
+        <h2 style="margin-bottom: 2rem; text-align: center;">The AI Decision Pipeline</h2>
+
+        <div class="pipeline-step">
+            <div class="step-title"><i class="fas fa-database"></i> 1. Raw Data Ingestion</div>
+            <p style="color: var(--text-muted);">The scanner aggregates raw, unfiltered data from multiple financial exchanges and news wires simultaneously. It filters out stocks with low liquidity to ensure safe entries and exits.</p>
+            <div class="data-tags">
+                <span class="data-tag">Alpaca SIP Data Feed</span>
+                <span class="data-tag">SEC Filings (EDGAR)</span>
+                <span class="data-tag">Benzinga Pro News API</span>
+                <span class="data-tag">Float/Short Interest Scrapers</span>
+            </div>
+        </div>
+
+        <div class="pipeline-step">
+            <div class="step-title"><i class="fas fa-brain"></i> 2. Natural Language Processing (NLP)</div>
+            <p style="color: var(--text-muted);">Volume without a reason is a trap. The AI reads the morning news for every gapping stock and assigns a <strong>Catalyst Score (1-100)</strong> based on the strength of the fundamental news.</p>
+            <div style="background: var(--bg-main); padding: 1rem; border-radius: 8px; margin-top: 1rem; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border-color);">
+                <div style="color: var(--success); margin-bottom: 0.5rem;">[+] HIGH IMPACT: FDA Approvals, Earnings Beats, Government Contracts</div>
+                <div style="color: var(--danger);">[-] LOW IMPACT: Chatroom hype, unsubstantiated rumors, secondary offerings</div>
+            </div>
+        </div>
+
+        <div class="pipeline-step">
+            <div class="step-title"><i class="fas fa-chart-bar"></i> 3. Technical & Risk Alignment</div>
+            <p style="color: var(--text-muted);">A great catalyst still needs a great chart. The engine calculates the mathematical Risk-to-Reward ratio based on support/resistance lines. If the stock passes both NLP and Technical checks, it is graded an <strong>A+ Setup</strong>.</p>
+        </div>
+
+        <h2 style="margin-top: 4rem; margin-bottom: 1rem; text-align: center;">Historical Backtest Performance</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Sample data based on the 'Target 1 + Trailing Runner' playbook applied to Q1 2026 data.</p>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem;">
+            <div class="report-grid">
+                <div class="report-metric">
+                    <h4>Win Rate</h4>
+                    <div class="value positive">62.4%</div>
+                </div>
+                <div class="report-metric">
+                    <h4>Profit Factor</h4>
+                    <div class="value positive">1.84</div>
+                </div>
+                <div class="report-metric">
+                    <h4>Avg Winner</h4>
+                    <div class="value positive">+$145.20</div>
+                </div>
+                <div class="report-metric">
+                    <h4>Avg Loser</h4>
+                    <div class="value" style="color: var(--danger);">-$78.90</div>
+                </div>
+            </div>
+
+            <div class="equity-curve-placeholder">
+                <span style="color: var(--success); font-weight: bold; position: absolute; top: 10px; right: 10px;">+24.6% Returns (Simulated)</span>
+                <svg viewBox="0 0 1000 200" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
+                    <path d="M0,200 L50,180 L100,190 L150,150 L200,160 L250,120 L300,130 L350,90 L400,110 L450,70 L500,80 L550,40 L600,60 L650,20 L700,40 L750,10 L800,30 L850,0 L900,10 L950,-20 L1000,-10" fill="none" stroke="var(--success)" stroke-width="3"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer-box">
+        <strong>Regulatory Disclaimer:</strong> Past performance is not indicative of future results. The historical backtest data provided above is simulated and does not represent actual live trading. Simulated trading programs are designed with the benefit of hindsight and do not account for financial risk, slippage, or psychological factors that occur in live markets. XeanVI is an educational and technological tool, not a registered financial advisor. Always trade with capital you can afford to lose.
+    </div>
+
+</body>
+</html>

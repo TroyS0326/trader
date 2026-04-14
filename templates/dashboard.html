@@ -293,12 +293,12 @@
                     <strong>${{ "{:,.2f}".format(current_user.bankroll) }}</strong>
                 </div>
                 <div class="metric-mini">
-                    <span>AI Confidence
-                        <span class="info-tip"><i class="fas fa-info-circle"></i>
-                            <span class="tip-text">XeanVI's score based on technical analysis, news sentiment, and volume.</span>
-                        </span>
+                    <span>
+                        <a href="/transparency" style="color: inherit; text-decoration: none; border-bottom: 1px dotted var(--text-muted); padding-bottom: 2px;">
+                            AI Confidence <i class="fas fa-external-link-alt" style="font-size: 0.7rem;"></i>
+                        </a>
                     </span>
-                    <strong id="ai-score">--</strong>
+                    <strong id="ai-confidence" style="color: var(--accent-blue);">--%</strong>
                 </div>
                 <div class="metric-mini">
                     <span>Setup Grade
@@ -675,7 +675,7 @@
             btn.disabled = true;
             statusHeader.innerText = "Working...";
             statusHeader.style.color = "var(--warning)";
-            document.getElementById('ai-score').textContent = '--';
+            document.getElementById('ai-confidence').textContent = '--%';
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
@@ -702,7 +702,7 @@
                 
                 // 3. Update the UI
                 tickerHeader.innerText = best.symbol;
-                document.getElementById('ai-score').textContent = `${best.score_total || '--'}/100`;
+                document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
                 document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
                 document.getElementById('liveIndicator').style.display = 'inline';
                 loadChart(best.symbol); 
