@@ -130,31 +130,6 @@
                     </select>
                 </div>
             </div>
-            <!-- Dashboard layout panel -->
-            <div class="config-panel">
-                <div class="panel-title">3. Dashboard Layout</div>
-                <div class="input-group-inline">
-                    <label class="switch">
-                        <input type="checkbox" name="show_news" aria-label="Display market news" {% if current_user.show_news %}checked{% endif %}>
-                        <span class="slider"></span>
-                    </label>
-                    <span>Display Market News</span>
-                </div>
-                <div class="input-group-inline">
-                    <label class="switch">
-                        <input type="checkbox" name="show_watchlist" aria-label="Display watchlist" {% if current_user.show_watchlist %}checked{% endif %}>
-                        <span class="slider"></span>
-                    </label>
-                    <span>Display Watchlist</span>
-                </div>
-                <div class="input-group-inline">
-                    <label class="switch">
-                        <input type="checkbox" name="show_terminal" aria-label="Display live terminal" {% if current_user.show_terminal %}checked{% endif %}>
-                        <span class="slider"></span>
-                    </label>
-                    <span>Display Live Terminal</span>
-                </div>
-            </div>
             <div class="config-panel">
                 <div class="panel-title"><i class="fas fa-leaf" style="color: var(--success);"></i> Personalization &amp; ESG Filters</div>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">

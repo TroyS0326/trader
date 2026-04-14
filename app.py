@@ -417,13 +417,7 @@ def settings():
             refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
         )
 
-        # 2. Update Layout Preferences
-        current_user.show_news = 'show_news' in request.form
-        current_user.show_watchlist = 'show_watchlist' in request.form
-        current_user.show_terminal = 'show_terminal' in request.form
-
-        # 3. Update ESG & Personalization Filters (Step 11)
-        # Note: getattr() is used as a safety fallback just in case the DB hasn't migrated yet
+        # 2. Update ESG & Personalization Filters
         if hasattr(current_user, 'esg_fossil_fuels'):
             current_user.esg_fossil_fuels = 'esg_fossil_fuels' in request.form
             current_user.esg_weapons = 'esg_weapons' in request.form
