@@ -282,6 +282,23 @@ def privacy():
     return render_template('privacy.html')
 
 
+
+@app.route('/learn')
+def learn_hub():
+    # This acts as the main index for your articles
+    return render_template('learn.html')
+
+
+@app.route('/learn/<article_slug>')
+def article(article_slug):
+    # Dynamically serve evergreen SEO content based on the URL
+    try:
+        # e.g., renders templates/articles/risk-management.html
+        return render_template(f'articles/{article_slug}.html')
+    except Exception:
+        # Fallback if the article doesn't exist
+        return redirect(url_for('learn_hub'))
+
 @app.route('/simulate')
 def simulate():
     return render_template('simulate.html')
