@@ -342,6 +342,35 @@ def dashboard():
     return render_template('dashboard.html', current_user=current_user)
 
 
+@app.route('/upgrade')
+@login_required
+def upgrade():
+    # If they are already PRO, don't let them buy it again!
+    if current_user.subscription_status == 'pro':
+        flash("You are already a PRO member. Your AI execution is unlocked.", "success")
+        return redirect(url_for('dashboard'))
+
+    return render_template('upgrade.html', current_user=current_user)
+
+
+@app.route('/api/process_checkout', methods=['POST'])
+@login_required
+def process_checkout():
+    # In a real app, this is where you would integrate Stripe Checkout.
+    # For now, we simulate a successful payment and instantly upgrade the user.
+    plan = request.form.get('plan', 'monthly')
+
+    try:
+        current_user.subscription_status = 'pro'
+        db.session.commit()
+        flash("Payment Successful! Welcome to XeanVI PRO.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Payment failed. Please try again.", "error")
+
+    return redirect(url_for('dashboard'))
+
+
 
 
 @app.route('/onboarding', methods=['GET', 'POST'])
