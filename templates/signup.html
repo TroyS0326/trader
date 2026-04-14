@@ -3,123 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>Sign Up | XeanVI</title>
-    <meta name="description" content="XeanVI is a disciplined, AI-driven algorithmic trading platform. Automate your morning stock scans, enforce strict risk management, and execute trades instantly via Alpaca.">
-    <meta name="keywords" content="AI trading app, automated day-trading, algorithmic trading software, Alpaca API bot, retail investor tools, risk management software">
-    <meta name="author" content="XeanVI">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/signup">
-    <meta property="og:title" content="Sign Up | XeanVI">
-    <meta property="og:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk. Start in zero-risk Paper Trading mode today.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:domain" content="xeanvi.com">
-    <meta name="twitter:title" content="Sign Up | XeanVI">
-    <meta name="twitter:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
-
+    <title>Create Account | XeanVI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <link rel="canonical" href="https://xeanvi.com/signup">
 </head>
-<body class="auth-body">
 
-    <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-
-            <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/community">Trade Discussions</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                {% else %}
-                    <a href="/features">How it Works</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="#pricing">Pricing</a>
-                {% endif %}
-            </div>
-
-            <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-main); padding: 2rem; margin: 0;">
 
     <div class="auth-container">
-        <!-- Form side -->
+        
         <div class="auth-form-side">
-            <a href="/" class="logo">Xean<span>VI</span></a>
-            <h2>Start Trading on Autopilot</h2>
-            <p>Create your account and get instant access to the AI scanner and automated execution engine.</p>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main); margin-bottom: 2rem; display: inline-block;">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+            
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Create your account</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Join the Syndicate and automate your edge.</p>
 
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-error">{{ messages[0] }}</div>
-                {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="flash-error">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
             {% endwith %}
 
             <form action="/signup" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
                 <div class="input-group">
-                    <label for="full_name">Full Name</label>
-                    <input type="text" id="full_name" name="full_name" class="auth-input" placeholder="John Doe" required>
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
                 </div>
+                
                 <div class="input-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="auth-input" placeholder="you@example.com" required>
+                    <label>Email Address</label>
+                    <input type="email" name="email" class="auth-input" placeholder="john@example.com" required>
                 </div>
+                
                 <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="auth-input" placeholder="••••••••" required>
+                    <label>Password</label>
+                    <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
                 </div>
-                <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" name="tos_agreement" id="tos" value="yes" required style="width: 18px; height: 18px;">
-                    <label for="tos" style="margin-bottom: 0; text-transform: none; letter-spacing: normal;">I agree to the <a href="/terms" style="color: var(--accent); text-decoration: underline;">Terms of Use</a></label>
+
+                <div class="input-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 1rem;">
+                    <input type="checkbox" name="tos_agreement" id="tos_agreement" style="margin-top: 4px;" required>
+                    <label for="tos_agreement" style="font-size: 0.8rem; text-transform: none; letter-spacing: 0; line-height: 1.4;">
+                        I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Service</a> and <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>, and understand this software executes trades automatically via my connected brokerage.
+                    </label>
                 </div>
-                <button type="submit" class="btn-auth">Create Account</button>
+                
+                <button type="submit" class="btn-auth" style="margin-top: 1.5rem;">Create Account</button>
             </form>
 
             <div class="auth-footer">
-                Already have an account? <a href="/login">Log In Here</a>
+                Already have an account? <a href="/login">Log In</a>
             </div>
         </div>
 
-        <!-- Marketing side -->
         <div class="auth-marketing-side">
-            <h3 style="font-size: 1.8rem; margin-bottom: 2rem; position: relative; z-index: 10;">The smarter way to trade.</h3>
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> 1‑Click Setup</div>
-                <div class="trust-desc">No coding required. Just pick a trading style (Safe, Standard or Crypto) and let the bot take over.</div>
+                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Zero Emotion</div>
+                <div class="trust-desc">The AI executes your plan precisely, removing the panic selling and FOMO buying that ruins most traders.</div>
             </div>
+            
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> Built‑in Crash Protection</div>
-                <div class="trust-desc">The AI actively monitors the overall stock market. If things look risky, it hits the brakes to protect your cash.</div>
+                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Pure Logic</div>
+                <div class="trust-desc">Cross-references breaking news sentiment with relative volume anomalies in milliseconds.</div>
             </div>
+            
             <div class="trust-box">
-                <div class="trust-title"><span>✓</span> Zero‑Risk Practice Mode</div>
-                <div class="trust-desc">Use our simulated $10,000 Sandbox to watch the bot make money before you risk a single dime of your own.</div>
+                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Strict Risk Control</div>
+                <div class="trust-desc">Hard stops and trailing runners are built into every execution. You define the max dollar loss.</div>
             </div>
         </div>
+        
     </div>
 
 </body>
