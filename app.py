@@ -318,11 +318,6 @@ def article(article_slug):
         # Fallback if the article doesn't exist
         return redirect(url_for('learn_hub'))
 
-@app.route('/simulate')
-def simulate():
-    return render_template('simulate.html')
-
-
 @app.route('/transparency')
 def transparency():
     # In a fully fleshed-out app, you might pass dynamic backtest stats here
