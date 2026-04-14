@@ -141,6 +141,25 @@ def ensure_user_layout_columns() -> None:
         conn.close()
 
 
+def ensure_user_gamification_columns() -> None:
+    """Backfill schema for discipline XP and streak metrics."""
+    conn = sqlite3.connect(config.DB_PATH)
+    try:
+        cursor = conn.execute("PRAGMA table_info(user)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        additions = {
+            'discipline_xp': "ALTER TABLE user ADD COLUMN discipline_xp INTEGER NOT NULL DEFAULT 0",
+            'current_streak': "ALTER TABLE user ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0",
+            'highest_streak': "ALTER TABLE user ADD COLUMN highest_streak INTEGER NOT NULL DEFAULT 0",
+        }
+        for column_name, ddl in additions.items():
+            if column_name not in existing_columns:
+                conn.execute(ddl)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
     if order.get('strategy') == 'target1_then_trailing_runner':
@@ -619,6 +638,19 @@ def api_chart(symbol: str):
 @login_required
 def api_execute():
     data = request.get_json(silent=True) or {}
+
+    # --- FREEMIUM GATE ---
+    # Assuming you have a toggle for 'trading_mode' (paper vs live)
+    trading_mode = getattr(current_user, 'trading_mode', 'paper')
+
+    if trading_mode == 'live' and current_user.subscription_status == 'free':
+        return fail(
+            'Live Execution is a PRO feature. Upgrade to unlock real-money automated trading.',
+            403,
+            needs_upgrade=True,
+        )
+    # ---------------------
+
     required = ['symbol', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty', 'current_price', 'buy_upper', 'score_total', 'decision']
     missing = [k for k in required if k not in data]
     if missing:
@@ -753,6 +785,7 @@ def api_execute():
 
 
 @app.route('/api/order-status/<order_id>')
+@login_required
 def api_order_status(order_id: str):
     try:
         trade = get_trade_by_order_id(order_id)
@@ -782,6 +815,18 @@ def api_order_status(order_id: str):
             'raw_json': raw if isinstance(raw, dict) else order,
         }
         update_trade_status(order_id, updates)
+
+        # --- GAMIFICATION LOGIC ---
+        if updates['outcome'] in ['win', 'partial_win']:
+            # Reward points for a successful AI execution
+            current_user.discipline_xp += 50
+            db.session.commit()
+        elif updates['outcome'] == 'loss':
+            # Reward points just for letting the system hit the stop-loss instead of holding bags!
+            current_user.discipline_xp += 25
+            db.session.commit()
+        # --------------------------
+
         order['risk_controls'] = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
@@ -808,6 +853,7 @@ with app.app_context():
     db.create_all()
     ensure_user_refresh_interval_column()
     ensure_user_layout_columns()
+    ensure_user_gamification_columns()
 
 
 if __name__ == '__main__':
