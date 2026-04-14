@@ -334,11 +334,6 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # If they don't have Alpaca connected, just show a warning instead of blocking them
-    if not current_user.alpaca_access_token:
-        flash("You are in View-Only Mode. Please connect your Alpaca account in Settings to run live scans.", "warning")
-        # We removed the redirect here so it actually lets you in!
-
     return render_template('dashboard.html', current_user=current_user)
 
 
