@@ -72,15 +72,14 @@
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
 
             <div class="xean-nav-links">
                 {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Command Center</a>
-                    <a href="/community">The Syndicate</a>
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/community">Trade Discussions</a>
                     <a href="/playbook">Playbook</a>
                     <a href="/transparency">AI Logic</a>
                 {% else %}
@@ -94,11 +93,9 @@
             <div class="xean-nav-actions">
                 {% if current_user.is_authenticated %}
                     
-                    {% if current_user.subscription_status == 'free' %}
-                        <a href="/upgrade" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem; box-shadow: 0 0 10px var(--accent-glow); border: none; border-radius: 8px;"><i class="fas fa-bolt"></i> Upgrade PRO</a>
-                    {% endif %}
+                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
                     
-                    <a href="/settings" style="text-decoration: none; margin-left: 10px;">
+                    <a href="/settings" style="text-decoration: none;">
                         <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
                     </a>
                     
@@ -107,7 +104,6 @@
                     <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
                 {% endif %}
             </div>
-
         </div>
     </nav>
     <section class="hero">
