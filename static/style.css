@@ -1125,3 +1125,36 @@ input:checked + .slider:before {
 .disclaimer-sidebar { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.5rem; border-radius: 12px; height: fit-content; }
 .disclaimer-sidebar h4 { color: #f59e0b; margin-bottom: 1rem; }
 .disclaimer-sidebar p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+
+
+/* =========================================
+   GAMIFICATION & FREEMIUM UI
+   ========================================= */
+.trader-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.trader-header { display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem; }
+.trader-avatar { width: 50px; height: 50px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), #2563eb); display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; font-size: 1.5rem; }
+.trader-info { flex-grow: 1; }
+
+.tier-badge { font-size: 0.7rem; font-weight: 900; padding: 2px 8px; border-radius: 4px; letter-spacing: 1px; }
+.tier-badge.free { background: var(--bg-input); color: var(--text-muted); }
+.tier-badge.pro { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+
+.btn-upgrade { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; font-size: 0.9rem; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); text-decoration: none;}
+.btn-upgrade:hover { transform: translateY(-2px); color: white; }
+
+.gamification-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-box { background: var(--bg-input); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.stat-box i { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.stat-box strong { font-size: 1.2rem; color: var(--text-main); }
+.stat-box span { font-size: 0.8rem; color: var(--text-muted); }
+
+.progress-track { height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), #38bdf8); border-radius: 4px; transition: width 1s ease-in-out; }
