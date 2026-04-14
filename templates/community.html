@@ -11,12 +11,12 @@
 
     <header class="dash-nav">
         <a href="/" class="logo">Xean<span>VI</span></a>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="/dashboard" class="btn-action" style="background: var(--bg-card);">Dashboard</a>
-            <a href="/playbook" class="btn-action" style="background: transparent; border: 1px solid var(--border-color);">Playbook</a>
-            <button id="theme-toggle" class="btn-action" aria-label="Toggle Dark Mode" style="background: transparent; border: 1px solid var(--border-color); padding: 0.5rem 1rem;">
-                <i class="fas fa-moon" id="theme-icon"></i>
-            </button>
+        <div style="display: flex; gap: 1.5rem; font-size: 0.95rem; font-weight: 600; align-items: center; flex-wrap: wrap;">
+            <a href="/dashboard" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">Dashboard</a>
+            <a href="/community" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">The Syndicate</a>
+            <a href="/playbook" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">Playbook</a>
+            <a href="/transparency" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">AI Logic</a>
+            <a href="/settings" style="color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'">⚙️ Settings</a>
         </div>
     </header>
 
@@ -110,7 +110,7 @@
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
             htmlElement.setAttribute('data-theme', savedTheme);
-            updateIcon(savedTheme);
+            if (themeIcon) updateIcon(savedTheme);
         }
 
         if (themeToggle && themeIcon) {
@@ -130,6 +130,7 @@
         }
 
         function updateIcon(theme) {
+            if (!themeIcon) return;
             if (theme === 'dark') {
                 themeIcon.classList.remove('fa-moon');
                 themeIcon.classList.add('fa-sun');
