@@ -6,78 +6,99 @@
     <title>Create Account | XeanVI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: var(--bg-main);
+            margin: 0;
+        }
+        .auth-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+    </style>
 </head>
+<body>
 
-<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-main); padding: 2rem; margin: 0;">
-
-    <div class="auth-container">
-        
-        <div class="auth-form-side">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main); margin-bottom: 2rem; display: inline-block;">
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
-            
-            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Create your account</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Join the Syndicate and automate your edge.</p>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <div class="flash-error">{{ message }}</div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
-
-            <form action="/signup" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                
-                <div class="input-group">
-                    <label>Full Name</label>
-                    <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
-                </div>
-                
-                <div class="input-group">
-                    <label>Email Address</label>
-                    <input type="email" name="email" class="auth-input" placeholder="john@example.com" required>
-                </div>
-                
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
-                </div>
-
-                <div class="input-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 1rem;">
-                    <input type="checkbox" name="tos_agreement" id="tos_agreement" style="margin-top: 4px;" required>
-                    <label for="tos_agreement" style="font-size: 0.8rem; text-transform: none; letter-spacing: 0; line-height: 1.4;">
-                        I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Service</a> and <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>, and understand this software executes trades automatically via my connected brokerage.
-                    </label>
-                </div>
-                
-                <button type="submit" class="btn-auth" style="margin-top: 1.5rem;">Create Account</button>
-            </form>
-
-            <div class="auth-footer">
-                Already have an account? <a href="/login">Log In</a>
+            <div class="xean-nav-links">
+                <a href="/features">How it Works</a>
+                <a href="/playbook">Playbook</a>
+                <a href="/transparency">AI Logic</a>
+                <a href="/#pricing">Pricing</a>
+            </div>
+            <div class="xean-nav-actions">
+                <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
+                <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
             </div>
         </div>
+    </nav>
 
-        <div class="auth-marketing-side">
-            <div class="trust-box">
-                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Zero Emotion</div>
-                <div class="trust-desc">The AI executes your plan precisely, removing the panic selling and FOMO buying that ruins most traders.</div>
+    <div class="auth-wrapper">
+        <div class="auth-container">
+            <div class="auth-form-side">
+                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Create your account</h2>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">Join the Syndicate and automate your edge.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="flash-error">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form action="/signup" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="auth-input" placeholder="john@example.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                    </div>
+                    <div class="input-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 1rem;">
+                        <input type="checkbox" name="tos_agreement" id="tos_agreement" style="margin-top: 4px;" required>
+                        <label for="tos_agreement" style="font-size: 0.8rem; text-transform: none; letter-spacing: 0; line-height: 1.4;">
+                            I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Service</a> and <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>.
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-auth" style="margin-top: 1.5rem;">Create Account</button>
+                </form>
+                <div class="auth-footer">
+                    Already have an account? <a href="/login">Log In</a>
+                </div>
             </div>
-            
-            <div class="trust-box">
-                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Pure Logic</div>
-                <div class="trust-desc">Cross-references breaking news sentiment with relative volume anomalies in milliseconds.</div>
-            </div>
-            
-            <div class="trust-box">
-                <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Strict Risk Control</div>
-                <div class="trust-desc">Hard stops and trailing runners are built into every execution. You define the max dollar loss.</div>
+
+            <div class="auth-marketing-side">
+                <div class="trust-box">
+                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Zero Emotion</div>
+                    <div class="trust-desc">The AI executes your plan precisely, removing human error.</div>
+                </div>
+                <div class="trust-box">
+                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Pure Logic</div>
+                    <div class="trust-desc">Cross-references breaking news sentiment with volume anomalies.</div>
+                </div>
+                <div class="trust-box">
+                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Strict Risk Control</div>
+                    <div class="trust-desc">Hard stops and trailing runners are built into every execution.</div>
+                </div>
             </div>
         </div>
-        
     </div>
 
 </body>
