@@ -376,28 +376,6 @@
                 {% endif %}
             </div>
 
-            <div class="gamification-stats">
-                <div class="stat-box">
-                    <i class="fas fa-fire" style="color: #f59e0b;"></i>
-                    <strong>{{ current_user.current_streak }} Day</strong>
-                    <span>Discipline Streak</span>
-                </div>
-                <div class="stat-box">
-                    <i class="fas fa-shield-alt" style="color: var(--accent-blue);"></i>
-                    <strong>{{ current_user.discipline_xp }} XP</strong>
-                    <span>Risk Manager</span>
-                </div>
-            </div>
-
-            <div style="margin-top: 1rem;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">
-                    <span>Level 1</span>
-                    <span>Level 2 (1000 XP)</span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: {{ (current_user.discipline_xp / 1000) * 100 }}%;"></div>
-                </div>
-            </div>
         </div>
 
         <div class="top-row">
