@@ -146,3 +146,42 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     author = db.relationship('User', backref=db.backref('posts', lazy=True))
+
+class Trade(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    scan_id = db.Column(db.Integer, nullable=True)
+
+    symbol = db.Column(db.String(10), nullable=False, index=True)
+    side = db.Column(db.String(10), nullable=False, default='buy')
+    decision = db.Column(db.String(20), nullable=False, default='BUY NOW')
+    status = db.Column(db.String(32), nullable=False, default='pending', index=True)
+
+    score_total = db.Column(db.Integer, nullable=True)
+    current_price = db.Column(db.Float, nullable=True)
+    entry_price = db.Column(db.Float, nullable=False)
+    buy_lower = db.Column(db.Float, nullable=True)
+    buy_upper = db.Column(db.Float, nullable=True)
+    stop_price = db.Column(db.Float, nullable=False)
+    target_1 = db.Column(db.Float, nullable=False)
+    target_2 = db.Column(db.Float, nullable=False)
+    qty = db.Column(db.Integer, nullable=True)
+
+    risk_per_share = db.Column(db.Float, nullable=True)
+    reward_to_target_1 = db.Column(db.Float, nullable=True)
+    reward_to_target_2 = db.Column(db.Float, nullable=True)
+    rr_ratio_1 = db.Column(db.Float, nullable=True)
+    rr_ratio_2 = db.Column(db.Float, nullable=True)
+
+    order_id = db.Column(db.String(128), nullable=True, index=True)
+    order_status = db.Column(db.String(32), nullable=True)
+    filled_avg_price = db.Column(db.Float, nullable=True)
+    filled_qty = db.Column(db.Float, nullable=True)
+    outcome = db.Column(db.String(32), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    raw_json = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('trades', lazy=True))
+

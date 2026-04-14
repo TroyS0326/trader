@@ -725,6 +725,7 @@ def api_execute():
             'rr_ratio_2': data.get('rr_ratio_2'),
             'order_id': order.get('id'),
             'order_status': order.get('status'),
+            'status': order.get('status') or 'pending',
             'filled_avg_price': order.get('filled_avg_price'),
             'filled_qty': order.get('filled_qty'),
             'outcome': order_outcome_from_payload(order),
@@ -800,6 +801,7 @@ def api_order_status(order_id: str):
                 raw['order_bundle'] = bundle
         updates = {
             'order_status': order.get('status'),
+            'status': order.get('status') or trade.get('status') or 'pending',
             'filled_avg_price': order.get('filled_avg_price'),
             'filled_qty': order.get('filled_qty'),
             'outcome': order_outcome_from_payload(order),

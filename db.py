@@ -50,6 +50,7 @@ def init_db() -> None:
                 symbol TEXT NOT NULL,
                 side TEXT NOT NULL,
                 decision TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
                 score_total INTEGER,
                 current_price REAL,
                 entry_price REAL NOT NULL,
@@ -78,6 +79,7 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_trades_created_at ON trades(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_trades_order_id ON trades(order_id);
             CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id);
+            CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
             '''
         )
         trade_columns = {
@@ -87,6 +89,9 @@ def init_db() -> None:
         if 'user_id' not in trade_columns:
             conn.execute("ALTER TABLE trades ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)")
+        if 'status' not in trade_columns:
+            conn.execute("ALTER TABLE trades ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status)")
 
 
 def insert_scan(payload: Dict[str, Any]) -> int:
@@ -118,11 +123,11 @@ def insert_trade(trade: Dict[str, Any]) -> int:
         cur = conn.execute(
             '''
             INSERT INTO trades (
-                user_id, created_at, updated_at, scan_id, symbol, side, decision, score_total, current_price,
+                user_id, created_at, updated_at, scan_id, symbol, side, decision, status, score_total, current_price,
                 entry_price, buy_lower, buy_upper, stop_price, target_1, target_2, qty,
                 risk_per_share, reward_to_target_1, reward_to_target_2, rr_ratio_1, rr_ratio_2,
                 order_id, order_status, filled_avg_price, filled_qty, outcome, notes, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 trade['user_id'],
@@ -132,6 +137,7 @@ def insert_trade(trade: Dict[str, Any]) -> int:
                 trade['symbol'],
                 trade.get('side', 'buy'),
                 trade.get('decision', 'BUY NOW'),
+                trade.get('status') or trade.get('order_status') or 'pending',
                 trade.get('score_total'),
                 trade.get('current_price'),
                 trade['entry_price'],
@@ -162,7 +168,7 @@ def update_trade_status(order_id: str, updates: Dict[str, Any]) -> None:
     fields = []
     values = []
     allowed = {
-        'order_status', 'filled_avg_price', 'filled_qty', 'outcome', 'notes', 'raw_json',
+        'order_status', 'status', 'filled_avg_price', 'filled_qty', 'outcome', 'notes', 'raw_json',
         'current_price', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty'
     }
     for key, value in updates.items():
@@ -194,7 +200,7 @@ def get_recent_trades(limit: int = 20) -> Iterable[Dict[str, Any]]:
     with get_conn() as conn:
         rows = conn.execute(
             '''
-            SELECT id, user_id, created_at, symbol, decision, score_total, qty, entry_price, stop_price,
+            SELECT id, user_id, created_at, symbol, decision, status, score_total, qty, entry_price, stop_price,
                    target_1, target_2, order_id, order_status, filled_avg_price, filled_qty, outcome
             FROM trades ORDER BY id DESC LIMIT ?
             ''',
