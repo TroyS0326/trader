@@ -20,7 +20,6 @@
     <meta name="twitter:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk.">
     <meta name="twitter:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <link rel="canonical" href="https://xeanvi.com/">
@@ -42,12 +41,12 @@
     <section class="hero">
         <div class="container grid-2">
             <div class="hero-content">
-                <h1 style="font-size: 3rem; margin-bottom: 1rem;">
+                <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
                     The <span style="color: var(--accent-blue);">AI Trading App</span> for Disciplined Investors
                 </h1>
-                <h2 style="font-size: 1.2rem; color: var(--text-muted); font-weight: normal; margin-bottom: 2rem;">
+                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
                     Automated day-trading powered by catalyst scoring, algorithmic risk management, and secure brokerage integration.
-                </h2>
+                </p>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
                     <a href="/signup" class="btn btn-primary">Start Trading on Autopilot</a>
                     <a href="/features" class="btn btn-secondary">See How it Works</a>
@@ -74,83 +73,78 @@
                 </div>
 
                 <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2);">
-                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()">
+                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px; border: none; cursor: pointer;" onclick="runSimulation()">
                         <i class="fas fa-play"></i> Run AI Scan
                     </button>
                 </div>
             </div>
-
-            <script>
-                let isSimulating = false;
-                let bankroll = 10000;
-
-                function addSimLog(msg, color = 'var(--text-muted)') {
-                    const term = document.getElementById('sim-terminal');
-                    const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                    term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
-                    term.scrollTop = term.scrollHeight; // Auto-scroll to bottom
-                }
-
-                function runSimulation() {
-                    if (isSimulating) return;
-                    isSimulating = true;
-                    
-                    const btn = document.getElementById('btn-simulate');
-                    const status = document.getElementById('sim-status');
-                    const dot = document.getElementById('sim-dot');
-                    const br = document.getElementById('sim-bankroll');
-                    
-                    // Lock UI
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                    btn.style.background = 'var(--bg-secondary)';
-                    btn.style.color = 'var(--text-muted)';
-                    
-                    status.style.color = '#f59e0b'; // Warning/Yellow
-                    dot.style.background = '#f59e0b';
-                    status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Market...`;
-
-                    // Clear terminal
-                    document.getElementById('sim-terminal').innerHTML = ''; 
-                    addSimLog("> Connecting to Alpaca SIP Data Feed...", "var(--accent-blue)");
-
-                    // Sequence timing for the terminal typing effect
-                    setTimeout(() => addSimLog("> Analyzing 4,200+ equities for relative volume anomalies..."), 800);
-                    setTimeout(() => addSimLog("> High RVOL detected on $NVDA. Cross-referencing AI Catalyst engine...", "#f59e0b"), 2200);
-                    setTimeout(() => addSimLog("> Catalyst Confirmed: AI Sector Momentum. Grade: A+", "var(--success)"), 3800);
-                    
-                    setTimeout(() => {
-                        addSimLog("> Executing BUY limit order for 50 shares at $128.50.");
-                        addSimLog("> Target 1 Set: $131.50. Hard Stop Loss Set: $127.00.");
-                    }, 5000);
-                    
-                    setTimeout(() => {
-                        addSimLog("> UPDATE: Volatility spike detected. Target 1 reached. Scaling out.", "var(--accent-blue)");
-                        addSimLog("> <strong>Trade Complete: +$150.00 Profit.</strong>", "var(--success)");
-                        
-                        // Update Bankroll
-                        bankroll += 150;
-                        br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
-                        br.style.color = 'var(--success)';
-                        
-                        status.style.color = 'var(--success)';
-                        status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Trade Won`;
-
-                        // Reset UI for another run
-                        setTimeout(() => {
-                            br.style.color = 'var(--text-main)';
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-redo"></i> Run Another Scan';
-                            btn.style.background = 'var(--accent-blue)';
-                            btn.style.color = 'white';
-                            isSimulating = false;
-                        }, 1800);
-
-                    }, 7500);
-                }
-            </script>
         </div>
     </section>
+
+    <script>
+        let isSimulating = false;
+        let bankroll = 10000;
+
+        function addSimLog(msg, color = 'var(--text-muted)') {
+            const term = document.getElementById('sim-terminal');
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function runSimulation() {
+            if (isSimulating) return;
+            isSimulating = true;
+
+            const btn = document.getElementById('btn-simulate');
+            const status = document.getElementById('sim-status');
+            const dot = document.getElementById('sim-dot');
+            const br = document.getElementById('sim-bankroll');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.style.background = 'var(--bg-secondary)';
+            btn.style.color = 'var(--text-muted)';
+
+            status.style.color = '#f59e0b';
+            dot.style.background = '#f59e0b';
+            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Market...`;
+
+            document.getElementById('sim-terminal').innerHTML = '';
+            addSimLog("> Connecting to Alpaca SIP Data Feed...", "var(--accent-blue)");
+
+            setTimeout(() => addSimLog("> Analyzing 4,200+ equities for relative volume anomalies..."), 800);
+            setTimeout(() => addSimLog("> High RVOL detected on $NVDA. Cross-referencing AI Catalyst engine...", "#f59e0b"), 2200);
+            setTimeout(() => addSimLog("> Catalyst Confirmed: AI Sector Momentum. Grade: A+", "var(--success)"), 3800);
+
+            setTimeout(() => {
+                addSimLog("> Executing BUY limit order for 50 shares at $128.50.");
+                addSimLog("> Target 1 Set: $131.50. Hard Stop Loss Set: $127.00.");
+            }, 5000);
+
+            setTimeout(() => {
+                addSimLog("> UPDATE: Volatility spike detected. Target 1 reached. Scaling out.", "var(--accent-blue)");
+                addSimLog("> <strong>Trade Complete: +$150.00 Profit.</strong>", "var(--success)");
+
+                bankroll += 150;
+                br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
+                br.style.color = 'var(--success)';
+
+                status.style.color = 'var(--success)';
+                status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Trade Won`;
+
+                setTimeout(() => {
+                    br.style.color = 'var(--text-main)';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo"></i> Run Another Scan';
+                    btn.style.background = 'var(--accent-blue)';
+                    btn.style.color = 'white';
+                    isSimulating = false;
+                }, 1800);
+
+            }, 7500);
+        }
+    </script>
 
     <section class="features">
         <div class="container">
