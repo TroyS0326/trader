@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upgrade to PRO | XeanVI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .pricing-header { text-align: center; max-width: 800px; margin: 4rem auto 3rem; }
+        .pricing-header h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main); }
+        .pricing-header p { color: var(--text-muted); font-size: 1.1rem; }
+
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto 4rem; padding: 0 1.5rem; }
+
+        .pricing-card { background: var(--bg-card); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; position: relative; text-align: center; }
+        .pricing-card.featured { border-color: var(--accent-blue); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); }
+
+        .badge-featured { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap; }
+
+        .price-block { margin: 1.5rem 0; }
+        .price-amount { font-size: 3.5rem; font-weight: 900; color: var(--text-main); }
+        .price-interval { color: var(--text-muted); }
+
+        .feature-list { list-style: none; padding: 0; margin: 2rem 0; text-align: left; }
+        .feature-list li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; color: var(--text-muted); font-size: 0.95rem; }
+        .feature-list li i { color: var(--success); margin-top: 4px; }
+
+        .checkout-btn { width: 100%; padding: 1.2rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s; }
+        .checkout-btn.primary { background: linear-gradient(135deg, var(--accent-blue), #2563eb); color: white; box-shadow: 0 4px 15px var(--accent-glow); }
+        .checkout-btn.primary:hover { transform: translateY(-2px); }
+        .checkout-btn.secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); }
+        .checkout-btn.secondary:hover { background: rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body class="dash-body">
+
+    <header class="dash-nav">
+        <a href="/" class="logo">Xean<span>VI</span></a>
+        <div>
+            <a href="/dashboard" class="btn-action" style="background: var(--bg-card);"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+    </header>
+
+    <div class="pricing-header">
+        <h1>Unlock Live Automation</h1>
+        <p>You are currently on the Free Tier (Paper Trading Only). Upgrade to PRO to unlock real-money API execution, advanced AI metrics, and full access to the Syndicate.</p>
+    </div>
+
+    <div class="pricing-grid">
+
+        <div class="pricing-card">
+            <div>
+                <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
+                <div class="price-block">
+                    <span class="price-amount">$19.99</span>
+                    <span class="price-interval">/mo</span>
+                </div>
+
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i> Live Real-Money Execution via Alpaca</li>
+                    <li><i class="fas fa-check-circle"></i> Full AI Catalyst NLP Scoring</li>
+                    <li><i class="fas fa-check-circle"></i> Post to the Syndicate Community</li>
+                    <li><i class="fas fa-check-circle"></i> Priority Dashboard Support</li>
+                </ul>
+            </div>
+
+            <form action="/api/process_checkout" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="plan" value="monthly">
+                <button type="submit" class="checkout-btn secondary">Start Monthly Plan</button>
+            </form>
+        </div>
+
+        <div class="pricing-card featured">
+            <div class="badge-featured">RECOMMENDED (SAVE 16%)</div>
+            <div>
+                <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
+                <div class="price-block">
+                    <span class="price-amount">$199.99</span>
+                    <span class="price-interval">/yr</span>
+                </div>
+
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i> <strong>Everything in Monthly, plus:</strong></li>
+                    <li><i class="fas fa-check-circle"></i> Two months completely free</li>
+                    <li><i class="fas fa-check-circle"></i> Exclusive "Veteran" Discord Badge</li>
+                    <li><i class="fas fa-check-circle"></i> Early access to new algorithm features</li>
+                </ul>
+            </div>
+
+            <form action="/api/process_checkout" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="plan" value="annual">
+                <button type="submit" class="checkout-btn primary">Start Annual Plan</button>
+            </form>
+        </div>
+
+    </div>
+
+    <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4rem;">
+        <p><i class="fas fa-lock"></i> Secure 256-bit SSL Checkout. Cancel anytime.</p>
+    </div>
+
+</body>
+</html>
