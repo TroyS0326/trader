@@ -398,10 +398,17 @@ def process_checkout():
 @login_required
 def onboarding():
     if request.method == 'POST':
+        # Ensure the risk checkbox was checked
+        if not request.form.get('risk_ack'):
+            flash('You must acknowledge the trading risks to proceed.', 'error')
+            return redirect(url_for('onboarding'))
+
         current_user.bankroll = float(request.form.get('bankroll', 5000.0))
         current_user.trading_mode = 'paper'
+        # Optional: Add a 'risk_acknowledged' timestamp to your User model
         db.session.commit()
-        flash('Setup complete! Welcome to Command Center.', 'success')
+
+        flash('Risk protocols accepted. Welcome to the Command Center.', 'success')
         return redirect(url_for('dashboard'))
 
     return render_template('onboarding.html', current_user=current_user)

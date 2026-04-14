@@ -132,6 +132,16 @@
                     </ul>
                 </div>
 
+                <div class="config-panel" style="margin-top: 2rem; border-color: var(--warning);">
+                    <div class="panel-title" style="color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> Final Risk Acknowledgement</div>
+                    <div style="display: flex; align-items: flex-start; gap: 12px; margin-top: 1rem;">
+                        <input type="checkbox" id="risk_ack" name="risk_ack" required style="margin-top: 5px;">
+                        <label for="risk_ack" style="font-size: 0.85rem; color: var(--text-main); text-transform: none; letter-spacing: 0;">
+                            I understand that XeanVI is an automated execution tool. I accept full responsibility for all trades executed via my connected Alpaca account and acknowledge the risks associated with algorithmic trading.
+                        </label>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-wizard" style="background: var(--accent-blue); color: white; box-shadow: 0 4px 15px var(--accent-glow);">Enter Command Center</button>
             </div>
         </form>
