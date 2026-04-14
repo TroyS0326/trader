@@ -1,28 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>XeanVI | AI-Automated Day Trading App for Retail Investors</title>
+    
     <meta name="description" content="XeanVI is a disciplined, AI-driven algorithmic trading platform. Automate your morning stock scans, enforce strict risk management, and execute trades instantly via Alpaca.">
     <meta name="keywords" content="AI trading app, automated day-trading, algorithmic trading software, Alpaca API bot, retail investor tools, risk management software">
     <meta name="author" content="XeanVI">
+    <meta name="robots" content="index, follow">
     
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/">
-    <meta property="og:title" content="XeanVI | AI-Automated Day Trading">
-    <meta property="og:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk. Start in zero-risk Paper Trading mode today.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:domain" content="xeanvi.com">
-    <meta name="twitter:title" content="XeanVI | AI-Automated Day Trading">
-    <meta name="twitter:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "XeanVI",
+      "operatingSystem": "Web",
+      "applicationCategory": "FinanceApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "19.99",
+        "priceCurrency": "USD"
+      },
+      "description": "An automated AI trading bot and stock scanner."
+    }
+    </script>
 
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <link rel="canonical" href="https://xeanvi.com/">
+
+    <style>
+        /* Landing Page Specific Overrides */
+        h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+        h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
+        h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+        p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+        
+        nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
+        .logo span { color: var(--accent-blue); }
+        .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent-blue); }
+        
+        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; text-decoration: none;}
+        .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); color: #ffffff;}
+        .btn-secondary { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
+
+        .hero { padding: 8rem 0; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
+        .hero-content { max-width: 700px; }
+        
+        .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
+        
+        footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
+            .hero { padding: 4rem 0; text-align: center; }
+            .hero-content { margin: 0 auto; }
+            .nav-links { display: none; }
+        }
+    </style>
 </head>
 <body>
 
@@ -31,7 +75,6 @@
             <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="nav-links">
                 <a href="/features">How it Works</a>
-                <a href="/playbook">Playbook</a>
                 <a href="#pricing">Pricing</a>
                 <a href="/login" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">Log In</a>
             </div>
@@ -53,9 +96,8 @@
                 </div>
             </div>
             
-            <div style="border-radius: 16px; border: 1px solid var(--border); overflow: hidden; background: var(--bg-secondary); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;">
-                
-                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
                     <div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Live Sandbox</div>
                         <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
@@ -72,79 +114,14 @@
                     <div style="color: var(--text-muted);">> Engine loaded. $10,000 paper capital available.</div>
                 </div>
 
-                <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2);">
-                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px; border: none; cursor: pointer;" onclick="runSimulation()">
+                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()">
                         <i class="fas fa-play"></i> Run AI Scan
                     </button>
                 </div>
             </div>
         </div>
     </section>
-
-    <script>
-        let isSimulating = false;
-        let bankroll = 10000;
-
-        function addSimLog(msg, color = 'var(--text-muted)') {
-            const term = document.getElementById('sim-terminal');
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
-            term.scrollTop = term.scrollHeight;
-        }
-
-        function runSimulation() {
-            if (isSimulating) return;
-            isSimulating = true;
-
-            const btn = document.getElementById('btn-simulate');
-            const status = document.getElementById('sim-status');
-            const dot = document.getElementById('sim-dot');
-            const br = document.getElementById('sim-bankroll');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-            btn.style.background = 'var(--bg-secondary)';
-            btn.style.color = 'var(--text-muted)';
-
-            status.style.color = '#f59e0b';
-            dot.style.background = '#f59e0b';
-            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Market...`;
-
-            document.getElementById('sim-terminal').innerHTML = '';
-            addSimLog("> Connecting to Alpaca SIP Data Feed...", "var(--accent-blue)");
-
-            setTimeout(() => addSimLog("> Analyzing 4,200+ equities for relative volume anomalies..."), 800);
-            setTimeout(() => addSimLog("> High RVOL detected on $NVDA. Cross-referencing AI Catalyst engine...", "#f59e0b"), 2200);
-            setTimeout(() => addSimLog("> Catalyst Confirmed: AI Sector Momentum. Grade: A+", "var(--success)"), 3800);
-
-            setTimeout(() => {
-                addSimLog("> Executing BUY limit order for 50 shares at $128.50.");
-                addSimLog("> Target 1 Set: $131.50. Hard Stop Loss Set: $127.00.");
-            }, 5000);
-
-            setTimeout(() => {
-                addSimLog("> UPDATE: Volatility spike detected. Target 1 reached. Scaling out.", "var(--accent-blue)");
-                addSimLog("> <strong>Trade Complete: +$150.00 Profit.</strong>", "var(--success)");
-
-                bankroll += 150;
-                br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
-                br.style.color = 'var(--success)';
-
-                status.style.color = 'var(--success)';
-                status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Trade Won`;
-
-                setTimeout(() => {
-                    br.style.color = 'var(--text-main)';
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-redo"></i> Run Another Scan';
-                    btn.style.background = 'var(--accent-blue)';
-                    btn.style.color = 'white';
-                    isSimulating = false;
-                }, 1800);
-
-            }, 7500);
-        }
-    </script>
 
     <section class="features">
         <div class="container">
@@ -154,21 +131,21 @@
                     <p>Most beginners lose money because they get emotional, buy at the wrong time, or bet too much on one stock. XeanVI removes the human error entirely.</p>
                     <ul style="list-style: none; padding: 0; color: var(--text-main); font-size: 1.1rem;">
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Smart Risk Sizing:</strong> Never bets your whole account.
+                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Smart Risk Sizing:</strong> Never bets your whole account.
                         </li>
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Crash Protection:</strong> Pauses the bot if the market is dumping.
+                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Crash Protection:</strong> Pauses the bot if the market is dumping.
                         </li>
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;">✓</span> <strong>Paper Trading Sandbox:</strong> Test it with fake money first!
+                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Paper Trading Sandbox:</strong> Test it with fake money first!
                         </li>
                     </ul>
                 </div>
-                <div style="background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border);">
+                <div style="background: var(--bg-card); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">AI</div>
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: #fff;">AI</div>
                         <div>
-                            <h4 style="margin: 0; font-size: 1.1rem;">Zero Emotion. Pure Logic.</h4>
+                            <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Zero Emotion. Pure Logic.</h4>
                             <span style="color: var(--text-muted); font-size: 0.9rem;">The Bot's Promise</span>
                         </div>
                     </div>
@@ -178,7 +155,7 @@
         </div>
     </section>
 
-    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
         <div class="container">
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
                 <div style="max-width: 600px;">
@@ -194,7 +171,7 @@
         </div>
     </section>
 
-    <section id="pricing" style="padding: 6rem 0; background-color: var(--bg-secondary);">
+    <section id="pricing" style="padding: 6rem 0; background-color: var(--bg-card);">
         <div class="container">
             <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
                 <h2>Pro Tools. Beginner Price.</h2>
@@ -202,7 +179,7 @@
             </div>
 
             <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem;">
-                <div style="background: var(--bg-primary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
                         <div style="margin: 1.5rem 0;">
@@ -214,8 +191,8 @@
                     <a href="/signup" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
                 </div>
 
-                <div style="background: var(--bg-primary); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em;">RECOMMENDED (SAVE 16%)</div>
+                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap;">RECOMMENDED (SAVE 16%)</div>
                     <div>
                         <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
                         <div style="margin: 1.5rem 0;">
@@ -236,11 +213,74 @@
             <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. This software executes trades based on logic parameters. Past performance does not guarantee future results. Test in Sandbox mode before using real capital.</p>
             <div style="margin-top: 1rem; font-size: 0.85rem;">
                 <a href="/terms" style="color: var(--accent-blue); margin-right: 15px;">Terms of Use</a>
-                <a href="/privacy" style="color: var(--accent-blue); margin-right: 15px;">Privacy Policy</a>
-                <a href="/playbook" style="color: var(--accent-blue);">The Playbook</a>
+                <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>
             </div>
         </div>
     </footer>
 
+    <script>
+        let isSimulating = false;
+        let bankroll = 10000;
+
+        function addSimLog(msg, color = 'var(--text-muted)') {
+            const term = document.getElementById('sim-terminal');
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function runSimulation() {
+            if (isSimulating) return;
+            isSimulating = true;
+            
+            const btn = document.getElementById('btn-simulate');
+            const status = document.getElementById('sim-status');
+            const dot = document.getElementById('sim-dot');
+            const br = document.getElementById('sim-bankroll');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.style.background = 'var(--bg-card)';
+            btn.style.color = 'var(--text-muted)';
+            
+            status.style.color = '#f59e0b';
+            dot.style.background = '#f59e0b';
+            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Market...`;
+
+            document.getElementById('sim-terminal').innerHTML = ''; 
+            addSimLog("> Connecting to Alpaca SIP Data Feed...", "var(--accent-blue)");
+
+            setTimeout(() => addSimLog("> Analyzing 4,200+ equities for relative volume anomalies..."), 800);
+            setTimeout(() => addSimLog("> High RVOL detected on $NVDA. Cross-referencing AI Catalyst engine...", "#f59e0b"), 2200);
+            setTimeout(() => addSimLog("> Catalyst Confirmed: AI Sector Momentum. Grade: A+", "var(--success)"), 3800);
+            
+            setTimeout(() => {
+                addSimLog("> Executing BUY limit order for 50 shares at $128.50.");
+                addSimLog("> Target 1 Set: $131.50. Hard Stop Loss Set: $127.00.");
+            }, 5000);
+            
+            setTimeout(() => {
+                addSimLog("> UPDATE: Volatility spike detected. Target 1 reached. Scaling out.", "var(--accent-blue)");
+                addSimLog("> <strong>Trade Complete: +$150.00 Profit.</strong>", "var(--success)");
+                
+                bankroll += 150;
+                br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
+                br.style.color = 'var(--success)';
+                
+                status.style.color = 'var(--success)';
+                status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Trade Won`;
+
+                setTimeout(() => {
+                    br.style.color = 'var(--text-main)';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo"></i> Run Another Scan';
+                    btn.style.background = 'var(--accent-blue)';
+                    btn.style.color = 'white';
+                    isSimulating = false;
+                }, 1800);
+
+            }, 7500);
+        }
+    </script>
 </body>
 </html>
