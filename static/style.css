@@ -1158,3 +1158,103 @@ input:checked + .slider:before {
 
 .progress-track { height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), #38bdf8); border-radius: 4px; transition: width 1s ease-in-out; }
+
+/* =========================================
+   UNIFIED PREMIUM NAVIGATION (SaaS Style)
+   ========================================= */
+.xean-nav {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.75); /* Dark transparent base */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+/* Light mode override if applicable */
+[data-theme="light"] .xean-nav {
+    background: rgba(248, 250, 252, 0.8);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.xean-nav-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+}
+
+.xean-nav-links {
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+}
+
+.xean-nav-links a {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    position: relative;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease;
+}
+
+.xean-nav-links a:hover {
+    color: var(--text-main);
+}
+
+/* Premium Hover Underline Animation */
+.xean-nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background: var(--accent-blue);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 2px;
+}
+
+.xean-nav-links a:hover::after {
+    width: 100%;
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.xean-nav-actions {
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+}
+
+/* Small User Avatar for the top right */
+.nav-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 1rem;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.nav-avatar:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px var(--accent-glow);
+    transform: scale(1.05);
+}
+
+@media (max-width: 992px) {
+    .xean-nav-links { display: none; /* Keep it clean on mobile */ }
+    .xean-nav-inner { padding: 1rem; }
+}
