@@ -457,6 +457,32 @@
                 </div>
             </div>
 
+            <div class="data-card" id="active-position-card" style="display: none; border-color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);">
+                <div class="card-header">
+                    Live Position: <span id="pos-symbol" style="color: var(--accent-blue);">--</span>
+                    <span class="table-pill buy-now">LIVE</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="mini-card">
+                        <div class="label">Entry Price</div>
+                        <div class="value" id="pos-entry">$--</div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="label">Current Price</div>
+                        <div class="value" id="pos-current">$--</div>
+                    </div>
+                </div>
+                <div class="action-box" id="pl-container" style="text-align: center; padding: 1.5rem;">
+                    <div class="label" style="font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;">Unrealized P&L</div>
+                    <div id="pos-pl" style="font-size: 2.5rem; font-weight: 900;">$0.00</div>
+                    <div id="pos-pl-pct" style="font-size: 1.1rem; font-weight: bold; opacity: 0.8;">(0.00%)</div>
+                </div>
+                <div class="watch-panel">
+                    <div class="watch-line"><span>Stop Loss:</span> <span id="pos-stop" class="highlight-red">--</span></div>
+                    <div class="watch-line"><span>Target 1:</span> <span id="pos-target" class="highlight-green">--</span></div>
+                </div>
+            </div>
+
             <div class="data-card full-width" id="terminal-panel">
                 <div class="card-header">Live Terminal <span id="bot-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">Waiting...</span></div>
                 <div class="terminal-output" id="log-container">
@@ -473,11 +499,40 @@
         // Global state for websockets
         const state = { ws: null };
         const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
+        let activeTrade = null; // Stores {symbol, entry, qty, stop, target}
 
         // Helper: Format Money
         function money(v) {
             if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
             return `$${Number(v).toFixed(2)}`;
+        }
+
+        
+        function updateLivePL(currentPrice) {
+            if (!activeTrade) return;
+
+            const pl = (currentPrice - activeTrade.entry) * activeTrade.qty;
+            const plPct = ((currentPrice - activeTrade.entry) / activeTrade.entry) * 100;
+
+            const plEl = document.getElementById('pos-pl');
+            const pctEl = document.getElementById('pos-pl-pct');
+            const card = document.getElementById('pl-container');
+
+            // Update Text
+            plEl.textContent = (pl >= 0 ? '+' : '') + money(pl);
+            pctEl.textContent = `(${plPct.toFixed(2)}%)`;
+            document.getElementById('pos-current').textContent = money(currentPrice);
+
+            // Dynamic Colors
+            if (pl >= 0) {
+                plEl.style.color = 'var(--success)';
+                card.style.background = 'rgba(16, 185, 129, 0.1)';
+                card.style.borderColor = 'var(--success)';
+            } else {
+                plEl.style.color = 'var(--danger)';
+                card.style.background = 'rgba(239, 68, 68, 0.1)';
+                card.style.borderColor = 'var(--danger)';
+            }
         }
 
         // Helper: Add log to terminal
@@ -495,6 +550,12 @@
                 if (!response.ok) throw new Error('Metrics endpoint unavailable');
                 const payload = await response.json();
                 if (payload?.ok) {
+                    const watchItems = payload.data?.watchlist || [];
+                    if (activeTrade?.symbol) {
+                        const match = watchItems.find(item => item.symbol === activeTrade.symbol);
+                        const price = Number(match?.current_price);
+                        if (!Number.isNaN(price)) updateLivePL(price);
+                    }
                     console.log(`Pinging APIs every ${userRefreshRate / 1000} seconds.`);
                 }
             } catch (err) {
@@ -760,6 +821,23 @@
                             addLog(`✅ Order Confirmed! Bot bought ${best.qty} shares of ${best.symbol}.`, "var(--success)");
                             addLog(`🛡️ Hard Stop Loss set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
                             addLog(`🎯 Profit Target set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
+
+                            // Set Active Trade Data
+                            activeTrade = {
+                                symbol: best.symbol,
+                                entry: best.entry_price,
+                                qty: best.qty,
+                                stop: best.stop_price,
+                                target: best.target_1
+                            };
+
+                            // Populate and Show the Card
+                            document.getElementById('pos-symbol').textContent = activeTrade.symbol;
+                            document.getElementById('pos-entry').textContent = money(activeTrade.entry);
+                            document.getElementById('pos-stop').textContent = money(activeTrade.stop);
+                            document.getElementById('pos-target').textContent = money(activeTrade.target);
+                            document.getElementById('active-position-card').style.display = 'block';
+                            updateLivePL(Number(best.current_price));
                             
                             // Make the UI scream "Live Position"
                             const pill = document.getElementById('decisionPill');
