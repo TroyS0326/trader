@@ -3,82 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XeanVI | Automated AI Trading Bot</title>
     
-    <meta name="description" content="XeanVI is an automated AI trading bot that scans the news, manages your risk, and executes trades on autopilot. Stop staring at charts and let the machine work.">
-    <meta name="author" content="XeanVI Systems">
-    <meta name="robots" content="index, follow">
+    <title>XeanVI | AI-Automated Day Trading App for Retail Investors</title>
+    <meta name="description" content="XeanVI is a disciplined, AI-driven algorithmic trading platform. Automate your morning stock scans, enforce strict risk management, and execute trades instantly via Alpaca.">
+    <meta name="keywords" content="AI trading app, automated day-trading, algorithmic trading software, Alpaca API bot, retail investor tools, risk management software">
+    <meta name="author" content="XeanVI">
     
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "XeanVI",
-      "operatingSystem": "Web",
-      "applicationCategory": "FinanceApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "19.99",
-        "priceCurrency": "USD"
-      },
-      "description": "An automated AI trading bot and stock scanner."
-    }
-    </script>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://xeanvi.com/">
+    <meta property="og:title" content="XeanVI | AI-Automated Day Trading">
+    <meta property="og:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk. Start in zero-risk Paper Trading mode today.">
+    <meta property="og:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:domain" content="xeanvi.com">
+    <meta name="twitter:title" content="XeanVI | AI-Automated Day Trading">
+    <meta name="twitter:description" content="Remove human emotion from your trading. Let AI scan the market, rank setups, and manage your risk.">
+    <meta name="twitter:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
 
-    <style>
-        /* Base Variables - Dark SaaS Theme */
-        :root {
-            --bg-primary: #060b14;
-            --bg-secondary: #101826;
-            --accent-blue: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --text-main: #eef4ff;
-            --text-muted: #94a3b8;
-            --success: #10b981;
-            --border: rgba(148, 163, 184, 0.15);
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-sans); background-color: var(--bg-primary); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
-        a { text-decoration: none; color: inherit; }
-        
-        h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
-        h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
-        h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
-        p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-        
-        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-        
-        nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
-        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
-        .logo span { color: var(--accent-blue); }
-        .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--accent-blue); }
-        
-        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; }
-        .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-        .btn-secondary { background-color: var(--bg-secondary); color: var(--text-main); border: 1px solid var(--border); }
-        .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
-
-        .hero { padding: 8rem 0; position: relative; overflow: hidden; }
-        .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
-        .hero-content { max-width: 700px; }
-        
-        .features { padding: 6rem 0; background-color: var(--bg-primary); border-top: 1px solid var(--border); }
-        
-        footer { padding: 3rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
-
-        @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
-            .hero { padding: 4rem 0; text-align: center; }
-            .hero-content { margin: 0 auto; }
-            .nav-links { display: none; }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="canonical" href="https://xeanvi.com/">
 </head>
 <body>
 
@@ -97,8 +42,12 @@
     <section class="hero">
         <div class="container grid-2">
             <div class="hero-content">
-                <h1>Stop Staring at Charts. <span style="color: var(--accent-blue);">Let the AI Trade.</span></h1>
-                <p>XeanVI is an automated trading bot that scans the news, finds the best setups, and safely executes trades while you live your life. Zero coding or financial degree required.</p>
+                <h1 style="font-size: 3rem; margin-bottom: 1rem;">
+                    The <span style="color: var(--accent-blue);">AI Trading App</span> for Disciplined Investors
+                </h1>
+                <h2 style="font-size: 1.2rem; color: var(--text-muted); font-weight: normal; margin-bottom: 2rem;">
+                    Automated day-trading powered by catalyst scoring, algorithmic risk management, and secure brokerage integration.
+                </h2>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
                     <a href="/signup" class="btn btn-primary">Start Trading on Autopilot</a>
                     <a href="/features" class="btn btn-secondary">See How it Works</a>
