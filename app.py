@@ -87,8 +87,6 @@ def ensure_db_initialized() -> None:
         init_db()
 
 
-ensure_db_initialized()
-
 LATEST_SCAN = None
 VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
 
@@ -159,6 +157,33 @@ def ensure_user_gamification_columns() -> None:
     finally:
         conn.close()
 
+
+def ensure_user_personalization_columns() -> None:
+    """Backfill schema for ESG and risk personalization toggles."""
+    conn = sqlite3.connect(config.DB_PATH)
+    try:
+        cursor = conn.execute("PRAGMA table_info(user)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        additions = {
+            'esg_fossil_fuels': "ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0",
+            'esg_weapons': "ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0",
+            'esg_tobacco': "ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0",
+            'exclude_penny_stocks': "ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1",
+            'exclude_biotech': "ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0",
+        }
+        for column_name, ddl in additions.items():
+            if column_name not in existing_columns:
+                conn.execute(ddl)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+ensure_db_initialized()
+ensure_user_refresh_interval_column()
+ensure_user_layout_columns()
+ensure_user_gamification_columns()
+ensure_user_personalization_columns()
 
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
@@ -393,6 +418,11 @@ def settings():
         current_user.show_news = 'show_news' in request.form
         current_user.show_watchlist = 'show_watchlist' in request.form
         current_user.show_terminal = 'show_terminal' in request.form
+        current_user.esg_fossil_fuels = 'esg_fossil_fuels' in request.form
+        current_user.esg_weapons = 'esg_weapons' in request.form
+        current_user.esg_tobacco = 'esg_tobacco' in request.form
+        current_user.exclude_penny_stocks = 'exclude_penny_stocks' in request.form
+        current_user.exclude_biotech = 'exclude_biotech' in request.form
         # Note: If you want to save the Paper/Live toggle, you will need to add a
         # 'trading_mode' column to your User model in models.py later!
 
@@ -582,7 +612,7 @@ def api_runtime_health():
 def run_scan_api():
     try:
         # 1. Run your ACTUAL Python scanner from scanner.py
-        result = run_scan()
+        result = run_scan(current_user)
 
         # 2. Extract the winning stock from the scanner's results
         best_pick = result.get('best_pick', {})
@@ -619,7 +649,7 @@ def run_scan_api():
 def api_scan():
     global LATEST_SCAN
     try:
-        result = run_scan()
+        result = run_scan(current_user if current_user.is_authenticated else None)
         risk_controls = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,

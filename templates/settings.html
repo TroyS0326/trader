@@ -155,6 +155,71 @@
                     <span>Display Live Terminal</span>
                 </div>
             </div>
+            <div class="config-panel">
+                <div class="panel-title"><i class="fas fa-leaf" style="color: var(--success);"></i> Personalization &amp; ESG Filters</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    Tell the AI which sectors to actively avoid during the morning scan based on your personal ethics and risk tolerance.
+                </p>
+
+                <h4 style="color: var(--text-main); margin-bottom: 1rem; border-bottom: 1px dotted var(--border-color); padding-bottom: 0.5rem;">Ethical Exclusions</h4>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <strong style="color: var(--text-main);">Exclude Fossil Fuels</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Block oil, gas, and coal exploration companies.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="esg_fossil_fuels" {% if current_user.esg_fossil_fuels %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <strong style="color: var(--text-main);">Exclude Weapons &amp; Firearms</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Block defense contractors and civilian firearm manufacturers.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="esg_weapons" {% if current_user.esg_weapons %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <strong style="color: var(--text-main);">Exclude Tobacco</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Avoid tobacco manufacturers and nicotine-focused businesses.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="esg_tobacco" {% if current_user.esg_tobacco %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <h4 style="color: var(--text-main); margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px dotted var(--border-color); padding-bottom: 0.5rem;">Risk Personalization</h4>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <strong style="color: var(--text-main);">Block Penny Stocks (&lt; $5)</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Filter out highly volatile micro-cap stocks.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="exclude_penny_stocks" {% if current_user.exclude_penny_stocks %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <strong style="color: var(--text-main);">Block Biotech Sector</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Biotech stocks are prone to unpredictable FDA gaps.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="exclude_biotech" {% if current_user.exclude_biotech %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
             <button type="submit" class="btn-auth" style="margin-top: 1rem;">Save Settings</button>
         </form>
     </div>
