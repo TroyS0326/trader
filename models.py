@@ -118,6 +118,7 @@ class User(UserMixin, db.Model):
     exclude_biotech = db.Column(db.Boolean, nullable=False, default=False)
     _alpaca_access_token = db.Column('alpaca_access_token', db.Text, nullable=True)
     alpaca_account_id = db.Column(db.String(100), nullable=True)
+    alpaca_data_feed = db.Column(db.String(10), nullable=False, default='iex')
 
     @property
     def alpaca_access_token(self) -> Optional[str]:
@@ -184,4 +185,3 @@ class Trade(db.Model):
     raw_json = db.Column(db.Text, nullable=True)
 
     user = db.relationship('User', backref=db.backref('trades', lazy=True))
-

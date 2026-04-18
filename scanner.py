@@ -20,7 +20,6 @@ from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
     ALPACA_DATA_BASE,
-    ALPACA_FEED,
     CURRENT_BANKROLL,
     DEFAULT_RISK_CAPITAL,
     FINNHUB_API_KEY,
@@ -68,6 +67,11 @@ VETERAN_BLACKLIST = {
 
 class ScanError(Exception):
     pass
+
+
+def resolve_data_feed(user: Optional[Any] = None) -> str:
+    candidate = (getattr(user, 'alpaca_data_feed', '') or '').strip().lower()
+    return candidate if candidate in {'iex', 'sip'} else 'iex'
 
 
 def now_utc() -> datetime:
@@ -262,7 +266,7 @@ def apply_user_symbol_filters(
     return filtered
 
 
-def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
+def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] = None) -> List[str]:
     candidates = set()
     candidates.update(get_alpaca_movers(limit))
     candidates.update(get_premarket_leaders(limit))
@@ -272,8 +276,9 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
     if 'SPY' not in candidates:
         candidates.add('SPY')
 
-    snapshots = get_snapshots(list(candidates))
-    quotes = get_latest_quotes(list(candidates))
+    feed = resolve_data_feed(user)
+    snapshots = get_snapshots(list(candidates), feed=feed)
+    quotes = get_latest_quotes(list(candidates), feed=feed)
 
     valid: List[str] = []
     for symbol in candidates:
@@ -315,25 +320,34 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
     if 'SPY' not in valid:
         valid.append('SPY')
     return valid[: max(limit, 12)]
-def get_snapshots(symbols: List[str]) -> Dict[str, Any]:
+
+
+def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/snapshots',
-        params={'symbols': ','.join(symbols), 'feed': ALPACA_FEED},
+        params={'symbols': ','.join(symbols), 'feed': feed},
         headers=_alpaca_headers(),
     )
     return data.get('snapshots', data)
 
 
-def get_latest_quotes(symbols: List[str]) -> Dict[str, Any]:
+def get_latest_quotes(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/quotes/latest',
-        params={'symbols': ','.join(symbols), 'feed': ALPACA_FEED},
+        params={'symbols': ','.join(symbols), 'feed': feed},
         headers=_alpaca_headers(),
     )
     return data.get('quotes', data)
 
 
-def get_bars(symbols: List[str], timeframe: str, start: datetime, end: datetime, limit: int) -> Dict[str, List[Dict[str, Any]]]:
+def get_bars(
+    symbols: List[str],
+    timeframe: str,
+    start: datetime,
+    end: datetime,
+    limit: int,
+    feed: str = 'iex',
+) -> Dict[str, List[Dict[str, Any]]]:
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/bars',
         params={
@@ -343,19 +357,19 @@ def get_bars(symbols: List[str], timeframe: str, start: datetime, end: datetime,
             'end': end.isoformat(),
             'limit': limit,
             'adjustment': 'split',
-            'feed': ALPACA_FEED,
+            'feed': feed,
         },
         headers=_alpaca_headers(),
     )
     return data.get('bars', {})
 
 
-def get_vix_change() -> float:
+def get_vix_change(feed: str = 'iex') -> float:
     """Calculates the 1-hour percentage change for VIXY proxy volatility."""
     end = now_utc()
     start = end - timedelta(hours=1)
     try:
-        bars = get_bars([VIX_SYMBOL], '1Min', start, end, 60).get(VIX_SYMBOL, [])
+        bars = get_bars([VIX_SYMBOL], '1Min', start, end, 60, feed=feed).get(VIX_SYMBOL, [])
     except Exception:
         return 0.0
     if len(bars) < 2:
@@ -508,12 +522,13 @@ def to_chart_bars(bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
-def get_stock_chart_pack(symbol: str) -> Dict[str, Any]:
+def get_stock_chart_pack(symbol: str, user: Optional[Any] = None) -> Dict[str, Any]:
+    feed = resolve_data_feed(user)
     end = now_utc()
     daily_start = end - timedelta(days=260)
     intraday_start = end - timedelta(days=3)
-    daily = get_bars([symbol], '1Day', daily_start, end, 260).get(symbol, [])
-    intraday = get_bars([symbol], '1Min', intraday_start, end, 1000).get(symbol, [])
+    daily = get_bars([symbol], '1Day', daily_start, end, 260, feed=feed).get(symbol, [])
+    intraday = get_bars([symbol], '1Min', intraday_start, end, 1000, feed=feed).get(symbol, [])
     return {'symbol': symbol, 'daily': to_chart_bars(daily[-220:]), 'intraday': to_chart_bars(intraday[-390:])}
 
 
@@ -799,7 +814,7 @@ def detect_heavy_red_candle_trap(minute_bars: List[Dict[str, Any]]) -> Dict[str,
 
 
 
-def get_market_internals_bias() -> Dict[str, Any]:
+def get_market_internals_bias(feed: str = 'iex') -> Dict[str, Any]:
     meta = {
         'enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         'tick_symbol': MARKET_INTERNALS_TICK_SYMBOL,
@@ -815,7 +830,7 @@ def get_market_internals_bias() -> Dict[str, Any]:
     end = now_utc()
     start = end - timedelta(minutes=30)
     try:
-        bars = get_bars([MARKET_INTERNALS_TICK_SYMBOL, MARKET_INTERNALS_ADD_SYMBOL], '1Min', start, end, 60)
+        bars = get_bars([MARKET_INTERNALS_TICK_SYMBOL, MARKET_INTERNALS_ADD_SYMBOL], '1Min', start, end, 60, feed=feed)
     except Exception as exc:
         meta['reason'] = f'Could not fetch internals: {exc}'
         return meta
@@ -1376,29 +1391,30 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
-    symbols = get_refined_universe()
+    feed = resolve_data_feed(user)
+    symbols = get_refined_universe(user=user)
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
-    snapshots = get_snapshots(symbols)
-    quotes = get_latest_quotes(symbols)
+    snapshots = get_snapshots(symbols, feed=feed)
+    quotes = get_latest_quotes(symbols, feed=feed)
     symbols = apply_user_symbol_filters(symbols, snapshots, quotes, user=user)
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
-    snapshots = get_snapshots(symbols)
-    quotes = get_latest_quotes(symbols)
+    snapshots = get_snapshots(symbols, feed=feed)
+    quotes = get_latest_quotes(symbols, feed=feed)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
-    sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols])
+    sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols], feed=feed)
     sector_snapshots.update({k: v for k, v in snapshots.items() if k in sector_symbols})
     end = now_utc()
-    daily_bars_map = get_bars(symbols, '1Day', end - timedelta(days=400), end, 400)
-    minute_bars_map = get_bars(symbols, '1Min', end - timedelta(days=3), end, 1000)
+    daily_bars_map = get_bars(symbols, '1Day', end - timedelta(days=400), end, 400, feed=feed)
+    minute_bars_map = get_bars(symbols, '1Min', end - timedelta(days=3), end, 1000, feed=feed)
 
     spy_snap = snapshots.get('SPY', {})
     spy_prev = safe_num(spy_snap.get('prevDailyBar', {}).get('c')) or 1
     spy_curr = safe_num(spy_snap.get('dailyBar', {}).get('c')) or safe_num(spy_snap.get('minuteBar', {}).get('c')) or spy_prev
     spy_change_pct = ((spy_curr - spy_prev) / spy_prev * 100.0) if spy_prev > 0 else 0.0
     spy_minute_bars = minute_bars_map.get('SPY', [])
-    market_internals = get_market_internals_bias()
+    market_internals = get_market_internals_bias(feed=feed)
 
     ranked = []
     print(f"\n--- DEBUG: STARTING SCAN LOOP FOR {len(symbols)} SYMBOLS ---")
@@ -1456,7 +1472,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         reverse=True,
     )
     best = ranked[0]
-    chart_pack = get_stock_chart_pack(best['symbol'])
+    chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
     if valid_candidates:

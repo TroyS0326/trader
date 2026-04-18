@@ -1,56 +1,33 @@
 import requests
-from models import db, User 
+from models import db
 
-def verify_alpaca_data_feed(user_id, api_key, api_secret, claimed_feed):
+
+def verify_alpaca_data_feed(user):
     """
-    Trust, but verify. Checks the user's claimed data feed against Alpaca's actual servers.
+    Checks a connected Alpaca OAuth account and assigns the best supported market-data feed.
     """
-    user = User.query.get(user_id)
-    if not user:
-        return {"success": False, "message": "User not found."}
+    if not user or not user.alpaca_access_token:
+        return False
 
-    # Save their API keys (in Phase 2, this is replaced by OAuth tokens)
-    user.alpaca_access_token = f"{api_key}:{api_secret}" # Temporary storage for testing Phase 1
-
-    # If they honestly selected the Free feed, just assign it and skip the test to save API calls
-    if claimed_feed == 'iex':
-        user.data_feed = 'iex'
-        db.session.commit()
-        return {
-            "success": True, 
-            "message": "Broker connected. Free (IEX) data feed activated. Consider upgrading for better performance."
-        }
-
-    # If they claimed SIP (Pro), we must run the Silent Test
     headers = {
-        'accept': 'application/json',
-        'APCA-API-KEY-ID': api_key,
-        'APCA-API-SECRET-KEY': api_secret,
+        "Authorization": f"Bearer {user.alpaca_access_token}",
+        "accept": "application/json",
     }
-
-    # Silently ask for 1 minute of Apple stock using the 'sip' feed parameter
-    url = "https://data.alpaca.markets/v2/stocks/bars"
-    params = {
-        'symbols': 'AAPL',
-        'timeframe': '1Min',
-        'limit': 1,
-        'feed': 'sip'
-    }
+    url = "https://paper-api.alpaca.markets/v2/account"
 
     try:
-        response = requests.get(url, headers=headers, params=params)
-        
-        if response.status_code == 200:
-            # They told the truth and have the Pro plan!
-            user.data_feed = 'sip'
-            message = "Broker connected successfully. Market Data+ (SIP) feed verified and activated!"
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get('account_number'):
+            user.alpaca_data_feed = 'sip' if user.subscription_status == 'pro' else 'iex'
         else:
-            # They claimed SIP, but Alpaca rejected it (Likely a 403 Forbidden)
-            user.data_feed = 'iex'
-            message = "Broker connected, but Alpaca rejected SIP access. We have safely downgraded you to the Free (IEX) feed to prevent crashes."
-
+            user.alpaca_data_feed = 'iex'
         db.session.commit()
-        return {"success": True, "message": message}
-
+        return True
     except Exception as e:
-        return {"success": False, "message": f"Could not connect to Alpaca: {str(e)}"}
+        print(f"Error verifying feed: {e}")
+        user.alpaca_data_feed = 'iex'
+        db.session.commit()
+        return False

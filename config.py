@@ -35,11 +35,10 @@ WTF_CSRF_TRUSTED_ORIGINS = [
 
 ALPACA_CLIENT_ID = require_env('ALPACA_CLIENT_ID')
 ALPACA_CLIENT_SECRET = require_env('ALPACA_CLIENT_SECRET')
-ALPACA_API_KEY = require_env('ALPACA_API_KEY').strip()
-ALPACA_API_SECRET = require_env('ALPACA_API_SECRET').strip()
-ALPACA_PAPER_BASE = os.getenv('ALPACA_PAPER_BASE', 'https://paper-api.alpaca.markets').rstrip('/')
-ALPACA_DATA_BASE = os.getenv('ALPACA_DATA_BASE', 'https://data.alpaca.markets').rstrip('/')
-ALPACA_FEED = os.getenv('ALPACA_FEED', 'iex').strip() or 'iex'
+ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
+ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
+ALPACA_PAPER_BASE = 'https://paper-api.alpaca.markets'
+ALPACA_DATA_BASE = 'https://data.alpaca.markets'
 FINNHUB_API_KEY = require_env('FINNHUB_API_KEY').strip()
 GEMINI_API_KEY = require_env('GEMINI_API_KEY').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
