@@ -49,13 +49,13 @@
 
             <div class="xean-nav-actions">
                 {% if current_user.is_authenticated %}
-                    
+
                     <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
+
                     <a href="/settings" style="text-decoration: none;">
                         <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
                     </a>
-                    
+
                 {% else %}
                     <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
                     <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
@@ -63,15 +63,46 @@
             </div>
         </div>
     </nav>
-    <main style="max-width: 900px; margin: 4rem auto; padding: 0 1.5rem;">
-        <h1 style="margin-bottom: 1rem;">XeanVI Learn Hub</h1>
-        <p style="margin-bottom: 2rem; color: var(--text-muted);">Evergreen guides built for disciplined retail investors.</p>
-        <article style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-card);">
-            <h2 style="margin-bottom: 0.75rem; font-size: 1.4rem;">
-                <a href="/learn/ai-trading-basics" style="color: var(--accent-blue); text-decoration: underline;">How AI is Changing Retail Day Trading</a>
-            </h2>
-            <p style="margin: 0; color: var(--text-muted);">Learn how automation and algorithmic risk controls can reduce emotional trading mistakes.</p>
-        </article>
+
+    <main class="container" style="max-width: 1100px; margin: 4rem auto; padding: 0 2rem;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Education Hub</h1>
+        <p style="color: var(--text-muted); margin-bottom: 3rem;">Master the machine. Understand the math behind the trades.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+
+            <article class="settings-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; padding: 1.5rem; border-radius: 16px; background: linear-gradient(180deg, rgba(30,41,59,0.65), rgba(15,23,42,0.85)); border: 1px solid rgba(148,163,184,0.2); box-shadow: 0 12px 24px rgba(2,6,23,0.35);">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="color: var(--accent-blue); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em;">Module 1</span>
+                        <span style="font-size: 1.35rem;" aria-hidden="true">⏱️</span>
+                    </div>
+                    <h3 style="margin-bottom: 0.65rem;">The 09:45 Rule</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.2rem;">Why the first 15 minutes of the market are a "no-fly zone" for our algorithms.</p>
+                    <div aria-label="Module 1 progress" style="background: rgba(148,163,184,0.25); border-radius: 999px; height: 8px; overflow: hidden;">
+                        <div style="width: 40%; height: 100%; background: linear-gradient(90deg, var(--accent-blue), #38bdf8);"></div>
+                    </div>
+                    <p style="color: var(--text-muted); margin-top: 0.55rem; font-size: 0.82rem;">40% complete</p>
+                </div>
+                <a href="/learn/time-gates" class="btn-secondary" style="margin-top: 0.5rem; text-align: center; text-decoration: none;">Continue Lesson</a>
+            </article>
+
+            <article class="settings-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; padding: 1.5rem; border-radius: 16px; background: linear-gradient(180deg, rgba(22,101,52,0.2), rgba(15,23,42,0.9)); border: 1px solid rgba(74,222,128,0.25); box-shadow: 0 12px 24px rgba(2,6,23,0.35);">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="color: var(--success); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em;">Module 2</span>
+                        <span style="font-size: 1.35rem;" aria-hidden="true">📈</span>
+                    </div>
+                    <h3 style="margin-bottom: 0.65rem;">Relative Volume (RVOL)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.2rem;">Learn how the bot identifies "Institutional Footprints" before the breakout happens.</p>
+                    <div aria-label="Module 2 progress" style="background: rgba(148,163,184,0.25); border-radius: 999px; height: 8px; overflow: hidden;">
+                        <div style="width: 15%; height: 100%; background: linear-gradient(90deg, var(--success), #86efac);"></div>
+                    </div>
+                    <p style="color: var(--text-muted); margin-top: 0.55rem; font-size: 0.82rem;">15% complete</p>
+                </div>
+                <a href="/learn/rvol" class="btn-secondary" style="margin-top: 0.5rem; text-align: center; text-decoration: none;">Start Lesson</a>
+            </article>
+
+        </div>
     </main>
 </body>
 </html>
