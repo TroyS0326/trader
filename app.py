@@ -17,7 +17,6 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
@@ -34,8 +33,8 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# Change x_host to 0
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_prefix=0)
+# Updated to handle the double-proto (https,https) seen in your debug output
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=2, x_host=0, x_prefix=0)
 
 # 2. Enable Global CSRF Protection
 csrf = CSRFProtect(app)
@@ -55,17 +54,17 @@ if os.getenv('FLASK_ENV') == 'production':
     # Start with CSP disabled until configured for external scripts (TradingView, etc.)
     Talisman(app, content_security_policy=None)
 
-# 3. Fix the hardcoded cookie domain (add the leading dot)
-app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'  # <-- THE DOT IS CRITICAL
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Ensure your CSRF settings are strictly aligned
 app.config['WTF_CSRF_SSL_STRICT'] = False
+app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Re-verify that these match your debug output exactly
 app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
     'xeanvi.com',
     'www.xeanvi.com',
     'https://xeanvi.com',
-    'https://www.xeanvi.com',
+    'https://www.xeanvi.com'
 ]
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
