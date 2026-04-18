@@ -1258,3 +1258,221 @@ input:checked + .slider:before {
     .xean-nav-links { display: none; /* Keep it clean on mobile */ }
     .xean-nav-inner { padding: 1rem; }
 }
+
+/* --- XeanVI Terminal Aesthetics --- */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-blue), #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.terminal-bg {
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 60%);
+  position: relative;
+  overflow: hidden;
+}
+
+.terminal-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.03;
+  z-index: -1;
+}
+
+.badge-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.5rem;
+}
+
+.terminal-container {
+  background: #020617;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.terminal-header {
+  background: #1e293b;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.terminal-title {
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.terminal-body {
+  padding: 1rem;
+  min-height: 170px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.log-entry {
+  margin-bottom: 0.6rem;
+}
+
+.terminal-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #475569;
+}
+
+.btn-pulse {
+  background: var(--accent-blue);
+  color: white;
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  box-shadow: 0 0 15px var(--accent-glow);
+  transition: 0.3s;
+}
+
+.btn-pulse:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px var(--accent-glow);
+}
+
+.hero-btns {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.workflow-section {
+  padding: 5rem 0;
+}
+
+.section-intro {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 2rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  align-items: center;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.logic-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 2.5rem;
+  border-radius: 16px;
+  position: relative;
+  transition: 0.3s ease;
+}
+
+.logic-card:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-5px);
+}
+
+.step-num {
+  font-size: 3rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.03);
+  position: absolute;
+  top: 10px;
+  right: 20px;
+}
+
+@media (max-width: 900px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.xean-nav {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.xean-nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.xean-nav-links,
+.xean-nav-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.xean-nav a {
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.hero {
+  padding: 5rem 0;
+}

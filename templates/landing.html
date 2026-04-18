@@ -4,322 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    <title>XeanVI | AI-Automated Day Trading & Algorithmic Risk Management</title>
-    <meta name="description" content="Automate your edge with XeanVI. Professional-grade stock market scanners, AI-driven catalyst scoring, and secure Alpaca integration for disciplined retail investors.">
+    <title>XeanVI | Systematic Trade Discovery & Alpaca Execution Platform</title>
+    <meta name="description" content="Master your trading workflow with XeanVI. Professional-grade trade discovery, AI catalyst scoring, and disciplined Alpaca API execution for active momentum traders.">
     
-    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="robots" content="index, follow">
     <meta name="author" content="XeanVI">
     <link rel="canonical" href="https://xeanvi.com/">
 
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/">
-    <meta property="og:title" content="XeanVI | AI Trading Bot for Disciplined Investors">
-    <meta property="og:description" content="Remove human emotion from trading. Automated scans, pure logic, and strict risk control via high-speed algorithmic execution.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
-
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="XeanVI | The AI Trading App for Retail Investors">
-    <meta name="twitter:description" content="Automate your morning scans and execute trades with precision. Start your Paper Trading sandbox today.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-banner.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
+    <meta property="og:title" content="XeanVI | Systematic Trade Discovery & Execution">
+    <meta property="og:description" content="Identify momentum setups and automate your execution workflow with high-precision catalyst scoring and Alpaca integration.">
+    <meta property="og:image" content="{{ url_for('static', filename='og-image.jpg', _external=True) }}">
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "XeanVI",
-      "operatingSystem": "Web",
       "applicationCategory": "FinanceApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "19.99",
-        "priceCurrency": "USD"
-      },
-      "description": "An automated AI trading bot and stock scanner."
+      "operatingSystem": "Web",
+      "description": "Systematic trade discovery and execution platform with AI catalyst scoring and Alpaca API integration.",
+      "featureList": [
+        "Real-time Catalyst Scoring",
+        "Alpaca API Managed Execution",
+        "Automated Trade Journaling",
+        "XGBoost Success Probability Modeling"
+      ]
     }
     </script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <style>
-        /* Landing Page Specific Overrides */
-        h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
-        h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
-        h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
-        p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-        
-        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-        
-        nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
-        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
-        .logo span { color: var(--accent-blue); }
-        .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--accent-blue); }
-        
-        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; text-decoration: none;}
-        .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); color: #ffffff;}
-        .btn-secondary { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
-        .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
-
-        .hero { padding: 8rem 0; position: relative; overflow: hidden; }
-        .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
-        .hero-content { max-width: 700px; }
-        
-        .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
-        
-        footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
-
-        @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
-            .hero { padding: 4rem 0; text-align: center; }
-            .hero-content { margin: 0 auto; }
-            .nav-links { display: none; }
-        }
-    </style>
 </head>
 <body>
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-
+            <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/community">Trade Discussions</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                {% else %}
-                    <a href="/features">How it Works</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="#pricing">Pricing</a>
-                {% endif %}
+                <a href="/alpaca-integration">Alpaca Workflow</a>
+                <a href="/catalyst-scoring">AI Intelligence</a>
+                <a href="/trade-journaling">Performance</a>
             </div>
-
             <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
+                <a href="/login">Log In</a>
+                <a href="/signup" class="btn btn-primary">Start Free</a>
             </div>
         </div>
     </nav>
-    <section class="hero">
+
+    <section class="hero terminal-bg">
         <div class="container grid-2">
             <div class="hero-content">
-                <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    The <span style="color: var(--accent-blue);">AI Trading App</span> for Disciplined Investors
-                </h1>
-                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
-                    Automated day-trading powered by catalyst scoring, algorithmic risk management, and secure brokerage integration.
-                </p>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-                    <a href="/signup" class="btn btn-primary">Start Trading on Autopilot</a>
-                    <a href="/features" class="btn btn-secondary">See How it Works</a>
+                <div class="badge-pill">Alpaca-Native Execution</div>
+                <h1>Systematic <span class="text-gradient">Trade Discovery</span> and Execution Platform</h1>
+                <p>Identify momentum setups, score catalysts, manage Alpaca-based execution, and review performance in one disciplined trading workflow.</p>
+                <div class="hero-btns">
+                    <a href="/signup" class="btn btn-primary">Build Your Workflow</a>
+                    <a href="/features" class="btn btn-secondary">Explore the Logic</a>
                 </div>
             </div>
             
-            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;">
-                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
-                    <div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Live Sandbox</div>
-                        <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                            <span id="sim-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);"></span> Awaiting Command
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Bankroll</div>
-                        <div id="sim-bankroll" style="color: var(--text-main); font-weight: 800; font-size: 1.25rem;">$10,000.00</div>
-                    </div>
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <span class="terminal-title">xeanvi_engine_v1.0</span>
                 </div>
-
-                <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
-                    <div style="color: var(--text-muted);">> Engine loaded. $10,000 paper capital available.</div>
+                <div id="sim-terminal" class="terminal-body">
+                    <div class="log-entry">&gt; Initializing Alpaca SIP Stream...</div>
+                    <div class="log-entry">&gt; Analyzing 4,200+ equities for RVOL anomalies...</div>
                 </div>
-
-                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
-                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()">
-                        <i class="fas fa-play"></i> Run AI Scan
-                    </button>
+                <div class="terminal-footer">
+                    <button id="btn-simulate" onclick="runSimulation()" class="btn-pulse">Run Alpha Scan</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="features">
+    <section class="workflow-section">
         <div class="container">
-            <div class="grid-2" style="align-items: start;">
-                <div>
-                    <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">The ultimate cheat code against Wall Street.</h2>
-                    <p>Most beginners lose money because they get emotional, buy at the wrong time, or bet too much on one stock. XeanVI removes the human error entirely.</p>
-                    <ul style="list-style: none; padding: 0; color: var(--text-main); font-size: 1.1rem;">
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Smart Risk Sizing:</strong> Never bets your whole account.
-                        </li>
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Crash Protection:</strong> Pauses the bot if the market is dumping.
-                        </li>
-                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-                            <span style="color: var(--success); font-size: 1.2rem;"><i class="fas fa-check"></i></span> <strong>Paper Trading Sandbox:</strong> Test it with fake money first!
-                        </li>
-                    </ul>
+            <div class="section-intro">
+                <h2>From Headline to Trade Plan</h2>
+                <p>Most scanners stop at price. XeanVI begins with the narrative logic of the market.</p>
+            </div>
+            <div class="grid-3">
+                <div class="logic-card">
+                    <div class="step-num">01</div>
+                    <h3>Discovery</h3>
+                    <p>Sentiment models parse news in real-time to generate a continuous Catalyst Score.</p>
                 </div>
-                <div style="background: var(--bg-card); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: #fff;">AI</div>
-                        <div>
-                            <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Zero Emotion. Pure Logic.</h4>
-                            <span style="color: var(--text-muted); font-size: 0.9rem;">The Bot's Promise</span>
-                        </div>
-                    </div>
-                    <p style="font-style: italic; margin-bottom: 0;">"The machine doesn't care if a stock looks cool on Twitter. It waits for the exact pre-market volume and news sentiment to align, buys it, takes the profit, and gets out."</p>
+                <div class="logic-card">
+                    <div class="step-num">02</div>
+                    <h3>Validation</h3>
+                    <p>XGBoost models calculate probability based on RVOL, gap alignment, and float proxies.</p>
+                </div>
+                <div class="logic-card">
+                    <div class="step-num">03</div>
+                    <h3>Execution</h3>
+                    <p>Disciplined Alpaca API orchestration with 15s entry timeouts and automated scale-outs.</p>
                 </div>
             </div>
         </div>
     </section>
-
-    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
-        <div class="container">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
-                <div style="max-width: 600px;">
-                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Look Under the Hood</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 0;">Want to know exactly how it works? Read about our AI News Scanner, 24/7 Crypto Autopilot, and the built-in Crash Protection filters.</p>
-                </div>
-                <div>
-                    <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
-                        See the Features <span style="color: var(--accent-blue);">→</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="pricing" style="padding: 6rem 0; background-color: var(--bg-card);">
-        <div class="container">
-            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
-                <h2>Pro Tools. Beginner Price.</h2>
-                <p>Equip yourself with the same automation technology used by the pros, for less than the cost of one bad trade.</p>
-            </div>
-
-            <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem;">
-                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
-                        <div style="margin: 1.5rem 0;">
-                            <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$19.99</span>
-                            <span style="color: var(--text-muted);">/mo</span>
-                        </div>
-                        <p style="font-size: 0.95rem;">Full access to the AI scanner and automated trading bot on a month-to-month basis.</p>
-                    </div>
-                    <a href="/signup" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
-                </div>
-
-                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap;">RECOMMENDED (SAVE 16%)</div>
-                    <div>
-                        <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
-                        <div style="margin: 1.5rem 0;">
-                            <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$199.99</span>
-                            <span style="color: var(--text-muted);">/yr</span>
-                        </div>
-                        <p style="font-size: 0.95rem;">Commit to your growth. Get two months completely free when you pay for the year upfront.</p>
-                    </div>
-                    <a href="/signup" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Start Annual Plan</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 XeanVI. Automated Trading Bot.</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. This software executes trades based on logic parameters. Past performance does not guarantee future results. Test in Sandbox mode before using real capital.</p>
-            <div style="margin-top: 1rem; font-size: 0.85rem;">
-                <a href="/terms" style="color: var(--accent-blue); margin-right: 15px;">Terms of Use</a>
-                <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>
-            </div>
-        </div>
-    </footer>
 
     <script>
         let isSimulating = false;
-        let bankroll = 10000;
-
-        function addSimLog(msg, color = 'var(--text-muted)') {
-            const term = document.getElementById('sim-terminal');
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
-            term.scrollTop = term.scrollHeight;
-        }
 
         function runSimulation() {
             if (isSimulating) return;
+            const terminal = document.getElementById('sim-terminal');
+            const button = document.getElementById('btn-simulate');
+            if (!terminal || !button) return;
+
             isSimulating = true;
-            
-            const btn = document.getElementById('btn-simulate');
-            const status = document.getElementById('sim-status');
-            const dot = document.getElementById('sim-dot');
-            const br = document.getElementById('sim-bankroll');
-            
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-            btn.style.background = 'var(--bg-card)';
-            btn.style.color = 'var(--text-muted)';
-            
-            status.style.color = '#f59e0b';
-            dot.style.background = '#f59e0b';
-            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Market...`;
+            button.disabled = true;
+            button.textContent = 'Scanning...';
+            terminal.innerHTML = '<div class="log-entry">&gt; Connecting to market feed...</div>';
 
-            document.getElementById('sim-terminal').innerHTML = ''; 
-            addSimLog("> Connecting to Alpaca SIP Data Feed...", "var(--accent-blue)");
-
-            setTimeout(() => addSimLog("> Analyzing 4,200+ equities for relative volume anomalies..."), 800);
-            setTimeout(() => addSimLog("> High RVOL detected on $NVDA. Cross-referencing AI Catalyst engine...", "#f59e0b"), 2200);
-            setTimeout(() => addSimLog("> Catalyst Confirmed: AI Sector Momentum. Grade: A+", "var(--success)"), 3800);
-            
             setTimeout(() => {
-                addSimLog("> Executing BUY limit order for 50 shares at $128.50.");
-                addSimLog("> Target 1 Set: $131.50. Hard Stop Loss Set: $127.00.");
-            }, 5000);
-            
+                terminal.innerHTML += '<div class="log-entry">&gt; Detecting momentum catalyst candidates...</div>';
+            }, 900);
+
             setTimeout(() => {
-                addSimLog("> UPDATE: Volatility spike detected. Target 1 reached. Scaling out.", "var(--accent-blue)");
-                addSimLog("> <strong>Trade Complete: +$150.00 Profit.</strong>", "var(--success)");
-                
-                bankroll += 150;
-                br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
-                br.style.color = 'var(--success)';
-                
-                status.style.color = 'var(--success)';
-                status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Trade Won`;
-
-                setTimeout(() => {
-                    br.style.color = 'var(--text-main)';
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-redo"></i> Run Another Scan';
-                    btn.style.background = 'var(--accent-blue)';
-                    btn.style.color = 'white';
-                    isSimulating = false;
-                }, 1800);
-
-            }, 7500);
+                terminal.innerHTML += '<div class="log-entry">&gt; Confidence model score: 84%. Trade plan generated.</div>';
+                button.disabled = false;
+                button.textContent = 'Run Alpha Scan';
+                isSimulating = false;
+            }, 1800);
         }
     </script>
+
 </body>
 </html>
