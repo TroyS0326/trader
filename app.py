@@ -14,7 +14,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
 from flask_talisman import Talisman
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -841,6 +841,11 @@ with app.app_context():
     db.create_all()
     ensure_user_refresh_interval_column()
     ensure_user_layout_columns()
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    return f"CRITICAL CSRF FAILURE: {e.description}", 400
 
 
 if __name__ == '__main__':
