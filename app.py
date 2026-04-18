@@ -34,8 +34,8 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# 1. THIS IS THE FIX: Tell Flask to trust Nginx's proxy headers over the Unix socket
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# x_host=0 tells Flask to just use the standard Host header Nginx is already sending
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_prefix=0)
 
 # 2. Enable Global CSRF Protection
 csrf = CSRFProtect(app)
