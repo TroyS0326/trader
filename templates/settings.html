@@ -17,8 +17,6 @@
 </head>
 <body>
 
-    <!-- Dashboard navigation -->
-
     <nav class="xean-nav">
         <div class="xean-nav-inner">
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
@@ -26,29 +24,23 @@
             </a>
 
             <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/community">Community</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/alpaca-integration">Alpaca Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/community">Community</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/settings" style="color: var(--text-main);">Settings</a>
+                {% else %}
+                    <a href="/features">How it Works</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/upgrade">Pricing</a>
+                {% endif %}
+            </div>
 
             <div class="xean-nav-actions">
                 {% if current_user.is_authenticated %}
-                    
                     <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
                 {% else %}
                     <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
                     <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
@@ -70,13 +62,13 @@
 
         <div class="page-header">
             <h1>Account Settings</h1>
-            <p class="sub">Manage your broker connection and risk limits.</p>
+            <p class="sub">Manage your broker connection and filter preferences.</p>
         </div>
 
         <div class="settings-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
             <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-university" style="color: var(--accent-blue);"></i> Brokerage Connection</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                Link your Alpaca account via secure OAuth to enable live market data and automated execution. XeanVI never sees or stores your banking passwords.
+                Link your Alpaca account via secure OAuth to enable live market data and automated execution.
             </p>
 
             {% if current_user.alpaca_access_token %}
@@ -91,64 +83,22 @@
                 <div style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 2rem; border-radius: 8px; text-align: center;">
                     <i class="fas fa-link" style="color: var(--text-muted); font-size: 2.5rem; margin-bottom: 1rem;"></i>
                     <h4 style="margin-bottom: 1rem;">No Broker Connected</h4>
-                    <a href="/alpaca/login" class="btn-action" style="background: var(--success); color: white; display: inline-block; padding: 0.75rem 2rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+
+                    <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; text-align: left; background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <strong style="color: var(--text-main); display: block; margin-bottom: 0.5rem; font-size: 1rem;">Authorize XeanVI</strong>
+                        By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue); text-decoration: underline;">learn more about XeanVI</a>.
+                    </div>
+
+                    <a href="/alpaca/login" class="btn-action" style="background: var(--success); color: white; display: inline-block; padding: 0.75rem 2rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); font-weight: bold;">
                         Connect Securely via Alpaca
                     </a>
-                    <div style="margin-top: 1rem; text-align: left; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px dashed var(--border-color);">
-                        <h5 style="margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--accent-blue);">
-                            <i class="fas fa-lightbulb"></i> Quick Start: How to find your keys
-                        </h5>
-                        <ol style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.5;">
-                            <li>Log in to your <a href="https://app.alpaca.markets/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue);">Alpaca Dashboard</a>.</li>
-                            <li>On the right sidebar, click <strong>"Generate New Keys"</strong>.</li>
-                            <li>Copy the <strong>API Key ID</strong> and <strong>Secret Key</strong>.</li>
-                            <li style="color: var(--warning);"><em>Important:</em> Save your Secret Key immediately; it won't be shown again!</li>
-                        </ol>
-                    </div>
                 </div>
             {% endif %}
         </div>
 
-        <!-- Trading mode & bankroll panel -->
         <form action="/settings" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="config-panel">
-                <div class="panel-title">2. Trading Mode &amp; Bankroll</div>
-                <div class="input-group">
-                    <label>Select Trading Mode</label>
-                    <div class="mode-toggle">
-                        <label class="mode-label" id="label-paper">
-                            <input type="radio" name="trading_mode" value="paper" aria-label="Paper trading mode" {% if not current_user or current_user.trading_mode == 'paper' %}checked{% endif %}>
-                            🧪 Paper Trading (Fake Money)
-                        </label>
-                        <label class="mode-label" id="label-live">
-                            <input type="radio" name="trading_mode" value="live" aria-label="Live trading mode" {% if current_user and current_user.trading_mode == 'live' %}checked{% endif %}>
-                            ⚠️ Live Market (Real Money)
-                        </label>
-                    </div>
-                    <p class="sub" style="font-size: 0.85rem;">Always test the bot in Paper Trading mode before switching to Live.</p>
-                </div>
-                <div class="input-group" style="margin-top: 2rem;">
-                    <label for="bankroll">Daily Bankroll Limit (USD)</label>
-                    <p class="sub" style="font-size: 0.85rem; margin-bottom: 10px;">The maximum amount of cash you want the bot to use today.</p>
-                    <div style="position: relative;">
-                        <span style="position: absolute; left: 15px; top: 15px; color: var(--muted); font-weight: bold; font-size: 1.1rem;">$</span>
-                        <input type="number" id="bankroll" name="bankroll" class="text-input" value="{{ current_user.bankroll or 5000 }}" style="padding-left: 35px; font-weight: bold;" required>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="refresh_interval">Data Refresh Intensity
-                        <div class="info-tip"><i class="fas fa-info-circle"></i>
-                            <span class="tip-text">How often the dashboard updates prices. High intensity uses more data.</span>
-                        </div>
-                    </label>
-                    <select id="refresh_interval" name="refresh_interval" class="config-input">
-                        <option value="10000" {% if current_user.refresh_interval == 10000 %}selected{% endif %}>Turbo (10s) - Active Trading</option>
-                        <option value="30000" {% if current_user.refresh_interval == 30000 %}selected{% endif %}>Balanced (30s) - Recommended</option>
-                        <option value="60000" {% if current_user.refresh_interval == 60000 %}selected{% endif %}>Eco (1m) - Background Monitoring</option>
-                    </select>
-                </div>
-            </div>
+
             <div class="config-panel">
                 <div class="panel-title"><i class="fas fa-leaf" style="color: var(--success);"></i> Personalization &amp; ESG Filters</div>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
