@@ -307,6 +307,11 @@ def alpaca_integration():
     """Pillar page for Alpaca API keywords and systematic execution details."""
     return render_template('alpaca_integration.html')
 
+@app.route('/catalyst-scoring')
+def catalyst_scoring_info():
+    """Pillar page for AI Catalyst Scoring and FinBERT sentiment analysis keywords."""
+    return render_template('catalyst_scoring.html')
+
 @app.route('/playbook')
 def playbook():
     # Make it accessible to both logged-in users and public marketing traffic
