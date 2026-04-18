@@ -27,7 +27,7 @@ from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get
 from execution import start_engine
 from models import db
 from models import Post, User
-from onboarding import verify_alpaca_data_feed
+from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
@@ -527,9 +527,15 @@ def alpaca_callback():
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
+
+            # Auto-detect feed preference and sync real bankroll immediately.
             verify_alpaca_data_feed(current_user)
+            sync_result = fetch_and_sync_bankroll(current_user)
             db.session.commit()
-            flash("Broker connected and data feed initialized!", "success")
+            if sync_result["success"]:
+                flash(sync_result["message"], "success")
+            else:
+                flash("Broker connected, but could not sync bankroll.", "warning")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
@@ -574,6 +580,8 @@ def api_runtime_health():
 def api_scan():
     global LATEST_SCAN
     try:
+        # Sync bankroll before scanning so risk sizing uses current account equity.
+        fetch_and_sync_bankroll(current_user)
         result = run_scan(current_user)
         risk_controls = {
             'failed_trades_today': get_failed_trades_today(),
