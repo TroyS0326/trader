@@ -50,12 +50,19 @@
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
             <div class="xean-nav-links">
-                <a href="/alpaca-integration">Alpaca Workflow</a>
-                <a href="/features">How it Works</a>
-                <a href="/playbook">Playbook</a>
-                <a href="/transparency">AI Logic</a>
-                <a href="/#pricing">Pricing</a>
-            </div>
+    {% if current_user.is_authenticated %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/community">Community</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/transparency">AI Logic</a>
+    {% else %}
+        <a href="/features">How it Works</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/alpaca-integration">Alpaca Workflow</a>
+        <a href="/transparency">AI Logic</a>
+        <a href="/upgrade">Pricing</a>
+    {% endif %}
+</div>
             <div class="xean-nav-actions">
                 <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
                 <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
