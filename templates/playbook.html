@@ -2,137 +2,99 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-    <title>The Playbook | XeanVI Algorithmic Trading Strategy & Logic</title>
-    <meta name="description" content="Detailed transparency into the XeanVI algorithm. Learn our three-step process: The Morning Scan, Precision Entry logic, and Automated Risk Management.">
-
-    <meta name="robots" content="index, follow">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/playbook">
-
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://xeanvi.com/playbook">
-    <meta property="og:title" content="XeanVI Playbook: How Our AI Scans & Executes Trades">
-    <meta property="og:description" content="Transparency is our core feature. Read the exact mathematical discipline behind our morning scans and risk locks.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-playbook-visual.jpg', _external=True) }}">
-
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Under the Hood: The XeanVI Trading Algorithm">
-    <meta name="twitter:description" content="Explore the structural setups, RVOL requirements, and AI catalyst scoring that drive our trade execution.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-playbook-visual.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Strategy | XeanVI Automated Trading Playbook</title>
+    <meta name="description" content="Explore the disciplined logic behind the XeanVI bot. From RVOL screening to automated Alpaca execution, see the rules that run your trades.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .playbook-header { text-align: center; padding: 4rem 1rem 2rem; }
-        .playbook-header h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main); }
-        .playbook-header p { color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
-
-        .playbook-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-
-        .playbook-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
-        .playbook-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent-blue), #10b981); }
-
-        .step-number { background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 1.5rem; }
-        .playbook-card h3 { margin-bottom: 1rem; font-size: 1.4rem; }
-        .playbook-card p { color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; font-size: 0.95rem; }
-
-        .visual-box { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-top: 1.5rem; font-family: monospace; font-size: 0.85rem; color: #a1a1aa; }
-        .visual-box .highlight { color: var(--accent-blue); font-weight: bold; }
-        .visual-box .success { color: var(--success); font-weight: bold; }
-        .visual-box .danger { color: var(--danger); font-weight: bold; }
-
-        .system-limits { max-width: 800px; margin: 4rem auto; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 2rem; text-align: center; }
-        .system-limits h3 { color: #f59e0b; margin-bottom: 1rem; }
-        .system-limits p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
-    </style>
 </head>
-<body class="dash-body">
+<body>
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-
+            <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/community">Trade Discussions</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                {% else %}
-                    <a href="/alpaca-integration">Alpaca Workflow</a>
                 <a href="/features">How it Works</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="#pricing">Pricing</a>
-                {% endif %}
+                <a href="/playbook" class="nav-link-active">The Strategy</a>
+                <a href="/alpaca-integration">Alpaca Workflow</a>
             </div>
-
             <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
+                <a href="/login">Log In</a>
+                <a href="/signup" class="btn btn-primary">Start Free</a>
             </div>
         </div>
     </nav>
-    <div class="playbook-header">
-        <h1>Under the Hood</h1>
-        <p>Transparency is our core feature. Here is exactly how the XeanVI algorithm scans the market, scores catalysts, and executes risk-managed trades on your behalf.</p>
-    </div>
 
-    <div class="playbook-grid">
-        <div class="playbook-card">
-            <div class="step-number">1</div>
-            <h3>The Morning Scan</h3>
-            <p>Between 9:00 AM and 9:30 AM EST, our scanner sifts through thousands of tickers. We aren't looking for random spikes; we require a structural setup.</p>
-            <ul style="color: var(--text-muted); font-size: 0.9rem; margin-left: 1rem; line-height: 1.6; margin-bottom: 1rem;">
-                <li><strong>Relative Volume (RVOL):</strong> Must be exceptionally high to ensure liquidity.</li>
-                <li><strong>Gap %:</strong> The stock must be gapping up or down significantly pre-market.</li>
-                <li><strong>AI Catalyst Scoring:</strong> We read the morning news via AI to ensure the volume is driven by real events (earnings, FDA approvals, contracts), not just chatroom hype.</li>
-            </ul>
+    <header class="page-header">
+        <div class="container">
+            <div class="badge-pill">Rule-Based Automation</div>
+            <h1>The Bot's <span class="text-gradient">Playbook</span></h1>
+            <p style="max-width: 700px; margin: 0 auto; font-size: 1.2rem; color: var(--text-muted);">
+                The bot doesn't guess. It follows a strict, 3-step disciplined sequence to find and execute trades automatically.
+            </p>
         </div>
+    </header>
 
-        <div class="playbook-card">
-            <div class="step-number">2</div>
-            <h3>Precision Entry</h3>
-            <p>We never chase. If a setup receives an <strong>A or A+ Grade</strong>, the bot waits for the market to open and confirm the trend.</p>
-            <p>Once the "Buy Window" opens, we calculate maximum position size based on your exact Bankroll and Risk Settings to ensure you never lose more than a fixed dollar amount on a single bad trade.</p>
-            <div class="visual-box">
-                &gt; Wait for VWAP Reclaim... <br>
-                &gt; Opening Range Breakout: <span class="success">CONFIRMED</span><br>
-                &gt; Submitting Limit Order at the Ask...
+    <section class="section-pad">
+        <div class="container">
+            <div class="step" style="margin-bottom: 4rem;">
+                <div class="step-number step-blue">1</div>
+                <div>
+                    <h3>Step 1: Automated Screening</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        The bot starts every morning by filtering the entire market for high-probability setups using specific mathematical triggers:
+                    </p>
+                    <ul class="terminal-list">
+                        <li><strong>Catalyst Discovery:</strong> AI-based scoring of news headlines.</li>
+                        <li><strong>RVOL & Liquidity:</strong> Identifying stocks with massive institutional volume.</li>
+                        <li><strong>Float Proxy:</strong> Filtering for stocks with the right "supply" for momentum moves.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step" style="margin-bottom: 4rem;">
+                <div class="step-number step-green">2</div>
+                <div>
+                    <h3>Step 2: Logic Validation</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        Before a single dollar is risked, the bot validates the setup against your technical rules:
+                    </p>
+                    <ul class="terminal-list">
+                        <li><strong>Daily Alignment:</strong> Ensuring the intraday move matches the long-term trend.</li>
+                        <li><strong>Relative Strength:</strong> Comparing the stock against market benchmarks.</li>
+                        <li><strong>Tape Proxies:</strong> Real-time monitoring of price action and momentum.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number step-yellow">3</div>
+                <div>
+                    <h3>Step 3: Automated Execution</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        Once validated, the bot takes over the manual clicking. It manages the trade from entry to exit:
+                    </p>
+                    <ul class="terminal-list">
+                        <li><strong>Pegged Entry:</strong> Automated limit orders to secure the best price.</li>
+                        <li><strong>Defined Risk:</strong> Hard stops placed immediately at the broker level.</li>
+                        <li><strong>Scale-Outs:</strong> Automatically takes profit at your pre-defined targets.</li>
+                    </ul>
+                </div>
             </div>
         </div>
+    </section>
 
-        <div class="playbook-card">
-            <div class="step-number">3</div>
-            <h3>Risk Management Automation</h3>
-            <p>Once in a trade, human emotion is removed. The system immediately places a hard stop-loss and a two-tier profit bracket.</p>
-            <div class="visual-box">
-                <i class="fas fa-bullseye success"></i> <strong>Target 1 (50% Sale):</strong> Secures base profit.<br><br>
-                <i class="fas fa-shield-alt highlight"></i> <strong>Breakeven Stop:</strong> Once Target 1 hits, the stop-loss on the remaining shares moves to your entry price. You now have a risk-free trade.<br><br>
-                <i class="fas fa-chart-line success"></i> <strong>Target 2 (Runner):</strong> A trailing stop catches massive moves, selling automatically when the trend bends.
-            </div>
+    <section class="cta-section" style="background: var(--bg-card); padding: 4rem 0; text-align: center; border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <h2>Your Strategy. Our Automation.</h2>
+            <p style="margin-bottom: 2rem;">Stop watching the clock. Launch XeanVI and let the playbook run itself.</p>
+            <a href="/signup" class="btn btn-primary">Launch Your Bot Today</a>
         </div>
-    </div>
+    </section>
 
-    <div class="system-limits">
-        <h3><i class="fas fa-exclamation-triangle"></i> System Limitations &amp; Realities</h3>
-        <p>No algorithm wins 100% of the time. The XeanVI playbook is designed for "base hits" and strict capital preservation. Expect losing streaks, choppy market days where the scanner returns "NO TRADE," and occasional slippage during high-volatility events. Our system is built on mathematical discipline, not guaranteed wealth. We strongly advise running the bot in Paper Trading mode for at least two weeks before committing real capital.</p>
-    </div>
-
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 XeanVI. Systematic Strategy Automation.</p>
+        </div>
+    </footer>
 </body>
 </html>
