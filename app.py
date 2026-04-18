@@ -54,6 +54,11 @@ if os.getenv('FLASK_ENV') == 'production':
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
+    'https://xeanvi.com',
+    'https://www.xeanvi.com',
+]
+app.config['SESSION_COOKIE_DOMAIN'] = 'xeanvi.com'
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
