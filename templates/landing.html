@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>XeanVI | Automated Trading Bot - Hands-Free Execution</title>
-    <meta name="description" content="Launch your bot. Let it trade automatically. XeanVI handles your morning scans, catalyst scoring, and trade execution without manual clicking.">
-    
+    <meta name="description" content="Launch your bot. Let it trade automatically. XeanVI handles market monitoring, entries, and exits without manual clicking.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-
     <nav class="xean-nav">
         <div class="xean-nav-inner">
             <a href="/" class="logo">Xean<span>VI</span></a>
@@ -23,75 +21,105 @@
         </div>
     </nav>
 
-    <section class="hero">
-        <div class="container" style="text-align: center;">
-            <div class="badge-pill">Live Execution Automation</div>
-            <h1 style="margin-bottom: 1.5rem;">Launch your bot.<br>Let it trade <span class="text-gradient">automatically</span>.</h1>
-            <p style="max-width: 650px; margin: 0 auto 2.5rem; font-size: 1.25rem;">
-                Set your strategy once. Connect your broker. Click run. XeanVI handles the market monitoring, entries, and exits while you go about your day.
-            </p>
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <a href="/signup" class="btn btn-primary" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">Start My Free Bot</a>
-                <a href="/features" class="btn btn-secondary" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">See How It Trades</a>
+    <section class="hero terminal-bg">
+        <div class="container grid-2">
+            <div class="hero-content">
+                <div class="badge-pill">Live Execution Automation</div>
+                <h1>Launch your bot.<br>Let it trade <span class="text-gradient">automatically</span>.</h1>
+                <p>Set your strategy once. Click run. XeanVI handles the market monitoring, entries, and exits while you go about your day.</p>
+                <div class="hero-btns">
+                    <a href="/signup" class="btn btn-primary">Start My Free Bot</a>
+                    <a href="#demo" class="btn btn-secondary" onclick="runSimulation()">Watch AI Scan</a>
+                </div>
+            </div>
+
+            <div class="terminal-container" id="demo">
+                <div class="terminal-header">
+                    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                    <div class="terminal-title">xeanvi_inference_engine_v1.0</div>
+                </div>
+                <div id="sim-terminal" class="terminal-body">
+                    <div class="log-entry">&gt; Initializing Alpaca SIP Stream...</div>
+                    <div class="log-entry">&gt; Awaiting user command to initialize scan logic.</div>
+                </div>
+                <div class="terminal-footer">
+                    <button id="btn-simulate" onclick="runSimulation()" class="btn-pulse">
+                        <i class="fas fa-play"></i> RUN AI SCAN
+                    </button>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="steps-section" style="padding: 6rem 0; background: var(--bg-card);">
+    <section class="steps-section">
+        <div class="container grid-3">
+            <div class="step-card">
+                <div class="step-icon"><i class="fas fa-link"></i></div>
+                <h3>1. Connect</h3>
+                <p>Link your Alpaca broker account securely with 1-click OAuth.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-icon"><i class="fas fa-sliders-h"></i></div>
+                <h3>2. Configure</h3>
+                <p>Define your risk rules and setup grades. You stay in control.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-icon" style="background: var(--success);"><i class="fas fa-play"></i></div>
+                <h3>3. Run</h3>
+                <p>The bot executes trades automatically based on your rules.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
         <div class="container">
-            <div class="grid-3" style="text-align: center;">
-                <div class="step-card">
-                    <div class="step-icon"><i class="fas fa-link"></i></div>
-                    <h3>1. Connect</h3>
-                    <p>Link your Alpaca broker account in seconds with secure OAuth integration.</p>
+            <div class="footer-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 4rem; text-align: left; margin-bottom: 3rem;">
+                <div class="footer-brand">
+                    <a href="/" class="logo">Xean<span>VI</span></a>
+                    <p style="margin-top: 1rem; color: var(--text-muted);">Set it up once. Click run. Let the bot trade automatically.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-icon"><i class="fas fa-sliders-h"></i></div>
-                    <h3>2. Configure</h3>
-                    <p>Choose your risk rules, catalyst scores, and position sizes for the day.</p>
+                <div class="footer-nav">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-main);">Platform</h4>
+                    <a href="/features">Features</a>
+                    <a href="/playbook">The Strategy</a>
+                    <a href="/alpaca-integration">Alpaca Workflow</a>
                 </div>
-                <div class="step-card">
-                    <div class="step-icon" style="background: var(--success);"><i class="fas fa-play"></i></div>
-                    <h3>3. Run</h3>
-                    <p>The bot monitors the market and executes trades automatically based on your rules.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="automation-details" style="padding: 6rem 0;">
-        <div class="container">
-            <h2 style="text-align: center; margin-bottom: 4rem;">What exactly does it do for you?</h2>
-            <div class="grid-2">
-                <div class="feature-box">
-                    <ul class="terminal-list" style="list-style: none; padding: 0;">
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Market Monitoring:</strong> Scans thousands of tickers for RVOL and momentum.</li>
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Trade Entries:</strong> Places bid/ask-pegged limit orders automatically.</li>
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Stop Loss Execution:</strong> Automatically sets hard stops to protect your capital.</li>
-                    </ul>
-                </div>
-                <div class="feature-box">
-                    <ul class="terminal-list" style="list-style: none; padding: 0;">
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Take Profit Logic:</strong> Scales out at Target 1 and Target 2 without your intervention.</li>
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Emotional Protection:</strong> Pauses trading after a daily loss limit is reached.</li>
-                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Real-Time Operation:</strong> Runs your strategy 24/7 or during market hours.</li>
-                    </ul>
+                <div class="footer-legal">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-main);">Legal</h4>
+                    <a href="/terms">Terms of Use</a>
+                    <a href="/privacy">Privacy Policy</a>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section class="trust-section" style="padding: 6rem 0; background: var(--bg-card); border-top: 1px solid var(--border-color);">
-        <div class="container" style="text-align: center; max-width: 800px;">
-            <h2>You stay in control.</h2>
-            <p style="margin-bottom: 2rem;">Automation doesn't mean a lack of oversight. XeanVI is built to execute <strong>your</strong> rules, not its own.</p>
-            <div class="grid-3" style="font-size: 0.9rem;">
-                <div><i class="fas fa-shield-alt"></i><br>Pause or stop the bot at any time.</div>
-                <div><i class="fas fa-history"></i><br>Full audit logs for every order.</div>
-                <div><i class="fas fa-user-check"></i><br>You define the "A+" setup criteria.</div>
+            <div class="footer-bottom" style="border-top: 1px solid var(--border-color); padding-top: 2rem; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                <p>&copy; 2026 XeanVI. Built for disciplined retail automation.</p>
+                <p style="margin-top: 0.5rem;">Disclaimer: Trading involves significant risk. Test in Sandbox mode before using real capital.</p>
             </div>
         </div>
-    </section>
+    </footer>
 
+    <script>
+        function runSimulation() {
+            const term = document.getElementById('sim-terminal');
+            const btn = document.getElementById('btn-simulate');
+            btn.disabled = true;
+            term.innerHTML = '<div class="log-entry ai-action">> Initializing full market scan...</div>';
+
+            const logs = [
+                { msg: "> Connecting to Finnhub News Stream...", color: "var(--text-muted)" },
+                { msg: "> High RVOL detected on $NVDA. Cross-referencing AI Catalyst...", color: "var(--warning)" },
+                { msg: "> Catalyst Confirmed. Sentiment: +0.92. Grade: A+", color: "var(--success)" },
+                { msg: "> Automated BUY limit order sent to Alpaca Sandbox.", color: "var(--accent-blue)" },
+                { msg: "> [UPDATE] Target 1 Hit. Automated scale-out complete.", color: "var(--success)" }
+            ];
+
+            logs.forEach((log, i) => {
+                setTimeout(() => {
+                    term.innerHTML += `<div class="log-entry" style="color: ${log.color}">${log.msg}</div>`;
+                    term.scrollTop = term.scrollHeight;
+                    if (i === logs.length - 1) btn.disabled = false;
+                }, (i + 1) * 1200);
+            });
+        }
+    </script>
 </body>
 </html>
