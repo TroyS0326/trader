@@ -156,10 +156,10 @@
         .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
         .strategy-select { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
         
-        .btn-scan { background: var(--accent-blue); color: #000; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        #run-scan-btn { background-color: var(--accent-blue); color: #000; font-weight: 700; transition: all 0.3s ease; }
-        #run-scan-btn:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); transform: translateY(-1px); }
-        .btn-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
+        .btn-run-scan { background: var(--accent-blue); color: #000; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        #scanButton { background-color: var(--accent-blue); color: #000; font-weight: 700; transition: all 0.3s ease; }
+        #scanButton:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); transform: translateY(-1px); }
+        .btn-run-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
 
         /* Terminal */
         .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 150px; }
@@ -320,62 +320,64 @@
            ACTUAL MOBILE RESPONSIVENESS FIX
            ========================================= */
         @media (max-width: 992px) {
-            /* 1. Tighter Top Navigation */
-            .dash-nav {
+            /* 1. Stack the Unified Header Bar */
+            .command-header-bar {
                 flex-direction: column;
-                gap: 10px;
-                padding: 1rem 0.5rem;
-                height: auto;
+                padding: 1.2rem;
+                gap: 1.5rem;
             }
-            .dash-nav > div {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 10px;
+
+            .header-metrics {
+                flex-direction: column;
                 width: 100%;
+                gap: 12px;
             }
 
-            /* 2. Turn top metrics into a native-feeling swipeable row */
-            .top-metrics {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                gap: 10px;
+            .h-divider {
+                display: none; /* Hide vertical lines on mobile */
+            }
+
+            .h-metric {
                 width: 100%;
-                padding: 0 5px 10px 5px; /* Breathing room for scrolling */
-                scrollbar-width: none; /* Hide scrollbar Firefox */
-            }
-            .top-metrics::-webkit-scrollbar {
-                display: none; /* Hide scrollbar Chrome/Safari */
-            }
-
-            /* 3. Shrink the cards so they fit nicely in the carousel */
-            .metric-mini {
-                flex: 0 0 auto; /* Force them to stay in a row */
-                min-width: 130px;
-                padding: 0.75rem; /* Cut padding in half */
-                text-align: left; /* Left align reads better in carousels */
-            }
-            .metric-mini strong {
-                font-size: 1.2rem; /* Shrink the numbers slightly */
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
             }
 
-            /* THE FIX: Reorder the top row so Control Panel stays on TOP */
-            .top-row {
-                display: flex !important;
-                flex-direction: column !important; /* Stacks them */
-                height: auto !important;
+            /* 2. Fix the Workspace Layout */
+            .workspace {
+                flex-direction: column; /* Stacks Control Panel on top of Chart */
+                padding: 1rem 0;
             }
 
             .control-panel {
-                order: 1; /* Explicitly forces the button/selector to the top */
                 width: 100% !important;
-                margin-bottom: 1.5rem;
+                margin-bottom: 2rem;
+                position: static !important; /* Forces it to stay in the flow */
             }
 
-            .chart-panel {
-                order: 2; /* Forces chart below the controls */
+            .top-row {
+                display: flex !important;
+                flex-direction: column !important;
+                height: auto !important;
+            }
+
+            /* 3. THE FIX: Make the Scan Button Static */
+            .btn-run-scan {
+                position: static !important; /* Removes 'fixed' or 'sticky' behavior */
                 width: 100% !important;
+                margin-top: 1rem;
+                box-shadow: none;
+                bottom: auto !important;
+                left: auto !important;
+                transform: none !important;
+            }
+
+            /* 4. Chart Adjustments */
+            .chart-panel {
+                width: 100% !important;
+                height: 450px !important; /* Gives the chart enough room to be useful */
             }
 
             .chart-container {
@@ -383,7 +385,11 @@
                 min-height: 400px;
             }
 
-            /* 5. Stack the bottom panels vertically */
+            /* 5. Hide labels on mobile to save space if needed */
+            .profile-name {
+                font-size: 1.2rem;
+            }
+
             .bottom-row {
                 display: flex !important;
                 flex-direction: column !important;
@@ -484,18 +490,24 @@
 
         <div class="top-row">
             <div class="control-panel">
-                <div class="step-title">1. Pick Your Trading Style</div>
-                <div class="step-desc">How aggressive do you want the bot to be today?</div>
-                <select class="strategy-select" id="strategy-selector">
-                    <option value="balanced">Standard Growth (Balanced Risk) - Recommended</option>
-                    <option value="safe">Safe Mode (Low Risk, Smaller Wins)</option>
-                    <option value="crypto">Crypto Autopilot (High Risk, 24/7)</option>
-                </select>
+                <div class="config-section">
+                    <label>1. Pick Your Trading Style</label>
+                    <select id="strategy-select" class="auth-input strategy-select">
+                        <option value="balanced">Standard Growth (Balanced Risk)</option>
+                        <option value="aggressive">Aggressive (High Volatility)</option>
+                    </select>
+                </div>
 
-                <div class="step-title">2. Start the Bot</div>
-                <div class="step-desc">Click below to let the AI scan the market.</div>
-                <button class="btn-scan" id="run-scan-btn" onclick="startScanner()">Run Morning Scan</button>
+                <div class="config-section" style="margin-top: 2rem;">
+                    <label>2. Start the Bot</label>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Click below to let the AI scan the market.
+                    </p>
 
+                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()">
+                        RUN MORNING SCAN
+                    </button>
+                </div>
             </div>
 
             <div class="chart-panel">
@@ -837,7 +849,7 @@
 
         // MAIN EXECUTION LOOP
         async function startScanner() {
-            const btn = document.getElementById('run-scan-btn');
+            const btn = document.getElementById('scanButton');
             const statusHeader = document.getElementById('bot-status');
             const tickerHeader = document.getElementById('target-ticker');
             
