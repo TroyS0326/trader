@@ -319,7 +319,7 @@ def trade_journaling_info():
 
 @app.route('/playbook')
 def playbook():
-    # Make it accessible to both logged-in users and public marketing traffic
+    """Public strategy page explaining the 'Screen, Validate, Execute' workflow."""
     return render_template('playbook.html')
 
 @app.route('/terms')
