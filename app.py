@@ -51,14 +51,11 @@ if os.getenv('FLASK_ENV') == 'production':
     Talisman(app, content_security_policy=None)
 
 # Force cookies to only travel over HTTPS
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = config.SESSION_COOKIE_SECURE
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
-    'https://xeanvi.com',
-    'https://www.xeanvi.com',
-]
-app.config['SESSION_COOKIE_DOMAIN'] = 'xeanvi.com'
+app.config['SESSION_COOKIE_SAMESITE'] = config.SESSION_COOKIE_SAMESITE
+app.config['WTF_CSRF_TRUSTED_ORIGINS'] = config.WTF_CSRF_TRUSTED_ORIGINS
+app.config['SESSION_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
