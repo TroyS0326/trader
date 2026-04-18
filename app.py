@@ -60,7 +60,10 @@ app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'  # <-- THE DOT IS CRITICAL
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_SSL_STRICT'] = False
 app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
+    'xeanvi.com',
+    'www.xeanvi.com',
     'https://xeanvi.com',
     'https://www.xeanvi.com',
 ]
