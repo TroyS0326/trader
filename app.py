@@ -308,20 +308,17 @@ def privacy():
 
 
 @app.route('/learn')
-def learn_hub():
-    # This acts as the main index for your articles
-    return render_template('learn.html')
+@login_required
+def learn():
+    # In the future, you can track 'completed_lessons' in the DB
+    return render_template('learn.html', current_user=current_user)
 
 
-@app.route('/learn/<article_slug>')
-def article(article_slug):
-    # Dynamically serve evergreen SEO content based on the URL
-    try:
-        # e.g., renders templates/articles/risk-management.html
-        return render_template(f'articles/{article_slug}.html')
-    except Exception:
-        # Fallback if the article doesn't exist
-        return redirect(url_for('learn_hub'))
+@app.route('/learn/<topic>')
+@login_required
+def learn_topic(topic):
+    # This dynamic route allows lesson pages like /learn/rvol or /learn/risk-management
+    return render_template(f'lessons/{topic}.html', current_user=current_user)
 
 @app.route('/transparency')
 def transparency():
