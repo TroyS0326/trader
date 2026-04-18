@@ -6,153 +6,1053 @@
 
     <title>Command Center | XeanVI AI Trading Terminal</title>
     <meta name="description" content="Access your XeanVI trading terminal. Monitor live market scans, manage algorithmic risk, and track automated trade execution in real-time.">
+
     <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/dashboard">
 
-    <meta property="og:title" content="XeanVI | Secure Trading Terminal">
-    <meta property="og:description" content="Manage your automated trading engine. Authorized Access Only.">
     <meta property="og:type" content="website">
+    <meta property="og:title" content="XeanVI | Secure Trading Terminal">
+    <meta property="og:description" content="Authorized Access Only. Manage your automated trading engine.">
+    <meta property="og:image" content="{{ url_for('static', filename='seo-secure-icon.jpg', _external=True) }}">
 
+    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
     <style>
-        /* Restoring your EXACT original CSS */
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border-color: #334155;
+
+            /* Backward-compatible aliases for existing selectors */
+            --bg-primary: var(--bg-main);
+            --bg-secondary: var(--bg-card);
+            --bg-panel: var(--bg-card);
+            --border: var(--border-color);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-main: #0f172a;
+                --bg-card: #1e293b;
+                --bg-input: #334155;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --accent-blue: #38bdf8;
+                --border-color: #334155;
+            }
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --border-color: #e2e8f0;
+            --bg-primary: var(--bg-main);
+            --bg-secondary: var(--bg-card);
+            --bg-panel: var(--bg-card);
+            --border: var(--border-color);
+        }
+
+        *:focus-visible {
+            outline: 3px solid var(--accent-blue);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Navigation */
+        .dash-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
+        .logo span { color: var(--accent-blue); }
+
+        .top-metrics { display: flex; gap: 2rem; align-items: center; }
+        .metric-mini { text-align: right; background-color: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
+        .metric-mini span, label { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
+        .metric-mini strong { color: var(--text-main); font-size: 1.5rem; }
+
+        /* Tooltip Container */
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            margin-left: 6px;
+            cursor: help;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .info-tip:hover { color: var(--accent-blue); }
+
+        /* Tooltip Text */
+        .info-tip .tip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .info-tip:hover .tip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Main Workspace Scrollable Area */
         .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-        .top-row { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; height: 550px; margin-bottom: 2rem; flex-shrink: 0; }
-        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; padding-bottom: 4rem; }
-        .command-header-bar { display: flex; align-items: center; justify-content: space-between; background: #1e293b; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid #334155; gap: 20px; }
-        .header-metrics { display: flex; align-items: center; gap: 25px; flex-grow: 1; justify-content: center; }
-        .h-metric { display: flex; flex-direction: column; align-items: center; }
-        .h-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
-        .h-value { font-weight: 700; font-size: 1.1rem; color: #f8fafc; }
-        .h-divider { width: 1px; height: 30px; background: #334155; opacity: 0.5; }
-        .data-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; }
-        .btn-run-scan { background-color: #38bdf8; color: #000; font-weight: 700; width: 100%; padding: 1.25rem; border-radius: 8px; cursor: pointer; border: none; text-transform: uppercase; }
-        .terminal-container { background: #0f172a; border: 1px solid #334155; border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .terminal-output { padding: 1rem; font-size: 0.85rem; color: #f8fafc; overflow-y: auto; flex-grow: 1; font-family: monospace; }
+
+        /* Top Row: Controls & Chart */
+        .top-row { 
+            display: grid; 
+            grid-template-columns: 350px 1fr; 
+            gap: 2rem; 
+            height: 550px; /* THE FIX: A strictly locked height stops the chart from overflowing */
+            margin-bottom: 2rem; 
+            flex-shrink: 0; /* Prevents the row from collapsing weirdly */
+        }
+
+        /* Control Panel */
+        .card, .config-panel, .control-panel, .chart-panel, .data-card, .metric-mini {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .control-panel { display: flex; flex-direction: column; }
+        .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.5rem; }
+        .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
+        .strategy-select { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
+
+        .btn-run-scan { background: var(--accent-blue); color: #000; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        #scanButton { background-color: var(--accent-blue); color: #000; font-weight: 700; transition: all 0.3s ease; }
+        #scanButton:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); transform: translateY(-1px); }
+        .btn-run-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
+
+        /* Terminal */
+        .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 150px; }
+        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .terminal-output { padding: 1rem; font-family: var(--font-sans); font-size: 0.85rem; color: var(--text-main); overflow-y: auto; flex-grow: 1; line-height: 1.6; }
+        .log-time { color: var(--text-muted); font-size: 0.75rem; margin-right: 8px; }
+
+        /* Chart Panel */
+        .chart-panel { display: flex; flex-direction: column; }
+        .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg-primary); border: 1px solid var(--border); }
+
+        /* Bottom Row: Data Panels */
+        .bottom-row { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 2rem; 
+            margin-top: 2rem; /* THE FIX: Forces a physical barrier above the panels */
+            padding-bottom: 2rem; /* Extra breathing room at the very bottom of the page */
+        }
+        .data-card { }
+        .full-width { grid-column: 1 / -1; }
+        .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Trade Plan Styles */
+        .action-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .action-box.wait { background: rgba(245, 158, 11, 0.1); border-color: var(--warning); }
+        .action-text { font-size: 1.1rem; font-weight: bold; color: var(--text-main); }
+        .watch-panel { background: var(--bg-primary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+        .watch-line { font-size: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+        .highlight-green { color: var(--success); font-weight: bold; }
+        .highlight-red { color: var(--danger); font-weight: bold; }
+
+        /* Engine Room Styles */
+        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mini-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; }
+        .mini-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
+        .mini-card .value { font-size: 1.2rem; font-weight: bold; }
+
+        /* Watchlist Table */
+        .table-wrap { overflow-x: auto; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 0.75rem 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
         .table-pill { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .table-pill.buy-now { color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; }
-        .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+
+
+        .command-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card); /* Matches your dark banner color */
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            gap: 20px;
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 180px;
+        }
+
+        .profile-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        .profile-tier {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: fit-content;
+            margin-top: 2px;
+        }
+
+        .header-metrics {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            flex-grow: 1;
+            justify-content: center;
+        }
+
+        .h-metric {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .h-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .h-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .h-divider {
+            width: 1px;
+            height: 30px;
+            background: var(--border-color);
+            opacity: 0.5;
+        }
+
+        .btn-go-pro {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            padding: 0.8rem 1.4rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-go-pro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
+        }
+
+
+        /* Mobile Responsiveness */
+        @media (max-width: 1100px) {
+            .command-header-bar {
+                flex-direction: column;
+                text-align: center;
+            }
+            .h-divider { display: none; }
+            .header-metrics { flex-wrap: wrap; gap: 15px; }
+        }
+
+
+        /* =========================================
+           ACTUAL MOBILE RESPONSIVENESS FIX
+           ========================================= */
+        @media (max-width: 992px) {
+            /* Shrink the overall header padding */
+            .command-header-bar {
+                flex-direction: column;
+                padding: 0.8rem;
+                gap: 0.8rem;
+            }
+
+            /* THE FIX: Turn metrics into a horizontal scrollable row */
+            .header-metrics {
+                flex-direction: row !important;
+                justify-content: flex-start;
+                overflow-x: auto; /* Allows swiping left/right */
+                white-space: nowrap;
+                gap: 15px;
+                padding-bottom: 8px; /* Room for a scrollbar if needed */
+                width: 100%;
+                scrollbar-width: none; /* Hide scrollbar for Firefox */
+            }
+
+            .header-metrics::-webkit-scrollbar {
+                display: none; /* Hide scrollbar for Chrome/Safari */
+            }
+
+            .h-divider {
+                display: none;
+            }
+
+            /* Individual metric pills */
+            .h-metric {
+                flex: 0 0 auto; /* Prevents pills from shrinking */
+                background: rgba(255, 255, 255, 0.03);
+                padding: 6px 12px;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                min-width: 100px;
+            }
+
+            .h-label {
+                font-size: 0.6rem; /* Smaller labels */
+                margin-bottom: 2px;
+            }
+
+            .h-value {
+                font-size: 0.9rem; /* Tighter values */
+            }
+
+            /* Adjust the Go Pro button to not hog space */
+            .header-actions {
+                width: 100%;
+            }
+
+            .btn-go-pro {
+                width: 100%;
+                justify-content: center;
+                padding: 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            .workspace {
+                display: flex;
+                flex-direction: column;
+                padding: 0.5rem;
+            }
+
+            .top-row {
+                display: flex !important;
+                flex-direction: column !important;
+                height: auto !important;
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+
+            .control-panel {
+                order: 1; /* Move controls to the top */
+                width: 100% !important;
+                background: none;
+                border: none;
+                padding: 0;
+                margin-bottom: 0;
+            }
+
+            /* Collapse the 'Pick Your Style' into a simpler inline row */
+            .config-section {
+                margin-bottom: 10px !important;
+                background: var(--bg-card);
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .config-section:last-child {
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+                padding: 8px 10px;
+            }
+
+            .config-section:last-child p {
+                display: none;
+            }
+
+            .config-section:last-child label {
+                display: inline;
+                margin-right: 8px;
+                font-size: 0.75rem;
+            }
+
+            .btn-run-scan {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                margin: 0;
+                padding: 0.65rem 0.85rem;
+                font-size: 0.85rem;
+                letter-spacing: 0.03em;
+                box-shadow: none;
+                transform: none !important;
+                position: static !important;
+            }
+
+            .chart-panel {
+                order: 2; /* Chart comes immediately after the Scan button */
+                width: 100% !important;
+                height: 350px !important; /* Shorter chart for mobile */
+                padding: 1rem;
+            }
+
+            .chart-container {
+                height: 280px !important;
+                min-height: 280px;
+            }
+
+            .profile-name {
+                font-size: 1.1rem;
+            }
+
+            .bottom-row {
+                display: flex !important;
+                flex-direction: column !important;
+                margin-top: 1rem;
+                gap: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+
             <div class="xean-nav-links">
-                <a href="/dashboard" class="nav-link-active">Terminal</a>
-                <a href="/community">Syndicate</a>
-                <a href="/playbook">Playbook</a>
-                <a href="/transparency">AI Logic</a>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/community">Trade Discussions</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                {% else %}
+                    <a href="/features">How it Works</a>
+                    <a href="/alpaca-integration">Alpaca Workflow</a>
+                    <a href="/features">How it Works</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/pricing">Pricing</a>
+                {% endif %}
             </div>
+
             <div class="xean-nav-actions">
-                <a href="/logout" style="color: #ef4444; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log Out</a>
-                <div class="nav-avatar">{{ current_user.full_name[0]|upper }}</div>
+                {% if current_user.is_authenticated %}
+
+                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
+
+                    <a href="/settings" style="text-decoration: none;">
+                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
+                    </a>
+
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
     <div style="padding: 1.5rem 2rem 0 2rem;">
         <div class="command-header-bar">
+
             <div class="header-profile">
-                <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">{{ current_user.full_name[0]|upper }}</div>
-                <div class="profile-text" style="margin-left: 12px; display: flex; flex-direction: column;">
-                    <span class="profile-name" style="font-weight: 700;">{{ current_user.full_name }}</span>
-                    <span class="profile-tier" style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">FREE TIER</span>
+                <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
+                </div>
+                <div class="profile-text">
+                    <span class="profile-name">{{ current_user.full_name }}</span>
+                    <span class="profile-tier">FREE TIER</span>
                 </div>
             </div>
+
             <div class="header-metrics">
-                <div class="h-metric"><span class="h-label">Status</span><span class="h-value" style="color: #10b981;">Paper Trading</span></div>
+                <div class="h-metric">
+                    <span class="h-label">Account Status</span>
+                    <span class="h-value" style="color: var(--success);">Paper Trading</span>
+                </div>
                 <div class="h-divider"></div>
-                <div class="h-metric"><span class="h-label">Available Cash</span><span class="h-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span></div>
+                <div class="h-metric">
+                    <span class="h-label">Available Cash</span>
+                    <span class="h-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
+                </div>
                 <div class="h-divider"></div>
-                <div class="h-metric"><span class="h-label">AI Confidence</span><span id="ai-confidence" class="h-value">--%</span></div>
+                <div class="h-metric">
+                    <span class="h-label">AI Confidence</span>
+                    <span class="h-value" id="ai-confidence">--%</span>
+                </div>
                 <div class="h-divider"></div>
-                <div class="h-metric"><span class="h-label">Grade</span><span id="setup-grade" class="h-value">--</span></div>
+                <div class="h-metric">
+                    <span class="h-label">Setup Grade</span>
+                    <span class="h-value" id="setup-grade">--</span>
+                </div>
+                <div class="h-divider"></div>
+                <div class="h-metric">
+                    <span class="h-label">Max Risk</span>
+                    <span class="h-value" id="risk-amount">--</span>
+                </div>
             </div>
+
             <div class="header-actions">
-                <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 1.4rem; font-size: 0.9rem;"><i class="fas fa-bolt"></i> Go PRO</a>
+                <a href="/upgrade" class="btn-go-pro">
+                    <i class="fas fa-bolt"></i> Go PRO
+                </a>
             </div>
         </div>
     </div>
 
     <div class="workspace">
+
+
+
         <div class="top-row">
-            <div class="control-panel data-card">
+            <div class="control-panel">
                 <div class="config-section">
-                    <label style="font-weight: bold; font-size: 0.95rem;">1. Pick Your Trading Style</label>
-                    <select id="strategy-select" style="background: #334155; border: 1px solid #334155; color: #f8fafc; padding: 1rem; border-radius: 8px; width: 100%; margin: 1rem 0;">
+                    <label>1. Pick Your Trading Style</label>
+                    <select id="strategy-select" class="auth-input strategy-select">
                         <option value="balanced">Standard Growth (Balanced Risk)</option>
                         <option value="aggressive">Aggressive (High Volatility)</option>
                     </select>
                 </div>
-                <div class="config-section">
-                    <label style="font-weight: bold; font-size: 0.95rem;">2. Start the Bot</label>
-                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="margin-top: 1rem;">RUN MORNING SCAN</button>
-                </div>
-                <div class="terminal-container" style="margin-top: auto; height: 180px;">
-                    <div class="terminal-header"><span>LIVE_LOGS</span><span id="bot-status">Idle</span></div>
-                    <div id="log-container" class="terminal-output">Ready for command.</div>
+
+                <div class="config-section" style="margin-top: 2rem;">
+                    <label>2. Start the Bot</label>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Click below to let the AI scan the market.
+                    </p>
+
+                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()">
+                        RUN MORNING SCAN
+                    </button>
                 </div>
             </div>
-            <div class="chart-panel data-card">
+
+            <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-weight: bold;">Ticker: <span id="target-ticker" style="color: #38bdf8;">SPY</span></div>
+                    <div style="font-weight: bold; font-size: 1.1rem;">Current Stock in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
+                    <div id="liveIndicator" style="display:none; color: var(--success); font-size: 0.8rem; font-weight: bold;">● LIVE DATA</div>
                 </div>
-                <div id="tradingview_chart" style="height: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #334155;"></div>
+
+                <div class="chart-container">
+                    <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
+                </div>
             </div>
         </div>
 
         <div class="bottom-row" id="data-panels" style="display: none;">
             <div class="data-card">
-                <div class="card-header">The Trade Plan <span id="decisionPill" class="table-pill watch">AWAITING</span></div>
-                <div id="actionContainer" class="action-box wait" style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <div id="actionPrimary" style="font-weight: bold;">Run scan to initialize.</div>
+                <div class="card-header">
+                    The Trade Plan
+                    <span id="decisionPill" class="table-pill watch">AWAITING SCAN</span>
                 </div>
-                <div class="watch-panel" style="background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid #334155;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>Shares:</span> <span id="watchQtyLine" style="color: #10b981; font-weight: bold;">—</span></div>
-                    <div style="display: flex; justify-content: space-between;"><span>Stop:</span> <span id="watchStopLine" style="color: #ef4444; font-weight: bold;">—</span></div>
+                <div id="actionContainer" class="action-box wait">
+                    <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
+                </div>
+                <div class="watch-panel">
+                    <div class="watch-line"><span>💰 Shares to Buy:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
+                    <div class="watch-line"><span>🛑 Hard Stop Loss:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>🎯 Profit Target:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
+                    <hr style="border-color: var(--border); margin: 10px 0;">
+                    <div class="watch-line"><span>🔥 Max Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
                 </div>
             </div>
+
             <div class="data-card" id="news-panel">
-                <div class="card-header">Market Sentiment</div>
-                <div id="bestNotes" style="font-size: 0.9rem;">Waiting for data...</div>
+                <div class="card-header">Market Sentiment <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Why we picked it)</span></div>
+                <div class="mini-grid" id="scoreRows">
+                    </div>
+                <div id="bestNotes" style="margin-top: 15px; font-size: 0.9rem; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
+                    Waiting for data...
+                </div>
             </div>
+
             <div class="data-card" id="watchlist-panel">
                 <div class="card-header">Watchlist</div>
-                <tbody id="watchlistBody"><tr><td style="color: #94a3b8; text-align: center;">Run scan.</td></tr></tbody>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlistBody">
+                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">Run scan to populate.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            <div class="data-card" id="active-position-card" style="display: none; border-color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);">
+                <div class="card-header">
+                    Live Position: <span id="pos-symbol" style="color: var(--accent-blue);">--</span>
+                    <span class="table-pill buy-now">LIVE</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="mini-card">
+                        <div class="label">Entry Price</div>
+                        <div class="value" id="pos-entry">$--</div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="label">Current Price</div>
+                        <div class="value" id="pos-current">$--</div>
+                    </div>
+                </div>
+                <div class="action-box" id="pl-container" style="text-align: center; padding: 1.5rem;">
+                    <div class="label" style="font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;">Unrealized P&L</div>
+                    <div id="pos-pl" style="font-size: 2.5rem; font-weight: 900;">$0.00</div>
+                    <div id="pos-pl-pct" style="font-size: 1.1rem; font-weight: bold; opacity: 0.8;">(0.00%)</div>
+                </div>
+                <div class="watch-panel">
+                    <div class="watch-line"><span>Stop Loss:</span> <span id="pos-stop" class="highlight-red">--</span></div>
+                    <div class="watch-line"><span>Target 1:</span> <span id="pos-target" class="highlight-green">--</span></div>
+                </div>
+            </div>
+
+            <div class="data-card full-width" id="terminal-panel">
+                <div class="card-header">Live Terminal <span id="bot-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">Waiting...</span></div>
+                <div class="terminal-output" id="log-container">
+                    <div><span class="log-time">Now</span> Ready to go. Waiting for command.</div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <footer class="footer" style="padding: 2rem 0; border-top: 1px solid #334155; text-align: center; color: #94a3b8; background: #1e293b;">
-        <p>&copy; 2026 XeanVI. <a href="/terms" style="color: #38bdf8; margin: 0 10px;">Terms</a> <a href="/privacy" style="color: #38bdf8;">Privacy</a></p>
-    </footer>
-
     <script>
         const csrfToken = "{{ csrf_token() }}";
-        function loadChart(ticker) {
-            new TradingView.widget({ "autosize": true, "symbol": ticker, "interval": "1", "theme": "dark", "style": "1", "container_id": "tradingview_chart" });
+
+        // Global state for websockets
+        const state = { ws: null };
+        const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
+        let activeTrade = null; // Stores {symbol, entry, qty, stop, target}
+
+        // Helper: Format Money
+        function money(v) {
+            if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
+            return `$${Number(v).toFixed(2)}`;
         }
+
+
+        function updateLivePL(currentPrice) {
+            if (!activeTrade) return;
+
+            const pl = (currentPrice - activeTrade.entry) * activeTrade.qty;
+            const plPct = ((currentPrice - activeTrade.entry) / activeTrade.entry) * 100;
+
+            const plEl = document.getElementById('pos-pl');
+            const pctEl = document.getElementById('pos-pl-pct');
+            const card = document.getElementById('pl-container');
+
+            // Update Text
+            plEl.textContent = (pl >= 0 ? '+' : '') + money(pl);
+            pctEl.textContent = `(${plPct.toFixed(2)}%)`;
+            document.getElementById('pos-current').textContent = money(currentPrice);
+
+            // Dynamic Colors
+            if (pl >= 0) {
+                plEl.style.color = 'var(--success)';
+                card.style.background = 'rgba(16, 185, 129, 0.1)';
+                card.style.borderColor = 'var(--success)';
+            } else {
+                plEl.style.color = 'var(--danger)';
+                card.style.background = 'rgba(239, 68, 68, 0.1)';
+                card.style.borderColor = 'var(--danger)';
+            }
+        }
+
+        // Helper: Add log to terminal
+        function addLog(message, color) {
+            const terminal = document.getElementById('log-container');
+            if (!terminal) return;
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            terminal.innerHTML += `<div style="margin-bottom: 5px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function updateLiveMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) throw new Error('Metrics endpoint unavailable');
+                const payload = await response.json();
+                if (payload?.ok) {
+                    const watchItems = payload.data?.watchlist || [];
+                    if (activeTrade?.symbol) {
+                        const match = watchItems.find(item => item.symbol === activeTrade.symbol);
+                        const price = Number(match?.current_price);
+                        if (!Number.isNaN(price)) updateLivePL(price);
+                    }
+                    console.log(`Pinging APIs every ${userRefreshRate / 1000} seconds.`);
+                }
+            } catch (err) {
+                console.debug(`Live metrics refresh skipped: ${err.message}`);
+            }
+        }
+
+        setInterval(() => {
+            updateLiveMetrics();
+            addLog("Updating market data...", "var(--text-muted)");
+        }, userRefreshRate);
+
+        // Feature: Load TradingView Chart
+        function loadChart(ticker) {
+            document.getElementById('tradingview_chart').innerHTML = ''; // Clear old chart
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": ticker,
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "enable_publishing": false,
+                "backgroundColor": "#101826",
+                "gridColor": "rgba(148, 163, 184, 0.1)",
+                "hide_top_toolbar": false,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "tradingview_chart"
+            });
+        }
+        // Load default SPY chart on startup
         loadChart("SPY");
 
+        // Feature: Populate "The Trade Plan" panel
+        function renderWatchPanel(best) {
+            const panel = best.watch_panel || {};
+            const actionContainer = document.getElementById('actionContainer');
+            const actionPrimary = document.getElementById('actionPrimary');
+            const decisionPill = document.getElementById('decisionPill');
+
+            decisionPill.textContent = best.decision || 'WATCH';
+
+            if (best.decision === 'BUY NOW') {
+                // This turns the box green and removes the "WAIT" text
+                decisionPill.className = 'table-pill buy-now';
+                actionContainer.className = 'action-box'; 
+                actionPrimary.innerHTML = `Buy <strong>${panel.max_shares || 0} shares</strong> at ${money(best.current_price)}. Target: ${money(best.target_1)}.`;
+            } else if (best.decision === 'WAIT') {
+                decisionPill.className = 'table-pill watch';
+                actionContainer.className = 'action-box wait';
+                actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after || '09:45'} ET</strong>. Market open volatility protection active.`;
+            } else {
+                decisionPill.className = 'table-pill watch';
+                actionContainer.className = 'action-box wait';
+                actionPrimary.innerHTML = `Scanning for setup... Current Status: <strong>${best.decision}</strong>`;
+            }
+
+            // Populate Math
+            document.getElementById('watchQtyLine').textContent = `${panel.max_shares || 0} Shares`;
+            document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
+            document.getElementById('watchStopLine').textContent = money(panel.stop);
+            document.getElementById('watchTpLine').textContent = money(panel.take_profit_range?.[0]);
+        }
+
+        // Feature: Populate "AI Analysis" panel
+        function renderBestPick(best) {
+            const scoreRows = document.getElementById('scoreRows');
+            scoreRows.innerHTML = '';
+            const details = best.details || {};
+
+            const metrics = [
+                { label: 'Rel. Volume', val: details.rvol ? details.rvol + 'x' : '—' },
+                { label: 'Trend Score', val: details.trend_efficiency ? details.trend_efficiency : '—' },
+                { label: 'Morning Gap', val: details.premarket_gap_pct ? details.premarket_gap_pct.toFixed(1) + '%' : '—' },
+                { label: 'Spread', val: details.spread_pct ? (details.spread_pct * 100).toFixed(2) + '%' : '—' }
+            ];
+
+            metrics.forEach(m => {
+                scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
+            });
+
+            // Inject Setup Grade
+            const gradeEl = document.getElementById('setup-grade');
+            const grade = best.setup_grade || 'NO TRADE';
+            let gradeClass = 'grade-none';
+            if (grade === 'A+') gradeClass = 'grade-a-plus';
+            else if (grade === 'A') gradeClass = 'grade-a';
+            else if (grade === 'WATCH') gradeClass = 'grade-watch';
+            gradeEl.innerHTML = `<span class="grade-badge ${gradeClass}">${grade}</span>`;
+
+            // Status Notes
+            const notes = [];
+            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">🧠 AI Sentiment Validated.</span>`);
+
+            const skips = details.skip_reasons || [];
+            if (skips.length > 0) {
+                notes.push(`<strong style="color: var(--danger);">⚠️ Safety Blocks Active:</strong><br><span style="color: var(--text-muted); font-size: 0.8rem;">${skips[0]}</span>`);
+            } else {
+                notes.push(`<strong style="color: var(--success);">✅ Edge Confirmed. Ready to execute.</strong>`);
+            }
+            document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
+        }
+
+        // Feature: Populate "Watchlist" panel
+        function renderWatchlist(items) {
+            const body = document.getElementById('watchlistBody');
+            body.innerHTML = '';
+            if (!items || !items.length) {
+                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No candidates found.</td></tr>';
+                return;
+            }
+            items.slice(0, 5).forEach(item => { // Show top 5
+                const signal = item.live_signal || item.decision || 'WATCH';
+                const cssClass = signal === 'BUY NOW' ? 'buy-now' : 'watch';
+                body.innerHTML += `
+                    <tr>
+                        <td><strong>${item.symbol}</strong></td>
+                        <td><span class="table-pill ${cssClass}">${signal}</span></td>
+                        <td>${money(item.current_price)}</td>
+                        <td>${item.score_total || '--'}/100</td>
+                    </tr>`;
+            });
+        }
+
+        function showNotification(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `trade-toast ${type}`;
+
+            let icon = '<i class="fas fa-info-circle"></i>';
+            if (type === 'success') icon = '<i class="fas fa-check-circle" style="color: var(--success)"></i>';
+            if (type === 'danger') icon = '<i class="fas fa-exclamation-circle" style="color: var(--danger)"></i>';
+
+            toast.innerHTML = `
+                <div class="toast-header">${icon} ${title}</div>
+                <div class="toast-body">${message}</div>
+            `;
+
+            toast.onclick = () => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            };
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        function connectWatchlistSocket() {
+            if (state.ws) state.ws.close();
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            state.ws = new WebSocket(`${protocol}//${window.location.host}/ws/watchlist`);
+
+            state.ws.onopen = () => {
+                console.log("Live connection established to XeanVI Core.");
+            };
+
+            state.ws.onmessage = (event) => {
+                try {
+                    const wsPayload = JSON.parse(event.data);
+                    if (wsPayload.action === 'trade_alert') {
+                        showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
+                    } else if (wsPayload.type === 'watchlist') {
+                        renderWatchlist(wsPayload.items || []);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse websocket message", e);
+                }
+            };
+        }
+
+        // MAIN EXECUTION LOOP
         async function startScanner() {
             const btn = document.getElementById('scanButton');
-            btn.innerText = "SCANNING..."; btn.disabled = true;
+            const statusHeader = document.getElementById('bot-status');
+            const tickerHeader = document.getElementById('target-ticker');
+
+            // 1. Lock UI
+            btn.innerText = "SCANNING MARKET...";
+            btn.disabled = true;
+            statusHeader.innerText = "Working...";
+            statusHeader.style.color = "var(--warning)";
+            document.getElementById('ai-confidence').textContent = '--%';
+            document.getElementById('setup-grade').innerHTML = '--';
+            document.getElementById('risk-amount').textContent = '--';
+            document.getElementById('data-panels').style.display = 'none';
+
+            addLog("Initiating AI Scanner...", "var(--warning)");
+            addLog("Downloading live market data...", "var(--text-muted)");
+
             try {
-                const res = await fetch('/api/scan', { method: 'POST', headers: {'X-CSRFToken': csrfToken} });
+                // 2. Call the REAL robust Python Scanner
+                const res = await fetch('/api/scan', { 
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
                 const payload = await res.json();
+
                 if (!payload.ok) throw new Error(payload.error);
+
                 const best = payload.data.best_pick;
-                document.getElementById('target-ticker').innerText = best.symbol;
-                document.getElementById('ai-confidence').textContent = `${best.score_total}%`;
+                const watchPanel = best.watch_panel || {};
+
+                addLog(`Scan complete. Top setup found: ${best.symbol}.`, "var(--success)");
+
+                // 3. Update the UI
+                tickerHeader.innerText = best.symbol;
+                document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
+                document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
+                document.getElementById('liveIndicator').style.display = 'inline';
+                loadChart(best.symbol); 
+
+                renderWatchPanel(best);
+                renderBestPick(best);
+                renderWatchlist(payload.data.watchlist || []);
+
+                // Reveal the Data Panels
                 document.getElementById('data-panels').style.display = 'grid';
-                loadChart(best.symbol);
-            } catch (err) { console.error(err); } finally { btn.innerText = "RUN MORNING SCAN"; btn.disabled = false; }
+
+                // ==========================================
+                // 4. AUTOPILOT TRIGGER (THE "SIT & COLLECT" MODULE)
+                // ==========================================
+                if (best.decision === 'BUY NOW') {
+                    addLog("⚡ PERFECT SETUP DETECTED. INITIATING AUTOPILOT EXECUTION...", "var(--accent-blue)");
+
+                    try {
+                        // Send the exact math to the execution engine
+                        const execRes = await fetch('/api/execute', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({
+                                symbol: best.symbol,
+                                entry_price: best.entry_price,
+                                stop_price: best.stop_price,
+                                target_1: best.target_1,
+                                target_2: best.target_2,
+                                qty: best.qty,
+                                current_price: best.current_price,
+                                buy_upper: best.buy_upper,
+                                score_total: best.score_total,
+                                decision: best.decision,
+                                scan_id: payload.data.scan_id
+                            })
+                        });
+
+                        const execData = await execRes.json();
+
+                        if (execData.ok) {
+                            addLog(`✅ Order Confirmed! Bot bought ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                            addLog(`🛡️ Hard Stop Loss set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
+                            addLog(`🎯 Profit Target set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
+
+                            // Set Active Trade Data
+                            activeTrade = {
+                                symbol: best.symbol,
+                                entry: best.entry_price,
+                                qty: best.qty,
+                                stop: best.stop_price,
+                                target: best.target_1
+                            };
+
+                            // Populate and Show the Card
+                            document.getElementById('pos-symbol').textContent = activeTrade.symbol;
+                            document.getElementById('pos-entry').textContent = money(activeTrade.entry);
+                            document.getElementById('pos-stop').textContent = money(activeTrade.stop);
+                            document.getElementById('pos-target').textContent = money(activeTrade.target);
+                            document.getElementById('active-position-card').style.display = 'block';
+                            updateLivePL(Number(best.current_price));
+
+                            // Make the UI scream "Live Position"
+                            const pill = document.getElementById('decisionPill');
+                            pill.textContent = 'POSITION LIVE';
+                            pill.className = 'table-pill buy-now';
+                            pill.style.boxShadow = '0 0 10px var(--success)';
+                        } else {
+                            addLog(`⚠️ Execution Blocked: ${execData.error}`, "var(--danger)");
+                        }
+                    } catch (err) {
+                        addLog(`Error firing execution: ${err.message}`, "var(--danger)");
+                    }
+                } else {
+                    // If it's a "WAIT" or "WATCH" signal
+                    addLog("No perfect 'BUY NOW' setups found right now. Bot entering Watch Mode.", "var(--warning)");
+                }
+                // ==========================================
+
+                // 5. Connect WebSocket for live watchlist updates + alerts
+                connectWatchlistSocket();
+
+            } catch (err) {
+                addLog(`Error: ${err.message}`, "var(--danger)");
+            } finally {
+                // Unlock UI
+                btn.innerText = "RUN MORNING SCAN";
+                btn.disabled = false;
+                statusHeader.innerText = "Idle";
+                statusHeader.style.color = "var(--text-muted)";
+            }
         }
+
+        connectWatchlistSocket();
     </script>
+    <div id="toast-container" aria-live="polite" aria-atomic="true" role="status"></div>
 </body>
 </html>
