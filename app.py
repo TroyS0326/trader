@@ -4,6 +4,7 @@ import os
 import requests
 import secrets
 import sqlite3
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -32,7 +33,10 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# 1. Enable Global CSRF Protection
+# 1. THIS IS THE FIX: Tell Flask to trust Nginx's proxy headers over the Unix socket
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# 2. Enable Global CSRF Protection
 csrf = CSRFProtect(app)
 
 # 2. Setup the Rate Limiter
@@ -50,12 +54,15 @@ if os.getenv('FLASK_ENV') == 'production':
     # Start with CSP disabled until configured for external scripts (TradingView, etc.)
     Talisman(app, content_security_policy=None)
 
-# Use the dynamic config that reads from your .env
-app.config['SESSION_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
-app.config['SESSION_COOKIE_SECURE'] = config.SESSION_COOKIE_SECURE
+# 3. Fix the hardcoded cookie domain (add the leading dot)
+app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'  # <-- THE DOT IS CRITICAL
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = config.SESSION_COOKIE_SAMESITE
-app.config['WTF_CSRF_TRUSTED_ORIGINS'] = config.WTF_CSRF_TRUSTED_ORIGINS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
+    'https://xeanvi.com',
+    'https://www.xeanvi.com',
+]
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
