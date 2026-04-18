@@ -35,6 +35,7 @@ WTF_CSRF_TRUSTED_ORIGINS = [
 
 ALPACA_CLIENT_ID = require_env('ALPACA_CLIENT_ID')
 ALPACA_CLIENT_SECRET = require_env('ALPACA_CLIENT_SECRET')
+ALPACA_REDIRECT_URI = require_env('ALPACA_REDIRECT_URI').strip()
 ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
 ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
 ALPACA_PAPER_BASE = 'https://paper-api.alpaca.markets'

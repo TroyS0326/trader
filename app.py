@@ -73,7 +73,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath(config.DB_P
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['ALPACA_CLIENT_ID'] = config.ALPACA_CLIENT_ID
 app.config['ALPACA_CLIENT_SECRET'] = config.ALPACA_CLIENT_SECRET
-app.config['ALPACA_REDIRECT_URI'] = os.getenv('ALPACA_REDIRECT_URI', 'https://broker-api.sandbox.alpaca.markets/v1/oauth/callback')
+app.config['ALPACA_REDIRECT_URI'] = config.ALPACA_REDIRECT_URI
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -490,7 +490,6 @@ def alpaca_login():
         f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
         f"&scope=trading"
         f"&state={oauth_state}"
-        f"&env=paper"
     )
     return redirect(alpaca_auth_url)
 
