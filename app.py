@@ -304,7 +304,7 @@ def features():
 
 @app.route('/alpaca-integration')
 def alpaca_integration():
-    """Pillar page targeting 'Alpaca API trading software' and 'Alpaca execution workflow'."""
+    """Pillar page for Alpaca API keywords and systematic execution details."""
     return render_template('alpaca_integration.html')
 
 @app.route('/playbook')
