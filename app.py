@@ -266,19 +266,6 @@ def signup():
 
     return render_template('signup.html')
 
-
-@app.route('/debug-proxy')
-def debug_proxy():
-    return jsonify({
-        "1_flask_perceived_host": request.host,
-        "2_flask_perceived_scheme": request.scheme,
-        "3_browser_referrer": request.referrer,
-        "4_nginx_forwarded_host": request.headers.get('X-Forwarded-Host', 'MISSING'),
-        "5_nginx_forwarded_proto": request.headers.get('X-Forwarded-Proto', 'MISSING'),
-        "6_configured_trusted_origins": app.config.get('WTF_CSRF_TRUSTED_ORIGINS')
-    })
-
-
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")  # 🛑 Blocks brute-force password guessing
 def login():
