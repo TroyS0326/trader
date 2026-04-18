@@ -510,7 +510,7 @@ def alpaca_callback():
         flash("Authorization failed.", "error")
         return redirect(url_for('dashboard'))
 
-    token_url = "https://broker-api.sandbox.alpaca.markets/v1/oauth/token"
+    token_url = "https://api.alpaca.markets/oauth/token"
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
