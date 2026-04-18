@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>AI Catalyst Scoring | XeanVI Quantitative Intelligence</title>
-    <meta name="description" content="Harness the power of local NLP with XeanVI. Real-time FinBERT sentiment analysis and XGBoost-driven catalyst scoring for systematic traders.">
+    <title>AI Catalyst Intelligence | XeanVI Quantitative Scoring</title>
+    <meta name="description" content="Technical breakdown of XeanVI's AI engine. Explore our FinBERT-tone sentiment analysis and XGBoost-driven success probability modeling.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -20,32 +20,30 @@
 
     <header class="page-header">
         <div class="container">
-            <div class="badge-pill">Local NLP Infrastructure</div>
-            <h1>AI Catalyst <span class="text-gradient">Scoring Engine</span></h1>
-            <p>XeanVI moves beyond simple price alerts by parsing the narrative logic of the market using specialized financial language models.</p>
+            <div class="badge-pill">Proprietary ML Stack</div>
+            <h1>The Intelligence <span class="text-gradient">Engine</span></h1>
+            <p>XeanVI leverages specialized Natural Language Processing (NLP) and Gradient Boosting to quantify market catalysts with mathematical precision.</p>
         </div>
     </header>
 
     <section class="section-pad">
-        <div class="container">
-            <div class="grid-2">
-                <div>
-                    <h2 style="margin-bottom: 1.5rem;">FinBERT Sentiment Analysis</h2>
-                    <p>Unlike generic AI, XeanVI utilizes <strong>FinBERT-tone</strong>—a model specifically trained on financial news, earnings reports, and analyst notes.</p>
-                    <ul class="terminal-list">
-                        <li><strong>Continuous Scoring:</strong> Converts headlines into a sentiment range of -1.0 to +1.0.</li>
-                        <li><strong>Contextual Awareness:</strong> Distinguishes between "market volatility" (neutral) and "growth volatility" (negative).</li>
-                        <li><strong>Zero Latency:</strong> Runs locally on your infrastructure to eliminate API delays.</li>
-                    </ul>
-                </div>
-                <div class="terminal-container" style="padding: 2rem;">
-                    <div style="font-family: monospace; color: var(--accent-blue); font-size: 0.9rem;">
-                        [INFERENCE LOG]<br>
-                        &gt; Headline: "Company X beats EPS, raises guidance"<br>
-                        &gt; Label: POSITIVE (0.98)<br>
-                        &gt; Net Sentiment: +0.96<br>
-                        &gt; Result: Catalyst Confirmed.
-                    </div>
+        <div class="container grid-2">
+            <div>
+                <h2 style="margin-bottom: 1.5rem;">Layer 1: FinBERT-Tone Sentiment</h2>
+                <p>Standard AI struggles with financial nuance. XeanVI utilizes <strong>yiyanghkust/finbert-tone</strong>, a model specifically fine-tuned on financial corpora to detect subtle tonal shifts in news and earnings.</p>
+                <ul class="terminal-list">
+                    <li><strong>Neural Sentiment Parsing:</strong> Categorizes headlines into Positive, Negative, or Neutral classes.</li>
+                    <li><strong>Net Alpha Scoring:</strong> Calculates sentiment as <code>Prob(Positive) - Prob(Negative)</code> to determine the true conviction of a catalyst.</li>
+                    <li><strong>Local Inference:</strong> Runs directly on the XeanVI stack to ensure sub-millisecond data availability for the 9:20 AM batch process.</li>
+                </ul>
+            </div>
+            <div class="terminal-container" style="padding: 2rem; background: #010409;">
+                <div style="font-family: 'JetBrains Mono', monospace; color: #38bdf8; font-size: 0.85rem;">
+                    <span style="color: #6e7681;">// FinBERT Inference Output</span><br>
+                    ticker: "NVDA"<br>
+                    headline: "Next-gen Blackwell chips see unprecedented demand"<br>
+                    classification: { "Positive": 0.982, "Negative": 0.004, "Neutral": 0.014 }<br>
+                    <span style="color: var(--success);">net_sentiment: +0.978 (STRONG_BUY_SIGNAL)</span>
                 </div>
             </div>
         </div>
@@ -53,22 +51,25 @@
 
     <section class="section-pad" style="background: var(--bg-card); border-top: 1px solid var(--border-color);">
         <div class="container">
-            <div style="text-align: center; max-width: 800px; margin: 0 auto 3rem;">
-                <h2>The Probability Layer</h2>
-                <p>Sentiment is only half the battle. XeanVI uses an <strong>XGBoost Classifier</strong> to determine if a setup has a high probability of success based on historical alignment.</p>
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
+                <h2>Layer 2: XGBoost Probability Modeling</h2>
+                <p>Sentiment is a signal, but context is the edge. Our <strong>XGBoost Classifier</strong> correlates sentiment with quantitative market data to generate a final setup grade.</p>
             </div>
             <div class="grid-3">
-                <div class="feature-box">
-                    <h3>RVOL Thresholds</h3>
-                    <p>Calculates pre-market volume anomalies against 30-day averages.</p>
+                <div class="logic-card">
+                    <div class="label">Feature Vector A</div>
+                    <h3>Premarket RVOL</h3>
+                    <p>Calculates the ratio of current premarket volume against the 30-day average to detect institutional footprint.</p>
                 </div>
-                <div class="feature-box">
-                    <h3>Gap Alignment</h3>
-                    <p>Analyzes the percentage gap against ATR to prevent "exhaustion" entries.</p>
+                <div class="logic-card">
+                    <div class="label">Feature Vector B</div>
+                    <h3>Gap Exhaustion</h3>
+                    <p>Applies mathematical penalties to "exhaustion gaps" exceeding 15% to protect against buying the top.</p>
                 </div>
-                <div class="feature-box">
-                    <h3>Success Probability</h3>
-                    <p>Generates a final P(success) score to filter out low-conviction setups.</p>
+                <div class="logic-card">
+                    <div class="label">Feature Vector C</div>
+                    <h3>P(Success) Score</h3>
+                    <p>Outputs a definitive probability score (0.01 to 0.99) that determines if the Alpaca execution engine is unlocked.</p>
                 </div>
             </div>
         </div>
@@ -76,7 +77,7 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2026 XeanVI. Systematic Trade Intelligence.</p>
+            <p>&copy; 2026 XeanVI. Quantitative Intelligence Division.</p>
         </div>
     </footer>
 </body>
