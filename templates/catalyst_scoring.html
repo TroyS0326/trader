@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Catalyst Scoring | XeanVI Quantitative Intelligence</title>
+    <meta name="description" content="Harness the power of local NLP with XeanVI. Real-time FinBERT sentiment analysis and XGBoost-driven catalyst scoring for systematic traders.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            <div class="xean-nav-links">
+                <a href="/alpaca-integration">Alpaca Workflow</a>
+                <a href="/catalyst-scoring" class="nav-link-active">AI Intelligence</a>
+                <a href="/trade-journaling">Performance</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <div class="badge-pill">Local NLP Infrastructure</div>
+            <h1>AI Catalyst <span class="text-gradient">Scoring Engine</span></h1>
+            <p>XeanVI moves beyond simple price alerts by parsing the narrative logic of the market using specialized financial language models.</p>
+        </div>
+    </header>
+
+    <section class="section-pad">
+        <div class="container">
+            <div class="grid-2">
+                <div>
+                    <h2 style="margin-bottom: 1.5rem;">FinBERT Sentiment Analysis</h2>
+                    <p>Unlike generic AI, XeanVI utilizes <strong>FinBERT-tone</strong>—a model specifically trained on financial news, earnings reports, and analyst notes.</p>
+                    <ul class="terminal-list">
+                        <li><strong>Continuous Scoring:</strong> Converts headlines into a sentiment range of -1.0 to +1.0.</li>
+                        <li><strong>Contextual Awareness:</strong> Distinguishes between "market volatility" (neutral) and "growth volatility" (negative).</li>
+                        <li><strong>Zero Latency:</strong> Runs locally on your infrastructure to eliminate API delays.</li>
+                    </ul>
+                </div>
+                <div class="terminal-container" style="padding: 2rem;">
+                    <div style="font-family: monospace; color: var(--accent-blue); font-size: 0.9rem;">
+                        [INFERENCE LOG]<br>
+                        &gt; Headline: "Company X beats EPS, raises guidance"<br>
+                        &gt; Label: POSITIVE (0.98)<br>
+                        &gt; Net Sentiment: +0.96<br>
+                        &gt; Result: Catalyst Confirmed.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad" style="background: var(--bg-card); border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 3rem;">
+                <h2>The Probability Layer</h2>
+                <p>Sentiment is only half the battle. XeanVI uses an <strong>XGBoost Classifier</strong> to determine if a setup has a high probability of success based on historical alignment.</p>
+            </div>
+            <div class="grid-3">
+                <div class="feature-box">
+                    <h3>RVOL Thresholds</h3>
+                    <p>Calculates pre-market volume anomalies against 30-day averages.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Gap Alignment</h3>
+                    <p>Analyzes the percentage gap against ATR to prevent "exhaustion" entries.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Success Probability</h3>
+                    <p>Generates a final P(success) score to filter out low-conviction setups.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 XeanVI. Systematic Trade Intelligence.</p>
+        </div>
+    </footer>
+</body>
+</html>
