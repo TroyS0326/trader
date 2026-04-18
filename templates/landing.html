@@ -25,11 +25,11 @@
         <div class="container grid-2">
             <div class="hero-content">
                 <div class="badge-pill">Live Execution Automation</div>
-                <h1>Launch your bot.<br>Let it trade <span class="text-gradient">automatically</span>.</h1>
-                <p>Set your strategy once. Click run. XeanVI handles the market monitoring, entries, and exits automatically.</p>
+                <h1>Launch your bot. Let it trade <span class="text-gradient">automatically</span>.</h1>
+                <p>Set your strategy once. Click run. XeanVI handles the scans, entries, and exits while you go about your day.</p>
                 <div class="hero-btns">
                     <a href="/signup" class="btn btn-primary">Start My Free Bot</a>
-                    <a href="#demo" class="btn btn-secondary">Explore AI Logic</a>
+                    <button onclick="runSimulation()" class="btn btn-secondary">Watch AI Scan</button>
                 </div>
             </div>
 
@@ -38,22 +38,12 @@
                     <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
                     <div class="terminal-title">xeanvi_inference_engine_v1.0</div>
                 </div>
-
-                <div id="hero-chart" class="chart-box hero-chart-box">
+                <div id="sim-terminal" class="terminal-body">
+                    <div class="log-entry">> Initializing Alpaca SIP Stream...</div>
+                    <div class="log-entry">> Awaiting user command to initialize scan logic.</div>
                 </div>
-
-                <div id="sim-terminal" class="terminal-body hero-terminal-body">
-                    <div class="log-entry">&gt; Initializing Alpaca SIP Stream...</div>
-                    <div class="log-entry">&gt; Awaiting user command to initialize scan logic.</div>
-                </div>
-
-                <div class="terminal-footer hero-terminal-footer">
-                    <button id="btn-simulate" onclick="runSimulation()" class="btn-pulse hero-run-btn">
-                        <i class="fas fa-play"></i> RUN AI SCAN
-                    </button>
-                    <button id="btn-buy" class="btn-primary" disabled>
-                        <i class="fas fa-robot"></i> AUTO-BUY
-                    </button>
+                <div class="terminal-footer">
+                    <button id="btn-simulate" onclick="runSimulation()" class="btn-pulse">RUN AI SCAN</button>
                 </div>
             </div>
         </div>
@@ -105,70 +95,31 @@
         </div>
     </footer>
 
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script>
-        let chart;
-
         function runSimulation() {
             const term = document.getElementById('sim-terminal');
             const btn = document.getElementById('btn-simulate');
-            const buyBtn = document.getElementById('btn-buy');
-            const chartBox = document.getElementById('hero-chart');
 
             btn.disabled = true;
             term.innerHTML = '<div class="log-entry ai-action">> Initializing full market scan...</div>';
 
             const logs = [
-                { msg: "> Connecting to Alpaca Data Stream...", color: "var(--accent-blue)" },
-                { msg: "> High RVOL detected on $NVDA. Cross-referencing AI Catalyst...", color: "var(--warning)" },
-                { msg: "> Catalyst Confirmed. Sentiment: +0.92. Grade: A+", color: "var(--success)" }
+                { msg: '> Connecting to Alpaca Data Stream...', color: 'var(--accent-blue)' },
+                { msg: '> High RVOL detected on $NVDA. Cross-referencing AI Catalyst...', color: 'var(--warning)' },
+                { msg: '> Catalyst Confirmed. Sentiment: +0.92. Grade: A+', color: 'var(--success)' },
+                { msg: '> [SIMULATION COMPLETE] Ready to launch automated execution.', color: 'var(--accent-blue)' }
             ];
 
             logs.forEach((log, i) => {
                 setTimeout(() => {
                     term.innerHTML += `<div class="log-entry" style="color: ${log.color}">${log.msg}</div>`;
                     term.scrollTop = term.scrollHeight;
-
                     if (i === logs.length - 1) {
-                        chartBox.style.display = 'block';
-                        buyBtn.style.display = 'block';
-                        buyBtn.disabled = true;
-                        buyBtn.innerHTML = '<i class="fas fa-robot"></i> AUTO-BUY';
-                        buyBtn.style.opacity = '';
-                        initMiniChart();
-
-                        setTimeout(() => {
-                            term.innerHTML += '<div class="log-entry" style="color: var(--accent-blue)">> Launching Automated Buy Sequence...</div>';
-                            buyBtn.innerHTML = '<i class="fas fa-check"></i> EXECUTED';
-                            buyBtn.style.opacity = '0.7';
-                            term.innerHTML += '<div class="log-entry" style="color: var(--success)">> [CONFIRMED] Bought 50 shares $NVDA at $128.50.</div>';
-                            term.scrollTop = term.scrollHeight;
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-redo"></i> RESET SCAN';
-                        }, 1500);
+                        btn.disabled = false;
+                        btn.textContent = 'RUN AI SCAN';
                     }
-                }, (i + 1) * 1200);
+                }, (i + 1) * 1000);
             });
-        }
-
-        function initMiniChart() {
-            const chartElement = document.getElementById('hero-chart');
-            if (chart) return;
-
-            chart = LightweightCharts.createChart(chartElement, {
-                layout: { backgroundColor: '#060b14', textColor: '#94a3b8' },
-                grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                priceScale: { borderColor: '#334155' },
-                timeScale: { borderColor: '#334155' },
-            });
-
-            const lineSeries = chart.addLineSeries({ color: '#38bdf8' });
-            lineSeries.setData([
-                { time: '2026-04-10', value: 120.01 }, { time: '2026-04-11', value: 122.23 },
-                { time: '2026-04-12', value: 121.50 }, { time: '2026-04-13', value: 124.80 },
-                { time: '2026-04-14', value: 128.50 }, { time: '2026-04-15', value: 132.10 }
-            ]);
         }
     </script>
 </body>
