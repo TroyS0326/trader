@@ -171,11 +171,24 @@ def ensure_user_personalization_columns() -> None:
     finally:
         conn.close()
 
+def ensure_user_alpaca_data_feed_column() -> None:
+    """Backfill schema for per-user Alpaca market-data feed preference."""
+    conn = sqlite3.connect(config.DB_PATH)
+    try:
+        cursor = conn.execute("PRAGMA table_info(user)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        if 'alpaca_data_feed' not in existing_columns:
+            conn.execute("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'")
+            conn.commit()
+    finally:
+        conn.close()
+
 
 ensure_db_initialized()
 ensure_user_refresh_interval_column()
 ensure_user_layout_columns()
 ensure_user_personalization_columns()
+ensure_user_alpaca_data_feed_column()
 
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
@@ -514,8 +527,9 @@ def alpaca_callback():
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
+            verify_alpaca_data_feed(current_user)
             db.session.commit()
-            flash("Broker connected successfully via secure OAuth!", "success")
+            flash("Broker connected and data feed initialized!", "success")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
@@ -606,7 +620,8 @@ def api_history():
 @app.route('/api/chart/<symbol>')
 def api_chart(symbol: str):
     try:
-        return ok(get_stock_chart_pack(symbol.upper()))
+        user = current_user if getattr(current_user, 'is_authenticated', False) else None
+        return ok(get_stock_chart_pack(symbol.upper(), user=user))
     except Exception as exc:
         return fail(str(exc), 500)
 
@@ -688,6 +703,7 @@ def api_execute():
             stop_price=stop_price,
             target_1_price=target_1,
             target_2_price=target_2,
+            user=current_user,
         )
         trade_payload = {
             'user_id': current_user.id,

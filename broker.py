@@ -8,7 +8,6 @@ from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
     ALPACA_DATA_BASE,
-    ALPACA_FEED,
     ALPACA_PAPER_BASE,
     ENTRY_ORDER_POLL_SECONDS,
     ENTRY_ORDER_TIMEOUT_SECONDS,
@@ -99,11 +98,16 @@ def _request_with_retry(
     return resp
 
 
-def get_latest_quote(symbol: str) -> Dict[str, Any]:
+def _resolve_feed(user: Any | None = None) -> str:
+    candidate = (getattr(user, 'alpaca_data_feed', '') or '').strip().lower()
+    return candidate if candidate in {'iex', 'sip'} else 'iex'
+
+
+def get_latest_quote(symbol: str, user: Any | None = None) -> Dict[str, Any]:
     symbol = symbol.upper()
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/quotes/latest',
-        params={'symbols': symbol, 'feed': ALPACA_FEED},
+        params={'symbols': symbol, 'feed': _resolve_feed(user)},
     )
     return (data.get('quotes') or {}).get(symbol, {})
 
@@ -162,8 +166,8 @@ def _poll_for_fill(order_id: str, timeout_seconds: float) -> Dict[str, Any]:
         time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
 
 
-def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy') -> Dict[str, Any]:
-    quote = get_latest_quote(symbol)
+def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | None = None) -> Dict[str, Any]:
+    quote = get_latest_quote(symbol, user=user)
     ask = float(quote.get('ap') or 0)
     bid = float(quote.get('bp') or 0)
     if side == 'buy':
@@ -192,6 +196,7 @@ def place_managed_entry_order(
     target_1_price: float,
     target_2_price: float,
     avg_1m_volume: float = 0.0,
+    user: Any | None = None,
 ) -> Dict[str, Any]:
     # Microstructure liquidity cap (max 5% of 1-minute volume).
     if avg_1m_volume > 0:
@@ -200,7 +205,7 @@ def place_managed_entry_order(
             qty = max(1, max_safe_qty)
 
     _ = entry_price, target_2_price  # reserved for external broker adapters and journaling.
-    entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy')
+    entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy', user=user)
     entry_id = entry.get('id')
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
