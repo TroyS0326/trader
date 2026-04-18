@@ -21,7 +21,7 @@ HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 
 
-SESSION_COOKIE_DOMAIN = os.getenv('SESSION_COOKIE_DOMAIN', 'xeanvi.com').strip() or 'xeanvi.com'
+SESSION_COOKIE_DOMAIN = os.getenv('SESSION_COOKIE_DOMAIN', '').strip() or None
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax').strip() or 'Lax'
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', '1') == '1'
 WTF_CSRF_TRUSTED_ORIGINS = [
