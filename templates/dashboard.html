@@ -320,79 +320,146 @@
            ACTUAL MOBILE RESPONSIVENESS FIX
            ========================================= */
         @media (max-width: 992px) {
-            /* 1. Stack the Unified Header Bar */
+            /* Shrink the overall header padding */
             .command-header-bar {
                 flex-direction: column;
-                padding: 1.2rem;
-                gap: 1.5rem;
+                padding: 0.8rem;
+                gap: 0.8rem;
             }
 
+            /* THE FIX: Turn metrics into a horizontal scrollable row */
             .header-metrics {
-                flex-direction: column;
+                flex-direction: row !important;
+                justify-content: flex-start;
+                overflow-x: auto; /* Allows swiping left/right */
+                white-space: nowrap;
+                gap: 15px;
+                padding-bottom: 8px; /* Room for a scrollbar if needed */
                 width: 100%;
-                gap: 12px;
+                scrollbar-width: none; /* Hide scrollbar for Firefox */
+            }
+
+            .header-metrics::-webkit-scrollbar {
+                display: none; /* Hide scrollbar for Chrome/Safari */
             }
 
             .h-divider {
-                display: none; /* Hide vertical lines on mobile */
+                display: none;
             }
 
+            /* Individual metric pills */
             .h-metric {
+                flex: 0 0 auto; /* Prevents pills from shrinking */
+                background: rgba(255, 255, 255, 0.03);
+                padding: 6px 12px;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                min-width: 100px;
+            }
+
+            .h-label {
+                font-size: 0.6rem; /* Smaller labels */
+                margin-bottom: 2px;
+            }
+
+            .h-value {
+                font-size: 0.9rem; /* Tighter values */
+            }
+
+            /* Adjust the Go Pro button to not hog space */
+            .header-actions {
                 width: 100%;
-                flex-direction: row;
-                justify-content: space-between;
-                padding: 8px 0;
-                border-bottom: 1px solid rgba(255,255,255,0.05);
             }
 
-            /* 2. Fix the Workspace Layout */
+            .btn-go-pro {
+                width: 100%;
+                justify-content: center;
+                padding: 0.6rem;
+                font-size: 0.8rem;
+            }
+
             .workspace {
-                flex-direction: column; /* Stacks Control Panel on top of Chart */
-                padding: 1rem 0;
-            }
-
-            .control-panel {
-                width: 100% !important;
-                margin-bottom: 2rem;
-                position: static !important; /* Forces it to stay in the flow */
+                display: flex;
+                flex-direction: column;
+                padding: 0.5rem;
             }
 
             .top-row {
                 display: flex !important;
                 flex-direction: column !important;
                 height: auto !important;
+                gap: 0.75rem;
+                margin-bottom: 1rem;
             }
 
-            /* 3. THE FIX: Make the Scan Button Static */
+            .control-panel {
+                order: 1; /* Move controls to the top */
+                width: 100% !important;
+                background: none;
+                border: none;
+                padding: 0;
+                margin-bottom: 0;
+            }
+
+            /* Collapse the 'Pick Your Style' into a simpler inline row */
+            .config-section {
+                margin-bottom: 10px !important;
+                background: var(--bg-card);
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .config-section:last-child {
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+                padding: 8px 10px;
+            }
+
+            .config-section:last-child p {
+                display: none;
+            }
+
+            .config-section:last-child label {
+                display: inline;
+                margin-right: 8px;
+                font-size: 0.75rem;
+            }
+
             .btn-run-scan {
-                position: static !important; /* Removes 'fixed' or 'sticky' behavior */
-                width: 100% !important;
-                margin-top: 1rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                margin: 0;
+                padding: 0.65rem 0.85rem;
+                font-size: 0.85rem;
+                letter-spacing: 0.03em;
                 box-shadow: none;
-                bottom: auto !important;
-                left: auto !important;
                 transform: none !important;
+                position: static !important;
             }
 
-            /* 4. Chart Adjustments */
             .chart-panel {
+                order: 2; /* Chart comes immediately after the Scan button */
                 width: 100% !important;
-                height: 450px !important; /* Gives the chart enough room to be useful */
+                height: 350px !important; /* Shorter chart for mobile */
+                padding: 1rem;
             }
 
             .chart-container {
-                height: 400px !important;
-                min-height: 400px;
+                height: 280px !important;
+                min-height: 280px;
             }
 
-            /* 5. Hide labels on mobile to save space if needed */
             .profile-name {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
 
             .bottom-row {
                 display: flex !important;
                 flex-direction: column !important;
+                margin-top: 1rem;
+                gap: 1rem;
             }
         }
     </style>
