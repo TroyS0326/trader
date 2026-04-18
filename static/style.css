@@ -1304,6 +1304,7 @@ input:checked + .slider:before {
   border-radius: 12px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
   font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
 }
 
 .terminal-header {
@@ -1360,6 +1361,43 @@ input:checked + .slider:before {
 .btn-pulse:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 25px var(--accent-glow);
+}
+
+/* Re-integrated Chart & Buy Styling */
+.hero-chart-box {
+  height: 200px;
+  display: none;
+  background: #060b14;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hero-terminal-body {
+  height: 180px;
+}
+
+.hero-terminal-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.hero-run-btn {
+  flex: 2;
+}
+
+#btn-buy {
+  flex: 1;
+  display: none;
+  background: var(--success);
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+#btn-buy i {
+  margin-right: 5px;
 }
 
 .hero-btns {
