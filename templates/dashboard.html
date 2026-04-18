@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
     <style>
         :root {
@@ -475,15 +475,13 @@
             <div class="xean-nav-links">
                 {% if current_user.is_authenticated %}
                     <a href="/dashboard">Dashboard</a>
-                    <a href="/community">Trade Discussions</a>                    
+                    <a href="/community">Community</a>
                     <a href="/transparency">AI Logic</a>
                 {% else %}
                     <a href="/features">How it Works</a>
                     <a href="/alpaca-integration">Alpaca Workflow</a>
-                    <a href="/features">How it Works</a>
                     <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="/pricing">Pricing</a>
+                    <a href="/upgrade">Pricing</a>
                 {% endif %}
             </div>
 
@@ -674,6 +672,7 @@
 
     <script>
         const csrfToken = "{{ csrf_token() }}";
+        const chartState = { chart: null, series: null };
 
         // Global state for websockets
         const state = { ws: null };
@@ -747,28 +746,37 @@
             addLog("Updating market data...", "var(--text-muted)");
         }, userRefreshRate);
 
-        // Feature: Load TradingView Chart
-        function loadChart(ticker) {
-            document.getElementById('tradingview_chart').innerHTML = ''; // Clear old chart
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": ticker,
-                "interval": "1",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "enable_publishing": false,
-                "backgroundColor": "#101826",
-                "gridColor": "rgba(148, 163, 184, 0.1)",
-                "hide_top_toolbar": false,
-                "hide_legend": false,
-                "save_image": false,
-                "container_id": "tradingview_chart"
+        function initChart() {
+            const container = document.getElementById('tradingview_chart');
+            if (!container) return;
+            container.innerHTML = '';
+            chartState.chart = LightweightCharts.createChart(container, {
+                layout: { background: { color: '#101826' }, textColor: '#dbe4ff' },
+                grid: {
+                    vertLines: { color: 'rgba(148,163,184,0.05)' },
+                    horzLines: { color: 'rgba(148,163,184,0.05)' }
+                },
+                width: container.clientWidth,
+                height: 350,
             });
+            chartState.series = chartState.chart.addCandlestickSeries();
+        }
+
+        async function loadChartData(ticker) {
+            if (!chartState.chart) initChart();
+            try {
+                const res = await fetch(`/api/chart/${ticker}`);
+                const payload = await res.json();
+                if (payload.ok && chartState.series && chartState.chart) {
+                    chartState.series.setData(payload.data.intraday || []);
+                    chartState.chart.timeScale().fitContent();
+                }
+            } catch (e) {
+                console.error('Chart load failed', e);
+            }
         }
         // Load default SPY chart on startup
-        loadChart("SPY");
+        loadChartData('SPY');
 
         // Feature: Populate "The Trade Plan" panel
         function renderWatchPanel(best) {
@@ -957,7 +965,7 @@
                 document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
                 document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
                 document.getElementById('liveIndicator').style.display = 'inline';
-                loadChart(best.symbol); 
+                loadChartData(best.symbol);
 
                 renderWatchPanel(best);
                 renderBestPick(best);

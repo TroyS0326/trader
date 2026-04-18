@@ -28,7 +28,7 @@ from execution import start_engine
 from models import db
 from models import Post, User
 from onboarding import verify_alpaca_data_feed
-from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
+from scanner import buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
@@ -609,30 +609,39 @@ def run_scan_api():
 
 
 @app.route('/api/scan', methods=['POST', 'GET'])
+@login_required
 def api_scan():
     global LATEST_SCAN
     try:
-        result = run_scan(current_user if current_user.is_authenticated else None)
-        risk_controls = {
+        result = run_scan(current_user)
+        result['risk_controls'] = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
-            'can_trade_today': get_failed_trades_today() < config.MAX_FAILED_TRADES_PER_DAY,
             'buy_window_open': buy_window_open(),
-            'no_buy_before_et': config.NO_BUY_BEFORE_ET,
         }
-        result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
         LATEST_SCAN = result
         watchlist_manager.set_items(result.get('watchlist', []))
-        return ok(
-            result,
-            history={'scans': get_recent_scans(), 'trades': get_recent_trades()},
-        )
-    except ScanError as exc:
-        return fail(str(exc))
+        return ok(result)
     except Exception as exc:
         return fail(f'Scan failed: {exc}', 500)
+
+
+@app.route('/api/metrics')
+@login_required
+def api_metrics():
+    """Returns the latest scan data and risk stats for the dashboard refresh."""
+    global LATEST_SCAN
+    failed_trades_today = get_failed_trades_today()
+    return ok({
+        'latest_scan': LATEST_SCAN,
+        'risk_controls': {
+            'failed_trades_today': failed_trades_today,
+            'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
+            'can_trade_today': failed_trades_today < config.MAX_FAILED_TRADES_PER_DAY,
+        }
+    })
 
 
 @app.route('/api/history')
