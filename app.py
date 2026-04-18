@@ -302,6 +302,11 @@ def login():
 def features():
     return render_template('features.html')
 
+@app.route('/alpaca-integration')
+def alpaca_integration():
+    """Pillar page targeting 'Alpaca API trading software' and 'Alpaca execution workflow'."""
+    return render_template('alpaca_integration.html')
+
 @app.route('/playbook')
 def playbook():
     # Make it accessible to both logged-in users and public marketing traffic
