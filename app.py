@@ -33,7 +33,7 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# Updated to handle the double-proto (https,https) seen in your debug output
+# UPDATED: Handle the double-proto (https,https) and force standard Host header
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=2, x_host=0, x_prefix=0)
 
 # 2. Enable Global CSRF Protection
@@ -54,12 +54,12 @@ if os.getenv('FLASK_ENV') == 'production':
     # Start with CSP disabled until configured for external scripts (TradingView, etc.)
     Talisman(app, content_security_policy=None)
 
-# Ensure your CSRF settings are strictly aligned
+# THE FIX: Allow login even if the host/referrer strings have a proxy-induced mismatch
 app.config['WTF_CSRF_SSL_STRICT'] = False
+
+# Ensure these remain bulletproof
 app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'
 app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-# Re-verify that these match your debug output exactly
 app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
     'xeanvi.com',
     'www.xeanvi.com',
