@@ -16,6 +16,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
@@ -50,10 +51,24 @@ if os.getenv('FLASK_ENV') == 'production':
     # Start with CSP disabled until configured for external scripts (TradingView, etc.)
     Talisman(app, content_security_policy=None)
 
-# Force cookies to only travel over HTTPS
-app.config['SESSION_COOKIE_SECURE'] = True
+# Force cookies to only travel over HTTPS in production, while allowing
+# local HTTP development (or explicit override) to keep CSRF/session working.
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+is_production = os.getenv('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', default=is_production)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_SSL_STRICT'] = _env_flag('WTF_CSRF_SSL_STRICT', default=False)
+
+# Respect reverse-proxy scheme/host headers when deployed behind load balancers.
+# This helps Flask/WTF-CSRF handle HTTPS-origin requests correctly.
+if _env_flag('TRUST_PROXY_HEADERS', default=is_production):
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
