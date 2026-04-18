@@ -28,7 +28,7 @@ from execution import start_engine
 from models import db
 from models import Post, User
 from onboarding import verify_alpaca_data_feed
-from scanner import buy_window_open, get_stock_chart_pack, now_et, run_scan
+from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
@@ -302,21 +302,6 @@ def login():
 def features():
     return render_template('features.html')
 
-@app.route('/alpaca-integration')
-def alpaca_integration():
-    """Pillar page for Alpaca API keywords and systematic execution details."""
-    return render_template('alpaca_integration.html')
-
-@app.route('/catalyst-scoring')
-def catalyst_scoring_info():
-    """Pillar page for AI Catalyst Scoring and FinBERT sentiment analysis keywords."""
-    return render_template('catalyst_scoring.html')
-
-@app.route('/trade-journaling')
-def trade_journaling_info():
-    """Pillar page for Automated Trade Journaling and Edge Analysis keywords."""
-    return render_template('trade_journaling.html')
-
 @app.route('/playbook')
 def playbook():
     """Public strategy page explaining the 'Screen, Validate, Execute' workflow."""
@@ -570,60 +555,29 @@ def api_runtime_health():
     )
 
 
-@app.route('/api/run-scan', methods=['POST'])
-@login_required
-def run_scan_api():
-    try:
-        # 1. Run your ACTUAL Python scanner from scanner.py
-        result = run_scan(current_user)
-
-        # 2. Extract the winning stock from the scanner's results
-        best_pick = result.get('best_pick', {})
-        real_target_ticker = best_pick.get('symbol', 'SPY')
-        score = best_pick.get('score_total', 'N/A')
-
-        # 3. Build live logs based on real data to send back to the dashboard
-        real_logs = [
-            {'msg': 'Running full market analysis via scanner.py...', 'color': 'var(--text-muted)'},
-            {'msg': f'AI Engine found top setup. Score: {score}/100', 'color': 'var(--success)'},
-            {'msg': f'Real Target Acquired: {real_target_ticker}', 'color': 'var(--accent-blue)'}
-        ]
-
-        # Save the scan to your database history (optional but recommended)
-        from db import insert_scan
-        insert_scan(result)
-
-        return jsonify({
-            'status': 'success',
-            'target_ticker': real_target_ticker,
-            'logs': real_logs
-        })
-
-    except Exception as e:
-        # If your bot crashes (e.g. no stocks found), show it on the dashboard
-        return jsonify({
-            'status': 'error',
-            'target_ticker': 'SPY',  # Default to SPY if it crashes so the chart doesn't break
-            'logs': [{'msg': f'BOT ERROR: {str(e)}', 'color': 'var(--danger)'}]
-        }), 500
-
-
 @app.route('/api/scan', methods=['POST', 'GET'])
 @login_required
 def api_scan():
     global LATEST_SCAN
     try:
         result = run_scan(current_user)
-        result['risk_controls'] = {
+        risk_controls = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
             'buy_window_open': buy_window_open(),
+            'no_buy_before_et': config.NO_BUY_BEFORE_ET,
         }
+        result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
         LATEST_SCAN = result
         watchlist_manager.set_items(result.get('watchlist', []))
-        return ok(result)
+        return ok(
+            result,
+            history={'scans': get_recent_scans(), 'trades': get_recent_trades()},
+        )
+    except ScanError as exc:
+        return fail(str(exc))
     except Exception as exc:
         return fail(f'Scan failed: {exc}', 500)
 
