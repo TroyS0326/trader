@@ -34,7 +34,7 @@ from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# x_host=0 tells Flask to just use the standard Host header Nginx is already sending
+# Change x_host to 0
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_prefix=0)
 
 # 2. Enable Global CSRF Protection
