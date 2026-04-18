@@ -4,161 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    <title>XeanVI Features | AI News Scanners, Risk Sizing & Paper Trading</title>
-    <meta name="description" content="Explore XeanVI's algorithmic trading features: AI-powered news scanning, automated market crash protection, and zero-risk paper trading simulations.">
+    <title>XeanVI Features | Hands-Free Automated Trading Bot</title>
+    <meta name="description" content="Stop manual clicking. XeanVI is an automated trading bot that handles market monitoring, trade entries, and exits based on your rules.">
     
-    <meta name="robots" content="index, follow">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/features">
-
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/features">
-    <meta property="og:title" content="Inside the Machine: XeanVI Algorithmic Trading Features">
-    <meta property="og:description" content="Discover how XeanVI uses AI News Scanners and Smart Risk Sizing to automate your trading edge.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-features-banner.jpg', _external=True) }}">
-
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="XeanVI Features | Automated AI Trading Bot">
-    <meta name="twitter:description" content="From 24/7 Crypto Autopilot to Instant Phone Alerts, see how XeanVI handles the heavy lifting.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-features-banner.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-    <!-- Navigation bar -->
-
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-
+            <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/community">Trade Discussions</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                {% else %}
-                    <a href="/alpaca-integration">Alpaca Workflow</a>
-                <a href="/features">How it Works</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="#pricing">Pricing</a>
-                {% endif %}
+                <a href="/features" class="nav-link-active">How it Works</a>
+                <a href="/alpaca-integration">Alpaca Workflow</a>
+                <a href="/playbook">The Strategy</a>
             </div>
-
             <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
+                <a href="/login">Log In</a>
+                <a href="/signup" class="btn btn-primary">Start Free</a>
             </div>
         </div>
     </nav>
-    <!-- Page hero -->
+
     <header class="page-header">
         <div class="container">
-            <div class="subtitle" style="color: var(--accent); font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem;">Inside the Machine</div>
-            <h1>How the Bot Works</h1>
-            <p style="max-width: 700px; margin: 0 auto; font-size: 1.2rem; color: var(--muted);">You don't need to know how to read stock charts. The AI handles the heavy lifting in three simple steps.</p>
+            <div class="badge-pill">Trading Automation</div>
+            <h1>Click Run. Let the bot <span class="text-gradient">handle the trades</span>.</h1>
+            <p style="max-width: 750px; margin: 0 auto; font-size: 1.25rem; color: var(--text-muted);">
+                XeanVI is built to remove the manual clicking, emotional entries, and chart-watching from your day.
+            </p>
         </div>
     </header>
 
-    <!-- Three steps explaining the engine -->
     <section class="section-pad">
         <div class="container">
-            <div class="step">
-                <div class="step-number step-blue">1</div>
-                <div>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">The AI News Scanner (Finds the Trade)</h3>
-                    <p class="sub" style="color: var(--muted);">Before the market even opens, the AI scans thousands of financial news headlines. It calculates volume and social hype to find the exact stocks preparing to pop. Zero manual research required.</p>
+            <div class="grid-3" style="margin-bottom: 4rem;">
+                <div class="step-card">
+                    <div class="step-icon"><i class="fas fa-plug"></i></div>
+                    <h3>1. Connect</h3>
+                    <p>Link your Alpaca broker account securely. You maintain full ownership and can disconnect at any time.</p>
                 </div>
-            </div>
-            <div class="step">
-                <div class="step-number step-green">2</div>
-                <div>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Market Crash Protection (Blocks Bad Trades)</h3>
-                    <p class="sub" style="color: var(--muted);">Beginners lose money by buying right before the market drops. XeanVI actively monitors the overall stock market. If things are secretly dumping, the bot hits the brakes and refuses to buy, protecting your cash.</p>
+                <div class="step-card">
+                    <div class="step-icon"><i class="fas fa-cog"></i></div>
+                    <h3>2. Configure</h3>
+                    <p>Set your daily risk rules, target profit levels, and setup grades. You define the logic; the bot follows it.</p>
                 </div>
-            </div>
-            <div class="step">
-                <div class="step-number step-yellow">3</div>
-                <div>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Smart Risk Sizing (Secures the Profit)</h3>
-                    <p class="sub" style="color: var(--muted);">When the AI finds a safe trade, it takes over. It calculates exactly how much to buy so you never risk your whole account. It buys in, automatically takes the profit when the stock goes up, and gets out. Flawless execution.</p>
+                <div class="step-card">
+                    <div class="step-icon" style="background: var(--success);"><i class="fas fa-play"></i></div>
+                    <h3>3. Run</h3>
+                    <p>The bot monitors the market 24/7 or during market hours, executing your strategy automatically.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Platform features grid -->
-    <section class="section-pad" style="background: var(--panel-2); border-top: 1px solid var(--line);">
+    <section class="section-pad" style="background: var(--bg-card); border-top: 1px solid var(--border-color);">
         <div class="container">
-            <h2 style="text-align: center; margin-bottom: 3rem; font-size: 2.5rem;">Platform Features</h2>
+            <h2 style="text-align: center; margin-bottom: 3rem;">Hands-Free Trade Execution</h2>
+            <div class="grid-2">
+                <div class="feature-box">
+                    <h3>Automated Monitoring & Entry</h3>
+                    <p>The bot identifies momentum setups using real-time scanners and enters trades using bid/ask-pegged limit orders—no manual order placement required.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Automated Exit & Scale-Out</h3>
+                    <p>When targets are hit, the bot automatically scales out of positions and moves stops to breakeven, locking in gains while you go about your day.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Hard Stop Loss Execution</h3>
+                    <p>Risk management is built-in. The bot instantly places and manages hard stops to protect your capital from unexpected volatility.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Real-Time Audit Logs</h3>
+                    <p>Stay in control. Watch every decision the bot makes in real-time through a live execution terminal and historical trade journal.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad">
+        <div class="container" style="text-align: center;">
+            <h2 style="margin-bottom: 2rem;">Why use an automated bot?</h2>
             <div class="grid-3">
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">🧪</div>
-                    <h3>Zero‑Risk Paper Trading</h3>
-                    <p class="sub" style="font-size: 0.95rem;">Test the bot with fake money first! Use a simulated $10,000 account to watch the bot make trades in real‑time. Don't flip the switch to real cash until you're ready.</p>
+                <div class="stat-box">
+                    <i class="fas fa-clock" style="color: var(--accent-blue);"></i>
+                    <strong>No Screen Time</strong>
+                    <span>No more watching charts for hours.</span>
                 </div>
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">⚡</div>
-                    <h3>24/7 Crypto Autopilot</h3>
-                    <p class="sub" style="font-size: 0.95rem;">The stock market closes at 4 PM, but the bot doesn't. Turn on the Crypto Engine to let XeanVI trade Bitcoin, Ethereum and Solana while you sleep.</p>
+                <div class="stat-box">
+                    <i class="fas fa-brain" style="color: var(--success);"></i>
+                    <strong>No Emotions</strong>
+                    <span>The bot executes pure logic, every time.</span>
                 </div>
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
-                    <h3>1‑Click Trading Styles</h3>
-                    <p class="sub" style="font-size: 0.95rem;">No coding required. Just pick your style from a dropdown menu: Safe Mode, Standard Growth or Crypto Autopilot. Click start, and let the engine take the wheel.</p>
-                </div>
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">📸</div>
-                    <h3>Share Your Wins</h3>
-                    <p class="sub" style="font-size: 0.95rem;">XeanVI generates sleek, verified graphics of your daily profits. Post them directly to your Twitter, Instagram or Discord to show off your automated wins.</p>
-                </div>
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">🔔</div>
-                    <h3>Instant Phone Alerts</h3>
-                    <p class="sub" style="font-size: 0.95rem;">Total freedom. Link the bot to your Discord or Telegram app. Go to the gym, and get an instant push notification on your phone the second the bot locks in a profit.</p>
-                </div>
-                <div class="feature-box">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">☁️</div>
-                    <h3>Cloud‑Hosted App</h3>
-                    <p class="sub" style="font-size: 0.95rem;">Our servers handle all the heavy lifting. You don't need to keep your browser open or your computer turned on. Just start the scan and close your laptop.</p>
+                <div class="stat-box">
+                    <i class="fas fa-bolt" style="color: var(--warning);"></i>
+                    <strong>No Missed Setups</strong>
+                    <span>Capture fast moves the second they happen.</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Final call to action -->
-    <section class="section-pad cta">
-        <div class="container">
-            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Ready to automate your income?</h2>
-            <p class="sub" style="max-width: 600px; margin: 0 auto 2rem;">Stop letting emotion dictate your trades. Get XeanVI and let the AI do the work.</p>
-            <a href="/signup" class="btn primary" style="font-size: 1.1rem; padding: 1.25rem 3rem;">Create Your Account</a>
-        </div>
-    </section>
-
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2026 XeanVI. Automated Trading Bot.</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. Test in Sandbox mode before using real capital.</p>
-            <div style="margin-top: 1rem;">
-                <a href="/terms">Terms of Use</a>
-                <a href="/privacy">Privacy Policy</a>
-            </div>
+            <p>&copy; 2026 XeanVI. Rule-Based Automated Trading.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Disclaimer: Trading involves significant risk. The bot follows your specific rule-based parameters. Past performance does not guarantee future results.</p>
         </div>
     </footer>
 
