@@ -938,7 +938,8 @@
                 const res = await fetch('/api/scan', { 
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': csrfToken
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
                     }
                 });
                 const payload = await res.json();
