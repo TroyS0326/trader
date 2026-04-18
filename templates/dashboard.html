@@ -480,22 +480,7 @@
 
     <div class="workspace">
         
-        <div class="trader-card">
-            <div class="trader-header">
-                <div class="trader-avatar">
-                    {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
-                </div>
-                <div class="trader-info">
-                    <h3 style="margin: 0; font-size: 1.2rem;">{{ current_user.full_name or 'Trader' }}</h3>
-                    <span class="tier-badge {{ current_user.subscription_status }}">{{ current_user.subscription_status|upper }} TIER</span>
-                </div>
 
-                {% if current_user.subscription_status == 'free' %}
-                    <a href="/upgrade" class="btn-upgrade"><i class="fas fa-bolt"></i> Go PRO</a>
-                {% endif %}
-            </div>
-
-        </div>
 
         <div class="top-row">
             <div class="control-panel">
