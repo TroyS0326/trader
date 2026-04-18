@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Systematic Edge Analysis | XeanVI Performance Hub</title>
+    <meta name="description" content="Quantify your edge with XeanVI. Automated trade journaling, win-rate attribution by setup grade, and time-window lockout analysis.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            <div class="xean-nav-links">
+                <a href="/alpaca-integration">Alpaca Workflow</a>
+                <a href="/catalyst-scoring">AI Intelligence</a>
+                <a href="/trade-journaling" class="nav-link-active">Performance</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <div class="badge-pill">Data-Driven Discipline</div>
+            <h1>Systematic <span class="text-gradient">Edge Analysis</span></h1>
+            <p>XeanVI closes the loop between execution and strategy by automatically journaling every trade and identifying where your true alpha lives.</p>
+        </div>
+    </header>
+
+    <section class="section-pad">
+        <div class="container grid-2">
+            <div class="terminal-container" style="padding: 2rem; background: #010409; font-family: 'JetBrains Mono', monospace;">
+                <div style="color: #38bdf8; font-size: 0.85rem;">
+                    <span style="color: #6e7681;">// analyze_performance.py Output</span><br>
+                    DATABASE: veteran_trades.db<br>
+                    -------------------------------------<br>
+                    GRADE A+ WIN RATE: 68.4%<br>
+                    GRADE A WIN RATE: 54.1%<br>
+                    <span style="color: var(--danger);">10:30 AM - 11:30 AM LOCKOUT RECOMMENDED</span><br>
+                    -------------------------------------<br>
+                    SUGGESTED ACTION: Focus on Premarket Sympathy setups.
+                </div>
+            </div>
+            <div>
+                <h2 style="margin-bottom: 1.5rem;">Automated Trade Journaling</h2>
+                <p>Manual journaling is where discipline dies. XeanVI automatically logs every entry, stop, and target hit to your local SQLite database.</p>
+                <ul class="terminal-list">
+                    <li><strong>Context Retention:</strong> Every trade is linked to the original scan data, catalyst scores, and market internals at the moment of entry.</li>
+                    <li><strong>Managed Execution History:</strong> Tracks peg-limit fills and automated scale-outs to analyze slippage and fill quality.</li>
+                    <li><strong>Privacy-First Storage:</strong> Your data remains local in <code>veteran_trades.db</code>, ensuring your proprietary edge is never uploaded to a cloud server.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad" style="background: var(--bg-card); border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
+                <h2>Statistical Attribution</h2>
+                <p>Use the built-in analysis tools to find your "Lockout Candidates"—the specific times or setup grades that are draining your bankroll.</p>
+            </div>
+            <div class="grid-3">
+                <div class="logic-card">
+                    <h3>Win-Rate by Grade</h3>
+                    <p>Quantify the performance difference between A+ "Golden" setups and standard watchlist candidates.</p>
+                </div>
+                <div class="logic-card">
+                    <h3>Time-Window Analysis</h3>
+                    <p>Identify "Dead Zones" where volatility drops and stop-outs increase, enabling automated session lockouts.</p>
+                </div>
+                <div class="logic-card">
+                    <h3>Risk Attribution</h3>
+                    <p>Analyze how effectively the system manages risk-per-share and max dollar loss across different sectors.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 XeanVI. Quantitative Performance Division.</p>
+        </div>
+    </footer>
+</body>
+</html>

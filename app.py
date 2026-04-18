@@ -312,6 +312,11 @@ def catalyst_scoring_info():
     """Pillar page for AI Catalyst Scoring and FinBERT sentiment analysis keywords."""
     return render_template('catalyst_scoring.html')
 
+@app.route('/trade-journaling')
+def trade_journaling_info():
+    """Pillar page for Automated Trade Journaling and Edge Analysis keywords."""
+    return render_template('trade_journaling.html')
+
 @app.route('/playbook')
 def playbook():
     # Make it accessible to both logged-in users and public marketing traffic
