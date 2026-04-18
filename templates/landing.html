@@ -2,36 +2,11 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>XeanVI | Systematic Trade Discovery & Alpaca Execution Platform</title>
-    <meta name="description" content="Master your trading workflow with XeanVI. Professional-grade trade discovery, AI catalyst scoring, and disciplined Alpaca API execution for active momentum traders.">
+    <title>XeanVI | Automated Trading Bot - Hands-Free Execution</title>
+    <meta name="description" content="Launch your bot. Let it trade automatically. XeanVI handles your morning scans, catalyst scoring, and trade execution without manual clicking.">
     
-    <meta name="robots" content="index, follow">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/">
-
-    <meta property="og:title" content="XeanVI | Systematic Trade Discovery & Execution">
-    <meta property="og:description" content="Identify momentum setups and automate your execution workflow with high-precision catalyst scoring and Alpaca integration.">
-    <meta property="og:image" content="{{ url_for('static', filename='og-image.jpg', _external=True) }}">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "XeanVI",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web",
-      "description": "Systematic trade discovery and execution platform with AI catalyst scoring and Alpaca API integration.",
-      "featureList": [
-        "Real-time Catalyst Scoring",
-        "Alpaca API Managed Execution",
-        "Automated Trade Journaling",
-        "XGBoost Success Probability Modeling"
-      ]
-    }
-    </script>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -40,67 +15,80 @@
         <div class="xean-nav-inner">
             <a href="/" class="logo">Xean<span>VI</span></a>
             <div class="xean-nav-links">
-                <a href="/alpaca-integration">Alpaca Workflow</a>
-                <a href="/catalyst-scoring">AI Intelligence</a>
-                <a href="/trade-journaling">Performance</a>
-            </div>
-            <div class="xean-nav-actions">
+                <a href="/features">How it Works</a>
+                <a href="/playbook">The Strategy</a>
                 <a href="/login">Log In</a>
-                <a href="/signup" class="btn btn-primary">Start Free</a>
             </div>
+            <a href="/signup" class="btn btn-primary">Start Free</a>
         </div>
     </nav>
 
-    <section class="hero terminal-bg">
-        <div class="container grid-2">
-            <div class="hero-content">
-                <div class="badge-pill">Alpaca-Native Execution</div>
-                <h1>Systematic <span class="text-gradient">Trade Discovery</span> and Execution Platform</h1>
-                <p>Identify momentum setups, score catalysts, manage Alpaca-based execution, and review performance in one disciplined trading workflow.</p>
-                <div class="hero-btns">
-                    <a href="/signup" class="btn btn-primary">Build Your Workflow</a>
-                    <a href="/features" class="btn btn-secondary">Explore the Logic</a>
-                </div>
+    <section class="hero">
+        <div class="container" style="text-align: center;">
+            <div class="badge-pill">Live Execution Automation</div>
+            <h1 style="margin-bottom: 1.5rem;">Launch your bot.<br>Let it trade <span class="text-gradient">automatically</span>.</h1>
+            <p style="max-width: 650px; margin: 0 auto 2.5rem; font-size: 1.25rem;">
+                Set your strategy once. Connect your broker. Click run. XeanVI handles the market monitoring, entries, and exits while you go about your day.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/signup" class="btn btn-primary" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">Start My Free Bot</a>
+                <a href="/features" class="btn btn-secondary" style="padding: 1.2rem 2.5rem; font-size: 1.1rem;">See How It Trades</a>
             </div>
-            
-            <div class="terminal-container">
-                <div class="terminal-header">
-                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                    <span class="terminal-title">xeanvi_engine_v1.0</span>
+        </div>
+    </section>
+
+    <section class="steps-section" style="padding: 6rem 0; background: var(--bg-card);">
+        <div class="container">
+            <div class="grid-3" style="text-align: center;">
+                <div class="step-card">
+                    <div class="step-icon"><i class="fas fa-link"></i></div>
+                    <h3>1. Connect</h3>
+                    <p>Link your Alpaca broker account in seconds with secure OAuth integration.</p>
                 </div>
-                <div id="sim-terminal" class="terminal-body">
-                    <div class="log-entry">> Initializing Alpaca SIP Stream...</div>
-                    <div class="log-entry">> Analyzing 4,200+ equities for RVOL anomalies...</div>
+                <div class="step-card">
+                    <div class="step-icon"><i class="fas fa-sliders-h"></i></div>
+                    <h3>2. Configure</h3>
+                    <p>Choose your risk rules, catalyst scores, and position sizes for the day.</p>
                 </div>
-                <div class="terminal-footer">
-                    <button onclick="runSimulation()" class="btn-pulse">Run Alpha Scan</button>
+                <div class="step-card">
+                    <div class="step-icon" style="background: var(--success);"><i class="fas fa-play"></i></div>
+                    <h3>3. Run</h3>
+                    <p>The bot monitors the market and executes trades automatically based on your rules.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="workflow-section">
+    <section class="automation-details" style="padding: 6rem 0;">
         <div class="container">
-            <div class="section-intro">
-                <h2>From Headline to Trade Plan</h2>
-                <p>Most scanners stop at price. XeanVI begins with the narrative logic of the market.</p>
+            <h2 style="text-align: center; margin-bottom: 4rem;">What exactly does it do for you?</h2>
+            <div class="grid-2">
+                <div class="feature-box">
+                    <ul class="terminal-list" style="list-style: none; padding: 0;">
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Market Monitoring:</strong> Scans thousands of tickers for RVOL and momentum.</li>
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Trade Entries:</strong> Places bid/ask-pegged limit orders automatically.</li>
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Stop Loss Execution:</strong> Automatically sets hard stops to protect your capital.</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <ul class="terminal-list" style="list-style: none; padding: 0;">
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Take Profit Logic:</strong> Scales out at Target 1 and Target 2 without your intervention.</li>
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Emotional Protection:</strong> Pauses trading after a daily loss limit is reached.</li>
+                        <li><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Real-Time Operation:</strong> Runs your strategy 24/7 or during market hours.</li>
+                    </ul>
+                </div>
             </div>
-            <div class="grid-3">
-                <div class="logic-card">
-                    <div class="step-num">01</div>
-                    <h3>Discovery</h3>
-                    <p>Sentiment models parse news in real-time to generate a continuous Catalyst Score.</p>
-                </div>
-                <div class="logic-card">
-                    <div class="step-num">02</div>
-                    <h3>Validation</h3>
-                    <p>XGBoost models calculate probability based on RVOL, gap alignment, and float proxies.</p>
-                </div>
-                <div class="logic-card">
-                    <div class="step-num">03</div>
-                    <h3>Execution</h3>
-                    <p>Disciplined Alpaca API orchestration with 15s entry timeouts and automated scale-outs.</p>
-                </div>
+        </div>
+    </section>
+
+    <section class="trust-section" style="padding: 6rem 0; background: var(--bg-card); border-top: 1px solid var(--border-color);">
+        <div class="container" style="text-align: center; max-width: 800px;">
+            <h2>You stay in control.</h2>
+            <p style="margin-bottom: 2rem;">Automation doesn't mean a lack of oversight. XeanVI is built to execute <strong>your</strong> rules, not its own.</p>
+            <div class="grid-3" style="font-size: 0.9rem;">
+                <div><i class="fas fa-shield-alt"></i><br>Pause or stop the bot at any time.</div>
+                <div><i class="fas fa-history"></i><br>Full audit logs for every order.</div>
+                <div><i class="fas fa-user-check"></i><br>You define the "A+" setup criteria.</div>
             </div>
         </div>
     </section>
