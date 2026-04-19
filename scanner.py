@@ -396,10 +396,12 @@ def has_positive_mtf_vwap_trend(minute_bars: List[Dict[str, Any]], chunk_size: i
     return all(vwap_series[i] >= vwap_series[i - 1] for i in range(1, len(vwap_series)))
 
 
-def get_company_news(symbol: str, lookback_days: int = 3) -> List[Dict[str, Any]]:
+def get_company_news(symbol: str, lookback_days: Optional[int] = None) -> List[Dict[str, Any]]:
     if not FINNHUB_API_KEY:
         return []
     today = datetime.utcnow().date()
+    if lookback_days is None:
+        lookback_days = 3 if datetime.utcnow().weekday() == 0 else 1
     start = today - timedelta(days=lookback_days)
     try:
         payload = _get_json(
