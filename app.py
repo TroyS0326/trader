@@ -492,7 +492,7 @@ def alpaca_login():
         'state': oauth_state,
         'env': 'paper',
     }
-    alpaca_auth_url = f"https://app.sandbox.alpaca.markets/oauth/authorize?{urlencode(params)}"
+    alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
 
 
