@@ -800,6 +800,7 @@ def api_execute():
 @login_required
 def api_order_status(order_id: str):
     try:
+        user_token = getattr(current_user, 'alpaca_access_token', None)
         trade = get_trade_by_order_id(order_id)
         if not trade:
             return fail('Trade not found for order id.', 404)
@@ -808,16 +809,27 @@ def api_order_status(order_id: str):
             raw = json.loads(raw or '{}')
         bundle = raw.get('order_bundle') if isinstance(raw, dict) else None
         if not isinstance(bundle, dict):
-            order = get_order(order_id)
+            order = get_order(order_id, token=user_token)
         else:
             order = dict(bundle)
             if bundle.get('strategy') == 'target1_then_trailing_runner':
-                bundle = maybe_activate_runner_trailing(bundle, breakeven_price=float(trade.get('entry_price') or 0))
-                order['target_1_order'] = get_order(bundle.get('target_1_order_id')) if bundle.get('target_1_order_id') else {}
+                bundle = maybe_activate_runner_trailing(
+                    bundle,
+                    breakeven_price=float(trade.get('entry_price') or 0),
+                    token=user_token,
+                )
+                order['target_1_order'] = (
+                    get_order(bundle.get('target_1_order_id'), token=user_token)
+                    if bundle.get('target_1_order_id')
+                    else {}
+                )
                 if bundle.get('runner_trailing_order_id'):
-                    order['runner_trailing_order'] = get_order(bundle.get('runner_trailing_order_id'))
+                    order['runner_trailing_order'] = get_order(
+                        bundle.get('runner_trailing_order_id'),
+                        token=user_token,
+                    )
                 elif bundle.get('runner_stop_order_id'):
-                    order['runner_order'] = get_order(bundle.get('runner_stop_order_id'))
+                    order['runner_order'] = get_order(bundle.get('runner_stop_order_id'), token=user_token)
                 raw['order_bundle'] = bundle
         updates = {
             'order_status': order.get('status'),
