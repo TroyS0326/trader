@@ -386,16 +386,20 @@ def upgrade():
     return render_template('upgrade.html', current_user=current_user)
 
 
-@app.route('/api/create-checkout-session')
+@app.route('/api/create-checkout-session', methods=['GET', 'POST'])
 @login_required
 def create_checkout_session():
-    plan = request.args.get('plan', 'monthly')
+    plan = request.args.get('plan') or request.form.get('plan') or 'monthly'
     
     # Use the Price IDs from your config.py
     price_id = (
         config.STRIPE_PRICE_ID_ANNUAL if plan == 'annual'
         else config.STRIPE_PRICE_ID_MONTHLY
     )
+
+    if not price_id:
+        flash("Billing is temporarily unavailable. Please contact support.", "error")
+        return redirect(url_for('upgrade'))
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -410,7 +414,7 @@ def create_checkout_session():
     except Exception as e:
         logger.error(f"Stripe Error: {str(e)}")
         flash("Stripe service is currently unavailable. Please try again later.", "error")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('upgrade'))
 
 
 @app.route('/checkout-redirect')
