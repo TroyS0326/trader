@@ -567,8 +567,9 @@ def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premar
 def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str, Any]]:
     _ = price_change_pct
     ml_features = store.get_symbol_features(symbol)
-    p_success = float(ml_features.get('p_success', 0.0) or 0.0)
+    p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
+    keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)
     catalyst_score = max(1, min(5, int(round(p_success * 5))))
 
     return catalyst_score, {
@@ -576,6 +577,7 @@ def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str,
         'model': 'FinBERT + XGBoost',
         'sentiment_score': sentiment,
         'p_success': p_success,
+        'keyword_boost': keyword_boost,
         'headline_count': int(ml_features.get('headline_count', 0) or 0),
         'hard_pass': p_success < 0.20,
         'catalyst_category_weight': catalyst_score,
@@ -1161,14 +1163,16 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     vixy_change = get_vix_change()
 
     ml_features = store.get_symbol_features(symbol)
-    p_success = float(ml_features.get('p_success', 0.0) or 0.0)
+    p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
+    keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)
     catalyst_score = max(1, min(5, int(round(p_success * 5))))
     catalyst_meta = {
         'used_ai': True,
         'model': 'FinBERT + XGBoost',
         'sentiment_score': sentiment,
         'p_success': p_success,
+        'keyword_boost': keyword_boost,
         'headline_count': int(ml_features.get('headline_count', 0) or 0),
         'hard_pass': p_success < 0.20,
         'catalyst_category_weight': catalyst_score,
@@ -1208,7 +1212,19 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         now_label=now_et().strftime('%H:%M'),
     )
 
-    total = int(p_success * 100)
+    technical_score = (
+        catalyst_score
+        + liquidity_score
+        + daily_score
+        + sector_score
+        + open_rs_score
+        + vwap_score
+        + pullback_score
+        + entry_score
+        + confirm_score
+    )
+    ai_score = max(0.0, (p_success - 0.40) * 40)
+    total = int(round(technical_score + ai_score))
     buy_lower = entry_meta['entry_price']
     buy_upper = round(entry_meta['entry_price'] * (1 + MAX_ENTRY_EXTENSION_PCT), 2)
     p_success = catalyst_meta.get('p_success', 0.0)

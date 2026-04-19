@@ -1,6 +1,8 @@
 from celery import Celery
 from models import db, User
 from broker import submit_order  # Pulling from your existing broker.py
+from ai_catalyst import batch_process_premarket
+from scanner import get_refined_universe
 
 # 1. Connect Celery to your Redis server (the message broker)
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
@@ -59,3 +61,14 @@ def trigger_system_wide_buy(symbol, entry, target, stop):
         execute_user_trade_task.delay(user.id, symbol, entry, target, stop)
 
     print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
+
+
+def morning_pre_processing():
+    """
+    Runs the pre-market AI batch so scanner feature-store scores are ready before the opening scan.
+    """
+    symbols = get_refined_universe()
+    if not symbols:
+        return []
+    batch_process_premarket(symbols)
+    return symbols
