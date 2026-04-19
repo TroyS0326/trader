@@ -1,4 +1,5 @@
 import logging
+import json
 import time
 from typing import List, Dict, Any
 import numpy as np
@@ -10,6 +11,15 @@ from feature_store import store
 from scanner import get_company_news
 
 logger = logging.getLogger(__name__)
+
+try:
+    with open('catalyst_feedback.json', 'r', encoding='utf-8') as f:
+        HISTORICAL_WEIGHTS = json.load(f)
+except FileNotFoundError:
+    HISTORICAL_WEIGHTS = {}
+except Exception as e:
+    logger.warning(f"Failed to load catalyst_feedback.json: {e}")
+    HISTORICAL_WEIGHTS = {}
 
 # --- NEW: Catalyst Keyword Definitions ---
 # Tier 1: High-conviction institutional drivers (+0.25 probability)
@@ -88,6 +98,36 @@ def compute_finbert_sentiment(headlines: List[Dict[str, Any]]) -> float:
         return 0.0
 
 
+def verify_multisource_catalyst(
+    sentiment_score: float,
+    keyword_boost: float,
+    rvol: float,
+    gap_pct: float,
+) -> float:
+    """
+    Ensures that news (NLP + Keywords) is confirmed by technical participation.
+    Returns an alignment multiplier (0.5 to 1.5).
+    """
+    alignment = 1.0
+
+    # 1. Verification: High-impact news must have high volume.
+    if keyword_boost >= 0.25 and rvol < 2.0:
+        alignment *= 0.6
+        logger.warning("News Alignment Failed: Tier 1 news with insufficient volume.")
+
+    # 2. Convergence: News + high volume + clean gap.
+    if keyword_boost > 0 and rvol > 3.0 and (2.0 <= gap_pct <= 10.0):
+        alignment *= 1.4
+
+    # 3. Sentiment consistency check against keyword direction.
+    if sentiment_score > 0.5 and keyword_boost > 0:
+        alignment *= 1.1
+    elif sentiment_score < 0 and keyword_boost > 0:
+        alignment *= 0.8
+
+    return max(0.5, min(1.5, alignment))
+
+
 def batch_process_premarket(symbols: List[str]):
     """
     RUN THIS AT 9:20 AM.
@@ -107,8 +147,21 @@ def batch_process_premarket(symbols: List[str]):
 
         # 3. Refined Probability Calculation
         base_prob = 0.40
+        alignment_mult = verify_multisource_catalyst(
+            sentiment_score=sentiment_score,
+            keyword_boost=keyword_boost,
+            rvol=premarket_rvol,
+            gap_pct=gap_pct,
+        )
+        historical_mult = float(HISTORICAL_WEIGHTS.get(symbol, 1.0))
+
         # Incorporate FinBERT (NLP tone) + Keyword Boost (Specific Event Type)
-        prob = base_prob + (sentiment_score * 0.20) + (min(premarket_rvol, 5) * 0.05) + keyword_boost
+        prob = (
+            base_prob
+            + (sentiment_score * 0.20)
+            + (min(premarket_rvol, 5) * 0.05)
+            + keyword_boost
+        ) * alignment_mult * historical_mult
 
         if gap_pct > 15.0:
             prob -= 0.15  # Exhaustion penalty
