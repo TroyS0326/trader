@@ -490,6 +490,7 @@ def alpaca_login():
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
         'scope': 'trading',
         'state': oauth_state,
+        'env': 'paper',
     }
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
@@ -510,7 +511,7 @@ def alpaca_callback():
         flash("Authorization failed.", "error")
         return redirect(url_for('settings'))
 
-    token_url = "https://api.alpaca.markets/oauth/token"
+    token_url = "https://broker-api.sandbox.alpaca.markets/v1/oauth/token"
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -522,13 +523,8 @@ def alpaca_callback():
         response = requests.post(token_url, data=payload, auth=auth, timeout=15)
 
         if response.status_code != 200:
-            logger.error(f"Alpaca OAuth Rejection: {response.text}")
-            error_message = 'Auth Error'
-            try:
-                error_message = response.json().get('error_description', error_message)
-            except ValueError:
-                pass
-            flash(f"Connection failed: {error_message}", "error")
+            logger.error(f"Alpaca Rejection: {response.text}")
+            flash("Alpaca rejected the token exchange. Check VPS logs.", "error")
             return redirect(url_for('settings'))
 
         data = response.json()
@@ -538,7 +534,7 @@ def alpaca_callback():
             verify_alpaca_data_feed(current_user)
             fetch_and_sync_bankroll(current_user)
             db.session.commit()
-            flash("Broker connected successfully and bankroll synced!", "success")
+            flash("Broker connected and bankroll synced!", "success")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:

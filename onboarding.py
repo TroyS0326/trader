@@ -22,11 +22,8 @@ def fetch_and_sync_bankroll(user):
 
     headers = {"Authorization": f"Bearer {user.alpaca_access_token}"}
 
-    # Route paper vs. live API calls.
-    # Defaults to paper unless this user is explicitly marked for live trading.
-    is_live = user.subscription_status == 'pro'
-    base_url = "https://api.alpaca.markets" if is_live else "https://paper-api.alpaca.markets"
-    url = f"{base_url}/v2/account"
+    # Sandbox OAuth tokens must query the paper endpoint.
+    url = "https://paper-api.alpaca.markets/v2/account"
 
     try:
         res = requests.get(url, headers=headers, timeout=10)
