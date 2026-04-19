@@ -492,7 +492,7 @@ def alpaca_login():
         'state': oauth_state,
         'env': 'paper',
     }
-    alpaca_auth_url = f"https://app.sandbox.alpaca.markets/oauth/authorize?{urlencode(params)}"
+    alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
 
 
@@ -524,7 +524,7 @@ def alpaca_callback():
 
         if response.status_code != 200:
             logger.error(f"Alpaca Rejection: {response.text}")
-            flash("Alpaca rejected the token exchange. Check VPS logs.", "error")
+            flash(f"Connection failed: {response.json().get('error', 'Auth Error')}", "error")
             return redirect(url_for('settings'))
 
         data = response.json()
