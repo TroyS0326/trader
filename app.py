@@ -415,8 +415,44 @@ def create_checkout_session():
         )
         return redirect(checkout_session.url, code=303)
     except Exception as exc:
-        flash(f"Error connecting to Stripe: {exc}", "error")
+        logger.error("Stripe Checkout Error: %s", exc)
+        flash("Unable to reach the payment gateway. Please try again.", "error")
         return redirect(url_for('upgrade'))
+
+
+@app.route('/api/stripe-webhook', methods=['POST'])
+@csrf.exempt
+def stripe_webhook():
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    endpoint_secret = config.STRIPE_WEBHOOK_SECRET
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except (ValueError, stripe.error.SignatureVerificationError) as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    if event['type'] == 'checkout.session.completed':
+        checkout_session = event['data']['object']
+        customer_email = checkout_session.get('customer_email')
+        user = User.query.filter_by(email=customer_email).first()
+        if user:
+            user.subscription_status = 'pro'
+            db.session.commit()
+            logger.info("User %s upgraded to PRO via Stripe.", customer_email)
+
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        customer = stripe.Customer.retrieve(subscription['customer'])
+        user = User.query.filter_by(email=customer.email).first()
+        if user:
+            user.subscription_status = 'free'
+            db.session.commit()
+            logger.info("User %s downgraded to FREE (Subscription Ended).", customer.email)
+
+    return jsonify({'status': 'success'}), 200
 
 
 
