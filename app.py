@@ -246,52 +246,42 @@ def pricing():
 @app.route('/signup', methods=['GET', 'POST'])
 @limiter.limit("3 per hour")  # 🛑 Blocks botnet mass-account creation
 def signup():
-    intended_plan = request.args.get('plan') or request.form.get('plan')
+    # Capture the plan from the URL parameter (?plan=monthly)
+    intended_plan = request.args.get('plan')
 
     if request.method == 'POST':
         tos_accepted = request.form.get('tos_agreement')
-
         if not tos_accepted:
             flash('You must agree to the technical execution terms to continue.', 'error')
             return redirect(url_for('signup', plan=intended_plan))
 
         email = request.form.get('email')
         password = request.form.get('password')
-        full_name = request.form.get('full_name')
-        phone = request.form.get('phone')
 
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
+        # Check if user exists
+        if User.query.filter_by(email=email).first():
             flash('An account with that email already exists.', 'error')
             return redirect(url_for('signup', plan=intended_plan))
 
-        # Save user in our DB immediately
+        # Create the user
         new_user = User(
             email=email,
             password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
-            full_name=full_name,
-            address=request.form.get('address'),
-            city=request.form.get('city'),
-            state=request.form.get('state'),
-            zip_code=request.form.get('zip_code'),
-            phone=phone,
-            subscription_status='free',
+            full_name=request.form.get('full_name'),
+            subscription_status='free',  # Starts free until payment clears
         )
-
         db.session.add(new_user)
         db.session.commit()
-
-        # Log the user in immediately after creating the account
         login_user(new_user)
 
-        # If they selected a paid plan first, send them directly to Stripe checkout.
-        if intended_plan in {'monthly', 'annual'}:
-            return redirect(url_for('checkout_redirect', plan=intended_plan))
+        # REDIRECT LOGIC: If they chose a plan, send them to Stripe immediately
+        if intended_plan in ['monthly', 'annual']:
+            return redirect(url_for('create_checkout_session', plan=intended_plan))
 
-        # Default flow for free onboarding.
+        # Otherwise, send them to standard onboarding
         return redirect(url_for('onboarding'))
 
-    return render_template('signup.html', plan=intended_plan)
+    return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")  # 🛑 Blocks brute-force password guessing
@@ -396,19 +386,16 @@ def upgrade():
     return render_template('upgrade.html', current_user=current_user)
 
 
-@app.route('/api/create-checkout-session', methods=['POST'])
+@app.route('/api/create-checkout-session')
 @login_required
 def create_checkout_session():
-    plan = request.form.get('plan', 'monthly')
+    plan = request.args.get('plan', 'monthly')
+    
+    # Use the Price IDs from your config.py
     price_id = (
-        config.STRIPE_PRICE_ID_ANNUAL
-        if plan == 'annual'
+        config.STRIPE_PRICE_ID_ANNUAL if plan == 'annual'
         else config.STRIPE_PRICE_ID_MONTHLY
     )
-
-    if not price_id:
-        flash("Billing is temporarily unavailable. Please contact support.", "error")
-        return redirect(url_for('upgrade'))
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -420,10 +407,10 @@ def create_checkout_session():
             cancel_url=url_for('upgrade', _external=True),
         )
         return redirect(checkout_session.url, code=303)
-    except Exception as exc:
-        logger.error("Stripe Checkout Error: %s", exc)
-        flash("Unable to reach the payment gateway. Please try again.", "error")
-        return redirect(url_for('upgrade'))
+    except Exception as e:
+        logger.error(f"Stripe Error: {str(e)}")
+        flash("Stripe service is currently unavailable. Please try again later.", "error")
+        return redirect(url_for('dashboard'))
 
 
 @app.route('/checkout-redirect')
