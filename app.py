@@ -520,7 +520,17 @@ def alpaca_callback():
     try:
         auth = (app.config['ALPACA_CLIENT_ID'], app.config['ALPACA_CLIENT_SECRET'])
         response = requests.post(token_url, data=payload, auth=auth, timeout=15)
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            logger.error("Alpaca OAuth Rejection: %s", response.text)
+            error_message = "Auth Failed"
+            try:
+                error_message = response.json().get('error', error_message)
+            except ValueError:
+                pass
+            flash(f"Alpaca rejected connection: {error_message}", "error")
+            return redirect(url_for('settings'))
+
         data = response.json()
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
@@ -532,6 +542,7 @@ def alpaca_callback():
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
+        logger.error("System Connection Error: %s", str(e))
         flash(f"Connection error: {str(e)}", "error")
 
     return redirect(url_for('settings'))

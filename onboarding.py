@@ -1,5 +1,8 @@
 import requests
+import logging
 from models import db
+
+logger = logging.getLogger(__name__)
 
 
 def verify_alpaca_data_feed(user):
@@ -18,17 +21,17 @@ def fetch_and_sync_bankroll(user):
         return
 
     headers = {"Authorization": f"Bearer {user.alpaca_access_token}"}
-    preferred_base = "https://api.alpaca.markets" if user.subscription_status == 'pro' else "https://paper-api.alpaca.markets"
-    fallback_base = "https://paper-api.alpaca.markets" if preferred_base == "https://api.alpaca.markets" else "https://api.alpaca.markets"
-    account_urls = [f"{preferred_base}/v2/account", f"{fallback_base}/v2/account"]
+    base_url = "https://api.alpaca.markets" if user.subscription_status == 'pro' else "https://paper-api.alpaca.markets"
+    url = f"{base_url}/v2/account"
 
     try:
-        for url in account_urls:
-            res = requests.get(url, headers=headers, timeout=10)
-            if res.status_code == 200:
-                data = res.json()
-                user.bankroll = float(data.get('equity', 0.0))
-                db.session.commit()
-                return
-    except Exception:
-        pass
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            user.bankroll = float(data.get('equity', 0.0))
+            db.session.commit()
+            logger.info("Bankroll synced for user %s: $%s", user.id, user.bankroll)
+        else:
+            logger.error("Bankroll sync failed for %s: %s", user.id, res.text)
+    except Exception as e:
+        logger.error("Error during bankroll sync: %s", str(e))
