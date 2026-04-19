@@ -188,10 +188,6 @@ def ensure_user_alpaca_data_feed_column() -> None:
 
 
 ensure_db_initialized()
-ensure_user_refresh_interval_column()
-ensure_user_layout_columns()
-ensure_user_personalization_columns()
-ensure_user_alpaca_data_feed_column()
 
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
@@ -956,10 +952,11 @@ def ws_watchlist(ws):
 
 
 with app.app_context():
-    db.create_all()
+    db.create_all() # This creates the 'user' table first
     ensure_user_refresh_interval_column()
     ensure_user_layout_columns()
-
+    ensure_user_personalization_columns()
+    ensure_user_alpaca_data_feed_column()
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
