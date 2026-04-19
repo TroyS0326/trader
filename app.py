@@ -246,7 +246,7 @@ def pricing():
 @app.route('/signup', methods=['GET', 'POST'])
 @limiter.limit("3 per hour")  # 🛑 Blocks botnet mass-account creation
 def signup():
-    intended_plan = request.args.get('plan')
+    intended_plan = request.args.get('plan') or request.form.get('plan')
 
     if request.method == 'POST':
         tos_accepted = request.form.get('tos_agreement')
@@ -284,31 +284,11 @@ def signup():
         # Log the user in immediately after creating the account
         login_user(new_user)
 
-        if intended_plan in ['monthly', 'annual']:
-            price_id = (
-                config.STRIPE_PRICE_ID_ANNUAL
-                if intended_plan == 'annual'
-                else config.STRIPE_PRICE_ID_MONTHLY
-            )
+        # If they selected a paid plan first, send them directly to Stripe checkout.
+        if intended_plan in {'monthly', 'annual'}:
+            return redirect(url_for('checkout_redirect', plan=intended_plan))
 
-            if not price_id:
-                logger.error("Missing Stripe price ID for plan: %s", intended_plan)
-                return redirect(url_for('onboarding'))
-
-            try:
-                checkout_session = stripe.checkout.Session.create(
-                    customer_email=new_user.email,
-                    payment_method_types=['card'],
-                    line_items=[{'price': price_id, 'quantity': 1}],
-                    mode='subscription',
-                    success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-                    cancel_url=url_for('upgrade', _external=True),
-                )
-                return redirect(checkout_session.url, code=303)
-            except Exception as exc:
-                logger.error("Stripe Session Error: %s", exc)
-                return redirect(url_for('onboarding'))
-
+        # Default flow for free onboarding.
         return redirect(url_for('onboarding'))
 
     return render_template('signup.html', plan=intended_plan)
@@ -444,6 +424,35 @@ def create_checkout_session():
         logger.error("Stripe Checkout Error: %s", exc)
         flash("Unable to reach the payment gateway. Please try again.", "error")
         return redirect(url_for('upgrade'))
+
+
+@app.route('/checkout-redirect')
+@login_required
+def checkout_redirect():
+    plan = request.args.get('plan', 'monthly')
+    price_id = (
+        config.STRIPE_PRICE_ID_ANNUAL
+        if plan == 'annual'
+        else config.STRIPE_PRICE_ID_MONTHLY
+    )
+
+    if not price_id:
+        flash("Billing is temporarily unavailable. Please contact support.", "error")
+        return redirect(url_for('upgrade'))
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=current_user.email,
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            mode='subscription',
+            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('upgrade', _external=True),
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as exc:
+        logger.error("Stripe Error: %s", exc)
+        return redirect(url_for('dashboard'))
 
 
 @app.route('/api/stripe-webhook', methods=['POST'])
