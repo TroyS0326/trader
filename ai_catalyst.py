@@ -11,6 +11,13 @@ from scanner import get_company_news  # Assuming this still fetches Finnhub news
 
 logger = logging.getLogger(__name__)
 
+CATALYST_WEIGHTS = {
+    'FDA_APPROVAL': 15,
+    'EARNINGS_BEAT': 12,
+    'OFFERING': -15,  # This prevents the bot from buying into a dilution trap
+    'PARTNERSHIP': 10,
+}
+
 # Load local FinBERT specifically trained on financial news tone
 # This runs locally on your CPU/GPU, eliminating API latency
 try:
