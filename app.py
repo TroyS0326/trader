@@ -389,16 +389,18 @@ def upgrade():
 @app.route('/api/create-checkout-session', methods=['GET', 'POST'])
 @login_required
 def create_checkout_session():
+    # Check both form data (POST) and URL parameters (GET) for the plan
     plan = request.form.get('plan') or request.args.get('plan') or 'monthly'
-    
-    # Use the Price IDs from your config.py
+
+    # Retrieve Price IDs from config.py
     price_id = (
         config.STRIPE_PRICE_ID_ANNUAL if plan == 'annual'
         else config.STRIPE_PRICE_ID_MONTHLY
     )
 
+    # CRITICAL: If Price IDs are missing in .env, redirect back with an error
     if not price_id:
-        flash("Billing is temporarily unavailable. Please contact support.", "error")
+        flash("Billing setup is incomplete (Missing Price IDs). Please check your .env file.", "error")
         return redirect(url_for('upgrade'))
 
     try:
@@ -412,8 +414,9 @@ def create_checkout_session():
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
-        logger.error(f"Stripe Error: {str(e)}")
-        flash("Stripe service is currently unavailable. Please try again later.", "error")
+        # Log the actual Stripe error to your console for debugging
+        logger.error(f"Stripe Session Error: {str(e)}")
+        flash(f"Stripe Error: {str(e)}", "error")
         return redirect(url_for('upgrade'))
 
 
