@@ -246,13 +246,14 @@ def pricing():
 @app.route('/signup', methods=['GET', 'POST'])
 @limiter.limit("3 per hour")  # 🛑 Blocks botnet mass-account creation
 def signup():
+    intended_plan = request.args.get('plan')
+
     if request.method == 'POST':
-        # (Keep your existing code here that grabs the email/password and saves to DB)
         tos_accepted = request.form.get('tos_agreement')
 
         if not tos_accepted:
             flash('You must agree to the technical execution terms to continue.', 'error')
-            return redirect(url_for('signup'))
+            return redirect(url_for('signup', plan=intended_plan))
 
         email = request.form.get('email')
         password = request.form.get('password')
@@ -262,7 +263,7 @@ def signup():
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             flash('An account with that email already exists.', 'error')
-            return redirect(url_for('signup'))
+            return redirect(url_for('signup', plan=intended_plan))
 
         # Save user in our DB immediately
         new_user = User(
@@ -282,10 +283,35 @@ def signup():
 
         # Log the user in immediately after creating the account
         login_user(new_user)
-        # THE FIX: Send them straight to the broker uplink page
+
+        if intended_plan in ['monthly', 'annual']:
+            price_id = (
+                config.STRIPE_PRICE_ID_ANNUAL
+                if intended_plan == 'annual'
+                else config.STRIPE_PRICE_ID_MONTHLY
+            )
+
+            if not price_id:
+                logger.error("Missing Stripe price ID for plan: %s", intended_plan)
+                return redirect(url_for('onboarding'))
+
+            try:
+                checkout_session = stripe.checkout.Session.create(
+                    customer_email=new_user.email,
+                    payment_method_types=['card'],
+                    line_items=[{'price': price_id, 'quantity': 1}],
+                    mode='subscription',
+                    success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                    cancel_url=url_for('upgrade', _external=True),
+                )
+                return redirect(checkout_session.url, code=303)
+            except Exception as exc:
+                logger.error("Stripe Session Error: %s", exc)
+                return redirect(url_for('onboarding'))
+
         return redirect(url_for('onboarding'))
 
-    return render_template('signup.html')
+    return render_template('signup.html', plan=intended_plan)
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")  # 🛑 Blocks brute-force password guessing

@@ -84,7 +84,7 @@
                   {% endif %}
                 {% endwith %}
 
-                <form action="/signup" method="POST">
+                <form action="/signup{% if request.args.get('plan') %}?plan={{ request.args.get('plan') }}{% endif %}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="input-group">
                         <label>Full Name</label>
