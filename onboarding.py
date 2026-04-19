@@ -20,7 +20,11 @@ def fetch_and_sync_bankroll(user):
     if not user.alpaca_access_token:
         return
 
-    headers = {"Authorization": f"Bearer {user.alpaca_access_token}"}
+    # CRITICAL: Use the user's OAuth bearer token for Alpaca account requests.
+    headers = {
+        "Authorization": f"Bearer {user.alpaca_access_token}",
+        "accept": "application/json",
+    }
 
     # Sandbox OAuth tokens must query the paper endpoint.
     url = "https://paper-api.alpaca.markets/v2/account"
