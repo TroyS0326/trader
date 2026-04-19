@@ -21,7 +21,11 @@ def fetch_and_sync_bankroll(user):
         return
 
     headers = {"Authorization": f"Bearer {user.alpaca_access_token}"}
-    base_url = "https://api.alpaca.markets" if user.subscription_status == 'pro' else "https://paper-api.alpaca.markets"
+
+    # Route paper vs. live API calls.
+    # Defaults to paper unless this user is explicitly marked for live trading.
+    is_live = user.subscription_status == 'pro'
+    base_url = "https://api.alpaca.markets" if is_live else "https://paper-api.alpaca.markets"
     url = f"{base_url}/v2/account"
 
     try:

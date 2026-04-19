@@ -522,13 +522,13 @@ def alpaca_callback():
         response = requests.post(token_url, data=payload, auth=auth, timeout=15)
 
         if response.status_code != 200:
-            logger.error("Alpaca OAuth Rejection: %s", response.text)
-            error_message = "Auth Failed"
+            logger.error(f"Alpaca OAuth Rejection: {response.text}")
+            error_message = 'Auth Error'
             try:
-                error_message = response.json().get('error', error_message)
+                error_message = response.json().get('error_description', error_message)
             except ValueError:
                 pass
-            flash(f"Alpaca rejected connection: {error_message}", "error")
+            flash(f"Connection failed: {error_message}", "error")
             return redirect(url_for('settings'))
 
         data = response.json()
@@ -542,8 +542,8 @@ def alpaca_callback():
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
-        logger.error("System Connection Error: %s", str(e))
-        flash(f"Connection error: {str(e)}", "error")
+        logger.error(f"Token Exchange System Error: {str(e)}")
+        flash(f"System Error: {str(e)}", "error")
 
     return redirect(url_for('settings'))
 
