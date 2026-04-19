@@ -321,6 +321,12 @@ def playbook():
     """Public strategy page explaining the 'Screen, Validate, Execute' workflow."""
     return render_template('playbook.html')
 
+
+@app.route('/alpaca-integration')
+def alpaca_integration():
+    """Public page explaining the Alpaca execution workflow."""
+    return render_template('alpaca_integration.html')
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
