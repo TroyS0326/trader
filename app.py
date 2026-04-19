@@ -809,7 +809,7 @@ def api_order_status(order_id: str):
             raw = json.loads(raw or '{}')
         bundle = raw.get('order_bundle') if isinstance(raw, dict) else None
         if not isinstance(bundle, dict):
-            order = get_order(order_id, token=user_token)
+            order = get_order(order_id, token=user_token, user=current_user)
         else:
             order = dict(bundle)
             if bundle.get('strategy') == 'target1_then_trailing_runner':
@@ -817,9 +817,10 @@ def api_order_status(order_id: str):
                     bundle,
                     breakeven_price=float(trade.get('entry_price') or 0),
                     token=user_token,
+                    user=current_user,
                 )
                 order['target_1_order'] = (
-                    get_order(bundle.get('target_1_order_id'), token=user_token)
+                    get_order(bundle.get('target_1_order_id'), token=user_token, user=current_user)
                     if bundle.get('target_1_order_id')
                     else {}
                 )
@@ -827,9 +828,14 @@ def api_order_status(order_id: str):
                     order['runner_trailing_order'] = get_order(
                         bundle.get('runner_trailing_order_id'),
                         token=user_token,
+                        user=current_user,
                     )
                 elif bundle.get('runner_stop_order_id'):
-                    order['runner_order'] = get_order(bundle.get('runner_stop_order_id'), token=user_token)
+                    order['runner_order'] = get_order(
+                        bundle.get('runner_stop_order_id'),
+                        token=user_token,
+                        user=current_user,
+                    )
                 raw['order_bundle'] = bundle
         updates = {
             'order_status': order.get('status'),
