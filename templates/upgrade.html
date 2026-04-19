@@ -115,7 +115,7 @@
                 </ul>
             </div>
 
-            <form action="/api/process_checkout" method="POST">
+            <form action="/api/create-checkout-session" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="plan" value="monthly">
                 <button type="submit" class="checkout-btn secondary">Start Monthly Plan</button>
@@ -139,7 +139,7 @@
                 </ul>
             </div>
 
-            <form action="/api/process_checkout" method="POST">
+            <form action="/api/create-checkout-session" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="plan" value="annual">
                 <button type="submit" class="checkout-btn primary">Start Annual Plan</button>

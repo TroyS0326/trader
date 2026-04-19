@@ -19,3 +19,4 @@ tqdm==4.66.2    # Progress bars for the backtest loop
 
 Flask-WTF==1.2.2
 Flask-Limiter==3.8.0
+stripe==11.3.0

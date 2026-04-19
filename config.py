@@ -45,7 +45,8 @@ GEMINI_API_KEY = require_env('GEMINI_API_KEY').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
-STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID')  # The price_1abc... ID from Stripe
+STRIPE_PRICE_ID_MONTHLY = os.getenv('STRIPE_PRICE_ID_MONTHLY')
+STRIPE_PRICE_ID_ANNUAL = os.getenv('STRIPE_PRICE_ID_ANNUAL')
 
 DB_PATH = str(BASE_DIR / 'veteran_trades.db')
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
