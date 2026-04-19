@@ -235,6 +235,12 @@ def index():
     return redirect(url_for('dashboard'))
 
 
+@app.route('/pricing')
+def pricing():
+    """Allows logged-in users to view the pricing tier list without being bounced."""
+    return render_template('landing.html')
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 @limiter.limit("3 per hour")  # 🛑 Blocks botnet mass-account creation
 def signup():
