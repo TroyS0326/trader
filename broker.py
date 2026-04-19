@@ -52,22 +52,22 @@ def _headers(token: str | None = None) -> Dict[str, str]:
     }
 
 
-def _get_json(url: str, params: Dict[str, Any] | None = None) -> Any:
-    resp = _request_with_retry('GET', url, params=params)
+def _get_json(url: str, params: Dict[str, Any] | None = None, token: str | None = None) -> Any:
+    resp = _request_with_retry('GET', url, params=params, token=token)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
 
 
-def _post_json(url: str, payload: Dict[str, Any]) -> Any:
-    resp = _request_with_retry('POST', url, payload=payload)
+def _post_json(url: str, payload: Dict[str, Any], token: str | None = None) -> Any:
+    resp = _request_with_retry('POST', url, payload=payload, token=token)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
 
 
-def _patch_json(url: str, payload: Dict[str, Any]) -> Any:
-    resp = _request_with_retry('PATCH', url, payload=payload)
+def _patch_json(url: str, payload: Dict[str, Any], token: str | None = None) -> Any:
+    resp = _request_with_retry('PATCH', url, payload=payload, token=token)
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
     return resp.json()
@@ -84,13 +84,14 @@ def _request_with_retry(
     url: str,
     params: Dict[str, Any] | None = None,
     payload: Dict[str, Any] | None = None,
+    token: str | None = None,
 ) -> requests.Response:
     resp = requests.request(
         method=method,
         url=url,
         params=params or {},
         json=payload,
-        headers=_headers(),
+        headers=_headers(token),
         timeout=TIMEOUT,
     )
     if resp.status_code >= 500:
@@ -112,25 +113,26 @@ def get_latest_quote(symbol: str, user: Any | None = None) -> Dict[str, Any]:
     return (data.get('quotes') or {}).get(symbol, {})
 
 
-def submit_order(payload: Dict[str, Any]) -> Dict[str, Any]:
-    return _post_json(f'{ALPACA_PAPER_BASE}/orders', payload)
+def submit_order(payload: Dict[str, Any], token: str | None = None) -> Dict[str, Any]:
+    return _post_json(f'{ALPACA_PAPER_BASE}/orders', payload, token=token)
 
 
-def replace_order(order_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    return _patch_json(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', payload)
+def replace_order(order_id: str, payload: Dict[str, Any], token: str | None = None) -> Dict[str, Any]:
+    return _patch_json(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', payload, token=token)
 
 
-def cancel_order(order_id: str) -> None:
-    resp = _request_with_retry('DELETE', f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}')
+def cancel_order(order_id: str, token: str | None = None) -> None:
+    resp = _request_with_retry('DELETE', f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', token=token)
     if resp.status_code not in {200, 204, 404, 422}:
         raise BrokerError(resp.text)
 
 
-def get_order(order_id: str) -> Dict[str, Any]:
+def get_order(order_id: str, token: str | None = None) -> Dict[str, Any]:
     resp = _request_with_retry(
         'GET',
         f'{ALPACA_PAPER_BASE}/orders/{order_id}',
         params={'nested': 'true'},
+        token=token,
     )
     if resp.status_code >= 400:
         raise BrokerError(resp.text)
@@ -149,17 +151,17 @@ def get_orders(order_ids: List[str]) -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def _poll_for_fill(order_id: str, timeout_seconds: float) -> Dict[str, Any]:
+def _poll_for_fill(order_id: str, timeout_seconds: float, token: str | None = None) -> Dict[str, Any]:
     started = time.time()
     while True:
-        order = get_order(order_id)
+        order = get_order(order_id, token=token)
         status = (order.get('status') or '').lower()
         if status == 'filled':
             return order
         if status in {'canceled', 'expired', 'rejected', 'done_for_day'}:
             raise BrokerError(f'Entry order {order_id} ended as {status}.')
         if time.time() - started >= timeout_seconds:
-            cancel_order(order_id)
+            cancel_order(order_id, token=token)
             raise BrokerError(
                 f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.'
             )
@@ -167,6 +169,7 @@ def _poll_for_fill(order_id: str, timeout_seconds: float) -> Dict[str, Any]:
 
 
 def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | None = None) -> Dict[str, Any]:
+    user_token = getattr(user, 'alpaca_access_token', None) if user else None
     quote = get_latest_quote(symbol, user=user)
     ask = float(quote.get('ap') or 0)
     bid = float(quote.get('bp') or 0)
@@ -184,7 +187,8 @@ def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | No
             'type': 'limit',
             'time_in_force': 'day',
             'limit_price': round(peg_price, 2),
-        }
+        },
+        token=user_token,
     )
 
 
@@ -198,6 +202,7 @@ def place_managed_entry_order(
     avg_1m_volume: float = 0.0,
     user: Any | None = None,
 ) -> Dict[str, Any]:
+    user_token = getattr(user, 'alpaca_access_token', None) if user else None
     # Microstructure liquidity cap (max 5% of 1-minute volume).
     if avg_1m_volume > 0:
         max_safe_qty = int(0.05 * avg_1m_volume)
@@ -209,7 +214,7 @@ def place_managed_entry_order(
     entry_id = entry.get('id')
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
-    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS)
+    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token)
     filled_qty = int(float(filled_entry.get('filled_qty') or qty))
     if filled_qty < 1:
         raise BrokerError('Entry order reported no shares filled.')
@@ -225,7 +230,8 @@ def place_managed_entry_order(
             'type': 'limit',
             'time_in_force': 'day',
             'limit_price': round(target_1_price, 2),
-        }
+        },
+        token=user_token,
     )
 
     stop_runner_order = None
@@ -238,7 +244,8 @@ def place_managed_entry_order(
                 'type': 'stop',
                 'time_in_force': 'day',
                 'stop_price': round(stop_price, 2),
-            }
+            },
+            token=user_token,
         )
 
     return {
@@ -255,7 +262,11 @@ def place_managed_entry_order(
     }
 
 
-def maybe_activate_runner_trailing(raw_trade_payload: Dict[str, Any], breakeven_price: float) -> Dict[str, Any]:
+def maybe_activate_runner_trailing(
+    raw_trade_payload: Dict[str, Any],
+    breakeven_price: float,
+    token: str | None = None,
+) -> Dict[str, Any]:
     if (raw_trade_payload or {}).get('strategy') != 'target1_then_trailing_runner':
         return raw_trade_payload
     if raw_trade_payload.get('runner_trailing_activated'):
@@ -266,13 +277,13 @@ def maybe_activate_runner_trailing(raw_trade_payload: Dict[str, Any], breakeven_
     if not target_1_id or not runner_stop_id:
         return raw_trade_payload
 
-    target_1 = get_order(target_1_id)
+    target_1 = get_order(target_1_id, token=token)
     if (target_1.get('status') or '').lower() != 'filled':
         return raw_trade_payload
 
     # Lock in a "base hit": move stop to breakeven first, then convert to trailing.
-    replace_order(runner_stop_id, {'stop_price': round(breakeven_price, 2)})
-    cancel_order(runner_stop_id)
+    replace_order(runner_stop_id, {'stop_price': round(breakeven_price, 2)}, token=token)
+    cancel_order(runner_stop_id, token=token)
     runner_qty = int(float(target_1.get('qty') or 0))
     remaining_qty = int(float(raw_trade_payload.get('filled_qty') or 0)) - runner_qty
     if remaining_qty < 1:
@@ -287,7 +298,8 @@ def maybe_activate_runner_trailing(raw_trade_payload: Dict[str, Any], breakeven_
             'type': 'trailing_stop',
             'time_in_force': 'day',
             'trail_percent': str(round(TARGET2_TRAILING_STOP_PCT, 4)),
-        }
+        },
+        token=token,
     )
     raw_trade_payload['runner_trailing_activated'] = True
     raw_trade_payload['runner_trailing_order_id'] = trailing.get('id')
