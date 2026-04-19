@@ -8,7 +8,6 @@ from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
     ALPACA_DATA_BASE,
-    ALPACA_PAPER_BASE,
     ENTRY_ORDER_POLL_SECONDS,
     ENTRY_ORDER_TIMEOUT_SECONDS,
     TARGET2_TRAILING_STOP_PCT,
@@ -19,6 +18,19 @@ TIMEOUT = 20
 
 class BrokerError(Exception):
     pass
+
+
+def get_execution_base_url(user: Any | None = None) -> str:
+    # Safely extract user properties
+    trading_mode = getattr(user, 'trading_mode', 'paper')
+    sub_status = getattr(user, 'subscription_status', 'free')
+
+    # STRICT GATE: Only route to LIVE if both conditions are met
+    if trading_mode == 'live' and sub_status == 'pro':
+        return 'https://api.alpaca.markets'
+
+    # Default fallback is ALWAYS the paper environment
+    return 'https://paper-api.alpaca.markets'
 
 
 def _is_retryable_request_error(exc: BaseException) -> bool:
@@ -113,24 +125,33 @@ def get_latest_quote(symbol: str, user: Any | None = None) -> Dict[str, Any]:
     return (data.get('quotes') or {}).get(symbol, {})
 
 
-def submit_order(payload: Dict[str, Any], token: str | None = None) -> Dict[str, Any]:
-    return _post_json(f'{ALPACA_PAPER_BASE}/orders', payload, token=token)
+def submit_order(payload: Dict[str, Any], token: str | None = None, user: Any | None = None) -> Dict[str, Any]:
+    base_url = get_execution_base_url(user)
+    return _post_json(f'{base_url}/v2/orders', payload, token=token)
 
 
-def replace_order(order_id: str, payload: Dict[str, Any], token: str | None = None) -> Dict[str, Any]:
-    return _patch_json(f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', payload, token=token)
+def replace_order(
+    order_id: str,
+    payload: Dict[str, Any],
+    token: str | None = None,
+    user: Any | None = None,
+) -> Dict[str, Any]:
+    base_url = get_execution_base_url(user)
+    return _patch_json(f'{base_url}/v2/orders/{order_id}', payload, token=token)
 
 
-def cancel_order(order_id: str, token: str | None = None) -> None:
-    resp = _request_with_retry('DELETE', f'{ALPACA_PAPER_BASE}/v2/orders/{order_id}', token=token)
+def cancel_order(order_id: str, token: str | None = None, user: Any | None = None) -> None:
+    base_url = get_execution_base_url(user)
+    resp = _request_with_retry('DELETE', f'{base_url}/v2/orders/{order_id}', token=token)
     if resp.status_code not in {200, 204, 404, 422}:
         raise BrokerError(resp.text)
 
 
-def get_order(order_id: str, token: str | None = None) -> Dict[str, Any]:
+def get_order(order_id: str, token: str | None = None, user: Any | None = None) -> Dict[str, Any]:
+    base_url = get_execution_base_url(user)
     resp = _request_with_retry(
         'GET',
-        f'{ALPACA_PAPER_BASE}/orders/{order_id}',
+        f'{base_url}/v2/orders/{order_id}',
         params={'nested': 'true'},
         token=token,
     )
@@ -151,17 +172,22 @@ def get_orders(order_ids: List[str]) -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def _poll_for_fill(order_id: str, timeout_seconds: float, token: str | None = None) -> Dict[str, Any]:
+def _poll_for_fill(
+    order_id: str,
+    timeout_seconds: float,
+    token: str | None = None,
+    user: Any | None = None,
+) -> Dict[str, Any]:
     started = time.time()
     while True:
-        order = get_order(order_id, token=token)
+        order = get_order(order_id, token=token, user=user)
         status = (order.get('status') or '').lower()
         if status == 'filled':
             return order
         if status in {'canceled', 'expired', 'rejected', 'done_for_day'}:
             raise BrokerError(f'Entry order {order_id} ended as {status}.')
         if time.time() - started >= timeout_seconds:
-            cancel_order(order_id, token=token)
+            cancel_order(order_id, token=token, user=user)
             raise BrokerError(
                 f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.'
             )
@@ -189,6 +215,7 @@ def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | No
             'limit_price': round(peg_price, 2),
         },
         token=user_token,
+        user=user,
     )
 
 
@@ -214,7 +241,7 @@ def place_managed_entry_order(
     entry_id = entry.get('id')
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
-    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token)
+    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token, user=user)
     filled_qty = int(float(filled_entry.get('filled_qty') or qty))
     if filled_qty < 1:
         raise BrokerError('Entry order reported no shares filled.')
@@ -232,6 +259,7 @@ def place_managed_entry_order(
             'limit_price': round(target_1_price, 2),
         },
         token=user_token,
+        user=user,
     )
 
     stop_runner_order = None
@@ -246,6 +274,7 @@ def place_managed_entry_order(
                 'stop_price': round(stop_price, 2),
             },
             token=user_token,
+            user=user,
         )
 
     return {
@@ -266,6 +295,7 @@ def maybe_activate_runner_trailing(
     raw_trade_payload: Dict[str, Any],
     breakeven_price: float,
     token: str | None = None,
+    user: Any | None = None,
 ) -> Dict[str, Any]:
     if (raw_trade_payload or {}).get('strategy') != 'target1_then_trailing_runner':
         return raw_trade_payload
@@ -277,13 +307,13 @@ def maybe_activate_runner_trailing(
     if not target_1_id or not runner_stop_id:
         return raw_trade_payload
 
-    target_1 = get_order(target_1_id, token=token)
+    target_1 = get_order(target_1_id, token=token, user=user)
     if (target_1.get('status') or '').lower() != 'filled':
         return raw_trade_payload
 
     # Lock in a "base hit": move stop to breakeven first, then convert to trailing.
-    replace_order(runner_stop_id, {'stop_price': round(breakeven_price, 2)}, token=token)
-    cancel_order(runner_stop_id, token=token)
+    replace_order(runner_stop_id, {'stop_price': round(breakeven_price, 2)}, token=token, user=user)
+    cancel_order(runner_stop_id, token=token, user=user)
     runner_qty = int(float(target_1.get('qty') or 0))
     remaining_qty = int(float(raw_trade_payload.get('filled_qty') or 0)) - runner_qty
     if remaining_qty < 1:
@@ -300,6 +330,7 @@ def maybe_activate_runner_trailing(
             'trail_percent': str(round(TARGET2_TRAILING_STOP_PCT, 4)),
         },
         token=token,
+        user=user,
     )
     raw_trade_payload['runner_trailing_activated'] = True
     raw_trade_payload['runner_trailing_order_id'] = trailing.get('id')
