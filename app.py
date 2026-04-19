@@ -522,12 +522,21 @@ def alpaca_callback():
     }
 
     try:
-        # Remove the auth= parameter
+        # --- ADD THESE DEBUG PRINTS ---
+        print("\n--- INITIATING ALPACA TOKEN EXCHANGE ---")
+        print(f"TARGET URL: {token_url}")
+        print(f"PAYLOAD SENT: {payload}")
+
         response = requests.post(token_url, data=payload, timeout=15)
 
+        print(f"RESPONSE STATUS: {response.status_code}")
+        print(f"RAW ALPACA RESPONSE: {response.text}")
+        print("----------------------------------------\n")
+        # ------------------------------
+
         if response.status_code != 200:
-            logger.error(f"Alpaca Rejection: {response.text}")
-            flash(f"Connection failed: {response.json().get('error', 'Auth Error')}", "error")
+            logger.error(f"Alpaca Rejection: {response.text}") #
+            flash(f"Alpaca rejected the exchange. Error: {response.text}", "error")
             return redirect(url_for('settings'))
 
         data = response.json()
