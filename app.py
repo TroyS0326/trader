@@ -27,7 +27,7 @@ from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get
 from execution import start_engine
 from models import db
 from models import Post, User
-from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
+from onboarding import fetch_and_sync_bankroll
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
@@ -506,8 +506,8 @@ def alpaca_callback():
 
     code = request.args.get('code')
     if not code:
-        flash("Authorization failed.", "error")
-        return redirect(url_for('dashboard'))
+        flash("Authorization failed: No code returned.", "error")
+        return redirect(url_for('settings'))
 
     token_url = "https://api.alpaca.markets/oauth/token"
     payload = {
@@ -520,28 +520,24 @@ def alpaca_callback():
 
     try:
         response = requests.post(token_url, data=payload, timeout=15)
-        response.raise_for_status()
-        data = response.json()
+        if response.status_code != 200:
+            logger.error(f"Alpaca Token Error: {response.text}")
+            flash(
+                f"Token Exchange Failed: {response.json().get('error_description', 'Unknown Error')}",
+                "error",
+            )
+            return redirect(url_for('settings'))
 
+        data = response.json()
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
-
-            # Auto-detect feed preference and sync real bankroll immediately.
-            verify_alpaca_data_feed(current_user)
-            sync_result = fetch_and_sync_bankroll(current_user)
+            fetch_and_sync_bankroll(current_user)
             db.session.commit()
-            if sync_result["success"]:
-                flash(sync_result["message"], "success")
-            else:
-                flash("Broker connected, but could not sync bankroll.", "warning")
-        else:
-            flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
+            flash("Broker connected and bankroll synced!", "success")
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
-    if current_user.bankroll == 0.0:
-        return redirect(url_for('onboarding'))
     return redirect(url_for('settings'))
 
 
