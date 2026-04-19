@@ -4,6 +4,7 @@ import os
 import requests
 import secrets
 import sqlite3
+from urllib.parse import urlencode
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
@@ -483,14 +484,14 @@ def alpaca_login():
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
 
-    alpaca_auth_url = (
-        f"https://app.alpaca.markets/oauth/authorize"
-        f"?response_type=code"
-        f"&client_id={app.config['ALPACA_CLIENT_ID']}"
-        f"&redirect_uri={app.config['ALPACA_REDIRECT_URI']}"
-        f"&scope=trading"
-        f"&state={oauth_state}"
-    )
+    params = {
+        'response_type': 'code',
+        'client_id': app.config['ALPACA_CLIENT_ID'],
+        'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
+        'scope': 'trading',
+        'state': oauth_state,
+    }
+    alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
 
 
@@ -513,13 +514,12 @@ def alpaca_callback():
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
-        'client_id': app.config['ALPACA_CLIENT_ID'],
-        'client_secret': app.config['ALPACA_CLIENT_SECRET'],
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
     }
 
     try:
-        response = requests.post(token_url, data=payload, timeout=15)
+        auth = (app.config['ALPACA_CLIENT_ID'], app.config['ALPACA_CLIENT_SECRET'])
+        response = requests.post(token_url, data=payload, auth=auth, timeout=15)
         response.raise_for_status()
         data = response.json()
         if 'access_token' in data:
