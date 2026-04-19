@@ -236,7 +236,11 @@
                         </div>
                         <p style="font-size: 0.95rem;">Full access to the AI scanner and automated trading bot on a month-to-month basis.</p>
                     </div>
-                    <a href="{{ url_for('signup', plan='monthly') }}" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('upgrade', plan='monthly') }}" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Upgrade Now</a>
+                    {% else %}
+                        <a href="{{ url_for('signup', plan='monthly') }}" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
+                    {% endif %}
                 </div>
 
                 <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
@@ -249,7 +253,11 @@
                         </div>
                         <p style="font-size: 0.95rem;">Commit to your growth. Get two months completely free when you pay for the year upfront.</p>
                     </div>
-                    <a href="{{ url_for('signup', plan='annual') }}" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Start Annual Plan</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('upgrade', plan='annual') }}" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Upgrade Now</a>
+                    {% else %}
+                        <a href="{{ url_for('signup', plan='annual') }}" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Start Annual Plan</a>
+                    {% endif %}
 
             </div>
         </div>

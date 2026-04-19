@@ -274,9 +274,9 @@ def signup():
         db.session.commit()
         login_user(new_user)
 
-        # REDIRECT LOGIC: If they chose a plan, send them to Stripe immediately
+        # REDIRECT LOGIC: If they chose a plan, send them to upgrade first
         if intended_plan in ['monthly', 'annual']:
-            return redirect(url_for('create_checkout_session', plan=intended_plan))
+            return redirect(url_for('upgrade', plan=intended_plan))
 
         # Otherwise, send them to standard onboarding
         return redirect(url_for('onboarding'))
