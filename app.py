@@ -546,7 +546,7 @@ def alpaca_callback():
 
 @app.route('/v1/oauth/callback')
 def sandbox_callback():
-    return alpaca_callback()
+    return alpaca_callback()  # This acts as an alias
 
 
 @app.route('/alpaca/logout')
