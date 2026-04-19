@@ -27,14 +27,14 @@ from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get
 from execution import start_engine
 from models import db
 from models import Post, User
-from onboarding import fetch_and_sync_bankroll
+from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
 
-# UPDATED: Handle the double-proto (https,https) and force standard Host header
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=2, x_host=0, x_prefix=0)
+# UPDATED: Standard single-proxy setup (e.g., Nginx only)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_prefix=0)
 
 # 2. Enable Global CSRF Protection
 csrf = CSRFProtect(app)
@@ -506,7 +506,7 @@ def alpaca_callback():
 
     code = request.args.get('code')
     if not code:
-        flash("Authorization failed: No code returned.", "error")
+        flash("Authorization failed.", "error")
         return redirect(url_for('settings'))
 
     token_url = "https://api.alpaca.markets/oauth/token"
@@ -520,21 +520,17 @@ def alpaca_callback():
 
     try:
         response = requests.post(token_url, data=payload, timeout=15)
-        if response.status_code != 200:
-            logger.error(f"Alpaca Token Error: {response.text}")
-            flash(
-                f"Token Exchange Failed: {response.json().get('error_description', 'Unknown Error')}",
-                "error",
-            )
-            return redirect(url_for('settings'))
-
+        response.raise_for_status()
         data = response.json()
         if 'access_token' in data:
             current_user.alpaca_access_token = data['access_token']
             current_user.alpaca_account_id = data.get('account_id')
+            verify_alpaca_data_feed(current_user)
             fetch_and_sync_bankroll(current_user)
             db.session.commit()
-            flash("Broker connected and bankroll synced!", "success")
+            flash("Broker connected successfully and bankroll synced!", "success")
+        else:
+            flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
         flash(f"Connection error: {str(e)}", "error")
 
