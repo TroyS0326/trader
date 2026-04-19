@@ -389,7 +389,7 @@ def upgrade():
 @app.route('/api/create-checkout-session', methods=['GET', 'POST'])
 @login_required
 def create_checkout_session():
-    plan = request.args.get('plan') or request.form.get('plan') or 'monthly'
+    plan = request.form.get('plan') or request.args.get('plan') or 'monthly'
     
     # Use the Price IDs from your config.py
     price_id = (
