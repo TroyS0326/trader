@@ -4,6 +4,7 @@ import os
 import requests
 import secrets
 import sqlite3
+import stripe
 from urllib.parse import urlencode
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -81,6 +82,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
+stripe.api_key = config.STRIPE_SECRET_KEY
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -388,22 +390,33 @@ def upgrade():
     return render_template('upgrade.html', current_user=current_user)
 
 
-@app.route('/api/process_checkout', methods=['POST'])
+@app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
-def process_checkout():
-    # In a real app, this is where you would integrate Stripe Checkout.
-    # For now, we simulate a successful payment and instantly upgrade the user.
+def create_checkout_session():
     plan = request.form.get('plan', 'monthly')
+    price_id = (
+        config.STRIPE_PRICE_ID_ANNUAL
+        if plan == 'annual'
+        else config.STRIPE_PRICE_ID_MONTHLY
+    )
+
+    if not price_id:
+        flash("Billing is temporarily unavailable. Please contact support.", "error")
+        return redirect(url_for('upgrade'))
 
     try:
-        current_user.subscription_status = 'pro'
-        db.session.commit()
-        flash("Payment Successful! Welcome to XeanVI PRO.", "success")
-    except Exception:
-        db.session.rollback()
-        flash("Payment failed. Please try again.", "error")
-
-    return redirect(url_for('dashboard'))
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=current_user.email,
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            mode='subscription',
+            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('upgrade', _external=True),
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as exc:
+        flash(f"Error connecting to Stripe: {exc}", "error")
+        return redirect(url_for('upgrade'))
 
 
 
