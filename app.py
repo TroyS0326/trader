@@ -511,16 +511,19 @@ def alpaca_callback():
         flash("Authorization failed.", "error")
         return redirect(url_for('settings'))
 
-    token_url = "https://broker-api.sandbox.alpaca.markets/v1/oauth/token"
+    # Use the centralized OAuth token endpoint
+    token_url = "https://api.alpaca.markets/oauth/token"
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
+        'client_id': app.config['ALPACA_CLIENT_ID'],
+        'client_secret': app.config['ALPACA_CLIENT_SECRET'],
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
     }
 
     try:
-        auth = (app.config['ALPACA_CLIENT_ID'], app.config['ALPACA_CLIENT_SECRET'])
-        response = requests.post(token_url, data=payload, auth=auth, timeout=15)
+        # Remove the auth= parameter
+        response = requests.post(token_url, data=payload, timeout=15)
 
         if response.status_code != 200:
             logger.error(f"Alpaca Rejection: {response.text}")
