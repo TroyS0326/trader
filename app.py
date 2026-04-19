@@ -249,7 +249,6 @@ def signup():
     intended_plan = request.args.get('plan') or request.form.get('plan')
 
     if request.method == 'POST':
-        # (Keep your existing code here that grabs the email/password and saves to DB)
         tos_accepted = request.form.get('tos_agreement')
 
         if not tos_accepted:
