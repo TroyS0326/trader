@@ -11,6 +11,19 @@ from scanner import get_company_news  # Assuming this still fetches Finnhub news
 
 logger = logging.getLogger(__name__)
 
+TIER_1_KEYWORDS = [
+    'FDA APPROVAL', 'PHASE 3', 'EARNINGS BEAT', 'RAISED GUIDANCE',
+    'ACQUISITION', 'MERGER', 'CONTRACT WIN', 'BUYBACK'
+]
+
+TIER_2_KEYWORDS = [
+    'PARTNERSHIP', 'UPGRADE', 'PRODUCT LAUNCH', 'PHASE 2', 'PATENT'
+]
+
+NEGATIVE_KEYWORDS = [
+    'OFFERING', 'DILUTION', 'SEC INVESTIGATION', 'MISS', 'LOWERED GUIDANCE', 'RESIGNATION'
+]
+
 CATALYST_WEIGHTS = {
     'FDA_APPROVAL': 15,
     'EARNINGS_BEAT': 12,
@@ -56,6 +69,31 @@ def compute_finbert_sentiment(headlines: List[Dict[str, Any]]) -> float:
         return 0.0
 
 
+def calculate_keyword_boost(headlines: List[Dict[str, Any]]) -> float:
+    """Applies heuristic catalyst boosts/penalties based on headline keywords."""
+    boost = 0.0
+    text = " ".join([h.get('headline', '').upper() for h in headlines])
+
+    # Apply Tier 1 Boosts
+    for word in TIER_1_KEYWORDS:
+        if word in text:
+            boost += 0.25
+            break  # Don't stack multiple Tier 1s for one ticker
+
+    # Apply Tier 2 Boosts
+    for word in TIER_2_KEYWORDS:
+        if word in text:
+            boost += 0.10
+            break
+
+    # Apply Negative Penalties
+    for word in NEGATIVE_KEYWORDS:
+        if word in text:
+            boost -= 0.20
+
+    return boost
+
+
 def batch_process_premarket(symbols: List[str]):
     """
     RUN THIS AT 9:20 AM.
@@ -89,7 +127,8 @@ def batch_process_premarket(symbols: List[str]):
         # DUMMY PROBABILITY LOGIC (Remove after training XGBoost)
         # Higher sentiment, higher RVOL, and moderate gaps increase probability
         base_prob = 0.40
-        prob = base_prob + (sentiment_score * 0.20) + (min(premarket_rvol, 5) * 0.05)
+        keyword_boost = calculate_keyword_boost(headlines)
+        prob = base_prob + (sentiment_score * 0.20) + (min(premarket_rvol, 5) * 0.05) + keyword_boost
         if gap_pct > 15.0:
             prob -= 0.15  # Exhaustion penalty
 
