@@ -284,29 +284,25 @@ def signup():
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # 🛑 Blocks brute-force password guessing
+@limiter.limit("5 per minute")
 def login():
     if request.method == 'POST':
         try:
             email = request.form.get('email')
             password = request.form.get('password')
 
-            print(f"--- ATTEMPTING LOGIN FOR: {email} ---")
-
             user = User.query.filter_by(email=email).first()
 
             if not user or not check_password_hash(user.password_hash, password):
-                print("FAILED: Wrong password or user doesn't exist.")
                 flash('Invalid email or password', 'error')
                 return redirect(url_for('login'))
 
-            print("SUCCESS: Logging user in...")
             login_user(user)
             return redirect(url_for('dashboard'))
 
         except Exception as e:
-            print(f"CRITICAL BACKEND ERROR: {str(e)}")
-            flash(f"System Error: {str(e)}", 'error')
+            logger.error(f"Login failure for {email}: {str(e)}")
+            flash("An internal authentication error occurred. Please try again.", 'error')
             return redirect(url_for('login'))
 
     return render_template('login.html')
