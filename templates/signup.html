@@ -84,8 +84,11 @@
                   {% endif %}
                 {% endwith %}
 
-                <form action="/signup" method="POST">
+                <form action="{{ url_for('signup', plan=plan) if plan else url_for('signup') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    {% if plan in ['monthly', 'annual'] %}
+                    <input type="hidden" name="plan" value="{{ plan }}">
+                    {% endif %}
                     <div class="input-group">
                         <label>Full Name</label>
                         <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
