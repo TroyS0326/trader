@@ -216,6 +216,63 @@
         </div>
     </section>
 
+    <section class="section-pad terminal-bg" style="border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <div class="badge-pill">Operations Briefing</div>
+                <h2 class="text-gradient">Common Logic Queries</h2>
+                <p>Quick answers to the most frequent terminal questions. For deep technical specs, visit our <a href="/faq" style="color: var(--accent-blue);">Full Documentation</a>.</p>
+            </div>
+
+            <div class="card" style="max-width: 900px; margin: 0 auto; padding: 0;">
+                <div class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-microchip" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                            Do I just hit "Run Morning Scan" once a day?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
+                    </div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            It is best practice to run the scan shortly before the open to identify the "Best Pick" and again after <strong>9:45 AM ET</strong> to authorize the engine once the "WAIT" gate is lifted.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-brain" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                            How does the AI decide to enter a trade?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
+                    </div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            The engine uses a <strong>Screen, Validate, Execute</strong> workflow, utilizing Gemini-based sentiment scoring and strict RVOL filters before transmitting any order.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="faq-item" style="padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-lock" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                            Is my money safe during a "Faceless" setup?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
+                    </div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            XeanVI uses secure <strong>OAuth tokens</strong>. We never see your credentials, and the bot only has permission to trade within your predefined parameters.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section id="pricing" class="pricing-section" style="padding: 6rem 0; background-color: var(--bg-card);">
         <div class="container">
             <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
@@ -272,6 +329,16 @@
     </footer>
 
     <script>
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            const icon = element.querySelector('.fa-chevron-down');
+            const isCollapsed = !answer.style.maxHeight || answer.style.maxHeight === '0px';
+            answer.style.maxHeight = isCollapsed ? `${answer.scrollHeight}px` : '0px';
+            if (icon) {
+                icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
         let isSimulating = false;
         let bankroll = 10000;
 
