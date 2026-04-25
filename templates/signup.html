@@ -199,6 +199,7 @@
                 {% endwith %}
 
                 <form method="POST" action="{{ url_for('signup') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="input-group">
                         <label for="full_name">Operator Alias (Name)</label>
