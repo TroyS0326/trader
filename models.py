@@ -137,6 +137,13 @@ class User(UserMixin, db.Model):
         self._alpaca_access_token = TOKEN_CIPHER.encrypt(token.encode('utf-8')).decode('utf-8')
 
 
+class Waitlist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_early_bird = db.Column(db.Boolean, default=False)
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
