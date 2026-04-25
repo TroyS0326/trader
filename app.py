@@ -265,7 +265,7 @@ def join_waitlist():
     else:
         is_early = existing.is_early_bird
 
-    # 2. Brevo API Execution
+    # 2. Brevo API Integration - DEBUG VERSION
     if config.BREVO_API_KEY:
         url = "https://api.brevo.com/v3/contacts"
         headers = {
@@ -273,18 +273,30 @@ def join_waitlist():
             "content-type": "application/json",
             "api-key": config.BREVO_API_KEY
         }
+
+        # Ensure the list ID is an integer, Brevo will reject strings
+        try:
+            list_id = int(config.BREVO_LIST_ID)
+        except (TypeError, ValueError):
+            list_id = 5
+
         payload = {
             "email": email,
-            "listIds": [config.BREVO_LIST_ID],
-            "attributes": {
-                "EARLY_BIRD": "Yes" if is_early else "No"
-            }
+            "listIds": [list_id],
+            "updateEnabled": True,  # Prevents crash if they sign up twice
+            # TEMPORARILY REMOVED ATTRIBUTES TO TEST THE CORE CONNECTION
         }
+
         try:
-            # This is the moment it connects to Brevo
-            requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers)
+
+            # FORCE SHOW THE ERROR ON SCREEN
+            if response.status_code not in [200, 201, 204]:
+                flash(f"BREVO ERROR: {response.text}", "error")
+                return redirect(url_for('index'))
         except Exception as e:
-            logger.error(f"Brevo Connection Failed: {e}")
+            flash(f"CRITICAL BREVO CONNECTION ERROR: {str(e)}", "error")
+            return redirect(url_for('index'))
 
     flash("You've been successfully added to the waitlist!", "success")
     return redirect(url_for('index'))
