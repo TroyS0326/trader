@@ -586,12 +586,6 @@ def settings():
     return render_template('settings.html', current_user=current_user)
 
 
-@app.route('/community')
-@login_required
-def community():
-    posts = Post.query.order_by(Post.created_at.desc()).limit(50).all()
-    return render_template('community.html', posts=posts, current_user=current_user)
-
 
 @app.route('/api/post_idea', methods=['POST'])
 @login_required
@@ -603,7 +597,7 @@ def post_idea():
 
     if not ticker or not content:
         flash('Ticker and trade notes are required.', 'error')
-        return redirect(url_for('community'))
+        return redirect(url_for('dashboard'))
 
     new_post = Post(
         user_id=current_user.id,
@@ -620,7 +614,7 @@ def post_idea():
         db.session.rollback()
         flash('Failed to post idea. Please try again.', 'error')
 
-    return redirect(url_for('community'))
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/alpaca/login')
