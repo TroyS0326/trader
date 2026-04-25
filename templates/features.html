@@ -3,114 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>XeanVI Features | Systematic Trading Engine</title>
-    <meta name="description" content="See what XeanVI automates: data monitoring, logic execution, and strict risk control within a single toolkit.">
+    
+    <title>Engine Architecture & Features | XeanVI</title>
+    <meta name="description" content="Explore the quantitative architecture of XeanVI: API data scoring, persistent VPS execution, and automated risk protocols.">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Feature Page Specific Styles */
+        .feature-hero {
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Architecture Matrix (Upgraded Table) */
+        .matrix-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .matrix-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .matrix-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+        }
+        .matrix-row:last-child {
+            border-bottom: none;
+        }
+        .matrix-row:hover {
+            background: rgba(56, 189, 248, 0.02);
+        }
+        .matrix-cell {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        .cell-label {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .cell-retail {
+            color: var(--text-muted);
+            border-right: 1px solid rgba(255, 255, 255, 0.02);
+            border-left: 1px solid rgba(255, 255, 255, 0.02);
+        }
+        .cell-xeanvi {
+            color: var(--accent-blue);
+            font-weight: 600;
+            background: rgba(56, 189, 248, 0.03);
+            position: relative;
+        }
+        .cell-xeanvi::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent-blue);
+        }
+
+        /* Module Cards */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+        .module-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1;
+        }
+        .module-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.5), transparent 50%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border-color: transparent;
+        }
+        .module-card:hover::before {
+            opacity: 1;
+        }
+        .module-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .module-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+        }
+
+        @media (max-width: 768px) {
+            .matrix-header { display: none; }
+            .matrix-row {
+                grid-template-columns: 1fr;
+                border-bottom: 2px solid var(--border-color);
+            }
+            .matrix-cell { padding: 1rem; }
+            .cell-retail, .cell-xeanvi { border: none; }
+            .cell-xeanvi::before { display: none; }
+            .cell-label { background: rgba(255,255,255,0.02); }
+        }
+    </style>
 </head>
-<body>
+<body class="auth-body terminal-bg">
+
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+            
             <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Terminal</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                {% else %}
+                    <a href="/features" class="nav-link-active">Architecture</a>
+                    <a href="/broker-integration">Broker Workflow</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/pricing#pricing">Pricing</a>
+                {% endif %}
+            </div>
+
             <div class="xean-nav-actions">
-                <a href="/login">Log In</a>
-                <a href="/signup" class="btn btn-primary">Start Free</a>
+                {% if current_user.is_authenticated %}
+                    <a href="/settings" style="text-decoration: none;">
+                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
+                    </a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <header class="page-header">
+    <header class="feature-hero">
         <div class="container">
-            <div class="badge-pill">Execution Suite</div>
-            <h1>Systematic <span class="text-gradient">Trade Execution</span></h1>
-            <p>XeanVI automates quantitative logic processing and eliminates emotional intervention from your strategy.</p>
+            <div class="badge-pill" style="margin-bottom: 1.5rem;">
+                <span style="display: inline-block; width: 6px; height: 6px; background: var(--accent-blue); border-radius: 50%; margin-right: 8px; box-shadow: 0 0 8px var(--accent-blue);"></span>
+                Execution Suite
+            </div>
+            <h1 class="text-gradient" style="font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">Systematic Architecture</h1>
+            <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 650px; margin: 0 auto;">
+                Remove human emotion. XeanVI automates quantitative logic processing, data monitoring, and strict risk control within a single toolkit.
+            </p>
         </div>
     </header>
 
-    <section style="padding: 4rem 0; background: var(--bg-card); border-bottom: 1px solid var(--border-color);">
+    <section class="section-pad" style="padding-top: 0;">
         <div class="container">
-            <h2 style="text-align: center; margin-bottom: 3rem;">Why XeanVI Excels at Systematic Trading</h2>
+            
+            <div class="matrix-container">
+                <div class="matrix-header">
+                    <div class="matrix-cell">Capability Parameter</div>
+                    <div class="matrix-cell cell-retail">Standard Retail Tools</div>
+                    <div class="matrix-cell cell-xeanvi" style="color: var(--text-main);">XeanVI Engine</div>
+                </div>
 
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; background: var(--bg-main); border-radius: 12px; overflow: hidden;">
-                    <thead>
-                        <tr style="background: rgba(255,255,255,0.03); text-align: left;">
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">Capability</th>
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Standard Retail Tools</th>
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--accent-blue);">XeanVI Engine</th>
-                        </tr>
-                    </thead>
-                    <tbody style="font-size: 0.95rem;">
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Logic Origin</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Social Sentiment (Delayed)</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Quantitative API Data Scoring</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Infrastructure</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Mobile-Client Dependent</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Persistent VPS (systemd)</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Execution Mode</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Manual Review</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Automated Broker API Routing</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; font-weight: 600;">Data Validation</td>
-                            <td style="padding: 1.2rem 1.5rem; color: var(--text-muted);">Generic Price Alerts</td>
-                            <td style="padding: 1.2rem 1.5rem;">Multi-Factor Alignment Modeling</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="matrix-row">
+                    <div class="matrix-cell cell-label">Logic Origin</div>
+                    <div class="matrix-cell cell-retail"><i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i> Social Sentiment / Intuition</div>
+                    <div class="matrix-cell cell-xeanvi"><i class="fas fa-check" style="color: var(--success); margin-right: 10px;"></i> Quantitative API Data Scoring</div>
+                </div>
+
+                <div class="matrix-row">
+                    <div class="matrix-cell cell-label">Infrastructure</div>
+                    <div class="matrix-cell cell-retail"><i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i> Mobile-Client Dependent</div>
+                    <div class="matrix-cell cell-xeanvi"><i class="fas fa-check" style="color: var(--success); margin-right: 10px;"></i> Persistent VPS (systemd)</div>
+                </div>
+
+                <div class="matrix-row">
+                    <div class="matrix-cell cell-label">Execution Mode</div>
+                    <div class="matrix-cell cell-retail"><i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i> Manual Review & Click</div>
+                    <div class="matrix-cell cell-xeanvi"><i class="fas fa-check" style="color: var(--success); margin-right: 10px;"></i> Automated Broker API Routing</div>
+                </div>
+
+                <div class="matrix-row">
+                    <div class="matrix-cell cell-label">Risk Protocol</div>
+                    <div class="matrix-cell cell-retail"><i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i> Emotional Stop-Loss Movement</div>
+                    <div class="matrix-cell cell-xeanvi"><i class="fas fa-check" style="color: var(--success); margin-right: 10px;"></i> Hard-Coded Bracket Orders</div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="section-pad" style="border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+        <div class="container">
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="font-size: 2.2rem; color: var(--text-main);">Core System Modules</h2>
+                <p style="color: var(--text-muted);">The technical pillars that drive the execution engine.</p>
+            </div>
+
+            <div class="module-grid">
+                
+                <div class="module-card">
+                    <div class="module-tag">MOD_01</div>
+                    <div class="module-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Data-Driven Processing</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        Every asset is passed through our scoring model. We filter out the noise of social media trends and strictly measure mathematical parameter alignments—including Gemini AI sentiment validation—before transmitting an order.
+                    </p>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-tag">MOD_02</div>
+                    <div class="module-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Enterprise Reliability</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        XeanVI is engineered with <strong>Python Flask</strong> and <strong>systemd</strong> on isolated architecture. This ensures that your logic processing remains active through network flickers without any browser or mobile dependency.
+                    </p>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-tag">MOD_03</div>
+                    <div class="module-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Conditional Entry</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        Routes logic-based limit orders the exact microsecond your pre-set parameters are met. The system calculates Kelly Criterion position sizing instantly to prevent over-leveraging on any single execution.
+                    </p>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-tag">MOD_04</div>
+                    <div class="module-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Structured Exits</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        Removes the hesitation of taking profits. The engine manages hard stop boundaries, calculated scale-outs, and trailing profit stops based entirely on your local logic constraints.
+                    </p>
+                </div>
+
             </div>
         </div>
     </section>
 
-    <section class="section-pad">
+    <section style="padding: 6rem 0; text-align: center;">
         <div class="container">
-            <div class="grid-2">
-                <div class="feature-box" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-brain"></i> Data-Driven Processing</h3>
-                    <p>Every asset is passed through our scoring model. We filter out the noise of social media trends and strictly measure mathematical parameter alignments before transmitting an order.</p>
-                </div>
-                <div class="feature-box" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--success);"><i class="fas fa-lock"></i> Enterprise Reliability</h3>
-                    <p>XeanVI is built with <strong>Python Flask</strong> and <strong>systemd</strong>, ensuring that your logic processing remains active through server reboots and network flickers without browser dependency.</p>
-                </div>
-            </div>
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Ready to deploy your logic?</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Stop trading on emotion. Connect your paper trading sandbox today and watch the systematic engine process the market.
+            </p>
+            {% if current_user.is_authenticated %}
+                <a href="/dashboard" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">Access Terminal</a>
+            {% else %}
+                <a href="/signup" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;"><i class="fas fa-power-off" style="margin-right: 10px;"></i> Initialize Sandbox</a>
+            {% endif %}
         </div>
     </section>
 
-    <section class="section-pad">
-        <div class="container">
-            <div class="grid-2">
-                <div class="feature-box">
-                    <h3><i class="fas fa-bolt"></i> Conditional Entry</h3>
-                    <p>Routes logic-based limit orders the exact moment your pre-set parameters are met.</p>
-                </div>
-                <div class="feature-box">
-                    <h3><i class="fas fa-shield-alt"></i> Structured Exits</h3>
-                    <p>Manages hard stop boundaries and calculated scale-outs based entirely on your logic constraints.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
