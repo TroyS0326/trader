@@ -3,120 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XeanVI | Quantitative Execution Assistant</title>
-    
+    <title>XeanVI | Quantitative Trade Execution</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --bg-deep: #030305;
+            --bg-surface: #0a0a0f;
+            --bg-card: #111116;
+            --accent-blue: #2563eb;
+            --accent-blue-glow: rgba(37, 99, 235, 0.2);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --terminal-green: #10b981;
+            --gold-pro: #fbbf24;
+        }
+
         body {
-            background-color: #0a0a0a;
-            color: #e0e0e0;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
-        .brand-title {
-            font-weight: 700;
-            letter-spacing: -2px;
-            color: #ffffff;
+
+        /* Typography */
+        .display-title { font-weight: 900; letter-spacing: -2px; font-size: 4.5rem; line-height: 1.1; }
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .card-custom {
-            background-color: #121212;
-            border: 1px solid #222;
-            border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        .font-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        .text-gold { color: var(--gold-pro); }
+
+        /* Structural Elements */
+        .navbar-custom { border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(3,3,5,0.8); backdrop-filter: blur(10px); }
+        .hero-section { padding: 100px 0 80px; position: relative; overflow: hidden; }
+
+        /* Background Glow Effect */
+        .glow-orb {
+            position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, var(--accent-blue-glow) 0%, transparent 70%);
+            top: -200px; left: 50%; transform: translateX(-50%); z-index: -1; pointer-events: none;
         }
-        .promo-banner {
-            background: rgba(30, 64, 175, 0.1);
-            border: 1px solid #1e40af;
-            color: #93c5fd;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+
+        /* Cards & Containers */
+        .glass-card {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
         }
-        .trust-card {
-            background: #121212;
-            border: 1px solid #222;
-            border-left: 3px solid #3b82f6;
-            padding: 25px;
-            height: 100%;
-            border-radius: 6px;
-            transition: transform 0.2s ease, border-color 0.2s ease;
+
+        .feature-card {
+            background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 2rem; height: 100%; transition: all 0.3s ease;
         }
-        .trust-card:hover {
-            transform: translateY(-5px);
-            border-color: #3b82f6;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-        }
+        .feature-card:hover { border-color: rgba(37, 99, 235, 0.4); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+
+        /* UI Mockup Elements */
+        .terminal-header { background: #1a1a24; padding: 10px 20px; border-top-left-radius: 16px; border-top-right-radius: 16px; border-bottom: 1px solid #2a2a35; display: flex; align-items: center; gap: 8px;}
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.red { background: #ef4444; } .dot.yellow { background: #eab308; } .dot.green { background: #22c55e; }
+        .data-row { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 8px 0; }
+
+        /* Forms & Buttons */
         .form-control-custom {
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            color: #fff;
+            background-color: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; padding: 1.2rem; font-size: 1.1rem; border-radius: 8px;
         }
-        .form-control-custom:focus {
-            background-color: #222;
-            border-color: #3b82f6;
-            color: #fff;
-            box-shadow: none;
-        }
+        .form-control-custom:focus { background-color: rgba(0,0,0,0.8); border-color: var(--accent-blue); color: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
         .btn-primary-custom {
-            background-color: #3b82f6;
-            border: none;
-            font-weight: 600;
-            letter-spacing: 1px;
-            transition: background-color 0.2s;
+            background-color: var(--accent-blue); border: none; font-weight: 700; letter-spacing: 1px;
+            padding: 1.2rem 2rem; border-radius: 8px; transition: all 0.2s;
         }
-        .btn-primary-custom:hover {
-            background-color: #2563eb;
-        }
+        .btn-primary-custom:hover { background-color: #1d4ed8; transform: scale(1.02); }
+
+        /* Banners */
+        .scarcity-banner { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--gold-pro); padding: 12px 20px; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.5px;}
+
+        @media (max-width: 768px) { .display-title { font-size: 3rem; } }
     </style>
 </head>
 <body>
-    <div class="container py-5 text-center">
-        <h1 class="display-2 brand-title mb-3">XeanVI</h1>
-        <p class="lead mb-5 text-secondary" style="font-weight: 300;">Institutional Discipline for the Modern Day Trader.</p>
 
-        <div class="card card-custom p-4 p-md-5 mx-auto" style="max-width: 600px;">
-            <h3 class="mb-4 fw-bold text-white">Secure Early Access</h3>
-            
-            <div class="promo-banner mb-4 text-center">
-                The first 25 traders to join the waitlist receive <span class="text-warning">3 MONTHS of PRO</span> access for free.
+    <nav class="navbar navbar-custom fixed-top">
+        <div class="container">
+            <span class="navbar-brand text-white fw-bold tracking-tight">XeanVI</span>
+            <span class="font-mono text-muted d-none d-md-block">STATUS: PRE-LAUNCH</span>
+        </div>
+    </nav>
+
+    <section class="hero-section text-center">
+        <div class="glow-orb"></div>
+        <div class="container position-relative z-1">
+            <div class="row justify-content-center">
+                <div class="col-xl-9">
+                    <div class="scarcity-banner mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning-charge-fill me-2 mb-1" viewBox="0 0 16 16"><path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/></svg>
+                        LIMITED ALLOCATION: First 25 users unlock 3 Months of PRO Execution Free.
+                    </div>
+
+                    <h1 class="display-title mb-4">Remove the Emotion.<br><span class="text-gradient">Automate the Playbook.</span></h1>
+
+                    <p class="lead text-muted mb-5 px-md-5" style="font-size: 1.25rem; font-weight: 300; line-height: 1.6;">
+                        XeanVI is a localized, quantitative execution assistant for retail day traders. It monitors the tape, validates your playbook rules, and executes managed bracket orders via Alpaca with zero hesitation.
+                    </p>
+
+                    <div class="glass-card mx-auto text-start" style="max-width: 550px;">
+                        <div class="p-4 p-md-5">
+                            <h5 class="fw-bold text-white mb-1">Request Beta Access</h5>
+                            <p class="text-muted small mb-4">Join the queue. We only onboard traders ready for strict risk management.</p>
+
+                            <form action="{{ url_for('join_waitlist') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-3">
+                                    <input type="email" name="email" class="form-control form-control-custom" placeholder="Enter your email address" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary-custom w-100 text-white">SECURE MY SPOT</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <form action="{{ url_for('join_waitlist') }}" method="POST">
+        </div>
+    </section>
+
+    <section class="py-5 bg-surface mt-5">
+        <div class="container py-5">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <h6 class="text-primary fw-bold tracking-wide mb-3">THE RETAIL DISADVANTAGE</h6>
+                    <h2 class="fw-bold mb-4">Traders don't fail because of bad setups. They fail because of bad execution.</h2>
+                    <p class="text-muted mb-4">
+                        You know the setup. You know where your stop should be. But when the market opens, human psychology takes over. You hesitate on entries. You move your stops to avoid a loss. You take profits too early on runners.
+                    </p>
+                    <p class="text-muted">
+                        <strong>XeanVI fixes this.</strong> It acts as an unbreakable layer of discipline between you and your broker. If a stock doesn't meet the algorithmic criteria—it blocks the trade. If it does, it executes exactly as programmed.
+                    </p>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="glass-card p-0 overflow-hidden">
+                        <div class="terminal-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                            <span class="font-mono text-muted ms-3">xeanvi_engine // execution_log</span>
+                        </div>
+                        <div class="p-4 font-mono" style="font-size: 0.9rem;">
+                            <div class="data-row">
+                                <span class="text-muted">SYSTEM STATUS:</span>
+                                <span style="color: var(--terminal-green)">ARMED [ALPACA_PAPER]</span>
+                            </div>
+                            <div class="data-row mt-3">
+                                <span class="text-muted">SCANNING (RVOL > 1.5, FLOAT < 20M):</span>
+                                <span class="text-white">FOUND (3) CANDIDATES</span>
+                            </div>
+                            <div class="data-row mt-3">
+                                <span class="text-muted">VALIDATING VWAP HOLD [TICKER: XYZ]:</span>
+                                <span style="color: var(--terminal-green)">CONFIRMED</span>
+                            </div>
+                            <div class="data-row mt-4 p-3" style="background: rgba(37, 99, 235, 0.1); border-left: 2px solid var(--accent-blue);">
+                                <span class="text-white">> EXECUTING ENTRY: PEG TO BID</span><br>
+                                <span class="text-muted">> ATTACHING OCO BRACKET</span><br>
+                                <span class="text-muted">> TARGET 1: $14.50 (SCALE 50%)</span><br>
+                                <span class="text-muted">> RUNNER STOP: BREAKEVEN</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 my-5">
+        <div class="container">
+            <div class="text-center mb-5 pb-3">
+                <h2 class="fw-bold">Your Quantitative Infrastructure</h2>
+                <p class="text-muted">A fully autonomous pipeline from screening to position management.</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="text-primary mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-radar" viewBox="0 0 16 16"><path d="M6.634 1.135A7 7 0 0 1 15 8a.5.5 0 0 1-1 0 6 6 0 1 0-6.5 5.98v-1.005A5 5 0 1 1 13 8a.5.5 0 0 1-1 0 4 4 0 1 0-4.5 3.969v-1.011A2.999 2.999 0 1 1 11 8a.5.5 0 0 1-1 0 2 2 0 1 0-2.5 1.936v-1.07a1 1 0 1 1 1-1h1a2 2 0 1 0-2-2v1.07a3.001 3.001 0 1 0 3-3V1.135z"/></svg>
+                        </div>
+                        <h4 class="fw-bold text-white mb-3">1. Algorithmic Screening</h4>
+                        <p class="text-muted small">Stop staring at hundreds of charts. XeanVI scans the morning market for A+ setups based on strict Relative Volume (RVOL), ATR expansion, and proprietary Catalyst Scoring models.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="text-primary mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-bar-chart-steps" viewBox="0 0 16 16"><path d="M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0zM2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-1zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-1zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5v-1zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-1z"/></svg>
+                        </div>
+                        <h4 class="fw-bold text-white mb-3">2. Rule Validation</h4>
+                        <p class="text-muted small">Every execution is gated by the playbook. XeanVI validates intraday tape proxies, daily chart alignment, and Opening Range Breakout (ORB) confirmations before a single dollar is risked.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="text-primary mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-cpu" viewBox="0 0 16 16"><path d="M5 0h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5z"/><path d="M5.5 3h5a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5z"/></svg>
+                        </div>
+                        <h4 class="fw-bold text-white mb-3">3. Managed Execution</h4>
+                        <p class="text-muted small">Send orders via Alpaca API with institutional logic. Features include bid/ask pegged limit entries, auto-canceling 15-second timeouts, and target-1 scale-outs with trailing runner automation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="border-top border-secondary py-5 mt-5">
+        <div class="container text-center">
+            <h3 class="fw-bold text-white mb-4">Ready to upgrade your execution?</h3>
+            <p class="text-muted mb-4">The first 25 traders to join the waitlist unlock 3 months of PRO features at launch.</p>
+            <form action="{{ url_for('join_waitlist') }}" method="POST" class="mx-auto" style="max-width: 400px;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="input-group input-group-lg mb-3">
-                    <input type="email" name="email" class="form-control form-control-custom" placeholder="Professional email address" required>
-                    <button type="submit" class="btn btn-primary-custom px-4">JOIN</button>
+                <div class="input-group">
+                    <input type="email" name="email" class="form-control form-control-custom" placeholder="Email address" required>
+                    <button type="submit" class="btn btn-primary-custom text-white" style="padding: 0.8rem 1.5rem;">JOIN</button>
                 </div>
             </form>
-            <p class="mt-3 mb-0 small text-muted">Direct inquiries to <a href="mailto:support@xeanvi.com" class="text-info text-decoration-none">support@xeanvi.com</a></p>
+            <p class="mt-5 mb-0 text-muted font-mono" style="font-size: 0.8rem;">&copy; 2026 XeanVI. Support: support@xeanvi.com</p>
         </div>
+    </footer>
 
-        <div class="row mt-5 pt-4 g-4 text-start justify-content-center">
-            <div class="col-md-4">
-                <div class="trust-card">
-                    <h6 class="text-primary fw-bold tracking-wide">1. SCREEN</h6>
-                    <p class="small text-secondary mb-0">Real-time quantitative scanning for RVOL, Catalyst scoring, and ATR alignment.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="trust-card">
-                    <h6 class="text-primary fw-bold tracking-wide">2. VALIDATE</h6>
-                    <p class="small text-secondary mb-0">Proprietary logic validating intraday tape proxies against strict playbook metrics.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="trust-card">
-                    <h6 class="text-primary fw-bold tracking-wide">3. EXECUTE</h6>
-                    <p class="small text-secondary mb-0">Automated Alpaca execution with bracket orders, target scale-outs, and trailing runners.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
