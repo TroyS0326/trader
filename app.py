@@ -53,11 +53,24 @@ limiter = Limiter(
 
 # Enforce HTTPS, HSTS, and strict Content Security Policies
 if os.getenv('FLASK_ENV') == 'production':
-    # Start with CSP disabled until configured for external scripts (TradingView, etc.)
-    Talisman(app, content_security_policy=None)
+    csp = {
+        'default-src': [
+            "'self'",
+        ],
+        'script-src': [
+            "'self'",
+            'https://js.stripe.com',  # Required for checkout
+            "'unsafe-inline'",  # Often needed for quick inline JS like Bootstrap/Alpine
+        ],
+        'frame-src': [
+            "'self'",
+            'https://js.stripe.com',
+        ],
+    }
+    Talisman(app, content_security_policy=csp)
 
 # THE FIX: Allow login even if the host/referrer strings have a proxy-induced mismatch
-app.config['WTF_CSRF_SSL_STRICT'] = False
+app.config['WTF_CSRF_SSL_STRICT'] = True
 
 # Ensure these remain bulletproof
 app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'
