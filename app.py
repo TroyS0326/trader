@@ -251,9 +251,10 @@ def dev_unlock(token):
 def join_waitlist():
     email = request.form.get('email', '').strip().lower()
     if not email:
-        flash('A valid email is required.', 'error')
+        flash("A valid email is required.", "error")
         return redirect(url_for('index'))
 
+    # 1. Local Tracking (First 25 logic)
     existing = Waitlist.query.filter_by(email=email).first()
     if not existing:
         count = Waitlist.query.count()
@@ -264,26 +265,28 @@ def join_waitlist():
     else:
         is_early = existing.is_early_bird
 
+    # 2. Brevo API Execution
     if config.BREVO_API_KEY:
-        url = 'https://api.brevo.com/v3/contacts'
+        url = "https://api.brevo.com/v3/contacts"
         headers = {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'api-key': config.BREVO_API_KEY,
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": config.BREVO_API_KEY
         }
         payload = {
-            'email': email,
-            'listIds': [config.BREVO_LIST_ID],
-            'attributes': {'EARLY_BIRD': 'Yes' if is_early else 'No'},
+            "email": email,
+            "listIds": [config.BREVO_LIST_ID],
+            "attributes": {
+                "EARLY_BIRD": "Yes" if is_early else "No"
+            }
         }
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            if response.status_code not in [200, 201, 204]:
-                logger.error('Brevo API Error: %s', response.text)
+            # This is the moment it connects to Brevo
+            requests.post(url, json=payload, headers=headers)
         except Exception as e:
-            logger.error('Brevo Connection Failed: %s', e)
+            logger.error(f"Brevo Connection Failed: {e}")
 
-    flash("You've been successfully added to the waitlist!", 'success')
+    flash("You've been successfully added to the waitlist!", "success")
     return redirect(url_for('index'))
 
 
