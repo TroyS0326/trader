@@ -375,10 +375,16 @@ def playbook():
     return render_template('playbook.html')
 
 
+@app.route('/broker-integration')
+def broker_integration():
+    """Public page explaining the broker execution workflow."""
+    return render_template('broker_integration.html')
+
+
 @app.route('/alpaca-integration')
-def alpaca_integration():
-    """Public page explaining the Alpaca execution workflow."""
-    return render_template('alpaca_integration.html')
+def alpaca_integration_legacy_redirect():
+    """Legacy route kept for backward compatibility."""
+    return redirect(url_for('broker_integration'), code=301)
 
 @app.route('/terms')
 def terms():
