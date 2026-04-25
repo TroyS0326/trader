@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FAQ | XeanVI Systematic Trading Documentation</title>
+    <meta name="description" content="Technical answers regarding the XeanVI execution engine, AI sentiment scoring, risk management protocols, and Alpaca broker integration.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "What does the WAIT status mean in XeanVI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The WAIT status is a safety gate that blocks buying until after 09:45 AM ET to ensure the opening range is established."
+        }
+      }, {
+        "@type": "Question",
+        "name": "How does XeanVI handle exits?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "XeanVI attaches automated bracket orders including a hard stop, a profit scaling target, and a trailing stop."
+        }
+      }]
+    }
+    </script>
+</head>
+<body class="terminal-bg">
+
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo">Xean<span>VI</span></a>
+            <div class="xean-nav-actions">
+                <a href="/" class="btn-secondary">Back to Terminal</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding: 4rem 2rem;">
+        <div class="page-header" style="border: none; background: none; text-align: left; padding: 0;">
+            <div class="badge-pill">Full Documentation</div>
+            <h1 class="text-gradient" style="margin-bottom: 1rem;">System FAQ</h1>
+            <p style="max-width: 600px;">A comprehensive breakdown of the logic, safety protocols, and execution parameters governing XeanVI.</p>
+        </div>
+
+        <div class="grid-2" style="align-items: start; margin-top: 4rem;">
+
+            <div>
+                <h2 style="font-size: 1.4rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-terminal" style="color: var(--accent-blue);"></i> Terminal Operations
+                </h2>
+
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.1rem; color: var(--text-main);">The "WAIT" Protocol</h3>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">The system includes a built-in safety gate. Even if a stock looks perfect, the engine blocks all buying until after 09:45 AM ET. This ensures the "Opening Range" is established and we aren't buying into a "gap and crap" scenario.</p>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Execution Blocks</h3>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">The engine will block trades if: the spread is too wide, the stock float is too high, or the VIX is spiking. These are non-negotiable safety filters.</p>
+                </div>
+            </div>
+
+            <div>
+                <h2 style="font-size: 1.4rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-shield-heart" style="color: var(--success);"></i> Risk & Exits
+                </h2>
+
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Automated Bracket Orders</h3>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">Every entry is paired with a Hard Stop, Target 1 (scale-out + move to breakeven), and Target 2 (trailing stop for runners).</p>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Daily Loss Lock</h3>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">Once your user-defined daily loss threshold is met, the engine terminates all scanning and execution for the session to prevent emotional revenge trading.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 XeanVI Documentation. Deploy with discipline.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            answer.style.maxHeight = (answer.style.maxHeight === '0px' || !answer.style.maxHeight) ? `${answer.scrollHeight}px` : '0px';
+        }
+    </script>
+</body>
+</html>

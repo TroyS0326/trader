@@ -409,6 +409,11 @@ def privacy():
     return render_template('privacy.html')
 
 
+@app.route('/faq')
+def faq():
+    return render_template('faq.html')
+
+
 
 @app.route('/learn')
 @login_required
