@@ -85,11 +85,7 @@
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 XeanVI Documentation. Deploy with discipline.</p>
-        </div>
-    </footer>
+    {% include 'footer.html' %}
 
     <script>
         function toggleFAQ(element) {
@@ -97,5 +93,5 @@
             answer.style.maxHeight = (answer.style.maxHeight === '0px' || !answer.style.maxHeight) ? `${answer.scrollHeight}px` : '0px';
         }
     </script>
-</body>
+    </body>
 </html>

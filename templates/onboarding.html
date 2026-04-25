@@ -80,7 +80,6 @@
         </div>
     </nav>
 
-
     <a href="/" class="logo" style="display: block; text-align: center; margin-top: 2rem;">Xean<span>VI</span></a>
 
     <div class="wizard-container">
@@ -172,6 +171,8 @@
         </form>
     </div>
 
+    {% include 'footer.html' %}
+
     <script>
         // Simple JS to handle the step transitions
         function nextStep(stepNum) {
@@ -198,5 +199,5 @@
             setTimeout(() => { nextStep(2); }, 1500);
         {% endif %}
     </script>
-</body>
+    </body>
 </html>
