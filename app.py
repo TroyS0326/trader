@@ -448,6 +448,19 @@ def transparency():
     # from your analyze_performance.py script. For now, we render the hub.
     return render_template('transparency.html', current_user=current_user)
 
+
+@app.route('/api/transparency/stats')
+def api_transparency_stats():
+    """Serves the pre-calculated backtest performance metrics."""
+    report_path = os.path.join(app.root_path, 'static', 'performance_report.json')
+    try:
+        with open(report_path, 'r') as f:
+            data = json.load(f)
+        return ok(data)
+    except FileNotFoundError:
+        return fail("Performance report is currently generating. Please check back shortly.", 404)
+
+
 @app.route('/logout')
 @login_required
 def logout():

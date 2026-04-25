@@ -82,16 +82,90 @@
                 <a href="/privacy" style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem; text-decoration: none;">Review Privacy Policy →</a>
             </div>
 
-            <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); grid-column: 1 / -1;">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-gavel" style="color: var(--warning);"></i> Regulatory Disclosures</h3>
-                <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; background: var(--bg-main); padding: 1.5rem; border-radius: 8px;">
-                    <p style="margin-bottom: 1rem;"><strong>Hypothetical Performance:</strong> Hypothetical performance results have many inherent limitations. No representation is being made that any account will or is likely to achieve profits or losses similar to those shown.</p>
-                    <p style="margin-bottom: 1rem;"><strong>Execution Risk:</strong> Algorithmic trading involves significant risk of loss. Market volatility, liquidity, and system latency can affect execution prices.</p>
-                    <p><strong>Affiliation:</strong> XeanVI is an independent software provider. We are not a registered broker-dealer or financial advisor.</p>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div class="container" style="max-width: 1000px; margin: 0 auto 4rem auto; padding: 0 2rem;">
+        <div style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1.5rem;">Q1 2026 AI Performance Backtest</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Win Rate</p>
+                    <h3 id="stat-winrate" style="color: var(--success); font-size: 1.8rem;">--%</h3>
                 </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Profit Factor</p>
+                    <h3 id="stat-profitfactor" style="color: var(--accent-blue); font-size: 1.8rem;">--</h3>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Trades</p>
+                    <h3 id="stat-trades" style="font-size: 1.8rem;">--</h3>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Max Drawdown</p>
+                    <h3 id="stat-drawdown" style="color: var(--danger); font-size: 1.8rem;">$--</h3>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <canvas id="equityChart" width="400" height="150"></canvas>
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/api/transparency/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok && data.data) {
+                        const stats = data.data;
+
+                        document.getElementById('stat-winrate').innerText = stats.win_rate + '%';
+                        document.getElementById('stat-profitfactor').innerText = stats.profit_factor;
+                        document.getElementById('stat-trades').innerText = stats.total_trades;
+                        document.getElementById('stat-drawdown').innerText = '$' + stats.max_drawdown_dollars;
+
+                        const ctx = document.getElementById('equityChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: stats.equity_curve_labels,
+                                datasets: [{
+                                    label: 'Cumulative Net Profit ($)',
+                                    data: stats.equity_curve_data,
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: { color: '#1e293b' },
+                                        ticks: { color: '#94a3b8' }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#94a3b8', maxTicksLimit: 10 }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error("Error loading performance data:", error));
+        });
+    </script>
         {% include 'footer.html' %}
 
 </body>
