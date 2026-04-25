@@ -225,12 +225,26 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    # 1. If they aren't logged in, show the waitlist page
-    if not current_user.is_authenticated:
-        return render_template('waitlist.html')
+    # 1. If you are logged in, you always go to the dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
 
-    # 2. If they ARE logged in, the front door is ALWAYS the Dashboard
-    return redirect(url_for('dashboard'))
+    # 2. Check for the secret session flag
+    if session.get('dev_access'):
+        return render_template('landing.html')
+
+    # 3. Default for the public: the Coming Soon/Waitlist page
+    return render_template('waitlist.html')
+
+
+@app.route('/dev-unlock/<token>')
+def dev_unlock(token):
+    # Check if the token matches your .env setting
+    if token == os.getenv('DEV_BYPASS_TOKEN', 'fallback_secret'):
+        session['dev_access'] = True
+        flash("Developer access granted. Waitlist bypassed.", "success")
+        return redirect(url_for('index'))
+    return "Unauthorized", 403
 
 
 @app.route('/join-waitlist', methods=['POST'])
