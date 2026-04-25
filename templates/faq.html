@@ -10,6 +10,204 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+     <style>
+        /* Pro-Level Accordion using Modern CSS Grid Transitions */
+        .faq-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            align-items: start;
+        }
+
+        /* Sidebar Navigation */
+        .faq-sidebar {
+            position: sticky;
+            top: 100px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .faq-nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .faq-nav-list li {
+            margin-bottom: 0.5rem;
+        }
+        .faq-nav-list a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .faq-nav-list a:hover, .faq-nav-list a.active {
+            background: rgba(56, 189, 248, 0.05);
+            color: var(--text-main);
+            border-color: rgba(56, 189, 248, 0.2);
+        }
+        .faq-nav-list a.active {
+            color: var(--accent-blue);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        /* Category Headers */
+        .faq-category-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 3rem 0 1.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .faq-category-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border-color);
+            opacity: 0.5;
+        }
+        .faq-category-title:first-child {
+            margin-top: 0;
+        }
+
+        /* Accordion Items */
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .faq-item:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .faq-item.active {
+            border-color: var(--accent-blue);
+        }
+        
+        .faq-question {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .faq-icon-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .faq-icon-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .faq-chevron {
+            color: var(--text-muted);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .faq-item.active .faq-chevron {
+            transform: rotate(180deg);
+            color: var(--accent-blue);
+        }
+
+        /* Grid Transition Magic */
+        .faq-answer-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .faq-item.active .faq-answer-wrapper {
+            grid-template-rows: 1fr;
+        }
+        .faq-answer-inner {
+            overflow: hidden;
+        }
+        .faq-answer-content {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 1rem;
+            border-top: 1px solid transparent;
+            transition: border-color 0.4s ease;
+        }
+        .faq-item.active .faq-answer-content {
+            border-top-color: rgba(255, 255, 255, 0.05);
+            padding-top: 1.5rem;
+        }
+
+        /* Sub-lists within answers */
+        .faq-logic-list {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            list-style: none;
+        }
+        .faq-logic-list li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .faq-logic-list li:last-child {
+            margin-bottom: 0;
+        }
+        .step-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 992px) {
+            .faq-layout {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                padding: 2rem 1rem;
+            }
+            .faq-sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
 </head>
 <body class="auth-body">
 
