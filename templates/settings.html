@@ -4,16 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Account Settings | XeanVI Trading Configuration</title>
+    <title>System Configuration | XeanVI Terminal</title>
     <meta name="description" content="Manage your XeanVI broker connections, risk limits, and ESG sector filters. Configure your automated trading mode and bankroll limits.">
-
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <meta name="author" content="XeanVI Settings">
-    <link rel="canonical" href="https://xeanvi.com/settings">
 
-    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #060b14;
+            background-image: radial-gradient(circle at top center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .settings-wrapper {
+            max-width: 900px;
+            margin: 3rem auto 5rem;
+            padding: 0 2rem;
+            width: 100%;
+        }
+
+        .sys-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            background: rgba(255,255,255,0.05);
+            padding: 3px 6px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .config-block {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .config-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Sleek Terminal Toggles */
+        .logic-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+        }
+        .logic-row:last-child {
+            border-bottom: none;
+        }
+        .logic-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        .logic-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .flash-msg {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-auth {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            color: #fff;
+            border: none;
+            padding: 1.2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+        }
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5);
+        }
+    </style>
 </head>
 <body>
 
@@ -22,75 +131,69 @@
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
-
             <div class="xean-nav-links">
                 {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Dashboard</a>
+                    <a href="/dashboard">Terminal</a>
                     <a href="/playbook">Playbook</a>
                     <a href="/transparency">AI Logic</a>
-                    <a href="/settings" style="color: var(--text-main);">Settings</a>
-                {% else %}
-                    <a href="/features">How it Works</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/broker-integration">Broker Workflow</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="/pricing">Pricing</a>
+                    <a href="/settings" style="color: var(--accent-blue);">Settings</a>
                 {% endif %}
             </div>
-
             <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
+                <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Terminate Session</a>
             </div>
         </div>
     </nav>
 
-    <div class="settings-container">
+    <div class="settings-wrapper">
+        
+        <div style="margin-bottom: 2rem;">
+            <div class="sys-tag" style="display: inline-block; margin-bottom: 10px;">SYS_CONFIG</div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Account Configuration</h1>
+            <p style="color: var(--text-muted); font-size: 1rem;">Manage broker authorization and logic exclusion parameters.</p>
+        </div>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="status" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent); color: var(--text-main);">
-                        {{ message }}
+                    <div class="flash-msg">
+                        <i class="fas fa-check-circle"></i> {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <div class="page-header">
-            <h1>Account Settings</h1>
-            <p class="sub">Manage your broker connection and filter preferences.</p>
-        </div>
-
-        <div class="settings-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
-            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-university" style="color: var(--accent-blue);"></i> Brokerage Connection</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                Link your brokerage account via secure OAuth to enable live market data and automated execution.
-            </p>
+        <div class="config-block">
+            <div class="config-header">
+                <div class="config-title"><i class="fas fa-link" style="color: var(--accent-blue);"></i> OAuth Broker Gateway</div>
+                <span class="sys-tag">API_ROUTING</span>
+            </div>
 
             {% if current_user.alpaca_access_token %}
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <h4 style="color: var(--success); margin: 0 0 5px 0;"><i class="fas fa-check-circle"></i> Broker Linked</h4>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Secure OAuth Token Active</span>
+                        <div style="color: var(--success); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px;">
+                            <i class="fas fa-shield-check" style="margin-right: 6px;"></i> TOKEN_VERIFIED
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Encrypted connection to brokerage established.</span>
                     </div>
-                    <a href="/alpaca/logout" class="btn-action" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Disconnect</a>
+                    <a href="/alpaca/logout" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.3); color: var(--danger); font-size: 0.85rem;">Revoke Access</a>
                 </div>
             {% else %}
-                <div style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 2rem; border-radius: 8px; text-align: center;">
-                    <i class="fas fa-link" style="color: var(--text-muted); font-size: 2.5rem; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem;">No Broker Connected</h4>
+                <div style="background: #020617; border: 1px dashed rgba(255,255,255,0.1); padding: 2rem; border-radius: 8px; text-align: center;">
+                    <i class="fas fa-lock" style="color: var(--text-muted); font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Gateway Inactive</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        Establish a secure OAuth connection to enable live data processing and execution orchestration.
+                    </p>
 
-                    <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; text-align: left; background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <strong style="color: var(--accent-blue); display: block; margin-bottom: 0.5rem; font-size: 1rem; text-align: center;">Authorize XeanVI</strong>
-                        By allowing XeanVI to access your brokerage account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Your broker does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue); text-decoration: underline;">learn more about XeanVI</a>.
+                    <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); text-align: left; margin-bottom: 1.5rem;">
+                        <strong style="color: var(--accent-blue); display: block; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Security Protocol Disclosure</strong>
+                        By authorizing XeanVI, you grant the engine permission to transmit transaction data to your broker strictly based on your predefined parameters. Your credentials remain encrypted and isolated from XeanVI servers.
                     </div>
 
-                    <a href="/alpaca/login" class="btn-action" style="background: var(--success); color: white; display: inline-block; padding: 0.75rem 2rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); font-weight: bold;">
-                        Connect Securely via Broker
+                    <a href="/alpaca/login" class="btn btn-primary" style="padding: 0.85rem 2rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">
+                        <i class="fas fa-key" style="margin-right: 8px;"></i> Authorize Broker API
                     </a>
                 </div>
             {% endif %}
@@ -99,18 +202,24 @@
         <form action="/settings" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-            <div class="config-panel">
-                <div class="panel-title"><i class="fas fa-leaf" style="color: var(--success);"></i> Personalization &amp; ESG Filters</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                    Tell the AI which sectors to actively avoid during the morning scan based on your personal ethics and risk tolerance.
+            <div class="config-block">
+                <div class="config-header">
+                    <div class="config-title"><i class="fas fa-filter" style="color: var(--success);"></i> Logic Exclusion Parameters</div>
+                    <span class="sys-tag">SYS_FILTERS</span>
+                </div>
+                
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">
+                    Hard-code sector exclusions. The engine will automatically drop these assets from the morning scan matrix.
                 </p>
 
-                <h4 style="color: var(--text-main); margin-bottom: 1rem; border-bottom: 1px dotted var(--border-color); padding-bottom: 0.5rem;">Ethical Exclusions</h4>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent-blue); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.1em;">
+                    // Ethical Sector Blocks
+                </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="logic-row">
                     <div>
-                        <strong style="color: var(--text-main);">Exclude Fossil Fuels</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Block oil, gas, and coal exploration companies.</div>
+                        <div class="logic-label">BLOCK_FOSSIL_FUELS</div>
+                        <div class="logic-desc">Exclude oil, gas, and coal exploration infrastructure.</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" name="esg_fossil_fuels" {% if current_user.esg_fossil_fuels %}checked{% endif %}>
@@ -118,10 +227,10 @@
                     </label>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="logic-row">
                     <div>
-                        <strong style="color: var(--text-main);">Exclude Weapons &amp; Firearms</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Block defense contractors and civilian firearm manufacturers.</div>
+                        <div class="logic-label">BLOCK_WEAPONS_MFG</div>
+                        <div class="logic-desc">Exclude defense contractors and civilian firearm operations.</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" name="esg_weapons" {% if current_user.esg_weapons %}checked{% endif %}>
@@ -129,10 +238,10 @@
                     </label>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="logic-row" style="margin-bottom: 2rem;">
                     <div>
-                        <strong style="color: var(--text-main);">Exclude Tobacco</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Avoid tobacco manufacturers and nicotine-focused businesses.</div>
+                        <div class="logic-label">BLOCK_TOBACCO</div>
+                        <div class="logic-desc">Exclude nicotine and tobacco distribution assets.</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" name="esg_tobacco" {% if current_user.esg_tobacco %}checked{% endif %}>
@@ -140,12 +249,14 @@
                     </label>
                 </div>
 
-                <h4 style="color: var(--text-main); margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px dotted var(--border-color); padding-bottom: 0.5rem;">Risk Personalization</h4>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--warning); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.1em;">
+                    // Volatility Mitigators
+                </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="logic-row">
                     <div>
-                        <strong style="color: var(--text-main);">Block Penny Stocks (&lt; $5)</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Filter out highly volatile micro-cap stocks.</div>
+                        <div class="logic-label">BLOCK_MICRO_CAP</div>
+                        <div class="logic-desc">Filter out highly volatile penny assets (Price < $5.00).</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" name="exclude_penny_stocks" {% if current_user.exclude_penny_stocks %}checked{% endif %}>
@@ -153,21 +264,26 @@
                     </label>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="logic-row">
                     <div>
-                        <strong style="color: var(--text-main);">Block Biotech Sector</strong>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Biotech stocks are prone to unpredictable FDA gaps.</div>
+                        <div class="logic-label">BLOCK_BIOTECH</div>
+                        <div class="logic-desc">Exclude biological research assets prone to severe FDA-related gaps.</div>
                     </div>
                     <label class="switch">
                         <input type="checkbox" name="exclude_biotech" {% if current_user.exclude_biotech %}checked{% endif %}>
                         <span class="slider"></span>
                     </label>
                 </div>
+
             </div>
-            <button type="submit" class="btn-auth" style="margin-top: 1rem;">Save Settings</button>
+
+            <button type="submit" class="btn-auth">
+                <i class="fas fa-save" style="margin-right: 8px;"></i> Compile & Save Configuration
+            </button>
         </form>
     </div>
-        {% include 'footer.html' %}
+
+    {% include 'footer.html' %}
 
 </body>
 </html>
