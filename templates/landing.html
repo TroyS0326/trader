@@ -243,25 +243,34 @@
                 <p>Equip yourself with the same automation technology used by the pros, for less than the cost of one bad trade.</p>
             </div>
 
-            <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem;">
-                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
-                        <div style="margin: 1.5rem 0;">
-                            <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$19.99</span>
-                            <span style="color: var(--text-muted);">/mo</span>
-                        </div>
-                        <p style="font-size: 0.95rem;">Full access to the data scanner and systematic execution tools on a month-to-month basis.</p>
+            <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem; align-items: stretch;">
+    
+                <div class="card pricing-card" style="text-align: center; padding: 3rem 2rem; display: flex; flex-direction: column; border: 1px solid var(--border-color); background: var(--bg-card);">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Monthly</h3>
+                    
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                        $19.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/mo</span>
                     </div>
-                    {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('upgrade', plan='monthly') }}" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Upgrade Now</a>
-                    {% else %}
-                        <a href="{{ url_for('signup', plan='monthly') }}" class="btn btn-secondary" style="width: 100%; margin-top: 2rem;">Start Monthly Plan</a>
-                    {% endif %}
+                    
+                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
+                        Pay as you go. Full access to the systematic execution engine.
+                    </p>
+
+                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
+                    </ul>
+
+                    <a href="/signup?plan=monthly" class="btn btn-secondary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02);">
+                        Initialize Monthly
+                    </a>
                 </div>
 
-                <div class="card pricing-card" style="text-align: center; border-color: var(--accent-blue); position: relative; padding: 3rem 2rem;">
-                    <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none;">
+                <div class="card pricing-card" style="text-align: center; padding: 3rem 2rem; position: relative; border: 1px solid var(--accent-blue); background: var(--bg-card); box-shadow: 0 10px 30px rgba(56, 189, 248, 0.08); display: flex; flex-direction: column;">
+                    
+                    <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none; white-space: nowrap; font-weight: bold;">
                         OPTIMAL ALLOCATION
                     </div>
 
@@ -271,18 +280,18 @@
                         $199.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/yr</span>
                     </div>
                     
-                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto;">
+                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
                         Commit to your tools. Get two months completely free when you pay for the year upfront.
                     </p>
 
-                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block;">
-                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
-                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
-                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
+                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
                         <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
                     </ul>
 
-                    <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto;">
                         Initialize Annual
                     </a>
                 </div>
