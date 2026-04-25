@@ -211,17 +211,7 @@
 </head>
 <body class="auth-body">
 
-    <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-            <div class="xean-nav-actions">
-                <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
-                <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Terminal Access</a>
-            </div>
-        </div>
-    </nav>
+    {% include 'nav.html' %}
 
     <section class="page-header terminal-bg" style="padding: 5rem 0 4rem;">
         <div class="container">
