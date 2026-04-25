@@ -265,7 +265,7 @@ def join_waitlist():
     else:
         is_early = existing.is_early_bird
 
-    # 2. Brevo API Integration - DEBUG VERSION
+    # 2. Brevo API Execution
     if config.BREVO_API_KEY:
         url = "https://api.brevo.com/v3/contacts"
         headers = {
@@ -274,7 +274,7 @@ def join_waitlist():
             "api-key": config.BREVO_API_KEY
         }
 
-        # Ensure the list ID is an integer, Brevo will reject strings
+        # FORCE THE LIST ID TO BE AN INTEGER
         try:
             list_id = int(config.BREVO_LIST_ID)
         except (TypeError, ValueError):
@@ -283,8 +283,10 @@ def join_waitlist():
         payload = {
             "email": email,
             "listIds": [list_id],
-            "updateEnabled": True,  # Prevents crash if they sign up twice
-            # TEMPORARILY REMOVED ATTRIBUTES TO TEST THE CORE CONNECTION
+            "updateEnabled": True,  # Crucial: updates existing contacts
+            "attributes": {
+                "EARLY_BIRD": "Yes" if is_early else "No"
+            }
         }
 
         try:
