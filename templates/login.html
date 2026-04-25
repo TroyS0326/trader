@@ -3,103 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    
-    <title>Log In | XeanVI Secure Trading Terminal</title>
-    <meta name="description" content="Securely log in to your XeanVI command center. Access your AI-driven market scans, manage automated trading portfolios, and monitor real-time algorithmic execution.">
-    
-    <meta name="robots" content="index, follow, noarchive">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/login">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/login">
-    <meta property="og:title" content="Log In to XeanVI | AI Trading Command Center">
-    <meta property="og:description" content="Authorized Access Only. Return to your terminal to monitor live market scans and algorithmic risk management.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-secure-icon.jpg', _external=True) }}">
-
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="XeanVI Secure Login">
-    <meta name="twitter:description" content="Secure access to your automated trading terminal.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-secure-icon.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
-
+    <title>Secure Auth | XeanVI Terminal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: var(--bg-main);
+            background-image: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .auth-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .auth-terminal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-header {
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .sys-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 1rem;
+        }
+        .sys-status::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+        .auth-body {
+            padding: 2rem 1.5rem;
+        }
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        .input-group label {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .auth-input {
+            width: 100%;
+            background: #020617;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .auth-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.1);
+        }
+        .btn-auth {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            color: #fff;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5);
+        }
+        .auth-footer-links {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .auth-footer-links a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-footer-links a:hover {
+            text-decoration: underline;
+        }
+        .flash-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+    </style>
 </head>
-<body class="auth-body">
+<body>
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
-
-            <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/community">Community</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
-
             <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
+                <a href="/signup" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem;">Request Access</a>
             </div>
         </div>
     </nav>
 
-    <!-- Brand logo -->
-    <a href="/" class="logo" style="display: block; text-align: center; margin-bottom: 2rem;">Xean<span>VI</span></a>
-
-    <div class="auth-box">
-        <h2>Welcome Back</h2>
-        <p>Log in to access your Command Center.</p>
-
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="flash-error">{{ messages[0] }}</div>
-            {% endif %}
-        {% endwith %}
-
-        <form action="/login" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" name="email" class="auth-input" placeholder="you@example.com" required>
+    <div class="auth-wrapper">
+        <div class="auth-terminal">
+            <div class="auth-header">
+                <div class="sys-status">AUTH_SERVER_ONLINE</div>
+                <h1 style="font-size: 1.5rem; margin: 0; letter-spacing: -0.5px;">Initialize Session</h1>
             </div>
-            <div class="input-group" style="margin-bottom: 1rem;">
-                <label>Password</label>
-                <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
-                <a href="#" class="forgot-pass">Forgot Password?</a>
-            </div>
-            <button type="submit" class="btn-auth">Access Dashboard</button>
-        </form>
+            
+            <div class="auth-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-msg {{ category }}">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>{{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
 
-        <div class="auth-footer">
-            Don't have an account? <a href="/signup">Sign Up Free</a>
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="input-group">
+                        <label for="email">User Identifier (Email)</label>
+                        <input type="email" id="email" name="email" class="auth-input" required autocomplete="email" placeholder="sys_admin@domain.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="password">
+                            Decryption Key (Password)
+                            <a href="/reset_password" style="color: var(--accent-blue); text-decoration: none; text-transform: none; letter-spacing: normal;">Forgot Key?</a>
+                        </label>
+                        <input type="password" id="password" name="password" class="auth-input" required autocomplete="current-password" placeholder="••••••••••••">
+                    </div>
+
+                    <button type="submit" class="btn-auth">
+                        <i class="fas fa-terminal"></i> Authenticate
+                    </button>
+                </form>
+
+                <div class="auth-footer-links">
+                    No clearance? <a href="/signup">Establish Credentials</a>
+                </div>
+            </div>
         </div>
     </div>
 
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
