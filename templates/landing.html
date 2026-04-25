@@ -260,21 +260,32 @@
                     {% endif %}
                 </div>
 
-                <div style="background: var(--bg-main); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--accent-blue); position: relative; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap;">RECOMMENDED (SAVE 16%)</div>
-                    <div>
-                        <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
-                        <div style="margin: 1.5rem 0;">
-                            <span style="font-size: 3.5rem; font-weight: 800; color: var(--text-main);">$199.99</span>
-                            <span style="color: var(--text-muted);">/yr</span>
-                        </div>
-                        <p style="font-size: 0.95rem;">Commit to your tools. Get two months completely free when you pay for the year upfront.</p>
+                <div class="card pricing-card" style="text-align: center; border-color: var(--accent-blue); position: relative; padding: 3rem 2rem;">
+                    <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none;">
+                        OPTIMAL ALLOCATION
                     </div>
-                    {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('upgrade', plan='annual') }}" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Upgrade Now</a>
-                    {% else %}
-                        <a href="{{ url_for('signup', plan='annual') }}" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Start Annual Plan</a>
-                    {% endif %}
+
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Annual Pro</h3>
+                    
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                        $199.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/yr</span>
+                    </div>
+                    
+                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto;">
+                        Commit to your tools. Get two months completely free when you pay for the year upfront.
+                    </p>
+
+                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block;">
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
+                    </ul>
+
+                    <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+                        Initialize Annual
+                    </a>
+                </div>
 
             </div>
         </div>
