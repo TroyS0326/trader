@@ -1,0 +1,56 @@
+<nav class="xean-nav" style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(6, 11, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 1000;">
+    <div class="xean-nav-inner">
+        <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+            Xean<span style="color: var(--accent-blue);">VI</span>
+        </a>
+        
+        <div class="xean-nav-links">
+            {% if current_user.is_authenticated %}
+                <a href="/dashboard" class="nav-link">Terminal</a>
+                <a href="/playbook" class="nav-link">Playbook</a>
+                <a href="/transparency" class="nav-link">AI Logic</a>
+                <a href="/settings" class="nav-link">Settings</a>
+            {% else %}
+                <a href="/features" class="nav-link">Architecture</a>
+                <a href="/broker-integration" class="nav-link">Broker Workflow</a>
+                <a href="/playbook" class="nav-link">Playbook</a>
+                <a href="/transparency" class="nav-link">AI Logic</a>
+            {% endif %}
+        </div>
+
+        <div class="xean-nav-actions">
+            {% if current_user.is_authenticated %}
+                <a href="/logout" style="color: var(--text-muted); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fas fa-power-off" style="margin-right: 6px;"></i> Terminate Session
+                </a>
+            {% else %}
+                <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-main)'">Authenticate</a>
+                <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 800; border-radius: 8px; border: none; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);">Initialize</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.xean-nav-links .nav-link');
+        
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.style.color = 'var(--accent-blue)';
+                link.style.fontWeight = '700';
+            } else {
+                link.style.color = 'var(--text-muted)';
+            }
+            
+            // Hover effects for non-active links
+            link.addEventListener('mouseover', () => {
+                if (link.getAttribute('href') !== currentPath) link.style.color = 'var(--text-main)';
+            });
+            link.addEventListener('mouseout', () => {
+                if (link.getAttribute('href') !== currentPath) link.style.color = 'var(--text-muted)';
+            });
+        });
+    });
+</script>

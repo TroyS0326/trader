@@ -12,35 +12,7 @@
 </head>
 <body class="auth-body">
 
-    <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none;">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-            <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Terminal</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                {% else %}
-                    <a href="/features" style="color: var(--text-main);">Architecture</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/broker-integration">Broker Workflow</a>
-                    <a href="/pricing#pricing">Pricing</a>
-                {% endif %}
-            </div>
-            <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+    {% include 'nav.html' %}
 
     <header class="page-header">
         <div class="container">

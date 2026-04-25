@@ -99,34 +99,7 @@
 </head>
 <body class="auth-body">
 
-    <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-            <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Terminal</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="/settings">Settings</a>
-                {% else %}
-                    <a href="/features">Architecture</a>
-                    <a href="/broker-integration" style="color: var(--text-main);">Broker Workflow</a>
-                    <a href="/transparency">AI Logic</a>
-                    <a href="/pricing#pricing">Pricing</a>
-                {% endif %}
-            </div>
-            <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Return to Terminal</a>
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Initialize Sandbox</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+    {% include 'nav.html' %}
 
     <header class="hero-section">
         <div class="container">
