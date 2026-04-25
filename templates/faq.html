@@ -3,95 +3,453 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>FAQ | XeanVI Systematic Trading Documentation</title>
-    <meta name="description" content="Technical answers regarding the XeanVI execution engine, AI sentiment scoring, risk management protocols, and Alpaca broker integration.">
+    
+    <title>System Protocol FAQ | XeanVI</title>
+    <meta name="description" content="Technical documentation and logic parameters for the XeanVI systematic trading engine.">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": "What does the WAIT status mean in XeanVI?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "The WAIT status is a safety gate that blocks buying until after 09:45 AM ET to ensure the opening range is established."
+    <style>
+        /* Pro-Level Accordion using Modern CSS Grid Transitions */
+        .faq-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            align-items: start;
         }
-      }, {
-        "@type": "Question",
-        "name": "How does XeanVI handle exits?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "XeanVI attaches automated bracket orders including a hard stop, a profit scaling target, and a trailing stop."
+
+        /* Sidebar Navigation */
+        .faq-sidebar {
+            position: sticky;
+            top: 100px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-      }]
-    }
-    </script>
+        .faq-nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .faq-nav-list li {
+            margin-bottom: 0.5rem;
+        }
+        .faq-nav-list a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .faq-nav-list a:hover, .faq-nav-list a.active {
+            background: rgba(56, 189, 248, 0.05);
+            color: var(--text-main);
+            border-color: rgba(56, 189, 248, 0.2);
+        }
+        .faq-nav-list a.active {
+            color: var(--accent-blue);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        /* Category Headers */
+        .faq-category-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 3rem 0 1.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .faq-category-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border-color);
+            opacity: 0.5;
+        }
+        .faq-category-title:first-child {
+            margin-top: 0;
+        }
+
+        /* Accordion Items */
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .faq-item:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .faq-item.active {
+            border-color: var(--accent-blue);
+        }
+        
+        .faq-question {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .faq-icon-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .faq-icon-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .faq-chevron {
+            color: var(--text-muted);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .faq-item.active .faq-chevron {
+            transform: rotate(180deg);
+            color: var(--accent-blue);
+        }
+
+        /* Grid Transition Magic */
+        .faq-answer-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .faq-item.active .faq-answer-wrapper {
+            grid-template-rows: 1fr;
+        }
+        .faq-answer-inner {
+            overflow: hidden;
+        }
+        .faq-answer-content {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-size: 1rem;
+            border-top: 1px solid transparent;
+            transition: border-color 0.4s ease;
+        }
+        .faq-item.active .faq-answer-content {
+            border-top-color: rgba(255, 255, 255, 0.05);
+            padding-top: 1.5rem;
+        }
+
+        /* Sub-lists within answers */
+        .faq-logic-list {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            list-style: none;
+        }
+        .faq-logic-list li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .faq-logic-list li:last-child {
+            margin-bottom: 0;
+        }
+        .step-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 992px) {
+            .faq-layout {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                padding: 2rem 1rem;
+            }
+            .faq-sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
 </head>
-<body class="terminal-bg">
+<body class="auth-body">
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
             <div class="xean-nav-actions">
-                <a href="/" class="btn-secondary">Back to Terminal</a>
+                <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Terminal Access</a>
             </div>
         </div>
     </nav>
 
-    <div class="container" style="padding: 4rem 2rem;">
-        <div class="page-header" style="border: none; background: none; text-align: left; padding: 0;">
-            <div class="badge-pill">Full Documentation</div>
-            <h1 class="text-gradient" style="margin-bottom: 1rem;">System FAQ</h1>
-            <p style="max-width: 600px;">A comprehensive breakdown of the logic, safety protocols, and execution parameters governing XeanVI.</p>
+    <section class="page-header terminal-bg" style="padding: 5rem 0 4rem;">
+        <div class="container">
+            <div class="badge-pill" style="margin-bottom: 1rem;"><i class="fas fa-book-open" style="margin-right: 8px;"></i>System Documentation</div>
+            <h1 class="text-gradient">Protocol & Logic FAQ</h1>
+            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+                Understand the quantitative parameters, execution workflows, and fail-safes governing the XeanVI engine.
+            </p>
         </div>
+    </section>
 
-        <div class="grid-2" style="align-items: start; margin-top: 4rem;">
+    <div class="faq-layout">
+        
+        <aside class="faq-sidebar">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--success); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success);"></span>
+                SYSTEM ONLINE
+            </div>
+            <ul class="faq-nav-list">
+                <li><a href="#ops" class="active"><i class="fas fa-terminal"></i> Core Operations</a></li>
+                <li><a href="#logic"><i class="fas fa-brain"></i> AI & Execution Logic</a></li>
+                <li><a href="#risk"><i class="fas fa-shield-halved"></i> Risk Management</a></li>
+                <li><a href="#security"><i class="fas fa-lock"></i> API & Security</a></li>
+            </ul>
+        </aside>
 
-            <div>
-                <h2 style="font-size: 1.4rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-terminal" style="color: var(--accent-blue);"></i> Terminal Operations
-                </h2>
+        <main class="faq-content">
 
-                <div class="card" style="margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.1rem; color: var(--text-main);">The "WAIT" Protocol</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">The system includes a built-in safety gate. Even if a stock looks perfect, the engine blocks all buying until after 09:45 AM ET. This ensures the "Opening Range" is established and we aren't buying into a "gap and crap" scenario.</p>
-                </div>
-
-                <div class="card">
-                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Execution Blocks</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">The engine will block trades if: the spread is too wide, the stock float is too high, or the VIX is spiking. These are non-negotiable safety filters.</p>
+            <div id="ops" class="faq-category-title">Module_01 // Core Operations</div>
+            
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        Do I just hit "Run Morning Scan" once a day?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            For the screening phase, yes. However, because market mechanics are dynamic, the "Buy Now" signal often triggers after the opening range (the first 15 minutes of the session) is confirmed. 
+                            <br><br>
+                            <strong>Protocol:</strong> It is best practice to run the scan shortly before the market opens to identify the "Best Pick," and then run it again after <strong>9:45 AM ET</strong> to authorize the execution engine once the initial volume spike settles.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <h2 style="font-size: 1.4rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-shield-heart" style="color: var(--success);"></i> Risk & Exits
-                </h2>
+            <div id="logic" class="faq-category-title">Module_02 // AI & Execution Logic</div>
 
-                <div class="card" style="margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Automated Bracket Orders</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">Every entry is paired with a Hard Stop, Target 1 (scale-out + move to breakeven), and Target 2 (trailing stop for runners).</p>
-                </div>
-
-                <div class="card">
-                    <h3 style="font-size: 1.1rem; color: var(--text-main);">Daily Loss Lock</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">Once your user-defined daily loss threshold is met, the engine terminates all scanning and execution for the session to prevent emotional revenge trading.</p>
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(139, 92, 246, 0.1); color: #a78bfa;">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        How does the AI decide to enter a trade?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            The engine operates strictly on a three-phase quantitative workflow, removing human emotion entirely:
+                            
+                            <ul class="faq-logic-list">
+                                <li>
+                                    <span class="step-tag">01_SCREEN</span>
+                                    <div><strong>Data Filtration:</strong> The system scans the market for news catalysts, highly abnormal relative volume (RVOL), and tight bid/ask spreads.</div>
+                                </li>
+                                <li>
+                                    <span class="step-tag">02_VALIDATE</span>
+                                    <div><strong>Sentiment & Tech:</strong> Uses the Gemini API to assign a 0-100 institutional sentiment score, and cross-references price action against the daily Volume Point of Control (POC).</div>
+                                </li>
+                                <li>
+                                    <span class="step-tag">03_EXECUTE</span>
+                                    <div><strong>Risk Sizing:</strong> Calculates exact position sizing based on your predefined bankroll and the Kelly Criterion to mathematically prevent over-leveraging.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-        </div>
+            <div id="risk" class="faq-category-title">Module_03 // Risk Management</div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                            <i class="fas fa-hand-paper"></i>
+                        </div>
+                        What does the "WAIT" status mean?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            The system includes a built-in temporal safety gate. Even if a setup perfectly aligns with all technical parameters, the engine explicitly blocks buying execution until after <strong>09:45 AM ET</strong>. 
+                            <br><br>
+                            This mandatory waiting period ensures the "Opening Range" is fully established, protecting your capital from violent "gap and trap" volatility scenarios common at the market open.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        What happens after the bot buys a stock?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            Manual exit management is obsolete. The moment XeanVI executes an entry, it automatically attaches a complex <strong>bracket order</strong> to the trade via the broker API. This includes:
+                            <br><br>
+                            • <strong>Hard Stop:</strong> Absolute downside protection to cut losses immediately.<br>
+                            • <strong>Target 1:</strong> A scale-out point where the engine secures partial profits and automatically moves your stop-loss to breakeven.<br>
+                            • <strong>Target 2:</strong> A dynamic trailing stop that follows the asset higher to capture maximum upside on "runners."
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        Why was my execution blocked?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            XeanVI is a highly disciplined engine designed for capital preservation. It will ruthlessly block execution if environmental variables are unsafe. Common blocks include:
+                            <br><br>
+                            <strong>1. Slippage Risk:</strong> The spread between the Bid and Ask is too wide.<br>
+                            <strong>2. Insufficient Momentum:</strong> The stock's public float is too high to generate meaningful alpha.<br>
+                            <strong>3. Loss Lock:</strong> You have hit your pre-set "Daily Loss Lock" (maximum failed setups for the session).<br>
+                            <strong>4. Macro Volatility:</strong> The VIX (Volatility Index) is actively spiking, indicating a dangerous, unpredictable broader market environment.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="security" class="faq-category-title">Module_04 // API & Security</div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    <div class="faq-icon-wrapper">
+                        <div class="faq-icon-box" style="background: rgba(148, 163, 184, 0.1); color: var(--text-muted);">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        Is my capital safe during a "Faceless" setup?
+                    </div>
+                    <i class="fas fa-chevron-down faq-chevron"></i>
+                </button>
+                <div class="faq-answer-wrapper">
+                    <div class="faq-answer-inner">
+                        <div class="faq-answer-content">
+                            Yes. The platform operates on a decentralized trust model regarding your capital. 
+                            <br><br>
+                            XeanVI utilizes secure <strong>OAuth tokens</strong> and environment variables (<code>.env</code>) to communicate with the Alpaca API. Your broker credentials are never shared with us, and we have zero access to withdraw or transfer funds. The engine only possesses permission to execute trades strictly within the risk parameters you've defined locally.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
 
     {% include 'footer.html' %}
 
     <script>
-        function toggleFAQ(element) {
-            const answer = element.nextElementSibling;
-            answer.style.maxHeight = (answer.style.maxHeight === '0px' || !answer.style.maxHeight) ? `${answer.scrollHeight}px` : '0px';
-        }
+        // Smooth Accordion Logic (Only allows one open at a time for clean UX)
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const currentItem = button.parentElement;
+                const isActive = currentItem.classList.contains('active');
+
+                // Close all other items
+                document.querySelectorAll('.faq-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // Toggle current item
+                if (!isActive) {
+                    currentItem.classList.add('active');
+                }
+            });
+        });
+
+        // Simple Intersection Observer to highlight active sidebar link based on scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    document.querySelectorAll('.faq-nav-list a').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.faq-category-title').forEach(section => {
+            observer.observe(section);
+        });
     </script>
-    </body>
+</body>
 </html>
