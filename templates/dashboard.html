@@ -198,7 +198,7 @@
         .mini-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
         .mini-card .value { font-size: 1.2rem; font-weight: bold; }
 
-        /* Watchlist Table */
+        /* Active Screener Table */
         .table-wrap { overflow-x: auto; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
@@ -530,7 +530,7 @@
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Setup Grade</span>
+                    <span class="h-label">Setup Alignment</span>
                     <span class="h-value" id="setup-grade">--</span>
                 </div>
                 <div class="h-divider"></div>
@@ -554,7 +554,7 @@
         <div class="top-row">
             <div class="control-panel">
                 <div class="config-section">
-                    <label>1. Pick Your Trading Style</label>
+                    <label>1. Select Parameter Profile</label>
                     <select id="strategy-select" class="auth-input strategy-select">
                         <option value="balanced">Standard Growth (Balanced Risk)</option>
                         <option value="aggressive">Aggressive (High Volatility)</option>
@@ -562,20 +562,20 @@
                 </div>
 
                 <div class="config-section" style="margin-top: 2rem;">
-                    <label>2. Start the Bot</label>
+                    <label>2. Execute Market Scan</label>
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-                        Click below to let the AI scan the market.
+                        Click below to initiate the quantitative data scan.
                     </p>
 
                     <button id="scanButton" class="btn-run-scan" onclick="startScanner()">
-                        RUN MORNING SCAN
+                        RUN DATA SCAN
                     </button>
                 </div>
             </div>
 
             <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-weight: bold; font-size: 1.1rem;">Current Stock in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
+                    <div style="font-weight: bold; font-size: 1.1rem;">Asset in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
                     <div id="liveIndicator" style="display:none; color: var(--success); font-size: 0.8rem; font-weight: bold;">● LIVE DATA</div>
                 </div>
 
@@ -588,23 +588,23 @@
         <div class="bottom-row" id="data-panels" style="display: none;">
             <div class="data-card">
                 <div class="card-header">
-                    The Trade Plan
+                    Execution Plan
                     <span id="decisionPill" class="table-pill watch">AWAITING SCAN</span>
                 </div>
                 <div id="actionContainer" class="action-box wait">
-                    <div id="actionPrimary" class="action-text">Run the scanner to build today's plan.</div>
+                    <div id="actionPrimary" class="action-text">Run the data scan to calculate parameters.</div>
                 </div>
                 <div class="watch-panel">
-                    <div class="watch-line"><span>💰 Shares to Buy:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
-                    <div class="watch-line"><span>🛑 Hard Stop Loss:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
-                    <div class="watch-line"><span>🎯 Profit Target:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
+                    <div class="watch-line"><span>💰 Position Size:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
+                    <div class="watch-line"><span>🛑 Calculated Stop:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>🎯 Calculated Target:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
                     <hr style="border-color: var(--border); margin: 10px 0;">
-                    <div class="watch-line"><span>🔥 Max Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>🔥 Max Capital Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
                 </div>
             </div>
 
             <div class="data-card" id="news-panel">
-                <div class="card-header">Market Sentiment <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Why we picked it)</span></div>
+                <div class="card-header">Market Data <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Model Inputs)</span></div>
                 <div class="mini-grid" id="scoreRows">
                     </div>
                 <div id="bestNotes" style="margin-top: 15px; font-size: 0.9rem; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
@@ -613,13 +613,13 @@
             </div>
 
             <div class="data-card" id="watchlist-panel">
-                <div class="card-header">Watchlist</div>
+                <div class="card-header">Active Screener</div>
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
                                 <th>Symbol</th>
-                                <th>Status</th>
+                                <th>Logic Output</th>
                                 <th>Price</th>
                                 <th>Score</th>
                             </tr>
@@ -775,7 +775,7 @@
         // Load default SPY chart on startup
         loadChartData('SPY');
 
-        // Feature: Populate "The Trade Plan" panel
+        // Feature: Populate "Execution Plan" panel
         function renderWatchPanel(best) {
             const panel = best.watch_panel || {};
             const actionContainer = document.getElementById('actionContainer');
@@ -784,19 +784,19 @@
 
             decisionPill.textContent = best.decision || 'WATCH';
 
-            if (best.decision === 'BUY NOW') {
+            if (best.decision === 'CRITERIA MET') {
                 // This turns the box green and removes the "WAIT" text
                 decisionPill.className = 'table-pill buy-now';
                 actionContainer.className = 'action-box'; 
-                actionPrimary.innerHTML = `Buy <strong>${panel.max_shares || 0} shares</strong> at ${money(best.current_price)}. Target: ${money(best.target_1)}.`;
+                actionPrimary.innerHTML = `Model Output: Execute <strong>${panel.max_shares || 0} shares</strong> at ${money(best.current_price)}. Target: ${money(best.target_1)}.`;
             } else if (best.decision === 'WAIT') {
                 decisionPill.className = 'table-pill watch';
                 actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `Wait until <strong>${panel.buy_after || '09:45'} ET</strong>. Market open volatility protection active.`;
+                actionPrimary.innerHTML = `Hold execution until <strong>${panel.buy_after || '09:45'} ET</strong> per predefined risk rules.`;
             } else {
                 decisionPill.className = 'table-pill watch';
                 actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `Scanning for setup... Current Status: <strong>${best.decision}</strong>`;
+                actionPrimary.innerHTML = `Scanning data... Current Status: <strong>${best.decision}</strong>`;
             }
 
             // Populate Math
@@ -823,12 +823,12 @@
                 scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
             });
 
-            // Inject Setup Grade
+            // Inject Setup Alignment
             const gradeEl = document.getElementById('setup-grade');
-            const grade = best.setup_grade || 'NO TRADE';
+            const grade = best.setup_grade || 'NO MATCH';
             let gradeClass = 'grade-none';
-            if (grade === 'A+') gradeClass = 'grade-a-plus';
-            else if (grade === 'A') gradeClass = 'grade-a';
+            if (grade === 'A+' || grade === 'Tier 1') gradeClass = 'grade-a-plus';
+            else if (grade === 'A' || grade === 'Tier 2') gradeClass = 'grade-a';
             else if (grade === 'WATCH') gradeClass = 'grade-watch';
             gradeEl.innerHTML = `<span class="grade-badge ${gradeClass}">${grade}</span>`;
 
@@ -838,24 +838,24 @@
 
             const skips = details.skip_reasons || [];
             if (skips.length > 0) {
-                notes.push(`<strong style="color: var(--danger);">⚠️ Safety Blocks Active:</strong><br><span style="color: var(--text-muted); font-size: 0.8rem;">${skips[0]}</span>`);
+                notes.push(`<strong style="color: var(--danger);">⚠️ System Filters Active:</strong><br><span style="color: var(--text-muted); font-size: 0.8rem;">${skips[0]}</span>`);
             } else {
-                notes.push(`<strong style="color: var(--success);">✅ Edge Confirmed. Ready to execute.</strong>`);
+                notes.push(`<strong style="color: var(--success);">✅ Model criteria satisfied. Systematic execution ready.</strong>`);
             }
             document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
         }
 
-        // Feature: Populate "Watchlist" panel
+        // Feature: Populate "Active Screener" panel
         function renderWatchlist(items) {
             const body = document.getElementById('watchlistBody');
             body.innerHTML = '';
             if (!items || !items.length) {
-                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No candidates found.</td></tr>';
+                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No matches found.</td></tr>';
                 return;
             }
             items.slice(0, 5).forEach(item => { // Show top 5
                 const signal = item.live_signal || item.decision || 'WATCH';
-                const cssClass = signal === 'BUY NOW' ? 'buy-now' : 'watch';
+                const cssClass = signal === 'CRITERIA MET' ? 'buy-now' : 'watch';
                 body.innerHTML += `
                     <tr>
                         <td><strong>${item.symbol}</strong></td>
@@ -927,7 +927,7 @@
             const tickerHeader = document.getElementById('target-ticker');
 
             // 1. Lock UI
-            btn.innerText = "SCANNING MARKET...";
+            btn.innerText = "PROCESSING DATA...";
             btn.disabled = true;
             statusHeader.innerText = "Working...";
             statusHeader.style.color = "var(--warning)";
@@ -936,7 +936,7 @@
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
 
-            addLog("Initiating AI Scanner...", "var(--warning)");
+            addLog("Initiating data model...", "var(--warning)");
             addLog("Downloading live market data...", "var(--text-muted)");
 
             try {
@@ -955,7 +955,7 @@
                 const best = payload.data.best_pick;
                 const watchPanel = best.watch_panel || {};
 
-                addLog(`Scan complete. Top setup found: ${best.symbol}.`, "var(--success)");
+                addLog(`Processing complete. Highest probability match: ${best.symbol}.`, "var(--success)");
 
                 // 3. Update the UI
                 tickerHeader.innerText = best.symbol;
@@ -972,10 +972,10 @@
                 document.getElementById('data-panels').style.display = 'grid';
 
                 // ==========================================
-                // 4. AUTOPILOT TRIGGER (THE "SIT & COLLECT" MODULE)
+                // 4. SYSTEMATIC EXECUTION TRIGGER
                 // ==========================================
-                if (best.decision === 'BUY NOW') {
-                    addLog("⚡ PERFECT SETUP DETECTED. INITIATING AUTOPILOT EXECUTION...", "var(--accent-blue)");
+                if (best.decision === 'CRITERIA MET') {
+                    addLog("⚡ SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION...", "var(--accent-blue)");
 
                     try {
                         // Send the exact math to the execution engine
@@ -1003,9 +1003,9 @@
                         const execData = await execRes.json();
 
                         if (execData.ok) {
-                            addLog(`✅ Order Confirmed! Bot bought ${best.qty} shares of ${best.symbol}.`, "var(--success)");
-                            addLog(`🛡️ Hard Stop Loss set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
-                            addLog(`🎯 Profit Target set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
+                            addLog(`✅ Order Transmitted. System allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                            addLog(`🛡️ Risk constraint set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
+                            addLog(`🎯 Take-profit boundary set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
 
                             // Set Active Trade Data
                             activeTrade = {
@@ -1033,11 +1033,11 @@
                             addLog(`⚠️ Execution Blocked: ${execData.error}`, "var(--danger)");
                         }
                     } catch (err) {
-                        addLog(`Error firing execution: ${err.message}`, "var(--danger)");
+                        addLog(`Error transmitting execution details: ${err.message}`, "var(--danger)");
                     }
                 } else {
                     // If it's a "WAIT" or "WATCH" signal
-                    addLog("No perfect 'BUY NOW' setups found right now. Bot entering Watch Mode.", "var(--warning)");
+                    addLog("No current data matches the exact criteria parameters. System remaining in watch mode.", "var(--warning)");
                 }
                 // ==========================================
 
@@ -1048,7 +1048,7 @@
                 addLog(`Error: ${err.message}`, "var(--danger)");
             } finally {
                 // Unlock UI
-                btn.innerText = "RUN MORNING SCAN";
+                btn.innerText = "RUN DATA SCAN";
                 btn.disabled = false;
                 statusHeader.innerText = "Idle";
                 statusHeader.style.color = "var(--text-muted)";
