@@ -28,7 +28,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import Post, User
+from models import Post, User, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
@@ -225,12 +225,52 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    # 1. If they aren't logged in, show the new SEO marketing page
+    # 1. If they aren't logged in, show the waitlist page
     if not current_user.is_authenticated:
-        return render_template('landing.html')
+        return render_template('waitlist.html')
 
     # 2. If they ARE logged in, the front door is ALWAYS the Dashboard
     return redirect(url_for('dashboard'))
+
+
+@app.route('/join-waitlist', methods=['POST'])
+def join_waitlist():
+    email = request.form.get('email', '').strip().lower()
+    if not email:
+        flash('A valid email is required.', 'error')
+        return redirect(url_for('index'))
+
+    existing = Waitlist.query.filter_by(email=email).first()
+    if not existing:
+        count = Waitlist.query.count()
+        is_early = count < 25
+        new_signup = Waitlist(email=email, is_early_bird=is_early)
+        db.session.add(new_signup)
+        db.session.commit()
+    else:
+        is_early = existing.is_early_bird
+
+    if config.BREVO_API_KEY:
+        url = 'https://api.brevo.com/v3/contacts'
+        headers = {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'api-key': config.BREVO_API_KEY,
+        }
+        payload = {
+            'email': email,
+            'listIds': [config.BREVO_LIST_ID],
+            'attributes': {'EARLY_BIRD': 'Yes' if is_early else 'No'},
+        }
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            if response.status_code not in [200, 201, 204]:
+                logger.error('Brevo API Error: %s', response.text)
+        except Exception as e:
+            logger.error('Brevo Connection Failed: %s', e)
+
+    flash("You've been successfully added to the waitlist!", 'success')
+    return redirect(url_for('index'))
 
 
 @app.route('/pricing')

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XeanVI | Quantitative Execution Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .trust-card { border-left: 2px solid #007bff; background: #121212; padding: 25px; height: 100%; transition: 0.3s; }
+        .trust-card:hover { background: #1a1a1a; }
+        .promo-banner { background: linear-gradient(90deg, #1e3a8a, #1e40af); color: #fff; padding: 15px; border-radius: 8px; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container py-5 text-center">
+        <h1 class="display-1 fw-bold mb-3">XeanVI</h1>
+        <p class="lead mb-5 text-secondary">Institutional Discipline for the Modern Day Trader.</p>
+
+        <div class="card bg-black border-secondary p-5 mx-auto shadow-lg" style="max-width: 600px; border-radius: 12px;">
+            <h3 class="mb-4">Limited Early Access</h3>
+            <div class="promo-banner mb-4">
+                The first 25 traders to join the waitlist receive <span class="text-warning">3 MONTHS of PRO</span> access for free.
+            </div>
+
+            <form action="{{ url_for('join_waitlist') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="input-group input-group-lg mb-3">
+                    <input type="email" name="email" class="form-control bg-dark text-light border-secondary" placeholder="Professional email address" required>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">JOIN</button>
+                </div>
+            </form>
+            <p class="mt-3 small text-muted">Direct inquiries to <a href="mailto:support@xeanvi.com" class="text-info text-decoration-none">support@xeanvi.com</a></p>
+        </div>
+
+        <div class="row mt-5 pt-5 g-4 text-start">
+            <div class="col-md-4">
+                <div class="trust-card">
+                    <h5 class="text-primary">SCREEN</h5>
+                    <p class="small text-secondary">Real-time quantitative scanning for RVOL, Catalyst scoring, and ATR alignment.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="trust-card">
+                    <h5 class="text-primary">VALIDATE</h5>
+                    <p class="small text-secondary">Proprietary logic validating intraday tape proxies against the Veteran Day Trading Playbook.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="trust-card">
+                    <h5 class="text-primary">EXECUTE</h5>
+                    <p class="small text-secondary">Automated Alpaca execution with bracket orders, target scale-outs, and trailing runners.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
