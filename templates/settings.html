@@ -33,8 +33,9 @@
                 {% else %}
                     <a href="/features">How it Works</a>
                     <a href="/playbook">Playbook</a>
+                    <a href="/broker-integration">Broker Workflow</a>
                     <a href="/transparency">AI Logic</a>
-                    <a href="/upgrade">Pricing</a>
+                    <a href="/pricing">Pricing</a>
                 {% endif %}
             </div>
 
@@ -68,13 +69,13 @@
         <div class="settings-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
             <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-university" style="color: var(--accent-blue);"></i> Brokerage Connection</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                Link your Alpaca account via secure OAuth to enable live market data and automated execution.
+                Link your brokerage account via secure OAuth to enable live market data and automated execution.
             </p>
 
             {% if current_user.alpaca_access_token %}
                 <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <h4 style="color: var(--success); margin: 0 0 5px 0;"><i class="fas fa-check-circle"></i> Alpaca Linked</h4>
+                        <h4 style="color: var(--success); margin: 0 0 5px 0;"><i class="fas fa-check-circle"></i> Broker Linked</h4>
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Secure OAuth Token Active</span>
                     </div>
                     <a href="/alpaca/logout" class="btn-action" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Disconnect</a>
@@ -86,11 +87,11 @@
 
                     <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; text-align: left; background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
                         <strong style="color: var(--accent-blue); display: block; margin-bottom: 0.5rem; font-size: 1rem; text-align: center;">Authorize XeanVI</strong>
-                        By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue); text-decoration: underline;">learn more about XeanVI</a>.
+                        By allowing XeanVI to access your brokerage account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Your broker does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue); text-decoration: underline;">learn more about XeanVI</a>.
                     </div>
 
                     <a href="/alpaca/login" class="btn-action" style="background: var(--success); color: white; display: inline-block; padding: 0.75rem 2rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); font-weight: bold;">
-                        Connect Securely via Alpaca
+                        Connect Securely via Broker
                     </a>
                 </div>
             {% endif %}
