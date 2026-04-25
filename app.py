@@ -265,7 +265,7 @@ def join_waitlist():
     else:
         is_early = existing.is_early_bird
 
-    # 2. Brevo API Execution
+    # 2. Brevo API Execution - PRODUCTION READY
     if config.BREVO_API_KEY:
         url = "https://api.brevo.com/v3/contacts"
         headers = {
@@ -273,27 +273,33 @@ def join_waitlist():
             "content-type": "application/json",
             "api-key": config.BREVO_API_KEY
         }
-        
+
         try:
             list_id = int(config.BREVO_LIST_ID)
         except (TypeError, ValueError):
-            list_id = 5 
+            list_id = 5
 
-        # EXACT MATCH TO YOUR SUCCESSFUL CURL COMMAND
         payload = {
             "email": email,
-            "listIds": [list_id], 
+            "listIds": [list_id],
             "updateEnabled": True
         }
-        
+
         try:
             response = requests.post(url, json=payload, headers=headers)
-            if response.status_code not in [200, 201, 204]:
-                flash(f"BREVO API REJECTED: {response.text}", "error")
+
+            # Check for success
+            if response.status_code in [200, 201, 204]:
+                flash("You've been successfully added to the priority waitlist.", "success")
+            else:
+                # Log the real error to your server secretly, show generic error to user
+                logger.error(f"Brevo Reject: {response.text}")
+                flash("We encountered an issue securing your spot. Please try again.", "error")
+
         except Exception as e:
             logger.error(f"Brevo Connection Failed: {e}")
+            flash("System connection error. Please try again later.", "error")
 
-    flash("You've been successfully added to the waitlist!", "success")
     return redirect(url_for('index'))
 
 
