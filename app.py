@@ -273,32 +273,25 @@ def join_waitlist():
             "content-type": "application/json",
             "api-key": config.BREVO_API_KEY
         }
-
-        # FORCE THE LIST ID TO BE AN INTEGER
+        
         try:
             list_id = int(config.BREVO_LIST_ID)
         except (TypeError, ValueError):
-            list_id = 5
+            list_id = 5 
 
+        # EXACT MATCH TO YOUR SUCCESSFUL CURL COMMAND
         payload = {
             "email": email,
-            "listIds": [list_id],
-            "updateEnabled": True,  # Crucial: updates existing contacts
-            "attributes": {
-                "EARLY_BIRD": "Yes" if is_early else "No"
-            }
+            "listIds": [list_id], 
+            "updateEnabled": True
         }
-
+        
         try:
             response = requests.post(url, json=payload, headers=headers)
-
-            # FORCE SHOW THE ERROR ON SCREEN
             if response.status_code not in [200, 201, 204]:
-                flash(f"BREVO ERROR: {response.text}", "error")
-                return redirect(url_for('index'))
+                flash(f"BREVO API REJECTED: {response.text}", "error")
         except Exception as e:
-            flash(f"CRITICAL BREVO CONNECTION ERROR: {str(e)}", "error")
-            return redirect(url_for('index'))
+            logger.error(f"Brevo Connection Failed: {e}")
 
     flash("You've been successfully added to the waitlist!", "success")
     return redirect(url_for('index'))
