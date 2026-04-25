@@ -3,79 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Broker API Trading Workflow | XeanVI Systematic Execution</title>
+    
+    <title>Broker API Architecture | XeanVI</title>
     <meta name="description" content="Optimize your Broker API trading with XeanVI. Automated managed execution, bid/ask-pegged entries, and real-time paper trading orchestration.">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .hero-section {
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+            background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .sys-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .module-card {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .terminal-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .terminal-list li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .terminal-list li::before {
+            content: '>';
+            color: var(--accent-blue);
+            font-weight: bold;
+        }
+
+        .disclosure-box {
+            background: #020617;
+            border: 1px dashed rgba(255,255,255,0.15);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: left;
+            margin: 2rem auto;
+            max-width: 800px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+    </style>
 </head>
-<body>
+<body class="auth-body">
+
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
             <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/settings">Settings</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Terminal</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/settings">Settings</a>
+                {% else %}
+                    <a href="/features">Architecture</a>
+                    <a href="/broker-integration" style="color: var(--text-main);">Broker Workflow</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/pricing#pricing">Pricing</a>
+                {% endif %}
+            </div>
+            <div class="xean-nav-actions">
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Return to Terminal</a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Initialize Sandbox</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
-    <header class="page-header">
+    <header class="hero-section">
         <div class="container">
-            <div class="badge-pill">Broker-Native Infrastructure</div>
-            <h1>Professional Broker API <span class="text-gradient">Execution Workflow</span></h1>
-            <p>XeanVI isn't just a scanner; it's a high-precision orchestration layer for your brokerage account, built for disciplined quantitative traders.</p>
+            <div class="sys-tag">INFRASTRUCTURE_02</div>
+            <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">Broker API <span class="text-gradient">Orchestration</span></h1>
+            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 650px; margin: 0 auto; line-height: 1.6;">
+                XeanVI isn't just a scanner; it's a high-precision orchestration layer for your brokerage account, built strictly for disciplined quantitative execution.
+            </p>
         </div>
     </header>
 
-    <section class="section-pad">
+    <section class="section-pad" style="background: #060b14;">
         <div class="container">
-            <div class="grid-2">
-                <div class="feature-box">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-microchip"></i> Managed Entry Logic</h3>
-                    <p>Stop chasing price. XeanVI utilizes <strong>bid/ask-pegged limit orders</strong> to ensure you enter at the calculated model price.</p>
+            <div class="module-grid">
+                
+                <div class="module-card">
+                    <div class="module-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Managed Entry Logic</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        Stop chasing price. XeanVI utilizes mathematically calculated <strong>bid/ask-pegged limit orders</strong> to guarantee you enter exactly at the model's specified price matrix.
+                    </p>
                     <ul class="terminal-list">
                         <li>15-Second Entry Timeouts</li>
-                        <li>Automatic Order Cancellation</li>
-                        <li>Real-time Quote Peeking</li>
+                        <li>Automatic Stale Order Cancellation</li>
+                        <li>Microsecond Quote Peeking</li>
                     </ul>
                 </div>
-                <div class="feature-box">
-                    <h3 style="color: var(--success);"><i class="fas fa-shield-halved"></i> Automated Risk Gates</h3>
-                    <p>The system enforces your logic rules at the broker level, moving stops automatically as parameters shift.</p>
+
+                <div class="module-card">
+                    <div class="module-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Automated Risk Gates</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        The system enforces your logic rules directly at the exchange level. Trailing boundaries and hard stops are manipulated automatically via OAuth token mapping.
+                    </p>
                     <ul class="terminal-list">
-                        <li>Target-1 Scale-Out Logic</li>
-                        <li>Trailing Stop Runner for Target-2</li>
-                        <li>Max Daily Loss Protection</li>
+                        <li>Target-1 Scale-Out Subroutines</li>
+                        <li>Trailing Stop Deployment for Target-2</li>
+                        <li>Global Daily Loss Lock Protection</li>
                     </ul>
                 </div>
+
             </div>
         </div>
     </section>
 
-    <section class="cta-section" style="background: var(--bg-card); padding: 4rem 0; text-align: center; border-top: 1px solid var(--border-color);">
-        <div class="container" style="max-width: 800px;">
-            <h2>Ready to Connect Your Sandbox?</h2>
-            <p>Start with XeanVI's paper trading orchestration to refine your systematic edge without risking capital.</p>
+    <section class="section-pad" style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: #0f172a;">
+        <div class="container">
+            <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Initialize Your Sandbox Environment</h2>
+            <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem;">
+                Connect to the API infrastructure using paper credentials to refine your systematic edge with zero capital risk.
+            </p>
 
-            <div style="margin: 2rem auto; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; text-align: left; background: var(--bg-main); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                <strong style="color: var(--text-main); display: block; margin-bottom: 0.5rem; font-size: 1rem; text-align: center;">Required Authorization Disclosure</strong>
-                By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that XeanVI will work as advertised or expected.
+            <div class="disclosure-box">
+                <strong style="color: var(--text-main); display: block; margin-bottom: 10px; font-size: 0.9rem;">REQUIRED AUTHORIZATION DISCLOSURE //</strong>
+                By allowing XeanVI to access your broker account via OAuth, you grant the system read-access to account architecture and authorization to transmit logic-based transactions at your explicit direction. The broker does not warrant or guarantee that external system logic will function as expected under extreme volatility.
             </div>
 
-            <a href="/signup" class="btn btn-primary" style="margin-top: 0.5rem;">Initialize Broker Workflow</a>
+            {% if current_user.is_authenticated %}
+                <a href="/settings" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Go to Broker Settings</a>
+            {% else %}
+                <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Initialize Connection</a>
+            {% endif %}
         </div>
     </section>
 
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
