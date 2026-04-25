@@ -2,104 +2,294 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Strategy | XeanVI Automated Trading Playbook</title>
-    <meta name="description" content="Explore the disciplined logic behind the XeanVI bot. From RVOL screening to automated Alpaca execution, see the rules that run your trades.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>Algorithmic Strategy Architecture | XeanVI Playbook</title>
+    <meta name="description" content="Explore the disciplined logic pipeline behind XeanVI. From RVOL data ingestion to automated Alpaca execution, review the quantitative rules that dictate execution.">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #060b14;
+            background-image: radial-gradient(circle at top right, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .hero-section {
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sys-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* Pipeline Node Design */
+        .pipeline-container {
+            max-width: 900px;
+            margin: 4rem auto;
+            position: relative;
+            padding: 0 2rem;
+        }
+
+        /* Vertical Line connecting nodes */
+        .pipeline-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 2rem;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--success), var(--warning));
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .pipeline-node {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 4rem;
+            padding-left: 4rem;
+        }
+        .pipeline-node:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Node Circles */
+        .node-marker {
+            position: absolute;
+            left: -13px;
+            top: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #020617;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        /* Unique Node Colors */
+        .node-1 .node-marker { border-color: var(--accent-blue); color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+        .node-2 .node-marker { border-color: var(--success); color: var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .node-3 .node-marker { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+
+        .node-card {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .node-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .node-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 1rem;
+        }
+
+        .terminal-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .terminal-list li {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .terminal-list li:last-child { margin-bottom: 0; }
+
+        .list-icon {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .pipeline-container::before { left: 1.5rem; }
+            .pipeline-node { padding-left: 2.5rem; }
+            .node-marker { left: -18px; width: 24px; height: 24px; font-size: 0.6rem; }
+            .node-card { padding: 1.5rem; }
+        }
+    </style>
 </head>
 <body>
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
             <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Terminal</a>
+                    <a href="/playbook" style="color: var(--accent-blue);">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/settings">Settings</a>
+                {% else %}
+                    <a href="/features">Architecture</a>
+                    <a href="/playbook" style="color: var(--text-main);">Playbook</a>
+                    <a href="/broker-integration">Broker Workflow</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/pricing#pricing">Pricing</a>
+                {% endif %}
+            </div>
             <div class="xean-nav-actions">
-                <a href="/login">Log In</a>
-                <a href="/signup" class="btn btn-primary">Start Free</a>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Terminal</a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <header class="page-header">
+    <header class="hero-section">
         <div class="container">
-            <div class="badge-pill">Rule-Based Automation</div>
-            <h1>The Bot's <span class="text-gradient">Playbook</span></h1>
-            <p style="max-width: 700px; margin: 0 auto; font-size: 1.2rem; color: var(--text-muted);">
-                The bot doesn't guess. It follows a strict, 3-step disciplined sequence to find and execute trades automatically.
+            <div class="sys-tag">DOC_01 // THE STRATEGY</div>
+            <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">Algorithmic Strategy <span class="text-gradient">Architecture</span></h1>
+            <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 700px; margin: 0 auto; line-height: 1.6;">
+                The engine does not guess. It executes a strict, three-phase quantitative pipeline to isolate, validate, and orchestrate market anomalies.
             </p>
         </div>
     </header>
 
-    <section class="section-pad">
-        <div class="container">
-            <div class="step" style="margin-bottom: 4rem;">
-                <div class="step-number step-blue">1</div>
-                <div>
-                    <h3>Step 1: Automated Screening</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                        The bot starts every morning by filtering the entire market for high-probability setups using specific mathematical triggers:
+    <section class="section-pad" style="padding-top: 2rem;">
+        <div class="pipeline-container">
+
+            <div class="pipeline-node node-1">
+                <div class="node-marker">01</div>
+                <div class="node-card">
+                    <div class="node-header">PHASE_01 // INGESTION</div>
+                    <div class="node-title">Automated Data Screening</div>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                        The engine initializes by filtering the broader market tape for high-probability setups using strict mathematical boundaries:
                     </p>
                     <ul class="terminal-list">
-                        <li><strong>Catalyst Discovery:</strong> AI-based scoring of news headlines.</li>
-                        <li><strong>RVOL & Liquidity:</strong> Identifying stocks with massive institutional volume.</li>
-                        <li><strong>Float Proxy:</strong> Filtering for stocks with the right "supply" for momentum moves.</li>
+                        <li>
+                            <span class="list-icon" style="color: var(--accent-blue);">NLP</span>
+                            <div><strong style="color: var(--text-main);">Catalyst Discovery:</strong> AI-based semantic scoring of real-time SEC filings and news headlines.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--accent-blue);">VOL</span>
+                            <div><strong style="color: var(--text-main);">RVOL & Liquidity:</strong> Isolating assets exhibiting massive, irregular institutional volume spikes.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--accent-blue);">FLT</span>
+                            <div><strong style="color: var(--text-main);">Float Proxies:</strong> Filtering the mathematical "supply" to ensure optimal volatility constraints.</div>
+                        </li>
                     </ul>
                 </div>
             </div>
 
-            <div class="step" style="margin-bottom: 4rem;">
-                <div class="step-number step-green">2</div>
-                <div>
-                    <h3>Step 2: Logic Validation</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                        Before a single dollar is risked, the bot validates the setup against your technical rules:
+            <div class="pipeline-node node-2">
+                <div class="node-marker">02</div>
+                <div class="node-card">
+                    <div class="node-header">PHASE_02 // PROCESSING</div>
+                    <div class="node-title">Quantitative Logic Validation</div>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Before a single dollar is authorized for execution, the isolated asset is cross-referenced against your local risk parameters:
                     </p>
                     <ul class="terminal-list">
-                        <li><strong>Daily Alignment:</strong> Ensuring the intraday move matches the long-term trend.</li>
-                        <li><strong>Relative Strength:</strong> Comparing the stock against market benchmarks.</li>
-                        <li><strong>Tape Proxies:</strong> Real-time monitoring of price action and momentum.</li>
+                        <li>
+                            <span class="list-icon" style="color: var(--success);">POC</span>
+                            <div><strong style="color: var(--text-main);">Daily Alignment:</strong> Verifying intraday price action aligns with the daily Volume Point of Control.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--success);">RSI</span>
+                            <div><strong style="color: var(--text-main);">Relative Strength:</strong> Comparing the isolated asset against broader macro market benchmarks.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--success);">TPE</span>
+                            <div><strong style="color: var(--text-main);">Tape Proxies:</strong> Measuring Level 2 bid/ask spread stability to prevent slippage.</div>
+                        </li>
                     </ul>
                 </div>
             </div>
 
-            <div class="step">
-                <div class="step-number step-yellow">3</div>
-                <div>
-                    <h3>Step 3: Automated Execution</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                        Once validated, the bot takes over the manual clicking. It manages the trade from entry to exit:
+            <div class="pipeline-node node-3">
+                <div class="node-marker">03</div>
+                <div class="node-card">
+                    <div class="node-header">PHASE_03 // ORCHESTRATION</div>
+                    <div class="node-title">Autonomous Execution</div>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Upon complete criteria validation, the engine transmits the logic matrix directly to the brokerage API:
                     </p>
                     <ul class="terminal-list">
-                        <li><strong>Pegged Entry:</strong> Automated limit orders to secure the best price.</li>
-                        <li><strong>Defined Risk:</strong> Hard stops placed immediately at the broker level.</li>
-                        <li><strong>Scale-Outs:</strong> Automatically takes profit at your pre-defined targets.</li>
+                        <li>
+                            <span class="list-icon" style="color: var(--warning);">EXE</span>
+                            <div><strong style="color: var(--text-main);">Pegged Entry:</strong> Automated limit orders deployed to secure exact model pricing.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--warning);">RSK</span>
+                            <div><strong style="color: var(--text-main);">Defined Risk:</strong> Hard stops generated and mapped instantly at the broker level.</div>
+                        </li>
+                        <li>
+                            <span class="list-icon" style="color: var(--warning);">TGT</span>
+                            <div><strong style="color: var(--text-main);">Scale-Out Sequence:</strong> Pre-calculated partial profits secured automatically at Target 1 and Target 2.</div>
+                        </li>
                     </ul>
                 </div>
             </div>
+
         </div>
     </section>
 
-    <section class="cta-section" style="background: var(--bg-card); padding: 4rem 0; text-align: center; border-top: 1px solid var(--border-color);">
+    <section class="cta-section" style="background: #020617; padding: 5rem 0; text-align: center; border-top: 1px dashed rgba(255,255,255,0.1);">
         <div class="container">
-            <h2>Your Strategy. Our Automation.</h2>
-            <p style="margin-bottom: 2rem;">Stop watching the clock. Launch XeanVI and let the playbook run itself.</p>
-            <a href="/signup" class="btn btn-primary">Launch Your Bot Today</a>
+            <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Your Logic. Our Architecture.</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Stop manually interpreting charts. Initialize the XeanVI engine and let the systematic pipeline process the data for you.
+            </p>
+            {% if current_user.is_authenticated %}
+                <a href="/dashboard" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Boot Terminal</a>
+            {% else %}
+                <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Initialize Sandbox</a>
+            {% endif %}
         </div>
     </section>
 
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
