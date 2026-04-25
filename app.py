@@ -250,56 +250,57 @@ def dev_unlock(token):
 @app.route('/join-waitlist', methods=['POST'])
 def join_waitlist():
     email = request.form.get('email', '').strip().lower()
+    
     if not email:
         flash("A valid email is required.", "error")
         return redirect(url_for('index'))
 
-    # 1. Local Tracking (First 25 logic)
-    existing = Waitlist.query.filter_by(email=email).first()
-    if not existing:
-        count = Waitlist.query.count()
-        is_early = count < 25
-        new_signup = Waitlist(email=email, is_early_bird=is_early)
-        db.session.add(new_signup)
-        db.session.commit()
-    else:
-        is_early = existing.is_early_bird
+    # 1. Local Tracking (Wrapped in safety net)
+    try:
+        existing = Waitlist.query.filter_by(email=email).first()
+        if not existing:
+            is_early = Waitlist.query.count() < 25
+            db.session.add(Waitlist(email=email, is_early_bird=is_early))
+            db.session.commit()
+    except Exception as e:
+        logger.error(f"Database Waitlist Error: {e}")
+        db.session.rollback()
 
-    # 2. Brevo API Execution - PRODUCTION READY
-    if config.BREVO_API_KEY:
-        url = "https://api.brevo.com/v3/contacts"
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json",
-            "api-key": config.BREVO_API_KEY
-        }
+    # 2. FORCE GRAB API KEY DIRECTLY
+    api_key = os.getenv('BREVO_API_KEY')
+    
+    if not api_key:
+        logger.error("CRITICAL: BREVO_API_KEY is missing from environment variables!")
+        flash("System Configuration Error: Missing API Key.", "error")
+        return redirect(url_for('index'))
 
-        try:
-            list_id = int(config.BREVO_LIST_ID)
-        except (TypeError, ValueError):
-            list_id = 5
-
-        payload = {
-            "email": email,
-            "listIds": [list_id],
-            "updateEnabled": True
-        }
-
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-
-            # Check for success
-            if response.status_code in [200, 201, 204]:
-                flash("You've been successfully added to the priority waitlist.", "success")
-            else:
-                # Log the real error to your server secretly, show generic error to user
-                logger.error(f"Brevo Reject: {response.text}")
-                flash("We encountered an issue securing your spot. Please try again.", "error")
-
-        except Exception as e:
-            logger.error(f"Brevo Connection Failed: {e}")
-            flash("System connection error. Please try again later.", "error")
-
+    # 3. Brevo API Execution
+    url = "https://api.brevo.com/v3/contacts"
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": api_key
+    }
+    
+    payload = {
+        "email": email,
+        "listIds": [5], 
+        "updateEnabled": True
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code in [200, 201, 204]:
+            flash("You've been successfully added to the priority waitlist.", "success")
+        else:
+            logger.error(f"Brevo API Rejected: {response.text}")
+            flash(f"Brevo Error: We could not secure your spot.", "error")
+            
+    except Exception as e:
+        logger.error(f"Brevo Connection Failed: {e}")
+        flash("System connection error. Please try again.", "error")
+        
     return redirect(url_for('index'))
 
 
