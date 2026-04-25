@@ -4,458 +4,176 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Command Center | XeanVI AI Trading Terminal</title>
+    <title>Terminal | XeanVI Execution Engine</title>
     <meta name="description" content="Access your XeanVI trading terminal. Monitor live market scans, manage algorithmic risk, and track automated trade execution in real-time.">
-
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/dashboard">
 
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="XeanVI | Secure Trading Terminal">
-    <meta property="og:description" content="Authorized Access Only. Manage your automated trading engine.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-secure-icon.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
     <style>
         :root {
-            --bg-main: #0f172a;
-            --bg-card: #1e293b;
-            --bg-input: #334155;
+            --bg-main: #060b14; /* Deepened the background for a true terminal feel */
+            --bg-card: #0f172a;
+            --bg-input: #1e293b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent-blue: #38bdf8;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --border-color: #334155;
+            --border-color: rgba(255, 255, 255, 0.08);
 
-            /* Backward-compatible aliases for existing selectors */
-            --bg-primary: var(--bg-main);
-            --bg-secondary: var(--bg-card);
-            --bg-panel: var(--bg-card);
-            --border: var(--border-color);
             --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-            --font-mono: 'Courier New', Courier, monospace;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg-main: #0f172a;
-                --bg-card: #1e293b;
-                --bg-input: #334155;
-                --text-main: #f8fafc;
-                --text-muted: #94a3b8;
-                --accent-blue: #38bdf8;
-                --border-color: #334155;
-            }
+        body { 
+            font-family: var(--font-sans); 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            background-image: radial-gradient(circle at top center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
         }
 
-        [data-theme="light"] {
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --bg-input: #f1f5f9;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --accent-blue: #3b82f6;
-            --border-color: #e2e8f0;
-            --bg-primary: var(--bg-main);
-            --bg-secondary: var(--bg-card);
-            --bg-panel: var(--bg-card);
-            --border: var(--border-color);
-        }
-
-        *:focus-visible {
-            outline: 3px solid var(--accent-blue);
-            outline-offset: 2px;
-            border-radius: 4px;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-sans); background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        a { text-decoration: none; color: inherit; }
-
-        /* Navigation */
-        .dash-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; }
-        .logo span { color: var(--accent-blue); }
-
-        .top-metrics { display: flex; gap: 2rem; align-items: center; }
-        .metric-mini { text-align: right; background-color: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
-        .metric-mini span, label { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
-        .metric-mini strong { color: var(--text-main); font-size: 1.5rem; }
-
-        /* Tooltip Container */
-        .info-tip {
-            position: relative;
-            display: inline-block;
-            margin-left: 6px;
-            cursor: help;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            transition: color 0.2s;
-        }
-        .info-tip:hover { color: var(--accent-blue); }
-
-        /* Tooltip Text */
-        .info-tip .tip-text {
-            visibility: hidden;
-            width: 200px;
-            background-color: var(--bg-input);
-            color: var(--text-main);
-            text-align: center;
-            border-radius: 6px;
-            padding: 8px;
-            position: absolute;
-            z-index: 10;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.75rem;
-            line-height: 1.2;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .info-tip:hover .tip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Main Workspace Scrollable Area */
-        .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-
-        /* Top Row: Controls & Chart */
-        .top-row { 
-            display: grid; 
-            grid-template-columns: 350px 1fr; 
-            gap: 2rem; 
-            height: 550px; /* THE FIX: A strictly locked height stops the chart from overflowing */
-            margin-bottom: 2rem; 
-            flex-shrink: 0; /* Prevents the row from collapsing weirdly */
-        }
-
-        /* Control Panel */
-        .card, .config-panel, .control-panel, .chart-panel, .data-card, .metric-mini {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-        .control-panel { display: flex; flex-direction: column; }
-        .step-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.5rem; }
-        .step-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
-        .strategy-select { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-size: 1rem; outline: none; }
-
-        .btn-run-scan { background: var(--accent-blue); color: #000; border: none; padding: 1.25rem; border-radius: 8px; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        #scanButton { background-color: var(--accent-blue); color: #000; font-weight: 700; transition: all 0.3s ease; }
-        #scanButton:hover { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); transform: translateY(-1px); }
-        .btn-run-scan:disabled { background: var(--warning); box-shadow: none; cursor: not-allowed; transform: none; }
-
-        /* Terminal */
-        .terminal-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 150px; }
-        .terminal-header { background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
-        .terminal-output { padding: 1rem; font-family: var(--font-sans); font-size: 0.85rem; color: var(--text-main); overflow-y: auto; flex-grow: 1; line-height: 1.6; }
-        .log-time { color: var(--text-muted); font-size: 0.75rem; margin-right: 8px; }
-
-        /* Chart Panel */
-        .chart-panel { display: flex; flex-direction: column; }
-        .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg-primary); border: 1px solid var(--border); }
-
-        /* Bottom Row: Data Panels */
-        .bottom-row { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 2rem; 
-            margin-top: 2rem; /* THE FIX: Forces a physical barrier above the panels */
-            padding-bottom: 2rem; /* Extra breathing room at the very bottom of the page */
-        }
-        .data-card { }
-        .full-width { grid-column: 1 / -1; }
-        .card-header { font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-
-        /* Trade Plan Styles */
-        .action-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-        .action-box.wait { background: rgba(245, 158, 11, 0.1); border-color: var(--warning); }
-        .action-text { font-size: 1.1rem; font-weight: bold; color: var(--text-main); }
-        .watch-panel { background: var(--bg-primary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
-        .watch-line { font-size: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
-        .highlight-green { color: var(--success); font-weight: bold; }
-        .highlight-red { color: var(--danger); font-weight: bold; }
-
-        /* Engine Room Styles */
-        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .mini-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; }
-        .mini-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
-        .mini-card .value { font-size: 1.2rem; font-weight: bold; }
-
-        /* Active Screener Table */
-        .table-wrap { overflow-x: auto; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 0.75rem 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
-        tr:last-child td { border-bottom: none; }
-        .table-pill { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
-        .table-pill.watch { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-
+        /* --- Header Metrics Bar --- */
         .command-header-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--bg-card); /* Matches your dark banner color */
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             padding: 1rem 1.5rem;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
-        .header-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 180px;
+        .header-profile { display: flex; align-items: center; gap: 12px; min-width: 180px; }
+        .profile-name { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .profile-tier { 
+            font-family: var(--font-mono); font-size: 0.65rem; font-weight: 800; 
+            color: var(--text-muted); background: rgba(255,255,255,0.05); 
+            padding: 3px 6px; border-radius: 4px; width: fit-content; margin-top: 4px; letter-spacing: 0.05em;
         }
 
-        .profile-text {
-            display: flex;
-            flex-direction: column;
-        }
+        .header-metrics { display: flex; align-items: center; gap: 30px; flex-grow: 1; justify-content: center; }
+        .h-metric { display: flex; flex-direction: column; align-items: center; }
+        .h-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+        .h-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.15rem; color: var(--text-main); text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .h-divider { width: 1px; height: 35px; background: var(--border-color); }
 
-        .profile-name {
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--text-main);
-        }
+        /* --- Workspace Layout --- */
+        .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        
+        .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; height: 500px; flex-shrink: 0; }
+        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 2rem; }
 
-        .profile-tier {
-            font-size: 0.7rem;
-            font-weight: 800;
-            color: var(--text-muted);
-            background: rgba(255,255,255,0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            width: fit-content;
-            margin-top: 2px;
+        /* --- Global Card Aesthetics --- */
+        .card, .control-panel, .chart-panel, .data-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-
-        .header-metrics {
-            display: flex;
-            align-items: center;
-            gap: 25px;
-            flex-grow: 1;
-            justify-content: center;
+        
+        .card-header { 
+            font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; 
+            border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.25rem; 
+            display: flex; justify-content: space-between; align-items: center; color: var(--text-muted);
         }
+        
+        /* Tactical Sub-Tags */
+        .sys-tag { font-family: var(--font-mono); font-size: 0.65rem; background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px; color: var(--accent-blue); }
 
-        .h-metric {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        /* --- Control Panel & Trigger --- */
+        .control-panel { display: flex; flex-direction: column; background: linear-gradient(180deg, var(--bg-card) 0%, #060b14 100%); }
+        .strategy-select { 
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); 
+            padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-family: var(--font-mono); font-size: 0.85rem; outline: none; transition: border 0.2s;
         }
+        .strategy-select:focus { border-color: var(--accent-blue); }
 
-        .h-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+        .btn-run-scan { 
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; 
+            border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.1rem; 
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3); text-transform: uppercase; letter-spacing: 0.1em; 
+            position: relative; overflow: hidden; margin-top: auto;
         }
+        .btn-run-scan::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(rgba(255,255,255,0.2), transparent); transform: rotate(45deg); transition: 0.5s; opacity: 0; }
+        .btn-run-scan:hover { box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5); transform: translateY(-2px); }
+        .btn-run-scan:hover::after { opacity: 1; }
+        .btn-run-scan:disabled { background: var(--bg-input); color: var(--text-muted); box-shadow: none; cursor: not-allowed; transform: none; border: 1px solid var(--border-color); }
 
-        .h-value {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-main);
+        /* --- Chart Panel --- */
+        .chart-panel { display: flex; flex-direction: column; padding: 1rem; }
+        .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; background: #020617; border: 1px solid rgba(255,255,255,0.05); }
+
+        /* --- Data Presentation --- */
+        .action-box { font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; padding: 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid transparent; }
+        .action-box.wait { background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .action-text { color: var(--text-main); }
+        
+        .watch-panel { background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); }
+        .watch-line { font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; color: var(--text-muted); }
+        .watch-line:last-child { margin-bottom: 0; }
+        .watch-line span:last-child { font-weight: 700; color: var(--text-main); }
+        
+        .highlight-green { color: var(--success) !important; text-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+        .highlight-red { color: var(--danger) !important; text-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+
+        /* Mini Metric Grid */
+        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .mini-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; text-align: center; }
+        .mini-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+        .mini-card .value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+
+        /* Tables */
+        .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(0,0,0,0.4); padding: 0.85rem 1rem; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        td { padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .table-pill { font-family: var(--font-sans); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+        .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+        .table-pill.watch { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        /* --- True Terminal Output --- */
+        .terminal-panel { grid-column: 1 / -1; background: #020617; border-color: rgba(255,255,255,0.05); }
+        .terminal-output { 
+            padding: 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: #a1a1aa; 
+            height: 250px; overflow-y: auto; line-height: 1.7; background: #000; border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
         }
+        .log-time { color: #52525b; margin-right: 12px; }
+        .terminal-output div { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+        .terminal-output div:last-child { border-bottom: none; }
 
-        .h-divider {
-            width: 1px;
-            height: 30px;
-            background: var(--border-color);
-            opacity: 0.5;
-        }
+        /* Custom Scrollbar for Terminal */
+        .terminal-output::-webkit-scrollbar { width: 6px; }
+        .terminal-output::-webkit-scrollbar-track { background: #000; }
+        .terminal-output::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
 
-        .btn-go-pro {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-            color: white;
-            padding: 0.8rem 1.4rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn-go-pro:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
-        }
-
-        /* Mobile Responsiveness */
-        @media (max-width: 1100px) {
-            .command-header-bar {
-                flex-direction: column;
-                text-align: center;
-            }
-            .h-divider { display: none; }
-            .header-metrics { flex-wrap: wrap; gap: 15px; }
-        }
-
-        /* =========================================
-           ACTUAL MOBILE RESPONSIVENESS FIX
-           ========================================= */
         @media (max-width: 992px) {
-            /* Shrink the overall header padding */
-            .command-header-bar {
-                flex-direction: column;
-                padding: 0.8rem;
-                gap: 0.8rem;
-            }
-
-            /* THE FIX: Turn metrics into a horizontal scrollable row */
-            .header-metrics {
-                flex-direction: row !important;
-                justify-content: flex-start;
-                overflow-x: auto; /* Allows swiping left/right */
-                white-space: nowrap;
-                gap: 15px;
-                padding-bottom: 8px; /* Room for a scrollbar if needed */
-                width: 100%;
-                scrollbar-width: none; /* Hide scrollbar for Firefox */
-            }
-
-            .header-metrics::-webkit-scrollbar {
-                display: none; /* Hide scrollbar for Chrome/Safari */
-            }
-
-            .h-divider {
-                display: none;
-            }
-
-            /* Individual metric pills */
-            .h-metric {
-                flex: 0 0 auto; /* Prevents pills from shrinking */
-                background: rgba(255, 255, 255, 0.03);
-                padding: 6px 12px;
-                border-radius: 8px;
-                border: 1px solid var(--border-color);
-                min-width: 100px;
-            }
-
-            .h-label {
-                font-size: 0.6rem; /* Smaller labels */
-                margin-bottom: 2px;
-            }
-
-            .h-value {
-                font-size: 0.9rem; /* Tighter values */
-            }
-
-            /* Adjust the Go Pro button to not hog space */
-            .header-actions {
-                width: 100%;
-            }
-
-            .btn-go-pro {
-                width: 100%;
-                justify-content: center;
-                padding: 0.6rem;
-                font-size: 0.8rem;
-            }
-
-            .workspace {
-                display: flex;
-                flex-direction: column;
-                padding: 0.5rem;
-            }
-
-            .top-row {
-                display: flex !important;
-                flex-direction: column !important;
-                height: auto !important;
-                gap: 0.75rem;
-                margin-bottom: 1rem;
-            }
-
-            .control-panel {
-                order: 1; /* Move controls to the top */
-                width: 100% !important;
-                background: none;
-                border: none;
-                padding: 0;
-                margin-bottom: 0;
-            }
-
-            /* Collapse the 'Pick Your Style' into a simpler inline row */
-            .config-section {
-                margin-bottom: 10px !important;
-                background: var(--bg-card);
-                padding: 10px;
-                border-radius: 8px;
-            }
-
-            .config-section:last-child {
-                margin-top: 0 !important;
-                margin-bottom: 0 !important;
-                padding: 8px 10px;
-            }
-
-            .config-section:last-child p {
-                display: none;
-            }
-
-            .config-section:last-child label {
-                display: inline;
-                margin-right: 8px;
-                font-size: 0.75rem;
-            }
-
-            .btn-run-scan {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-                margin: 0;
-                padding: 0.65rem 0.85rem;
-                font-size: 0.85rem;
-                letter-spacing: 0.03em;
-                box-shadow: none;
-                transform: none !important;
-                position: static !important;
-            }
-
-            .chart-panel {
-                order: 2; /* Chart comes immediately after the Scan button */
-                width: 100% !important;
-                height: 350px !important; /* Shorter chart for mobile */
-                padding: 1rem;
-            }
-
-            .chart-container {
-                height: 280px !important;
-                min-height: 280px;
-            }
-
-            .profile-name {
-                font-size: 1.1rem;
-            }
-
-            .bottom-row {
-                display: flex !important;
-                flex-direction: column !important;
-                margin-top: 1rem;
-                gap: 1rem;
-            }
+            .command-header-bar { flex-direction: column; padding: 1rem; gap: 1rem; }
+            .header-metrics { flex-wrap: wrap; gap: 15px; }
+            .h-divider { display: none; }
+            .workspace { padding: 1rem; }
+            .top-row { display: flex; flex-direction: column; height: auto; }
+            .chart-panel { height: 350px; }
+            .chart-container { height: 100%; min-height: 250px; }
+            .bottom-row { display: flex; flex-direction: column; }
         }
     </style>
 </head>
@@ -466,77 +184,62 @@
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
-
             <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/settings">Settings</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
-
-            <div class="xean-nav-actions">
                 {% if current_user.is_authenticated %}
-
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                    <a href="/dashboard" style="color: var(--text-main);">Terminal</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency">AI Logic</a>
+                    <a href="/settings">Settings</a>
                 {% endif %}
+            </div>
+            <div class="xean-nav-actions">
+                <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Terminate Session</a>
             </div>
         </div>
     </nav>
 
     <div style="padding: 1.5rem 2rem 0 2rem;">
         <div class="command-header-bar">
-
             <div class="header-profile">
                 <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
                     {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
                 </div>
                 <div class="profile-text">
                     <span class="profile-name">{{ current_user.full_name }}</span>
-                    <span class="profile-tier">FREE TIER</span>
+                    <span class="profile-tier">SYS_ADMIN // FREE</span>
                 </div>
             </div>
 
             <div class="header-metrics">
                 <div class="h-metric">
-                    <span class="h-label">Account Status</span>
-                    <span class="h-value" style="color: var(--success);">Paper Trading</span>
+                    <span class="h-label">Environment</span>
+                    <span class="h-value" style="color: var(--success);"><i class="fas fa-flask" style="font-size: 0.8rem; margin-right: 6px;"></i>Sandbox</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Available Cash</span>
+                    <span class="h-label">Capital Auth</span>
                     <span class="h-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">AI Confidence</span>
-                    <span class="h-value" id="ai-confidence">--%</span>
+                    <span class="h-label">Model Confidence</span>
+                    <span class="h-value" id="ai-confidence" style="color: var(--accent-blue);">--%</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Setup Alignment</span>
+                    <span class="h-label">Logic Alignment</span>
                     <span class="h-value" id="setup-grade">--</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Max Risk</span>
-                    <span class="h-value" id="risk-amount">--</span>
+                    <span class="h-label">Max Allowed Risk</span>
+                    <span class="h-value" id="risk-amount" style="color: var(--warning);">--</span>
                 </div>
             </div>
 
             <div class="header-actions">
-                <a href="/upgrade" class="btn btn-primary">Go Pro</a>
+                <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
+                    <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
                 </a>
             </div>
         </div>
@@ -546,32 +249,37 @@
 
         <div class="top-row">
             <div class="control-panel">
-                <div class="config-section">
-                    <label>1. Select Parameter Profile</label>
-                    <select id="strategy-select" class="auth-input strategy-select">
-                        <option value="balanced">Standard Growth (Balanced Risk)</option>
-                        <option value="aggressive">Aggressive (High Volatility)</option>
+                <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+                    Command Input <span class="sys-tag">INPUT_REQ</span>
+                </div>
+                
+                <div>
+                    <label style="font-size: 0.75rem; margin-bottom: 8px;">Risk Profile Selection</label>
+                    <select id="strategy-select" class="strategy-select">
+                        <option value="balanced">PROFILE_01: Balanced Growth</option>
+                        <option value="aggressive">PROFILE_02: High Volatility Edge</option>
                     </select>
                 </div>
 
-                <div class="config-section" style="margin-top: 2rem;">
-                    <label>2. Execute Market Scan</label>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-                        Click below to initiate the quantitative data scan.
+                <div style="margin-top: auto;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; font-family: var(--font-mono);">
+                        > Awaiting scan authorization...
                     </p>
-
-                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()">
-                        RUN DATA SCAN
+                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
+                        <i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan
                     </button>
                 </div>
             </div>
 
             <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-weight: bold; font-size: 1.1rem;">Asset in Focus: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.3rem;">NONE</span></div>
-                    <div id="liveIndicator" style="display:none; color: var(--success); font-size: 0.8rem; font-weight: bold;">● LIVE DATA</div>
+                    <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
+                        TARGET_ASSET: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
+                    </div>
+                    <div id="liveIndicator" style="display:none; color: var(--success); font-family: var(--font-mono); font-size: 0.75rem;">
+                        <span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success);"></span>DATA_STREAM_ACTIVE
+                    </div>
                 </div>
-
                 <div class="chart-container">
                     <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
                 </div>
@@ -579,99 +287,104 @@
         </div>
 
         <div class="bottom-row" id="data-panels" style="display: none;">
+            
             <div class="data-card">
                 <div class="card-header">
-                    Execution Plan
-                    <span id="decisionPill" class="table-pill watch">AWAITING SCAN</span>
+                    Logic Execution Plan
+                    <span id="decisionPill" class="table-pill watch">AWAITING</span>
                 </div>
                 <div id="actionContainer" class="action-box wait">
-                    <div id="actionPrimary" class="action-text">Run the data scan to calculate parameters.</div>
+                    <div id="actionPrimary" class="action-text">> Run data scan to calculate parameters.</div>
                 </div>
                 <div class="watch-panel">
-                    <div class="watch-line"><span>💰 Position Size:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
-                    <div class="watch-line"><span>🛑 Calculated Stop:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
-                    <div class="watch-line"><span>🎯 Calculated Target:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
-                    <hr style="border-color: var(--border); margin: 10px 0;">
-                    <div class="watch-line"><span>🔥 Max Capital Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>Calculated Size:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
+                    <div class="watch-line"><span>Hard Stop Array:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
+                    <div class="watch-line"><span>Target Boundary:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
+                    <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 12px 0;"></div>
+                    <div class="watch-line"><span>Capital Value at Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
                 </div>
             </div>
 
             <div class="data-card" id="news-panel">
-                <div class="card-header">Market Data <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Model Inputs)</span></div>
+                <div class="card-header">
+                    Data Model Inputs
+                    <span class="sys-tag">SYS_ANALYTICS</span>
+                </div>
                 <div class="mini-grid" id="scoreRows">
                     </div>
-                <div id="bestNotes" style="margin-top: 15px; font-size: 0.9rem; padding: 10px; background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border);">
-                    Waiting for data...
+                <div id="bestNotes" style="margin-top: 15px; font-family: var(--font-mono); font-size: 0.8rem; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); color: var(--text-muted); line-height: 1.6;">
+                    > Waiting for data feed...
                 </div>
             </div>
 
             <div class="data-card" id="watchlist-panel">
-                <div class="card-header">Active Screener</div>
+                <div class="card-header">
+                    Active Screener Results
+                    <span class="sys-tag">SYS_FILTER</span>
+                </div>
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Symbol</th>
-                                <th>Logic Output</th>
+                                <th>Sym</th>
+                                <th>Logic Gate</th>
                                 <th>Price</th>
                                 <th>Score</th>
                             </tr>
                         </thead>
                         <tbody id="watchlistBody">
-                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">Run scan to populate.</td></tr>
+                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="data-card" id="active-position-card" style="display: none; border-color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);">
-                <div class="card-header">
-                    Live Position: <span id="pos-symbol" style="color: var(--accent-blue);">--</span>
-                    <span class="table-pill buy-now">LIVE</span>
+            <div class="data-card" id="active-position-card" style="display: none; border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);">
+                <div class="card-header" style="color: var(--text-main);">
+                    Active Position: <span id="pos-symbol" style="color: var(--accent-blue); font-family: var(--font-mono); font-size: 1.2rem; margin-left: 8px;">--</span>
+                    <span class="table-pill buy-now" style="box-shadow: 0 0 15px var(--success);"><i class="fas fa-circle-notch fa-spin" style="margin-right: 6px;"></i>LIVE</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="mini-card">
-                        <div class="label">Entry Price</div>
+                <div class="mini-grid" style="margin-bottom: 15px;">
+                    <div class="mini-card" style="background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.2);">
+                        <div class="label" style="color: var(--accent-blue);">Fill Price</div>
                         <div class="value" id="pos-entry">$--</div>
                     </div>
                     <div class="mini-card">
-                        <div class="label">Current Price</div>
+                        <div class="label">Current Mark</div>
                         <div class="value" id="pos-current">$--</div>
                     </div>
                 </div>
-                <div class="action-box" id="pl-container" style="text-align: center; padding: 1.5rem;">
-                    <div class="label" style="font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;">Unrealized P&L</div>
-                    <div id="pos-pl" style="font-size: 2.5rem; font-weight: 900;">$0.00</div>
-                    <div id="pos-pl-pct" style="font-size: 1.1rem; font-weight: bold; opacity: 0.8;">(0.00%)</div>
+                <div class="action-box" id="pl-container" style="text-align: center; padding: 1.5rem; border: 1px solid transparent;">
+                    <div class="label" style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; color: var(--text-muted);">Unrealized P&L</div>
+                    <div id="pos-pl" style="font-family: var(--font-mono); font-size: 2.8rem; font-weight: 800; letter-spacing: -1px;">$0.00</div>
+                    <div id="pos-pl-pct" style="font-family: var(--font-mono); font-size: 1rem; font-weight: bold; opacity: 0.7;">(0.00%)</div>
                 </div>
                 <div class="watch-panel">
-                    <div class="watch-line"><span>Stop Loss:</span> <span id="pos-stop" class="highlight-red">--</span></div>
-                    <div class="watch-line"><span>Target 1:</span> <span id="pos-target" class="highlight-green">--</span></div>
+                    <div class="watch-line"><span>Auto-Stop Order:</span> <span id="pos-stop" class="highlight-red">--</span></div>
+                    <div class="watch-line"><span>Take Profit Bound:</span> <span id="pos-target" class="highlight-green">--</span></div>
                 </div>
             </div>
 
-            <div class="data-card full-width" id="terminal-panel">
-                <div class="card-header">Live Terminal <span id="bot-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">Waiting...</span></div>
+            <div class="data-card terminal-panel full-width" id="terminal-panel">
+                <div class="card-header" style="border-bottom-color: rgba(255,255,255,0.05);">
+                    <div><i class="fas fa-terminal" style="margin-right: 8px; color: var(--text-muted);"></i>Execution Logs</div>
+                    <span id="bot-status" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: none;">> Awaiting command...</span>
+                </div>
                 <div class="terminal-output" id="log-container">
-                    <div><span class="log-time">Now</span> Ready to go. Waiting for command.</div>
+                    <div><span class="log-time">[SYSTEM INIT]</span> <span style="color: var(--success);">Terminal online. Sandbox connection verified.</span></div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    {% include 'footer.html' %}
-
     <script>
         const csrfToken = "{{ csrf_token() }}";
         const chartState = { chart: null, series: null };
-
-        // Global state for websockets
         const state = { ws: null };
         const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
-        let activeTrade = null; // Stores {symbol, entry, qty, stop, target}
+        let activeTrade = null; 
 
-        // Helper: Format Money
         function money(v) {
             if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
             return `$${Number(v).toFixed(2)}`;
@@ -679,37 +392,33 @@
 
         function updateLivePL(currentPrice) {
             if (!activeTrade) return;
-
             const pl = (currentPrice - activeTrade.entry) * activeTrade.qty;
             const plPct = ((currentPrice - activeTrade.entry) / activeTrade.entry) * 100;
-
             const plEl = document.getElementById('pos-pl');
             const pctEl = document.getElementById('pos-pl-pct');
             const card = document.getElementById('pl-container');
 
-            // Update Text
             plEl.textContent = (pl >= 0 ? '+' : '') + money(pl);
             pctEl.textContent = `(${plPct.toFixed(2)}%)`;
             document.getElementById('pos-current').textContent = money(currentPrice);
 
-            // Dynamic Colors
             if (pl >= 0) {
                 plEl.style.color = 'var(--success)';
-                card.style.background = 'rgba(16, 185, 129, 0.1)';
-                card.style.borderColor = 'var(--success)';
+                card.style.background = 'rgba(16, 185, 129, 0.05)';
+                card.style.borderColor = 'rgba(16, 185, 129, 0.2)';
             } else {
                 plEl.style.color = 'var(--danger)';
-                card.style.background = 'rgba(239, 68, 68, 0.1)';
-                card.style.borderColor = 'var(--danger)';
+                card.style.background = 'rgba(239, 68, 68, 0.05)';
+                card.style.borderColor = 'rgba(239, 68, 68, 0.2)';
             }
         }
 
-        // Helper: Add log to terminal
+        // Updated for terminal aesthetic
         function addLog(message, color) {
             const terminal = document.getElementById('log-container');
             if (!terminal) return;
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            terminal.innerHTML += `<div style="margin-bottom: 5px;"><span class="log-time">${time}</span> <span style="color: ${color || 'inherit'};">${message}</span></div>`;
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            terminal.innerHTML += `<div><span class="log-time">[${time}]</span> <span style="color: ${color || '#a1a1aa'};">${message}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
 
@@ -725,7 +434,6 @@
                         const price = Number(match?.current_price);
                         if (!Number.isNaN(price)) updateLivePL(price);
                     }
-                    console.log(`Pinging APIs every ${userRefreshRate / 1000} seconds.`);
                 }
             } catch (err) {
                 console.debug(`Live metrics refresh skipped: ${err.message}`);
@@ -734,7 +442,7 @@
 
         setInterval(() => {
             updateLiveMetrics();
-            addLog("Updating market data...", "var(--text-muted)");
+            addLog("> Pinging exchange for updated tick data...", "#52525b");
         }, userRefreshRate);
 
         function initChart() {
@@ -742,15 +450,17 @@
             if (!container) return;
             container.innerHTML = '';
             chartState.chart = LightweightCharts.createChart(container, {
-                layout: { background: { color: '#101826' }, textColor: '#dbe4ff' },
+                layout: { background: { color: '#000000' }, textColor: '#94a3b8' }, // Darker chart background
                 grid: {
-                    vertLines: { color: 'rgba(148,163,184,0.05)' },
-                    horzLines: { color: 'rgba(148,163,184,0.05)' }
+                    vertLines: { color: 'rgba(255,255,255,0.03)' },
+                    horzLines: { color: 'rgba(255,255,255,0.03)' }
                 },
                 width: container.clientWidth,
                 height: 350,
             });
-            chartState.series = chartState.chart.addCandlestickSeries();
+            chartState.series = chartState.chart.addCandlestickSeries({
+                upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
+            });
         }
 
         async function loadChartData(ticker) {
@@ -766,10 +476,8 @@
                 console.error('Chart load failed', e);
             }
         }
-        // Load default SPY chart on startup
         loadChartData('SPY');
 
-        // Feature: Populate "Execution Plan" panel
         function renderWatchPanel(best) {
             const panel = best.watch_panel || {};
             const actionContainer = document.getElementById('actionContainer');
@@ -779,28 +487,27 @@
             decisionPill.textContent = best.decision || 'WATCH';
 
             if (best.decision === 'CRITERIA MET') {
-                // This turns the box green and removes the "WAIT" text
                 decisionPill.className = 'table-pill buy-now';
-                actionContainer.className = 'action-box'; 
-                actionPrimary.innerHTML = `Model Output: Execute <strong>${panel.max_shares || 0} shares</strong> at ${money(best.current_price)}. Target: ${money(best.target_1)}.`;
+                actionContainer.className = 'action-box';
+                actionContainer.style.background = 'rgba(16, 185, 129, 0.1)';
+                actionContainer.style.borderColor = 'var(--success)';
+                actionPrimary.innerHTML = `> ALIGNMENT CONFIRMED.<br>> Calc Execution: <strong>${panel.max_shares || 0} shares</strong> @ ${money(best.current_price)}.<br>> Target Array: ${money(best.target_1)}.`;
             } else if (best.decision === 'WAIT') {
                 decisionPill.className = 'table-pill watch';
                 actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `Hold execution until <strong>${panel.buy_after || '09:45'} ET</strong> per predefined risk rules.`;
+                actionPrimary.innerHTML = `> SAFETY GATE ACTIVE.<br>> Halting execution until <strong>${panel.buy_after || '09:45'} ET</strong> per logic constraints.`;
             } else {
                 decisionPill.className = 'table-pill watch';
                 actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `Scanning data... Current Status: <strong>${best.decision}</strong>`;
+                actionPrimary.innerHTML = `> Data scanning...<br>> Status Code: <strong>${best.decision}</strong>`;
             }
 
-            // Populate Math
             document.getElementById('watchQtyLine').textContent = `${panel.max_shares || 0} Shares`;
             document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
             document.getElementById('watchStopLine').textContent = money(panel.stop);
             document.getElementById('watchTpLine').textContent = money(panel.take_profit_range?.[0]);
         }
 
-        // Feature: Populate "AI Analysis" panel
         function renderBestPick(best) {
             const scoreRows = document.getElementById('scoreRows');
             scoreRows.innerHTML = '';
@@ -817,45 +524,38 @@
                 scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
             });
 
-            // Inject Setup Alignment
             const gradeEl = document.getElementById('setup-grade');
             const grade = best.setup_grade || 'NO MATCH';
-            let gradeClass = 'grade-none';
-            if (grade === 'A+' || grade === 'Tier 1') gradeClass = 'grade-a-plus';
-            else if (grade === 'A' || grade === 'Tier 2') gradeClass = 'grade-a';
-            else if (grade === 'WATCH') gradeClass = 'grade-watch';
-            gradeEl.innerHTML = `<span class="grade-badge ${gradeClass}">${grade}</span>`;
+            gradeEl.innerHTML = `<span style="color: ${grade.includes('A') ? 'var(--success)' : 'var(--warning)'}; font-weight: 800;">[${grade}]</span>`;
 
-            // Status Notes
             const notes = [];
-            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">🧠 AI Sentiment Validated.</span>`);
+            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">> Model integrated Gemini AI sentiment validation.</span>`);
 
             const skips = details.skip_reasons || [];
             if (skips.length > 0) {
-                notes.push(`<strong style="color: var(--danger);">⚠️ System Filters Active:</strong><br><span style="color: var(--text-muted); font-size: 0.8rem;">${skips[0]}</span>`);
+                notes.push(`<span style="color: var(--warning);">> SYSTEM OVERRIDE:</span><br><span style="color: var(--text-muted);">  ${skips[0]}</span>`);
             } else {
-                notes.push(`<strong style="color: var(--success);">✅ Model criteria satisfied. Systematic execution ready.</strong>`);
+                notes.push(`<span style="color: var(--success);">> SYS_CHECK_OK: Mathematical criteria perfectly aligned.</span>`);
             }
             document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
         }
 
-        // Feature: Populate "Active Screener" panel
         function renderWatchlist(items) {
             const body = document.getElementById('watchlistBody');
             body.innerHTML = '';
             if (!items || !items.length) {
-                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No matches found.</td></tr>';
+                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>';
                 return;
             }
-            items.slice(0, 5).forEach(item => { // Show top 5
+            items.slice(0, 5).forEach(item => {
                 const signal = item.live_signal || item.decision || 'WATCH';
                 const cssClass = signal === 'CRITERIA MET' ? 'buy-now' : 'watch';
                 body.innerHTML += `
                     <tr>
-                        <td><strong>${item.symbol}</strong></td>
+                        <td style="color: var(--accent-blue);"><strong>${item.symbol}</strong></td>
                         <td><span class="table-pill ${cssClass}">${signal}</span></td>
                         <td>${money(item.current_price)}</td>
-                        <td>${item.score_total || '--'}/100</td>
+                        <td>${item.score_total || '--'}</td>
                     </tr>`;
             });
         }
@@ -866,81 +566,55 @@
 
             const toast = document.createElement('div');
             toast.className = `trade-toast ${type}`;
+            toast.style.background = '#0f172a';
+            toast.style.borderColor = 'rgba(255,255,255,0.1)';
 
-            let icon = '<i class="fas fa-info-circle"></i>';
-            if (type === 'success') icon = '<i class="fas fa-check-circle" style="color: var(--success)"></i>';
-            if (type === 'danger') icon = '<i class="fas fa-exclamation-circle" style="color: var(--danger)"></i>';
+            let icon = '<i class="fas fa-terminal"></i>';
+            if (type === 'success') icon = '<i class="fas fa-check" style="color: var(--success)"></i>';
+            if (type === 'danger') icon = '<i class="fas fa-times" style="color: var(--danger)"></i>';
 
-            toast.innerHTML = `
-                <div class="toast-header">${icon} ${title}</div>
-                <div class="toast-body">${message}</div>
-            `;
+            toast.innerHTML = `<div class="toast-header" style="font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase;">${icon} ${title}</div><div class="toast-body" style="font-family: var(--font-mono); font-size: 0.8rem; margin-top: 5px;">> ${message}</div>`;
 
-            toast.onclick = () => {
-                toast.style.animation = 'fadeOut 0.3s forwards';
-                setTimeout(() => toast.remove(), 300);
-            };
-
+            toast.onclick = () => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); };
             container.appendChild(toast);
-
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(() => toast.remove(), 300);
-                }
-            }, 5000);
+            setTimeout(() => { if (toast.parentElement) { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); } }, 5000);
         }
 
         function connectWatchlistSocket() {
             if (state.ws) state.ws.close();
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             state.ws = new WebSocket(`${protocol}//${window.location.host}/ws/watchlist`);
-
-            state.ws.onopen = () => {
-                console.log("Live connection established to XeanVI Core.");
-            };
-
+            state.ws.onopen = () => addLog("> WebSocket tunnel established. Subscribed to ticker stream.", "#52525b");
             state.ws.onmessage = (event) => {
                 try {
                     const wsPayload = JSON.parse(event.data);
-                    if (wsPayload.action === 'trade_alert') {
-                        showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
-                    } else if (wsPayload.type === 'watchlist') {
-                        renderWatchlist(wsPayload.items || []);
-                    }
-                } catch (e) {
-                    console.error("Failed to parse websocket message", e);
-                }
+                    if (wsPayload.action === 'trade_alert') showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
+                    else if (wsPayload.type === 'watchlist') renderWatchlist(wsPayload.items || []);
+                } catch (e) { console.error(e); }
             };
         }
 
-        // MAIN EXECUTION LOOP
+        // MAIN EXECUTION
         async function startScanner() {
             const btn = document.getElementById('scanButton');
             const statusHeader = document.getElementById('bot-status');
             const tickerHeader = document.getElementById('target-ticker');
 
-            // 1. Lock UI
-            btn.innerText = "PROCESSING DATA...";
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> COMPILING...';
             btn.disabled = true;
-            statusHeader.innerText = "Working...";
-            statusHeader.style.color = "var(--warning)";
+            statusHeader.innerText = "> Executing scan routine...";
             document.getElementById('ai-confidence').textContent = '--%';
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
 
-            addLog("Initiating data model...", "var(--warning)");
-            addLog("Downloading live market data...", "var(--text-muted)");
+            addLog("> Initiating quantitative data model...", "var(--warning)");
+            addLog("> Downloading and filtering live exchange tape...", "#a1a1aa");
 
             try {
-                // 2. Call the REAL robust Python Scanner
                 const res = await fetch('/api/scan', { 
                     method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
                 });
                 const payload = await res.json();
 
@@ -949,9 +623,8 @@
                 const best = payload.data.best_pick;
                 const watchPanel = best.watch_panel || {};
 
-                addLog(`Processing complete. Highest probability match: ${best.symbol}.`, "var(--success)");
+                addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
 
-                // 3. Update the UI
                 tickerHeader.innerText = best.symbol;
                 document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
                 document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
@@ -962,55 +635,33 @@
                 renderBestPick(best);
                 renderWatchlist(payload.data.watchlist || []);
 
-                // Reveal the Data Panels
                 document.getElementById('data-panels').style.display = 'grid';
 
-                // ==========================================
-                // 4. SYSTEMATIC EXECUTION TRIGGER
-                // ==========================================
+                // EXECUTION TRIGGER
                 if (best.decision === 'CRITERIA MET') {
-                    addLog("⚡ SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION...", "var(--accent-blue)");
+                    addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
 
                     try {
-                        // Send the exact math to the execution engine
                         const execRes = await fetch('/api/execute', {
                             method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                             body: JSON.stringify({
-                                symbol: best.symbol,
-                                entry_price: best.entry_price,
-                                stop_price: best.stop_price,
-                                target_1: best.target_1,
-                                target_2: best.target_2,
-                                qty: best.qty,
-                                current_price: best.current_price,
-                                buy_upper: best.buy_upper,
-                                score_total: best.score_total,
-                                decision: best.decision,
-                                scan_id: payload.data.scan_id
+                                symbol: best.symbol, entry_price: best.entry_price, stop_price: best.stop_price,
+                                target_1: best.target_1, target_2: best.target_2, qty: best.qty,
+                                current_price: best.current_price, buy_upper: best.buy_upper,
+                                score_total: best.score_total, decision: best.decision, scan_id: payload.data.scan_id
                             })
                         });
 
                         const execData = await execRes.json();
 
                         if (execData.ok) {
-                            addLog(`✅ Order Transmitted. System allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
-                            addLog(`🛡️ Risk constraint set at $${best.stop_price.toFixed(2)}`, "var(--text-muted)");
-                            addLog(`🎯 Take-profit boundary set at $${best.target_1.toFixed(2)}`, "var(--text-muted)");
+                            addLog(`> [SUCCESS] Order Transmitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                            addLog(`> Risk constraint compiled at $${best.stop_price.toFixed(2)}`, "#a1a1aa");
+                            addLog(`> Take-profit boundary compiled at $${best.target_1.toFixed(2)}`, "#a1a1aa");
 
-                            // Set Active Trade Data
-                            activeTrade = {
-                                symbol: best.symbol,
-                                entry: best.entry_price,
-                                qty: best.qty,
-                                stop: best.stop_price,
-                                target: best.target_1
-                            };
+                            activeTrade = { symbol: best.symbol, entry: best.entry_price, qty: best.qty, stop: best.stop_price, target: best.target_1 };
 
-                            // Populate and Show the Card
                             document.getElementById('pos-symbol').textContent = activeTrade.symbol;
                             document.getElementById('pos-entry').textContent = money(activeTrade.entry);
                             document.getElementById('pos-stop').textContent = money(activeTrade.stop);
@@ -1018,39 +669,32 @@
                             document.getElementById('active-position-card').style.display = 'block';
                             updateLivePL(Number(best.current_price));
 
-                            // Make the UI scream "Live Position"
                             const pill = document.getElementById('decisionPill');
-                            pill.textContent = 'POSITION LIVE';
+                            pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
                             pill.className = 'table-pill buy-now';
-                            pill.style.boxShadow = '0 0 10px var(--success)';
                         } else {
-                            addLog(`⚠️ Execution Blocked: ${execData.error}`, "var(--danger)");
+                            addLog(`> [BLOCKED] Execution halted: ${execData.error}`, "var(--danger)");
                         }
                     } catch (err) {
-                        addLog(`Error transmitting execution details: ${err.message}`, "var(--danger)");
+                        addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
                     }
                 } else {
-                    // If it's a "WAIT" or "WATCH" signal
-                    addLog("No current data matches the exact criteria parameters. System remaining in watch mode.", "var(--warning)");
+                    addLog("> No current data arrays match execution parameters. System idling in watch mode.", "var(--warning)");
                 }
-                // ==========================================
 
-                // 5. Connect WebSocket for live watchlist updates + alerts
                 connectWatchlistSocket();
 
             } catch (err) {
-                addLog(`Error: ${err.message}`, "var(--danger)");
+                addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
             } finally {
-                // Unlock UI
-                btn.innerText = "RUN DATA SCAN";
+                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
                 btn.disabled = false;
-                statusHeader.innerText = "Idle";
-                statusHeader.style.color = "var(--text-muted)";
+                statusHeader.innerText = "> Awaiting command...";
             }
         }
 
         connectWatchlistSocket();
     </script>
     <div id="toast-container" aria-live="polite" aria-atomic="true" role="status"></div>
-    </body>
+</body>
 </html>
