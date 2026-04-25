@@ -3,7 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / '.env')
+# Tell the app exactly where the secret map is hidden now
+load_dotenv('/etc/xeanvi/xeanvi.env')
 
 
 def require_env(var_name: str) -> str:
