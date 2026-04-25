@@ -404,7 +404,6 @@ def playbook():
 
 @app.route('/broker-integration')
 def broker_integration():
-    """Public page explaining the broker execution workflow."""
     return render_template('broker_integration.html')
 
 
