@@ -10,131 +10,77 @@
 </head>
 <body>
     <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo">Xean<span>VI</span></a>
-            <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/community">Community</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/alpaca-integration">Alpaca Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
-            <div class="xean-nav-actions">
-                <a href="/login">Log In</a>
-                <a href="/signup" class="btn btn-primary">Start Free</a>
-            </div>
-        </div>
-    </nav>
+        </nav>
 
-    <header class="page-header">
+    <header class="page-header" style="padding: 10rem 0 6rem; text-align: center; background: radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 70%);">
         <div class="container">
-            <div class="badge-pill">Automation Suite</div>
-            <h1>Hands-Free <span class="text-gradient">Trade Execution</span></h1>
-            <p>XeanVI removes manual order placement and emotional clicking from your workflow.</p>
+            <div class="badge-pill" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); padding: 0.5rem 1.25rem; border-radius: 50px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2rem; display: inline-block;">Institutional Grade Tech</div>
+            <h1 style="font-size: clamp(2.5rem, 6vw, 4rem); margin-bottom: 1.5rem;">The Anatomy of <span class="text-gradient">Quantitative Alpha</span></h1>
+            <p style="max-width: 750px; margin: 0 auto; font-size: 1.25rem; color: var(--text-muted);">XeanVI isn't a social app. It is a high-availability trading engine built for disciplined execution of the "Golden Setup."</p>
         </div>
     </header>
 
-    <section style="padding: 4rem 0; background: var(--bg-card); border-bottom: 1px solid var(--border-color);">
+    <section style="padding: 4rem 0;">
         <div class="container">
-            <h2 style="text-align: center; margin-bottom: 3rem;">Why XeanVI Beats "Autopilot" Apps</h2>
-
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; background: var(--bg-main); border-radius: 12px; overflow: hidden;">
-                    <thead>
-                        <tr style="background: rgba(255,255,255,0.03); text-align: left;">
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">Capability</th>
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Standard Retail Apps</th>
-                            <th style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--accent-blue);">XeanVI Engine</th>
-                        </tr>
-                    </thead>
-                    <tbody style="font-size: 0.95rem;">
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Logic Origin</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Social "Copy-Trading" (Delayed)</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Gemini AI Sentiment Analysis</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Infrastructure</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Mobile-Client Dependent</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Persistent VPS (systemd)</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Execution Mode</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Manual or Mirrored</td>
-                            <td style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color);">Automated Alpaca OAuth Integration</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.2rem 1.5rem; font-weight: 600;">Entry Validation</td>
-                            <td style="padding: 1.2rem 1.5rem; color: var(--text-muted);">Generic Price Alerts</td>
-                            <td style="padding: 1.2rem 1.5rem;">Multi-Factor (RVOL + Price + Sentiment)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
-    <section class="section-pad">
-        <div class="container">
-            <div class="grid-2">
-                <div class="feature-box" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-brain"></i> Neural Catalyst Scoring</h3>
-                    <p>Every ticker is passed through our <strong>Gemini-powered</strong> scoring model. We filter out the noise of "social media pumps" and focus exclusively on high-impact institutional catalysts.</p>
+            <div style="background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,0.4);">
+                <div style="padding: 2.5rem; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.02);">
+                    <h2 style="font-size: 1.75rem; margin: 0;">Market Execution: Us vs. The Field</h2>
                 </div>
-                <div class="feature-box" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <h3 style="color: var(--success);"><i class="fas fa-lock"></i> Enterprise Reliability</h3>
-                    <p>XeanVI is built with <strong>Python Flask</strong> and <strong>systemd</strong>, ensuring that your bot remains active through server reboots and network flickers. Reliability is our baseline.</p>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+                                <th style="padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--border-color);">Feature</th>
+                                <th style="padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--border-color);">Standard "Autopilot" Apps</th>
+                                <th style="padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--border-color); color: var(--accent-blue);">XeanVI Engine</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 1rem;">
+                            <tr>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Trade Trigger</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Public filings (weeks late)</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color);">Real-time AI Sentiment</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Uptime Architecture</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Mobile Application</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color);">Persistent systemd VPS</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">Onboarding Security</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Third-party key sharing</td>
+                                <td style="padding: 2rem 2.5rem; border-bottom: 1px solid var(--border-color);">Direct Alpaca OAuth</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2rem 2.5rem; font-weight: 600;">Risk Management</td>
+                                <td style="padding: 2rem 2.5rem; color: var(--text-muted);">Fixed Social Mirroring</td>
+                                <td style="padding: 2rem 2.5rem;">Dynamic RVOL & Stop Filters</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </section>
 
     <section class="section-pad">
-        <div class="container">
-            <div class="grid-2">
-                <div class="feature-box">
-                    <h3><i class="fas fa-bolt"></i> Automated Entry</h3>
-                    <p>Places bid/ask-pegged limit orders the moment your rules are met.</p>
-                </div>
-                <div class="feature-box">
-                    <h3><i class="fas fa-shield-alt"></i> Automated Exits</h3>
-                    <p>Manages hard stops and scale-outs based on your profit targets.</p>
-                </div>
+        <div class="container grid-2" style="gap: 4rem;">
+            <div>
+                <div style="font-size: 0.85rem; color: var(--accent-blue); font-weight: 800; text-transform: uppercase; margin-bottom: 1rem;">The Brain</div>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">AI-Driven Catalyst Verification</h2>
+                <p style="font-size: 1.15rem; line-height: 1.8; color: var(--text-muted); margin-bottom: 2rem;">
+                    We integrated the <strong>Gemini API</strong> directly into our scanner. XeanVI doesn't just see volume; it understands the news *behind* the volume. Every ticker is scored on a proprietary sentiment scale before an order is ever placed.
+                </p>
+                <a href="/transparency" class="btn btn-secondary">Explore AI Logic →</a>
+            </div>
+            <div style="background: var(--bg-card); padding: 3rem; border-radius: 24px; border: 1px solid var(--border-color);">
+                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-shield-virus" style="color: var(--danger); margin-right: 10px;"></i> Hard Crash Protection</h3>
+                <p style="color: var(--text-muted); line-height: 1.7;">XeanVI includes built-in volatility filters. If the broader market begins to dump, the bot enters "Defensive Mode," automatically pausing new entries to protect your capital.</p>
             </div>
         </div>
     </section>
 
     <footer class="footer">
-        <div class="container">
-            <div class="footer-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 4rem; text-align: left; margin-bottom: 3rem;">
-                <div class="footer-brand">
-                    <a href="/" class="logo">Xean<span>VI</span></a>
-                    <p style="margin-top: 1rem; color: var(--text-muted);">Set it up once. Click run. Let the bot trade automatically.</p>
-                </div>
-                <div class="footer-nav">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-main);">Platform</h4>
-                    <a href="/features">Features</a>
-                    <a href="/playbook">The Strategy</a>
-                    <a href="/alpaca-integration">Alpaca Workflow</a>
-                </div>
-                <div class="footer-legal">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-main);">Legal</h4>
-                    <a href="/terms">Terms of Use</a>
-                    <a href="/privacy">Privacy Policy</a>
-                </div>
-            </div>
-            <div class="footer-bottom" style="border-top: 1px solid var(--border-color); padding-top: 2rem; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
-                <p>&copy; 2026 XeanVI. Built for disciplined retail automation.</p>
-                <p style="margin-top: 0.5rem;">Disclaimer: Trading involves significant risk. Test in Sandbox mode before using real capital.</p>
-            </div>
-        </div>
-    </footer>
+        </footer>
 </body>
 </html>
