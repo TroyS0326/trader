@@ -144,17 +144,6 @@ class Waitlist(db.Model):
     is_early_bird = db.Column(db.Boolean, default=False)
 
 
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    ticker = db.Column(db.String(10), nullable=False)
-    setup_grade = db.Column(db.String(5), nullable=True)
-    content = db.Column(db.Text, nullable=False)
-    upvotes = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    author = db.relationship('User', backref=db.backref('posts', lazy=True))
-
 class Trade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
