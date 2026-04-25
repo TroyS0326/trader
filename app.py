@@ -266,8 +266,8 @@ def join_waitlist():
         logger.error(f"Database Waitlist Error: {e}")
         db.session.rollback()
 
-    # 2. FORCE GRAB API KEY DIRECTLY
-    api_key = os.getenv('BREVO_API_KEY')
+    # 2. PULL FROM CONFIG MODULE
+    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
     
     if not api_key:
         logger.error("CRITICAL: BREVO_API_KEY is missing from environment variables!")
