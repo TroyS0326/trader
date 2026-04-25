@@ -3,35 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-    <title>Create Your Account | XeanVI AI Trading Syndicate</title>
-    <meta name="description" content="Join the XeanVI Syndicate and automate your edge. Create an account to access AI-driven market scans, strict risk management, and zero-emotion trade execution.">
-
-    <meta name="robots" content="index, follow, noarchive">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/signup">
-
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeanvi.com/signup">
-    <meta property="og:title" content="Join XeanVI | The Future of Disciplined Trading">
-    <meta property="og:description" content="Start your zero-risk paper trading sandbox today. Join a community of algorithmic traders focused on pure logic.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-signup-hero.jpg', _external=True) }}">
-
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Create Your XeanVI Account">
-    <meta name="twitter:description" content="Automate your morning scans and enforce strict risk control. Access the command center now.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-signup-hero.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
+    <title>Establish Credentials | XeanVI Terminal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
+            background-color: var(--bg-main);
+            background-image: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background: var(--bg-main);
-            margin: 0;
         }
         .auth-wrapper {
             flex-grow: 1;
@@ -39,6 +21,121 @@
             align-items: center;
             justify-content: center;
             padding: 2rem;
+        }
+        .auth-terminal-wide {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            display: flex;
+            overflow: hidden;
+        }
+        .auth-info-side {
+            background: #020617;
+            padding: 3rem 2rem;
+            width: 45%;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .auth-form-side {
+            padding: 3rem 2.5rem;
+            width: 55%;
+        }
+        .sys-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 1rem;
+        }
+        .sys-status::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+        
+        .input-group { margin-bottom: 1.25rem; }
+        .input-group label {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .auth-input {
+            width: 100%;
+            background: #020617;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.85rem 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .auth-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.1);
+        }
+        .btn-auth {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            color: #fff;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            margin-top: 1rem;
+        }
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5);
+        }
+
+        .trust-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 2rem;
+        }
+        .trust-list li {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .trust-list i {
+            color: var(--accent-blue);
+            margin-top: 3px;
+        }
+
+        @media (max-width: 850px) {
+            .auth-terminal-wide { flex-direction: column; max-width: 450px; }
+            .auth-info-side { display: none; }
+            .auth-form-side { width: 100%; padding: 2rem 1.5rem; }
         }
     </style>
 </head>
@@ -49,86 +146,89 @@
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
-            <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/community">Community</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
             <div class="xean-nav-actions">
-                <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                <a href="/login" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem;">Authenticate</a>
             </div>
         </div>
     </nav>
 
     <div class="auth-wrapper">
-        <div class="auth-container">
+        <div class="auth-terminal-wide">
+            
+            <div class="auth-info-side">
+                <div class="sys-status">SYS_REGISTRATION_ACTIVE</div>
+                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Engine Access</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Establish your sandbox credentials to deploy quantitative execution models.</p>
+                
+                <ul class="trust-list">
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">End-to-End Encrypted</strong>
+                            Data transmission strictly secured via systemd VPS architecture.
+                        </div>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Broker Independence</strong>
+                            OAuth integrated. Your exchange credentials remain fully sandboxed.
+                        </div>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Paper Sandbox Validated</strong>
+                            Immediate access to simulated capital for live logic testing.
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
             <div class="auth-form-side">
-                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Create your account</h2>
-                <p style="color: var(--text-muted); margin-bottom: 2rem;">Join the Syndicate and automate your edge.</p>
+                <h1 style="font-size: 1.4rem; margin-bottom: 1.5rem;">Establish Credentials</h1>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                  {% if messages %}
-                    {% for category, message in messages %}
-                      <div class="flash-error">{{ message }}</div>
-                    {% endfor %}
-                  {% endif %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-msg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-align: center;">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>{{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                 {% endwith %}
 
-                <form action="{{ url_for('signup', plan=request.args.get('plan')) }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <form method="POST" action="{{ url_for('signup') }}">
+                    
                     <div class="input-group">
-                        <label>Full Name</label>
-                        <input type="text" name="full_name" class="auth-input" placeholder="John Doe" required>
+                        <label for="full_name">Operator Alias (Name)</label>
+                        <input type="text" id="full_name" name="full_name" class="auth-input" required placeholder="John Doe">
                     </div>
+
                     <div class="input-group">
-                        <label>Email Address</label>
-                        <input type="email" name="email" class="auth-input" placeholder="john@example.com" required>
+                        <label for="email">User Identifier (Email)</label>
+                        <input type="email" id="email" name="email" class="auth-input" required placeholder="operator@domain.com">
                     </div>
+                    
                     <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                        <label for="password">Decryption Key (Password)</label>
+                        <input type="password" id="password" name="password" class="auth-input" required placeholder="••••••••••••">
                     </div>
-                    <div class="input-group" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 1rem;">
-                        <input type="checkbox" name="tos_agreement" id="tos_agreement" style="margin-top: 4px;" required>
-                        <label for="tos_agreement" style="font-size: 0.8rem; text-transform: none; letter-spacing: 0; line-height: 1.4;">
-                            I agree to the <a href="/terms" style="color: var(--accent-blue);">Terms of Service</a> and <a href="/privacy" style="color: var(--accent-blue);">Privacy Policy</a>.
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-auth" style="margin-top: 1.5rem;">Create Account</button>
+
+                    <button type="submit" class="btn-auth">
+                        <i class="fas fa-fingerprint" style="margin-right: 8px;"></i> Initialize Sandbox
+                    </button>
                 </form>
-                <div class="auth-footer">
-                    Already have an account? <a href="/login">Log In</a>
+
+                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    Already established? <a href="/login" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">Authenticate Here</a>
                 </div>
             </div>
 
-            <div class="auth-marketing-side">
-                <div class="trust-box">
-                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Zero Emotion</div>
-                    <div class="trust-desc">The AI executes your plan precisely, removing human error.</div>
-                </div>
-                <div class="trust-box">
-                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Pure Logic</div>
-                    <div class="trust-desc">Cross-references breaking news sentiment with volume anomalies.</div>
-                </div>
-                <div class="trust-box">
-                    <div class="trust-title"><span><i class="fas fa-check-circle"></i></span> Strict Risk Control</div>
-                    <div class="trust-desc">Hard stops and trailing runners are built into every execution.</div>
-                </div>
-            </div>
         </div>
     </div>
 
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
