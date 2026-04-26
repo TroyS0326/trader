@@ -386,21 +386,27 @@ def faq():
 @app.route('/sitemap')
 def sitemap():
     """
-    Dynamically generates a list of all public and logged-in accessible routes.
+    Dynamically generates a list of all public and logged-in accessible routes,
+    skipping routes that require parameters (which would cause a BuildError).
     """
     links = []
     excluded_endpoints = [
         'static', 'sitemap', 'stripe_webhook', 'alpaca_callback',
         'sandbox_callback', 'ws_watchlist', 'api_scan', 'api_metrics',
         'api_history', 'api_chart', 'api_execute', 'api_order_status',
-        'api_transparency_stats', 'create_checkout_session', 'dev_unlock'
+        'api_transparency_stats', 'create_checkout_session', 'dev_unlock',
+        'robots_txt'
     ]
 
     for rule in app.url_map.iter_rules():
-        if "GET" in rule.methods and rule.endpoint not in excluded_endpoints:
-            title = rule.endpoint.replace('_', ' ').title()
-            url = url_for(rule.endpoint)
-            links.append({'url': url, 'title': title})
+        if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
+            try:
+                title = rule.endpoint.replace('_', ' ').title()
+                url = url_for(rule.endpoint)
+                links.append({'url': url, 'title': title})
+            except Exception as e:
+                logger.error(f"Sitemap Build Error for {rule.endpoint}: {e}")
+                continue
 
     return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
 
