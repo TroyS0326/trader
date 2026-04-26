@@ -31,8 +31,7 @@ from execution import start_engine
 from models import db
 from models import User, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
-from scanner import buy_window_open, get_stock_chart_pack, now_et
-from tasks import async_run_scan_task
+from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 
 app = Flask(__name__)
@@ -741,11 +740,29 @@ def api_runtime_health():
 @app.route('/api/scan', methods=['POST', 'GET'])
 @login_required
 def api_scan():
-    async_run_scan_task.delay(current_user.id)
-    return jsonify({
-        'ok': True,
-        'message': 'Scan dispatched to cluster. Results will arrive via WebSocket.',
-    }), 202
+    try:
+        # Sync bankroll before scanning so risk sizing uses current account equity.
+        fetch_and_sync_bankroll(current_user)
+        result = run_scan(current_user)
+        risk_controls = {
+            'failed_trades_today': get_failed_trades_today(),
+            'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
+            'buy_window_open': buy_window_open(),
+            'no_buy_before_et': config.NO_BUY_BEFORE_ET,
+        }
+        result['risk_controls'] = risk_controls
+        scan_id = insert_scan(result)
+        result['scan_id'] = scan_id
+        redis_client.setex('latest_scan', 300, json.dumps(result))
+        watchlist_manager.set_items(result.get('watchlist', []))
+        return ok(
+            result,
+            history={'scans': get_recent_scans(), 'trades': get_recent_trades()},
+        )
+    except ScanError as exc:
+        return fail(str(exc))
+    except Exception as exc:
+        return fail(f'Scan failed: {exc}', 500)
 
 
 @app.route('/api/metrics')
