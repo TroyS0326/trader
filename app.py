@@ -522,12 +522,12 @@ def stripe_webhook():
 
     if event['type'] == 'checkout.session.completed':
         checkout_session = event['data']['object']
-        client_ref_id = checkout_session.get('client_reference_id')
+        client_ref_id = getattr(checkout_session, 'client_reference_id', None)
 
         if client_ref_id:
             user = User.query.get(int(client_ref_id))
         else:
-            customer_email = checkout_session.get('customer_email')
+            customer_email = getattr(checkout_session, 'customer_email', None)
             user = User.query.filter_by(email=customer_email).first()
 
         if user:
