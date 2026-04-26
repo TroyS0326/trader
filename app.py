@@ -753,7 +753,10 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
-        redis_client.setex('latest_scan', 300, json.dumps(result))
+        try:
+            redis_client.setex('latest_scan', 300, json.dumps(result))
+        except Exception as redis_exc:
+            logger.warning(f"Redis cache write failed (bypassing): {redis_exc}")
         watchlist_manager.set_items(result.get('watchlist', []))
         return ok(
             result,
@@ -769,8 +772,13 @@ def api_scan():
 @login_required
 def api_metrics():
     """Returns the latest scan data and risk stats for the dashboard refresh."""
-    raw_scan = redis_client.get('latest_scan')
-    latest_scan_data = json.loads(raw_scan) if raw_scan else None
+    latest_scan_data = None
+    try:
+        raw_scan = redis_client.get('latest_scan')
+        if raw_scan:
+            latest_scan_data = json.loads(raw_scan)
+    except Exception as redis_exc:
+        logger.warning(f"Redis cache read failed (bypassing): {redis_exc}")
     failed_trades_today = get_failed_trades_today()
     return ok({
         'latest_scan': latest_scan_data,

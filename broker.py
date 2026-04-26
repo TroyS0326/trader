@@ -1,4 +1,6 @@
+import logging
 import time
+import threading
 from typing import Any, Dict, List
 
 import requests
@@ -14,6 +16,7 @@ from config import (
 )
 
 TIMEOUT = 20
+logger = logging.getLogger(__name__)
 
 
 class BrokerError(Exception):
@@ -219,6 +222,57 @@ def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | No
     )
 
 
+def _background_leg_placement(
+    entry_id: str,
+    symbol: str,
+    qty: int,
+    entry_price: float,
+    stop_price: float,
+    target_1_price: float,
+    user_token: str | None,
+    user: Any | None,
+) -> None:
+    """Runs asynchronously to prevent blocking the main Flask API thread."""
+    try:
+        _ = entry_price
+        filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token, user=user)
+        filled_qty = int(float(filled_entry.get('filled_qty') or qty))
+        if filled_qty < 1:
+            return
+
+        qty_target_1 = max(1, filled_qty // 2)
+        qty_runner = max(0, filled_qty - qty_target_1)
+
+        submit_order(
+            {
+                'symbol': symbol.upper(),
+                'qty': str(qty_target_1),
+                'side': 'sell',
+                'type': 'limit',
+                'time_in_force': 'day',
+                'limit_price': round(target_1_price, 2),
+            },
+            token=user_token,
+            user=user,
+        )
+
+        if qty_runner > 0:
+            submit_order(
+                {
+                    'symbol': symbol.upper(),
+                    'qty': str(qty_runner),
+                    'side': 'sell',
+                    'type': 'stop',
+                    'time_in_force': 'day',
+                    'stop_price': round(stop_price, 2),
+                },
+                token=user_token,
+                user=user,
+            )
+    except BrokerError as exc:
+        logger.error('Failed to execute background legs for %s: %s', entry_id, exc)
+
+
 def place_managed_entry_order(
     symbol: str,
     qty: int,
@@ -236,57 +290,26 @@ def place_managed_entry_order(
         if qty > max_safe_qty:
             qty = max(1, max_safe_qty)
 
-    _ = entry_price, target_2_price  # reserved for external broker adapters and journaling.
+    _ = target_2_price  # reserved for external broker adapters and journaling.
     entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy', user=user)
     entry_id = entry.get('id')
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
-    filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token, user=user)
-    filled_qty = int(float(filled_entry.get('filled_qty') or qty))
-    if filled_qty < 1:
-        raise BrokerError('Entry order reported no shares filled.')
 
-    qty_target_1 = max(1, filled_qty // 2)
-    qty_runner = max(0, filled_qty - qty_target_1)
-
-    target_1_order = submit_order(
-        {
-            'symbol': symbol.upper(),
-            'qty': str(qty_target_1),
-            'side': 'sell',
-            'type': 'limit',
-            'time_in_force': 'day',
-            'limit_price': round(target_1_price, 2),
-        },
-        token=user_token,
-        user=user,
+    thread = threading.Thread(
+        target=_background_leg_placement,
+        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, user),
+        daemon=True,
     )
-
-    stop_runner_order = None
-    if qty_runner > 0:
-        stop_runner_order = submit_order(
-            {
-                'symbol': symbol.upper(),
-                'qty': str(qty_runner),
-                'side': 'sell',
-                'type': 'stop',
-                'time_in_force': 'day',
-                'stop_price': round(stop_price, 2),
-            },
-            token=user_token,
-            user=user,
-        )
+    thread.start()
 
     return {
         'id': entry_id,
-        'status': 'filled',
+        'status': entry.get('status', 'new'),
         'symbol': symbol.upper(),
-        'filled_qty': str(filled_qty),
-        'filled_avg_price': filled_entry.get('filled_avg_price'),
+        'filled_qty': '0',
         'strategy': 'target1_then_trailing_runner',
-        'entry_order': filled_entry,
-        'target_1_order_id': target_1_order.get('id'),
-        'runner_stop_order_id': (stop_runner_order or {}).get('id'),
+        'entry_order': entry,
         'runner_trailing_pct': TARGET2_TRAILING_STOP_PCT,
     }
 
