@@ -385,22 +385,28 @@ def faq():
 
 @app.route('/sitemap')
 def sitemap():
-    """
-    Dynamically generates a list of all public and logged-in accessible routes,
-    skipping routes that require parameters (which would cause a BuildError).
-    """
     links = []
+    # This list strictly hides everything EXCEPT your public marketing & legal pages
     excluded_endpoints = [
-        'static', 'stripe_webhook', 'alpaca_callback',
-        'sandbox_callback', 'ws_watchlist', 'api_scan', 'api_metrics',
-        'api_history', 'api_chart', 'api_execute', 'api_order_status',
-        'api_transparency_stats', 'create_checkout_session', 'dev_unlock',
-        'robots_txt'
+        # Internal Technical & API
+        'static', 'sitemap', 'robots_txt', 'api_runtime_health', 'dev_unlock',
+        'stripe_webhook', 'create_checkout_session', 'checkout_redirect',
+        'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
+        'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
+
+        # Private User "Back-End" Pages (Hiding these for SEO)
+        'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
+        'learn', 'learn_topic', 'transparency', 'join_waitlist',
+
+        # Broker Auth & Integration Logic
+        'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback'
     ]
 
     for rule in app.url_map.iter_rules():
+        # Only show the page if it's a public GET request and not in our hide list
         if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
             try:
+                # Converts 'broker_integration' to 'Broker Integration'
                 title = rule.endpoint.replace('_', ' ').title()
                 url = url_for(rule.endpoint)
                 links.append({'url': url, 'title': title})
