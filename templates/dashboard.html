@@ -189,7 +189,14 @@
                 </div>
                 <div class="profile-text">
                     <span class="profile-name">{{ current_user.full_name }}</span>
-                    <span class="profile-tier">SYS_ADMIN // FREE</span>
+                    <span class="profile-tier">
+                        SYS_ADMIN // 
+                        {% if current_user.subscription_status == 'pro' %}
+                            <span style="color: var(--accent-blue);">PRO</span>
+                        {% else %}
+                            FREE
+                        {% endif %}
+                    </span>
                 </div>
             </div>
 
