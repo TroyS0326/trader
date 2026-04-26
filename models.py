@@ -145,6 +145,7 @@ class Waitlist(db.Model):
 
 
 class Trade(db.Model):
+    __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -181,3 +182,15 @@ class Trade(db.Model):
     raw_json = db.Column(db.Text, nullable=True)
 
     user = db.relationship('User', backref=db.backref('trades', lazy=True))
+
+
+class Scan(db.Model):
+    __tablename__ = 'scans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    market_day = db.Column(db.String(20), nullable=True)
+    best_symbol = db.Column(db.String(10), nullable=True)
+    best_decision = db.Column(db.String(20), nullable=True)
+    best_score = db.Column(db.Integer, nullable=True)
+    payload_json = db.Column(db.Text, nullable=False)
