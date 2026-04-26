@@ -89,6 +89,7 @@ def async_run_scan_task(user_id):
     from scanner import run_scan, buy_window_open
     from onboarding import fetch_and_sync_bankroll
     from db import get_failed_trades_today, insert_scan
+    from watchlist import watchlist_manager
 
     with app.app_context():
         user = User.query.get(user_id)
@@ -110,16 +111,18 @@ def async_run_scan_task(user_id):
             result['scan_id'] = scan_id
 
             redis_client.setex('latest_scan', 300, json.dumps(result))
+            watchlist_manager.set_items(result.get('watchlist', []))
+
             broadcast_payload = {
                 'type': 'scan_complete',
                 'data': result,
             }
-            redis_client.publish('ws_broadcast', json.dumps(broadcast_payload))
+            watchlist_manager.broadcast_all(json.dumps(broadcast_payload))
             return f'Scan complete for User {user_id}'
         except Exception as exc:
             error_payload = {
                 'type': 'scan_error',
                 'error': str(exc),
             }
-            redis_client.publish('ws_broadcast', json.dumps(error_payload))
+            watchlist_manager.broadcast_all(json.dumps(error_payload))
             return f'Scan failed: {exc}'

@@ -1,32 +1,25 @@
 import json
 import threading
 import time
-import os
-import redis
 from typing import Any, Dict, List
 
 from config import WATCHLIST_PUSH_SECONDS
 from scanner import get_latest_quotes, safe_num
 
-# Initialize Redis
-redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'), decode_responses=True)
-
 
 class WatchlistManager:
     def __init__(self) -> None:
         self._lock = threading.Lock()
+        self._items: List[Dict[str, Any]] = []
         self._clients = set()
 
+    def set_items(self, items: List[Dict[str, Any]]) -> None:
+        with self._lock:
+            self._items = [dict(item) for item in items]
+
     def get_items(self) -> List[Dict[str, Any]]:
-        # Read the latest scan directly from Redis (Single Source of Truth)
-        raw_scan = redis_client.get('latest_scan')
-        if raw_scan:
-            try:
-                data = json.loads(raw_scan)
-                return data.get('watchlist', [])
-            except Exception:
-                pass
-        return []
+        with self._lock:
+            return [dict(item) for item in self._items]
 
     def refresh(self) -> List[Dict[str, Any]]:
         items = self.get_items()
@@ -54,6 +47,7 @@ class WatchlistManager:
             item['current_price'] = round(current, 2)
             item['live_signal'] = signal
             refreshed.append(item)
+        self.set_items(refreshed)
         return refreshed
 
     def stream(self, ws) -> None:
