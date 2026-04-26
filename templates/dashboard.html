@@ -608,10 +608,28 @@
                 const payload = await res.json();
 
                 if (res.status === 202 || payload.ok) {
-                    addLog("> Scan job queued. Awaiting asynchronous results...", "#a1a1aa");
-                    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
-                        connectWatchlistSocket();
-                    }
+                    addLog("> Scan job queued. Waiting for cluster to process...", "#a1a1aa");
+
+                    let attempts = 0;
+                    const pollInterval = setInterval(async () => {
+                        attempts++;
+                        if (attempts > 30) {
+                            clearInterval(pollInterval);
+                            handleScanError("Scan timed out or cluster is heavily loaded.");
+                            return;
+                        }
+                        try {
+                            const metricsRes = await fetch('/api/metrics');
+                            const metricsData = await metricsRes.json();
+
+                            if (metricsData.ok && metricsData.data && metricsData.data.latest_scan) {
+                                clearInterval(pollInterval);
+                                handleScanComplete(metricsData.data.latest_scan);
+                            }
+                        } catch (e) {
+                            console.error("Polling fetch error:", e);
+                        }
+                    }, 1000);
                 } else {
                     throw new Error(payload.error || "Failed to initiate scan.");
                 }
