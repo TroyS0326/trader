@@ -8,9 +8,9 @@ from config import LUNCH_BLOCK_END, LUNCH_BLOCK_START
 
 def time_bucket(time_et: datetime) -> str:
     minutes = time_et.hour * 60 + time_et.minute
-    if 9 * 60 + 30 <= minutes <= 10 * 60 + 30:
+    if 9 * 60 + 30 <= minutes < 11 * 60:
         return 'morning'
-    if 11 * 60 <= minutes <= 14 * 60:
+    if 11 * 60 <= minutes < 15 * 60:
         return 'midday'
     if 15 * 60 <= minutes <= 16 * 60:
         return 'power_hour'

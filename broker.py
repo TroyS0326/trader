@@ -250,7 +250,13 @@ def _background_leg_placement(
                 'side': 'sell',
                 'type': 'limit',
                 'time_in_force': 'day',
-                'limit_price': round(target_1_price, 2),
+                'order_class': 'oco',
+                'take_profit': {
+                    'limit_price': round(target_1_price, 2),
+                },
+                'stop_loss': {
+                    'stop_price': round(stop_price, 2),
+                },
             },
             token=user_token,
             user=user,

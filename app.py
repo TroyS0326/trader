@@ -506,6 +506,7 @@ def create_checkout_session():
     try:
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
+            client_reference_id=str(current_user.id),
             payment_method_types=['card'],
             line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
@@ -537,6 +538,7 @@ def checkout_redirect():
     try:
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
+            client_reference_id=str(current_user.id),
             payment_method_types=['card'],
             line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
@@ -565,12 +567,18 @@ def stripe_webhook():
 
     if event['type'] == 'checkout.session.completed':
         checkout_session = event['data']['object']
-        customer_email = checkout_session.get('customer_email')
-        user = User.query.filter_by(email=customer_email).first()
+        client_ref_id = checkout_session.get('client_reference_id')
+
+        if client_ref_id:
+            user = User.query.get(int(client_ref_id))
+        else:
+            customer_email = checkout_session.get('customer_email')
+            user = User.query.filter_by(email=customer_email).first()
+
         if user:
             user.subscription_status = 'pro'
             db.session.commit()
-            logger.info("User %s upgraded to PRO via Stripe.", customer_email)
+            logger.info("User %s upgraded to PRO via Stripe.", user.email)
 
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
