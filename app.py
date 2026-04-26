@@ -368,11 +368,6 @@ def broker_integration():
     return render_template('broker_integration.html')
 
 
-@app.route('/alpaca-integration')
-def alpaca_integration_legacy_redirect():
-    """Legacy route kept for backward compatibility."""
-    return redirect(url_for('broker_integration'), code=301)
-
 @app.route('/terms')
 def terms():
     return render_template('terms.html')

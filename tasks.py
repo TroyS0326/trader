@@ -1,64 +1,70 @@
 from celery import Celery
 from models import db, User
-from broker import submit_order  # Pulling from your existing broker.py
+from broker import place_managed_entry_order
 from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
+import config
 
-# 1. Connect Celery to your Redis server (the message broker)
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
 
-
 @celery_app.task
-def execute_user_trade_task(user_id, symbol, entry_price, target, stop):
+def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
     """
-    This function is a 'Worker'. It runs in parallel for every single user instantly.
+    Worker task for parallel execution of AI-triggered setups.
+    Updated to utilize the modern `place_managed_entry_order` from broker.py.
     """
-    # 2. Look up this specific user's settings from our new database
     user = User.query.get(user_id)
-    if not user or user.subscription_status != 'active':
-        return 'User inactive. Trade aborted.'
-
-    # 3. Calculate position size based on THEIR unique bankroll and risk %
-    risk_per_share = entry_price - stop
-    dollar_risk = user.bankroll * (user.risk_pct / 100.0)
-    qty = int(dollar_risk // risk_per_share)
+    # Target only upgraded accounts for automated execution
+    if not user or user.subscription_status != 'pro':
+        return f'User {user_id} inactive or non-PRO. Trade aborted.'
 
     if qty < 1:
         return f'Risk sizing too small for User {user_id}'
 
-    # 4. Build the payload using THEIR specific data feed and OAuth token
-    headers = {
-        'Authorization': f'Bearer {user.alpaca_access_token}'  # Using secure OAuth token
-    }
-
-    order_payload = {
-        'symbol': symbol,
-        'qty': qty,
-        'side': 'buy',
-        'type': 'limit',
-        'time_in_force': 'day',
-        'limit_price': entry_price,
-    }
-
-    # 5. Fire the order to Alpaca
-    # (In production, you'd pass the headers to your submit_order function)
-    # response = submit_order(order_payload, headers=headers)
-    _ = headers, submit_order
-
-    return f'Success: {qty} shares of {symbol} ordered for User {user_id}'
+    try:
+        # Route through the same bracket logic used in manual testing
+        order = place_managed_entry_order(
+            symbol=symbol,
+            qty=qty,
+            entry_price=entry_price,
+            stop_price=stop_price,
+            target_1_price=target_1_price,
+            target_2_price=target_2_price,
+            user=user
+        )
+        return f'Success: {qty} shares of {symbol} executed for User {user_id}. Order ID: {order.get("id")}'
+    except Exception as e:
+        return f'Execution failed for User {user_id}: {str(e)}'
 
 
-def trigger_system_wide_buy(symbol, entry, target, stop):
+def trigger_system_wide_buy(symbol, entry, stop, target_1, target_2):
     """
-    Called when the Master Scanner finds an A+ setup.
+    Called by the master scanner when an A/A+ setup is found.
+    Calculates dynamic sizing per user based on their specific risk tolerances
+    before pushing to the Celery broker.
     """
-    # Get all active paying users
-    active_users = User.query.filter_by(subscription_status='active').all()
-
-    # Instantly dispatch a parallel task for every user
+    active_users = User.query.filter_by(subscription_status='pro').all()
+    
     for user in active_users:
-        # The .delay() command sends it to Redis to be processed instantly in the background
-        execute_user_trade_task.delay(user.id, symbol, entry, target, stop)
+        # Calculate dynamic position sizing locally based on the individual's bankroll
+        risk_per_share = entry - stop
+        if risk_per_share <= 0:
+            continue
+            
+        # Defaults to a 1% risk if user hasn't specified
+        user_risk_pct = getattr(user, 'risk_pct', 1.0)
+        dollar_risk = user.bankroll * (user_risk_pct / 100.0)
+        
+        # Enforce maximum dollar risk cap
+        if dollar_risk > config.MAX_DOLLAR_LOSS_PER_TRADE:
+            dollar_risk = config.MAX_DOLLAR_LOSS_PER_TRADE
+            
+        qty = int(dollar_risk // risk_per_share)
+        
+        if qty > 0:
+            execute_user_trade_task.delay(
+                user.id, symbol, qty, entry, stop, target_1, target_2
+            )
 
     print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
 
