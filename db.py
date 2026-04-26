@@ -1,259 +1,160 @@
 import json
-import sqlite3
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import func
+
 import config
+from models import db, Trade, Scan
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def today_et_prefix() -> str:
     return datetime.now(ZoneInfo(config.TIMEZONE_LABEL)).date().isoformat()
 
 
-@contextmanager
-def get_conn():
-    conn = sqlite3.connect(config.DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def init_db() -> None:
-    with get_conn() as conn:
-        conn.executescript(
-            '''
-            CREATE TABLE IF NOT EXISTS scans (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                created_at TEXT NOT NULL,
-                market_day TEXT,
-                best_symbol TEXT,
-                best_decision TEXT,
-                best_score INTEGER,
-                payload_json TEXT NOT NULL
-            );
+    # No longer needed!
+    # SQLAlchemy's db.create_all() inside app.py handles table creation.
+    pass
 
-            CREATE TABLE IF NOT EXISTS trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                scan_id INTEGER,
-                symbol TEXT NOT NULL,
-                side TEXT NOT NULL,
-                decision TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending',
-                score_total INTEGER,
-                current_price REAL,
-                entry_price REAL NOT NULL,
-                buy_lower REAL,
-                buy_upper REAL,
-                stop_price REAL NOT NULL,
-                target_1 REAL NOT NULL,
-                target_2 REAL NOT NULL,
-                qty INTEGER,
-                risk_per_share REAL,
-                reward_to_target_1 REAL,
-                reward_to_target_2 REAL,
-                rr_ratio_1 REAL,
-                rr_ratio_2 REAL,
-                order_id TEXT,
-                order_status TEXT,
-                filled_avg_price REAL,
-                filled_qty REAL,
-                outcome TEXT,
-                notes TEXT,
-                raw_json TEXT,
-                FOREIGN KEY(scan_id) REFERENCES scans(id)
-            );
 
-            CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_trades_created_at ON trades(created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_trades_order_id ON trades(order_id);
-            CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id);
-            CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
-            '''
-        )
-        trade_columns = {
-            row['name']
-            for row in conn.execute('PRAGMA table_info(trades)').fetchall()
-        }
-        if 'user_id' not in trade_columns:
-            conn.execute("ALTER TABLE trades ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)")
-        if 'status' not in trade_columns:
-            conn.execute("ALTER TABLE trades ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status)")
+def _model_to_dict(obj) -> Dict[str, Any]:
+    """Helper to maintain backward compatibility with existing dictionary-based code."""
+    data = {}
+    for column in obj.__table__.columns:
+        val = getattr(obj, column.name)
+        # Convert datetimes to ISO format strings so JSON serialization doesn't break
+        if isinstance(val, datetime):
+            data[column.name] = val.isoformat()
+        else:
+            data[column.name] = val
+    return data
 
 
 def insert_scan(payload: Dict[str, Any]) -> int:
     best = payload.get('best_pick', {})
-    with get_conn() as conn:
-        cur = conn.execute(
-            '''
-            INSERT INTO scans (created_at, market_day, best_symbol, best_decision, best_score, payload_json)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            (
-                utc_now(),
-                payload.get('day_of_week'),
-                best.get('symbol'),
-                best.get('decision'),
-                best.get('score_total'),
-                json.dumps(payload),
-            ),
-        )
-        return int(cur.lastrowid)
+    scan = Scan(
+        created_at=utc_now(),
+        market_day=payload.get('day_of_week'),
+        best_symbol=best.get('symbol'),
+        best_decision=best.get('decision'),
+        best_score=best.get('score_total'),
+        payload_json=json.dumps(payload),
+    )
+    db.session.add(scan)
+    db.session.commit()
+    return scan.id
 
 
-def insert_trade(trade: Dict[str, Any]) -> int:
-    if 'user_id' not in trade:
-        raise KeyError('trade["user_id"] is required')
+def insert_trade(trade_data: Dict[str, Any]) -> int:
+    if 'user_id' not in trade_data:
+        raise KeyError('trade_data["user_id"] is required')
 
-    now = utc_now()
-    with get_conn() as conn:
-        cur = conn.execute(
-            '''
-            INSERT INTO trades (
-                user_id, created_at, updated_at, scan_id, symbol, side, decision, status, score_total, current_price,
-                entry_price, buy_lower, buy_upper, stop_price, target_1, target_2, qty,
-                risk_per_share, reward_to_target_1, reward_to_target_2, rr_ratio_1, rr_ratio_2,
-                order_id, order_status, filled_avg_price, filled_qty, outcome, notes, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''',
-            (
-                trade['user_id'],
-                now,
-                now,
-                trade.get('scan_id'),
-                trade['symbol'],
-                trade.get('side', 'buy'),
-                trade.get('decision', 'BUY NOW'),
-                trade.get('status') or trade.get('order_status') or 'pending',
-                trade.get('score_total'),
-                trade.get('current_price'),
-                trade['entry_price'],
-                trade.get('buy_lower'),
-                trade.get('buy_upper'),
-                trade['stop_price'],
-                trade['target_1'],
-                trade['target_2'],
-                trade.get('qty'),
-                trade.get('risk_per_share'),
-                trade.get('reward_to_target_1'),
-                trade.get('reward_to_target_2'),
-                trade.get('rr_ratio_1'),
-                trade.get('rr_ratio_2'),
-                trade.get('order_id'),
-                trade.get('order_status'),
-                trade.get('filled_avg_price'),
-                trade.get('filled_qty'),
-                trade.get('outcome'),
-                trade.get('notes'),
-                json.dumps(trade.get('raw_json', {})),
-            ),
-        )
-        return int(cur.lastrowid)
+    trade = Trade(
+        user_id=trade_data['user_id'],
+        created_at=utc_now(),
+        updated_at=utc_now(),
+        scan_id=trade_data.get('scan_id'),
+        symbol=trade_data['symbol'],
+        side=trade_data.get('side', 'buy'),
+        decision=trade_data.get('decision', 'BUY NOW'),
+        status=trade_data.get('status') or trade_data.get('order_status') or 'pending',
+        score_total=trade_data.get('score_total'),
+        current_price=trade_data.get('current_price'),
+        entry_price=trade_data['entry_price'],
+        buy_lower=trade_data.get('buy_lower'),
+        buy_upper=trade_data.get('buy_upper'),
+        stop_price=trade_data['stop_price'],
+        target_1=trade_data['target_1'],
+        target_2=trade_data['target_2'],
+        qty=trade_data.get('qty'),
+        risk_per_share=trade_data.get('risk_per_share'),
+        reward_to_target_1=trade_data.get('reward_to_target_1'),
+        reward_to_target_2=trade_data.get('reward_to_target_2'),
+        rr_ratio_1=trade_data.get('rr_ratio_1'),
+        rr_ratio_2=trade_data.get('rr_ratio_2'),
+        order_id=trade_data.get('order_id'),
+        order_status=trade_data.get('order_status'),
+        filled_avg_price=trade_data.get('filled_avg_price'),
+        filled_qty=trade_data.get('filled_qty'),
+        outcome=trade_data.get('outcome'),
+        notes=trade_data.get('notes'),
+        raw_json=json.dumps(trade_data.get('raw_json', {})),
+    )
+    db.session.add(trade)
+    db.session.commit()
+    return trade.id
 
 
 def update_trade_status(order_id: str, updates: Dict[str, Any]) -> None:
-    fields = []
-    values = []
+    trade = Trade.query.filter_by(order_id=order_id).first()
+    if not trade:
+        return
+
     allowed = {
-        'order_status', 'status', 'filled_avg_price', 'filled_qty', 'outcome', 'notes', 'raw_json',
-        'current_price', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty'
+        'order_status',
+        'status',
+        'filled_avg_price',
+        'filled_qty',
+        'outcome',
+        'notes',
+        'raw_json',
+        'current_price',
+        'entry_price',
+        'stop_price',
+        'target_1',
+        'target_2',
+        'qty',
     }
+
     for key, value in updates.items():
         if key not in allowed:
             continue
         if key == 'raw_json':
-            value = json.dumps(value)
-        fields.append(f"{key} = ?")
-        values.append(value)
-    if not fields:
-        return
-    fields.append('updated_at = ?')
-    values.append(utc_now())
-    values.append(order_id)
-    with get_conn() as conn:
-        conn.execute(f"UPDATE trades SET {', '.join(fields)} WHERE order_id = ?", values)
+            value = json.dumps(value) if isinstance(value, dict) else value
+        setattr(trade, key, value)
+
+    trade.updated_at = utc_now()
+    db.session.commit()
 
 
 def get_recent_scans(limit: int = 10) -> Iterable[Dict[str, Any]]:
-    with get_conn() as conn:
-        rows = conn.execute(
-            'SELECT id, created_at, market_day, best_symbol, best_decision, best_score FROM scans ORDER BY id DESC LIMIT ?',
-            (limit,),
-        ).fetchall()
-        return [dict(row) for row in rows]
+    scans = Scan.query.order_by(Scan.id.desc()).limit(limit).all()
+    return [_model_to_dict(s) for s in scans]
 
 
 def get_recent_trades(limit: int = 20) -> Iterable[Dict[str, Any]]:
-    with get_conn() as conn:
-        rows = conn.execute(
-            '''
-            SELECT id, user_id, created_at, symbol, decision, status, score_total, qty, entry_price, stop_price,
-                   target_1, target_2, order_id, order_status, filled_avg_price, filled_qty, outcome
-            FROM trades ORDER BY id DESC LIMIT ?
-            ''',
-            (limit,),
-        ).fetchall()
-        return [dict(row) for row in rows]
+    trades = Trade.query.order_by(Trade.id.desc()).limit(limit).all()
+    return [_model_to_dict(t) for t in trades]
 
 
 def get_trade_by_order_id(order_id: str) -> Optional[Dict[str, Any]]:
-    with get_conn() as conn:
-        row = conn.execute('SELECT * FROM trades WHERE order_id = ? ORDER BY id DESC LIMIT 1', (order_id,)).fetchone()
-        return dict(row) if row else None
+    trade = Trade.query.filter_by(order_id=order_id).order_by(Trade.id.desc()).first()
+    return _model_to_dict(trade) if trade else None
 
 
 def get_failed_trades_today() -> int:
     prefix = today_et_prefix()
-    with get_conn() as conn:
-        row = conn.execute(
-            '''
-            SELECT COUNT(*) AS c
-            FROM trades
-            WHERE substr(created_at, 1, 10) = ?
-              AND outcome IN ('loss', 'stopped_out', 'rejected', 'failed')
-            ''',
-            (prefix,),
-        ).fetchone()
-        return int(row['c'] or 0)
-
+    # Cast to string to safely compare the date portion of the ISO datetime
+    count = Trade.query.filter(
+        db.cast(Trade.created_at, db.String).startswith(prefix),
+        Trade.outcome.in_(['loss', 'stopped_out', 'rejected', 'failed']),
+    ).count()
+    return count
 
 
 def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
-    """Finds a trade based on its Target 1 order ID stored in raw_json.
+    # Use SQLAlchemy's func.json_extract to query inside the JSON column natively
+    query = Trade.query.filter(
+        func.json_extract(Trade.raw_json, '$.order_bundle.target_1_order_id') == target_1_id
+    )
+    if user_id is not None:
+        query = query.filter(Trade.user_id == user_id)
 
-    If ``user_id`` is provided, the lookup is scoped to that tenant.
-    """
-    with get_conn() as conn:
-        if user_id is None:
-            row = conn.execute(
-                """
-                SELECT * FROM trades
-                WHERE json_extract(raw_json, '$.order_bundle.target_1_order_id') = ?
-                ORDER BY id DESC LIMIT 1
-                """,
-                (target_1_id,),
-            ).fetchone()
-        else:
-            row = conn.execute(
-                """
-                SELECT * FROM trades
-                WHERE user_id = ?
-                  AND json_extract(raw_json, '$.order_bundle.target_1_order_id') = ?
-                ORDER BY id DESC LIMIT 1
-                """,
-                (user_id, target_1_id),
-            ).fetchone()
-        return dict(row) if row else None
+    trade = query.order_by(Trade.id.desc()).first()
+    return _model_to_dict(trade) if trade else None

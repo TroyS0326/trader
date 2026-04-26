@@ -11,6 +11,7 @@ import websockets
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
+from app import app
 from broker import maybe_activate_runner_trailing
 from db import get_trade_by_target1_id, update_trade_status
 
@@ -52,24 +53,25 @@ class SaaSExecutionManager:
         if not order_id:
             return
 
-        trade = get_trade_by_target1_id(order_id, user_id=user_id)
-        if not trade:
-            return
+        with app.app_context():
+            trade = get_trade_by_target1_id(order_id, user_id=user_id)
+            if not trade:
+                return
 
-        raw_json = trade.get('raw_json')
-        if isinstance(raw_json, str):
-            try:
-                raw_json = json.loads(raw_json)
-            except json.JSONDecodeError:
-                raw_json = {}
-        raw_json = raw_json or {}
+            raw_json = trade.get('raw_json')
+            if isinstance(raw_json, str):
+                try:
+                    raw_json = json.loads(raw_json)
+                except json.JSONDecodeError:
+                    raw_json = {}
+            raw_json = raw_json or {}
 
-        bundle = raw_json.get('order_bundle', {})
-        entry_price = float(trade.get('entry_price') or 0.0)
-        updated_bundle = maybe_activate_runner_trailing(bundle, breakeven_price=entry_price)
+            bundle = raw_json.get('order_bundle', {})
+            entry_price = float(trade.get('entry_price') or 0.0)
+            updated_bundle = maybe_activate_runner_trailing(bundle, breakeven_price=entry_price)
 
-        raw_json['order_bundle'] = updated_bundle
-        update_trade_status(trade['order_id'], {'raw_json': raw_json})
+            raw_json['order_bundle'] = updated_bundle
+            update_trade_status(trade['order_id'], {'raw_json': raw_json})
 
     async def listen_user_stream(self, user_id: int, token: str):
         """Maintains a dedicated WebSocket for one user's trade updates."""
