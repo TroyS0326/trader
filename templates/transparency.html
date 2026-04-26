@@ -4,208 +4,169 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>System Transparency & Compliance | XeanVI Documentation</title>
-    <meta name="description" content="Review the XeanVI AI decision pipeline, Gemini NLP integration, and regulatory disclosures. Institutional-grade transparency for quantitative execution.">
-    <meta name="robots" content="index, follow">
+    <title>AI Transparency & Performance Report | XeanVI Algorithmic Trading</title>
+    <meta name="description" content="Review the XeanVI AI decision pipeline and historical performance metrics. Detailed transparency on NLP catalyst scoring, risk alignment, and simulated backtest results.">
 
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/transparency">
+
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://xeanvi.com/transparency">
+    <meta property="og:title" content="XeanVI AI Transparency: How We Score the Market">
+    <meta property="og:description" content="An under-the-hood look at our AI processing logic, data ingestion, and Q1 2026 simulated performance reports.">
+    <meta property="og:image" content="{{ url_for('static', filename='seo-transparency-data.jpg', _external=True) }}">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="XeanVI Performance & AI Logic Report">
+    <meta name="twitter:description" content="Explore our 62.4% historical win rate and the NLP engine driving our catalyst scoring.">
+    <meta name="twitter:image" content="{{ url_for('static', filename='seo-transparency-data.jpg', _external=True) }}">
+
+    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            background-color: #060b14;
-            background-image: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .sys-tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            background: rgba(255,255,255,0.05);
-            padding: 3px 6px;
-            border-radius: 4px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: inline-block;
-        }
-
-        .header-box {
-            text-align: center;
-            padding: 5rem 2rem 4rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .grid-docs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            max-width: 1000px;
-            margin: 4rem auto;
-            padding: 0 2rem;
-        }
-
-        .doc-card {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 2.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .doc-card.full-width {
-            grid-column: 1 / -1;
-        }
-
-        .doc-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .doc-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 1rem;
-        }
-
-        .doc-text {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            flex-grow: 1;
-        }
-
-        .compliance-block {
-            background: #020617;
-            border: 1px dashed rgba(255,255,255,0.15);
-            padding: 2rem;
-            border-radius: 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.7;
-        }
-        .compliance-block strong {
-            color: var(--text-main);
-        }
-
-        @media (max-width: 768px) {
-            .grid-docs { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
-<body>
+<body class="dash-body">
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
             <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
                 Xean<span style="color: var(--accent-blue);">VI</span>
             </a>
+
             <div class="xean-nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="/dashboard">Terminal</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/transparency" style="color: var(--accent-blue);">AI Logic</a>
-                    <a href="/settings">Settings</a>
-                {% else %}
-                    <a href="/features">Architecture</a>
-                    <a href="/playbook">Playbook</a>
-                    <a href="/broker-integration">Broker Workflow</a>
-                    <a href="/transparency" style="color: var(--text-main);">AI Logic</a>
-                {% endif %}
-            </div>
+    {% if current_user.is_authenticated %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/community">Community</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/transparency">AI Logic</a>
+    {% else %}
+        <a href="/features">How it Works</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/broker-integration">Broker Workflow</a>
+        <a href="/transparency">AI Logic</a>
+        <a href="/pricing">Pricing</a>
+    {% endif %}
+</div>
+
             <div class="xean-nav-actions">
                 {% if current_user.is_authenticated %}
-                    <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Terminal</a>
+                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
+                    <a href="/settings" style="text-decoration: none;">
+                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
+                    </a>
                 {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
                     <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="header-box">
-        <div class="sys-tag" style="margin-bottom: 1rem;">DOC_02 // SYSTEM DISCLOSURES</div>
-        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; letter-spacing: -0.5px;">System Transparency</h1>
-        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Institutional-grade disclosures and architectural breakdown for the quantitative engine.</p>
+    <div class="container" style="max-width: 1000px; margin: 4rem auto; padding: 0 2rem;">
+        <div style="text-align: center; margin-bottom: 4rem;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Trust & Transparency</h1>
+            <p style="color: var(--text-muted); font-size: 1.1rem;">Institutional-grade disclosures for the modern algorithmic trader.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-line" style="color: var(--success);"></i> Performance Audits</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">View our latest simulated vs. live execution delta reports. We provide raw CSV exports of AI decision logs for independent verification.</p>
+                <a href="#" class="btn-secondary" style="display: block; text-align: center; padding: 0.75rem; border-radius: 6px; text-decoration: none;">Download Q1 Audit (.pdf)</a>
+            </div>
+
+            <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-shield" style="color: var(--accent-blue);"></i> Data Privacy</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your Alpaca OAuth tokens are encrypted using AES-256-GCM. XeanVI never stores your brokerage passwords.</p>
+                <a href="/privacy" style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem; text-decoration: none;">Review Privacy Policy →</a>
+            </div>
+
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div class="container" style="max-width: 1000px; margin: 0 auto 4rem auto; padding: 0 2rem;">
+        <div style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1.5rem;">Q1 2026 AI Performance Backtest</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Win Rate</p>
+                    <h3 id="stat-winrate" style="color: var(--success); font-size: 1.8rem;">--%</h3>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Profit Factor</p>
+                    <h3 id="stat-profitfactor" style="color: var(--accent-blue); font-size: 1.8rem;">--</h3>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Trades</p>
+                    <h3 id="stat-trades" style="font-size: 1.8rem;">--</h3>
+                </div>
+                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Max Drawdown</p>
+                    <h3 id="stat-drawdown" style="color: var(--danger); font-size: 1.8rem;">$--</h3>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <canvas id="equityChart" width="400" height="150"></canvas>
+            </div>
+        </div>
     </div>
 
-    <div class="grid-docs">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/api/transparency/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok && data.data) {
+                        const stats = data.data;
 
-        <div class="doc-card">
-            <div class="doc-icon" style="background: rgba(139, 92, 246, 0.1); color: #a78bfa;">
-                <i class="fas fa-brain"></i>
-            </div>
-            <h3 class="doc-title">NLP & Catalyst Scoring</h3>
-            <div class="doc-text">
-                XeanVI does not rely on simple keyword matching. The engine utilizes <strong>Google's Gemini API</strong> for Natural Language Processing (NLP) to read, parse, and semantically score SEC filings and press releases in real-time, filtering out "fluff" PR pieces from genuine institutional catalysts.
-            </div>
-            <div class="sys-tag" style="width: fit-content;">MODULE: GEMINI_INTEGRATION</div>
-        </div>
+                        document.getElementById('stat-winrate').innerText = stats.win_rate + '%';
+                        document.getElementById('stat-profitfactor').innerText = stats.profit_factor;
+                        document.getElementById('stat-trades').innerText = stats.total_trades;
+                        document.getElementById('stat-drawdown').innerText = '$' + stats.max_drawdown_dollars;
 
-        <div class="doc-card">
-            <div class="doc-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
-                <i class="fas fa-shield-halved"></i>
-            </div>
-            <h3 class="doc-title">Encrypted Data Architecture</h3>
-            <div class="doc-text">
-                Your capital safety is paramount. All Alpaca OAuth tokens are encrypted using AES-256-GCM architecture. The XeanVI engine exists as a stateless execution layer—we never store your brokerage passwords or possess withdrawal authority.
-            </div>
-            <a href="/privacy" style="color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: bold; text-decoration: none;">READ PRIVACY POLICY →</a>
-        </div>
-
-        <div class="doc-card full-width">
-            <div class="doc-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
-                <i class="fas fa-file-csv"></i>
-            </div>
-            <h3 class="doc-title">System Performance Logs</h3>
-            <div class="doc-text" style="max-width: 800px;">
-                We believe in mathematical verification. Instead of marketing fluff, we provide raw CSV exports of AI decision logs and backtested system performance for independent verification by our users.
-            </div>
-            <a href="#" class="btn btn-secondary" style="width: fit-content; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; border-color: rgba(255,255,255,0.1);">
-                <i class="fas fa-download" style="margin-right: 8px;"></i> Download Recent Audit Logs
-            </a>
-        </div>
-
-        <div class="doc-card full-width" style="padding: 0; background: transparent; border: none; box-shadow: none;">
-            <h3 class="doc-title" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-gavel" style="color: var(--warning);"></i> Regulatory Compliance Disclosures
-            </h3>
-
-            <div class="compliance-block">
-                <p style="margin-bottom: 1.5rem;">
-                    <strong>Hypothetical Performance:</strong> Hypothetical performance results have many inherent limitations, some of which are described below. No representation is being made that any account will or is likely to achieve profits or losses similar to those shown. In fact, there are frequently sharp differences between hypothetical performance results and the actual results subsequently achieved by any particular trading program.
-                </p>
-                <p style="margin-bottom: 1.5rem;">
-                    <strong>Execution Risk:</strong> Systematic and algorithmic trading involves significant risk of loss. Market volatility, liquidity gaps, widening bid/ask spreads, and unexpected system latency can drastically affect execution prices. The XeanVI engine is a tool that executes based on programmed logic; it cannot guarantee profitability or prevent systemic market losses.
-                </p>
-                <p>
-                    <strong>Affiliation & Independence:</strong> XeanVI is an independent software and technology provider. We are not a registered broker-dealer, financial advisor, or investment firm. Information provided by the application is for educational and routing purposes only and does not constitute financial advice.
-                </p>
-            </div>
-        </div>
-
-    </div>
-
-    {% include 'footer.html' %}
-
-</body>
-</html>
-
+                        const ctx = document.getElementById('equityChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: stats.equity_curve_labels,
+                                datasets: [{
+                                    label: 'Cumulative Net Profit ($)',
+                                    data: stats.equity_curve_data,
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: { color: '#1e293b' },
+                                        ticks: { color: '#94a3b8' }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#94a3b8', maxTicksLimit: 10 }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error("Error loading performance data:", error));
+        });
+    </script>
+        {% include 'footer.html' %}
 
 </body>
 </html>
