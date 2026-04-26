@@ -16,9 +16,14 @@ from db import get_trade_by_target1_id, update_trade_status
 
 logger = logging.getLogger(__name__)
 
-# Sandbox WSS endpoint for paper trading
-ALPACA_WSS_URL = "wss://broker-api.sandbox.alpaca.markets/stream"
 DISCOVERY_SECONDS = 60
+
+
+def get_user_wss_url(trading_mode: str, sub_status: str) -> str:
+    """Dynamically route to the correct WSS stream based on user's active tier."""
+    if trading_mode == 'live' and sub_status == 'pro':
+        return "wss://api.alpaca.markets/stream"
+    return "wss://paper-api.alpaca.markets/stream"
 
 
 def _alpaca_headers():
@@ -123,27 +128,36 @@ class SaaSExecutionManager:
             raw_json['order_bundle'] = updated_bundle
             update_trade_status(trade['order_id'], {'raw_json': raw_json})
 
-    async def listen_user_stream(self, user_id: int, token: str):
+    async def listen_user_stream(self, user_id: int, token: str, wss_url: str):
         """Maintains a dedicated WebSocket for one user's trade updates."""
-        logger.info('Starting stream for User %s', user_id)
+        logger.info('Starting stream for User %s at %s', user_id, wss_url)
 
-        async for websocket in websockets.connect(ALPACA_WSS_URL):
+        retry_delay = 1
+        while self.running:
             try:
-                auth_msg = {"action": "auth", "key": token}
-                await websocket.send(json.dumps(auth_msg))
+                async for websocket in websockets.connect(
+                    wss_url,
+                    ping_interval=20,
+                    ping_timeout=20,
+                    close_timeout=10,
+                ):
+                    auth_msg = {"action": "auth", "key": token}
+                    await websocket.send(json.dumps(auth_msg))
 
-                sub_msg = {"action": "listen", "data": {"streams": ["trade_updates"]}}
-                await websocket.send(json.dumps(sub_msg))
+                    sub_msg = {"action": "listen", "data": {"streams": ["trade_updates"]}}
+                    await websocket.send(json.dumps(sub_msg))
 
-                async for message in websocket:
-                    data = json.loads(message)
-                    if data.get('stream') == 'trade_updates':
-                        event = data.get('data', {}).get('event')
-                        if event in ('fill', 'partial_fill'):
-                            await self.handle_fill(user_id, data.get('data', {}).get('order', {}))
+                    async for message in websocket:
+                        data = json.loads(message)
+                        if data.get('stream') == 'trade_updates':
+                            event = data.get('data', {}).get('event')
+                            if event in ('fill', 'partial_fill'):
+                                await self.handle_fill(user_id, data.get('data', {}).get('order', {}))
+                    retry_delay = 1
             except Exception as e:
                 logger.error('Stream error for User %s: %s', user_id, e)
-                await asyncio.sleep(5)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 30)
 
     async def get_connected_users(self):
         """Fetches all users who have linked their Alpaca accounts."""
@@ -151,7 +165,7 @@ class SaaSExecutionManager:
             conn.row_factory = aiosqlite.Row
             cur = await conn.execute(
                 """
-                SELECT id, alpaca_access_token
+                SELECT id, alpaca_access_token, trading_mode, subscription_status
                 FROM user
                 WHERE alpaca_access_token IS NOT NULL
                   AND trim(alpaca_access_token) != ''
@@ -169,11 +183,13 @@ class SaaSExecutionManager:
             for user in users:
                 u_id = user['id']
                 if u_id not in self.active_streams:
+                    wss_url = get_user_wss_url(user['trading_mode'], user['subscription_status'])
                     task = asyncio.create_task(
-                        self.listen_user_stream(u_id, user['alpaca_access_token'])
+                        self.listen_user_stream(u_id, user['alpaca_access_token'], wss_url)
                     )
                     self.active_streams[u_id] = task
                     logger.info('Started stream task for user %s', u_id)
+                    await asyncio.sleep(0.5)
 
             removed_ids = [u_id for u_id in self.active_streams if u_id not in active_ids]
             for u_id in removed_ids:
