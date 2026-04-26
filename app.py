@@ -385,35 +385,45 @@ def faq():
 
 @app.route('/sitemap')
 def sitemap():
+    """
+    Generates a clean directory of public marketing and legal pages.
+    Specifically hides the Dashboard, settings, and technical API routes.
+    """
     links = []
-    # This list strictly hides everything EXCEPT your public marketing & legal pages
+
+    # This list defines EXACTLY what search engines should NEVER see
     excluded_endpoints = [
-        # Internal Technical & API
+        # Technical/Internal
         'static', 'sitemap', 'robots_txt', 'api_runtime_health', 'dev_unlock',
         'stripe_webhook', 'create_checkout_session', 'checkout_redirect',
         'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
         'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
 
-        # Private User "Back-End" Pages (Hiding these for SEO)
+        # Back-end/Private Pages (Excluded from ranking)
         'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
         'learn', 'learn_topic', 'transparency', 'join_waitlist',
 
-        # Broker Auth & Integration Logic
+        # Broker Logic
         'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback'
     ]
 
     for rule in app.url_map.iter_rules():
-        # Only show the page if it's a public GET request and not in our hide list
+        # Only include pages with GET methods, no parameters, and not in the hide list
         if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
             try:
-                # Converts 'broker_integration' to 'Broker Integration'
-                title = rule.endpoint.replace('_', ' ').title()
+                # SEO FIX: Rename the 'index' endpoint to 'Home' for the public list
+                if rule.endpoint == 'index':
+                    title = "Home"
+                else:
+                    title = rule.endpoint.replace('_', ' ').title()
+
                 url = url_for(rule.endpoint)
                 links.append({'url': url, 'title': title})
             except Exception as e:
                 logger.error(f"Sitemap Build Error for {rule.endpoint}: {e}")
                 continue
 
+    # Return the clean list to your sitemap.html template
     return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
 
 
