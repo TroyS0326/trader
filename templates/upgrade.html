@@ -55,42 +55,8 @@
 </head>
 <body class="dash-body">
 
-    <nav class="xean-nav">
-        <div class="xean-nav-inner">
-            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
-                Xean<span style="color: var(--accent-blue);">VI</span>
-            </a>
-
-            <div class="xean-nav-links">
-    {% if current_user.is_authenticated %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/transparency">AI Logic</a>
-    {% else %}
-        <a href="/features">How it Works</a>
-        <a href="/playbook">Playbook</a>
-        <a href="/broker-integration">Broker Workflow</a>
-        <a href="/transparency">AI Logic</a>
-        <a href="/pricing">Pricing</a>
-    {% endif %}
-</div>
-
-            <div class="xean-nav-actions">
-                {% if current_user.is_authenticated %}
-                    
-                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
-                    
-                    <a href="/settings" style="text-decoration: none;">
-                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
-                    </a>
-                    
-                {% else %}
-                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
-                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+{% include 'nav.html' %}
+    
     <div class="pricing-header">
         <h1>Unlock Live Automation</h1>
         <p>You are currently on the Free Tier (Paper Trading Only). Upgrade to PRO to unlock real-money API execution, and advanced AI metrics.</p>
