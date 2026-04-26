@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
+from sqlalchemy import inspect, text
 from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
@@ -134,71 +135,30 @@ def fail(message: str, status: int = 400, **extras):
     return jsonify(payload), status
 
 
-def ensure_user_refresh_interval_column() -> None:
-    """Backfill schema for existing SQLite DBs that predate refresh_interval."""
-    conn = sqlite3.connect(config.DB_PATH)
-    try:
-        cursor = conn.execute("PRAGMA table_info(user)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+def ensure_schema_migrations() -> None:
+    """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
+    inspector = inspect(db.engine)
+    if 'user' not in inspector.get_table_names():
+        return
+
+    existing_columns = {col['name'] for col in inspector.get_columns('user')}
+
+    with db.engine.connect() as conn:
         if 'refresh_interval' not in existing_columns:
-            conn.execute(
-                "ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"
-            )
-            conn.commit()
-    finally:
-        conn.close()
-
-
-def ensure_user_layout_columns() -> None:
-    """Backfill schema for dashboard layout toggles on older SQLite DBs."""
-    conn = sqlite3.connect(config.DB_PATH)
-    try:
-        cursor = conn.execute("PRAGMA table_info(user)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
-        additions = {
-            'show_news': "ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1",
-            'show_watchlist': "ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1",
-            'show_terminal': "ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1",
-        }
-        for column_name, ddl in additions.items():
-            if column_name not in existing_columns:
-                conn.execute(ddl)
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def ensure_user_personalization_columns() -> None:
-    """Backfill schema for ESG and risk personalization toggles."""
-    conn = sqlite3.connect(config.DB_PATH)
-    try:
-        cursor = conn.execute("PRAGMA table_info(user)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
-        additions = {
-            'esg_fossil_fuels': "ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0",
-            'esg_weapons': "ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0",
-            'esg_tobacco': "ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0",
-            'exclude_penny_stocks': "ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1",
-            'exclude_biotech': "ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0",
-        }
-        for column_name, ddl in additions.items():
-            if column_name not in existing_columns:
-                conn.execute(ddl)
-        conn.commit()
-    finally:
-        conn.close()
-
-def ensure_user_alpaca_data_feed_column() -> None:
-    """Backfill schema for per-user Alpaca market-data feed preference."""
-    conn = sqlite3.connect(config.DB_PATH)
-    try:
-        cursor = conn.execute("PRAGMA table_info(user)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+            conn.execute(text("ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
+        if 'show_news' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
+        if 'esg_fossil_fuels' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
+            conn.execute(text("ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
         if 'alpaca_data_feed' not in existing_columns:
-            conn.execute("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'")
-            conn.commit()
-    finally:
-        conn.close()
+            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
+        conn.commit()
 
 
 ensure_db_initialized()
@@ -1039,10 +999,7 @@ def ws_watchlist(ws):
 
 with app.app_context():
     db.create_all() # This creates the 'user' table first
-    ensure_user_refresh_interval_column()
-    ensure_user_layout_columns()
-    ensure_user_personalization_columns()
-    ensure_user_alpaca_data_feed_column()
+    ensure_schema_migrations()
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):

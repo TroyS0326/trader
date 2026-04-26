@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
@@ -11,10 +11,6 @@ from models import db, Trade, Scan
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def today_et_prefix() -> str:
-    return datetime.now(ZoneInfo(config.TIMEZONE_LABEL)).date().isoformat()
 
 
 def init_db() -> None:
@@ -139,10 +135,16 @@ def get_trade_by_order_id(order_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_failed_trades_today() -> int:
-    prefix = today_et_prefix()
-    # Cast to string to safely compare the date portion of the ISO datetime
+    et_zone = ZoneInfo(config.TIMEZONE_LABEL)
+    now_et = datetime.now(et_zone)
+    start_et = datetime.combine(now_et.date(), time.min, tzinfo=et_zone)
+    end_et = datetime.combine(now_et.date(), time.max, tzinfo=et_zone)
+    start_utc = start_et.astimezone(timezone.utc)
+    end_utc = end_et.astimezone(timezone.utc)
+
     count = Trade.query.filter(
-        db.cast(Trade.created_at, db.String).startswith(prefix),
+        Trade.created_at >= start_utc,
+        Trade.created_at <= end_utc,
         Trade.outcome.in_(['loss', 'stopped_out', 'rejected', 'failed']),
     ).count()
     return count
