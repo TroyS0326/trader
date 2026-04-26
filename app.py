@@ -6,7 +6,6 @@ import requests
 import secrets
 import sqlite3
 import stripe
-import threading
 from urllib.parse import urlencode
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -995,22 +994,6 @@ def api_order_status(order_id: str):
         return fail(str(exc))
     except Exception as exc:
         return fail(f'Order lookup failed: {exc}', 500)
-
-
-def start_redis_ws_listener():
-    def listener():
-        pubsub = redis_client.pubsub()
-        pubsub.subscribe('ws_broadcast')
-        for message in pubsub.listen():
-            # When Celery finishes and publishes, this grabs it and pushes to WebSockets
-            if message['type'] == 'message':
-                watchlist_manager.broadcast_all(message['data'])
-
-    t = threading.Thread(target=listener, daemon=True)
-    t.start()
-
-
-start_redis_ws_listener()
 
 
 @sock.route('/ws/watchlist')
