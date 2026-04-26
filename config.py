@@ -3,8 +3,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-# Tell the app exactly where the secret map is hidden now
-load_dotenv('/etc/xeanvi/xeanvi.env')
+
+# Check the VPS production path first, then fallback to local directory .env
+PROD_ENV_PATH = '/etc/xeanvi/xeanvi.env'
+if os.path.exists(PROD_ENV_PATH):
+    load_dotenv(PROD_ENV_PATH)
+else:
+    load_dotenv(BASE_DIR / '.env')
 
 
 def require_env(var_name: str) -> str:
