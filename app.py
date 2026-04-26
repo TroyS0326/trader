@@ -13,7 +13,7 @@ from datetime import datetime
 from sqlalchemy import inspect, text
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
+from flask import Flask, jsonify, make_response, render_template, request, redirect, session, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
@@ -383,55 +383,45 @@ def faq():
     return render_template('faq.html')
 
 
-@app.route('/sitemap')
-def sitemap():
-    """
-    Generates a clean directory of public marketing and legal pages.
-    Specifically hides the Dashboard, settings, and technical API routes.
-    """
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Generates the XML sitemap for search engines."""
     links = []
-
-    # This list defines EXACTLY what search engines should NEVER see
+    # Using the same strict exclusion list to hide the dashboard and back-end
     excluded_endpoints = [
-        # Technical/Internal
-        'static', 'sitemap', 'robots_txt', 'api_runtime_health', 'dev_unlock',
+        'static', 'sitemap_xml', 'robots_txt', 'api_runtime_health', 'dev_unlock',
         'stripe_webhook', 'create_checkout_session', 'checkout_redirect',
         'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
         'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
-
-        # Back-end/Private Pages (Excluded from ranking)
         'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
         'learn', 'learn_topic', 'transparency', 'join_waitlist',
-
-        # Broker Logic
         'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback'
     ]
 
+    # Use 'https' and your actual domain for the sitemap links
+    base_url = "https://xeanvi.com"
+
     for rule in app.url_map.iter_rules():
-        # Only include pages with GET methods, no parameters, and not in the hide list
         if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
             try:
-                # SEO FIX: Rename the 'index' endpoint to 'Home' for the public list
-                if rule.endpoint == 'index':
-                    title = "Home"
-                else:
-                    title = rule.endpoint.replace('_', ' ').title()
-
-                url = url_for(rule.endpoint)
-                links.append({'url': url, 'title': title})
+                url = f"{base_url}{url_for(rule.endpoint)}"
+                # Defaulting to today's date for indexing freshness
+                lastmod = datetime.now().strftime('%Y-%m-%d')
+                links.append((url, lastmod))
             except Exception as e:
-                logger.error(f"Sitemap Build Error for {rule.endpoint}: {e}")
+                logger.error(f"XML Sitemap Error for {rule.endpoint}: {e}")
                 continue
 
-    # Return the clean list to your sitemap.html template
-    return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
+    # Build the XML structure
+    sitemap_xml_content = render_template('sitemap_xml.xml', links=links)
+    response = make_response(sitemap_xml_content)
+    response.headers["Content-Type"] = "application/xml"
+    return response
 
 
 @app.route('/robots.txt')
 def robots_txt():
-    """
-    Serves the robots.txt file to search engines.
-    """
+    """Updated to point to the new XML sitemap."""
     lines = [
         "User-agent: *",
         "Disallow: /dashboard",
@@ -439,7 +429,7 @@ def robots_txt():
         "Disallow: /settings",
         "Disallow: /logout",
         "Disallow: /alpaca/",
-        f"Sitemap: {url_for('sitemap', _external=True)}",
+        "Sitemap: https://xeanvi.com/sitemap.xml",  # Pointing to the XML file
     ]
     return "\n".join(lines), 200, {'Content-Type': 'text/plain'}
 
