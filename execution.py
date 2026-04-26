@@ -29,15 +29,64 @@ def _alpaca_headers():
     }
 
 
+async def _execute_user_kill_switch(user_id: int, base_url: str, token: str):
+    """Executes the kill switch for a specific user asynchronously."""
+    loop = asyncio.get_running_loop()
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+    logger.info('Executing kill switch for user %s at %s', user_id, base_url)
+    try:
+        # Run blocking requests in executor to avoid freezing the event loop
+        await loop.run_in_executor(None, lambda: requests.delete(f'{base_url}/v2/orders', headers=headers, timeout=10))
+        await loop.run_in_executor(None, lambda: requests.delete(f'{base_url}/v2/positions', headers=headers, timeout=10))
+        logger.info('Book flattened for user %s.', user_id)
+    except Exception as e:
+        logger.error('Kill switch error for user %s: %s', user_id, e)
+
+
 def flatten_book():
     """15:45 ET Kill Switch: Cancels all open orders and liquidates all positions."""
-    logger.info('Executing 15:45 ET Kill Switch: Flattening the book.')
-    try:
-        requests.delete(f'{config.ALPACA_PAPER_BASE}/v2/orders', headers=_alpaca_headers(), timeout=10)
-        requests.delete(f'{config.ALPACA_PAPER_BASE}/v2/positions', headers=_alpaca_headers(), timeout=10)
-        logger.info('Book flattened.')
-    except Exception as e:
-        logger.error('Kill switch error: %s', e)
+    logger.info('Executing 15:45 ET Kill Switch: Flattening the book for all users.')
+
+    # Import inside the function to prevent circular imports with app.py
+    from app import app
+    from models import User
+    from broker import get_execution_base_url
+
+    users_data = []
+
+    with app.app_context():
+        # Query the database for all users possessing an Alpaca access token
+        users = User.query.filter(User._alpaca_access_token.isnot(None)).all()
+
+        for user in users:
+            token = user.alpaca_access_token
+            # Verify the decrypted token is valid
+            if token and token.strip():
+                users_data.append({
+                    'id': user.id,
+                    'base_url': get_execution_base_url(user),
+                    'token': token
+                })
+
+    if not users_data:
+        logger.info('No active users with tokens found for kill switch.')
+        return
+
+    async def _dispatch_kill_switches():
+        # Dispatch asynchronous tasks for each user to cancel and liquidate
+        tasks = [
+            asyncio.create_task(_execute_user_kill_switch(u['id'], u['base_url'], u['token']))
+            for u in users_data
+        ]
+        await asyncio.gather(*tasks)
+
+    # Since APScheduler runs this job in a background thread pool,
+    # we can safely use asyncio.run to execute the coroutines concurrently.
+    asyncio.run(_dispatch_kill_switches())
+    logger.info('Multi-tenant kill switch execution completed.')
 
 
 class SaaSExecutionManager:
@@ -142,7 +191,6 @@ def start_engine():
     loop = asyncio.get_event_loop()
 
     scheduler = BackgroundScheduler(timezone=ZoneInfo(config.TIMEZONE_LABEL))
-    # Note: flatten_book must be updated to iterate over all active user tokens.
     scheduler.add_job(flatten_book, 'cron', day_of_week='mon-fri', hour=15, minute=45)
     scheduler.start()
 
