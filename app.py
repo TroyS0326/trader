@@ -383,6 +383,28 @@ def faq():
     return render_template('faq.html')
 
 
+@app.route('/sitemap')
+def sitemap():
+    """
+    Dynamically generates a list of all public and logged-in accessible routes.
+    """
+    links = []
+    excluded_endpoints = [
+        'static', 'sitemap', 'stripe_webhook', 'alpaca_callback',
+        'sandbox_callback', 'ws_watchlist', 'api_scan', 'api_metrics',
+        'api_history', 'api_chart', 'api_execute', 'api_order_status',
+        'api_transparency_stats', 'create_checkout_session', 'dev_unlock'
+    ]
+
+    for rule in app.url_map.iter_rules():
+        if "GET" in rule.methods and rule.endpoint not in excluded_endpoints:
+            title = rule.endpoint.replace('_', ' ').title()
+            url = url_for(rule.endpoint)
+            links.append({'url': url, 'title': title})
+
+    return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
+
+
 
 @app.route('/learn')
 @login_required
