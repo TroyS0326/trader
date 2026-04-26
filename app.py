@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import redis
 import requests
 import secrets
 import sqlite3
@@ -96,6 +97,7 @@ login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
 stripe.api_key = config.STRIPE_SECRET_KEY
+redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'), decode_responses=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -115,7 +117,6 @@ def ensure_db_initialized() -> None:
         init_db()
 
 
-LATEST_SCAN = None
 VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
 
 
@@ -739,7 +740,6 @@ def api_runtime_health():
 @app.route('/api/scan', methods=['POST', 'GET'])
 @login_required
 def api_scan():
-    global LATEST_SCAN
     try:
         # Sync bankroll before scanning so risk sizing uses current account equity.
         fetch_and_sync_bankroll(current_user)
@@ -753,7 +753,7 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
-        LATEST_SCAN = result
+        redis_client.setex('latest_scan', 300, json.dumps(result))
         watchlist_manager.set_items(result.get('watchlist', []))
         return ok(
             result,
@@ -769,10 +769,11 @@ def api_scan():
 @login_required
 def api_metrics():
     """Returns the latest scan data and risk stats for the dashboard refresh."""
-    global LATEST_SCAN
+    raw_scan = redis_client.get('latest_scan')
+    latest_scan_data = json.loads(raw_scan) if raw_scan else None
     failed_trades_today = get_failed_trades_today()
     return ok({
-        'latest_scan': LATEST_SCAN,
+        'latest_scan': latest_scan_data,
         'risk_controls': {
             'failed_trades_today': failed_trades_today,
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
