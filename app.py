@@ -386,27 +386,26 @@ def faq():
 @app.route('/sitemap')
 def sitemap():
     """
-    Dynamically generates a sitemap, skipping any routes that require 
-    arguments to prevent 'BuildError' crashes.
+    Dynamically generates a list of all public and logged-in accessible routes,
+    skipping routes that require parameters (which would cause a BuildError).
     """
     links = []
-    # Routes that should never appear in a public sitemap
     excluded_endpoints = [
-        'static', 'sitemap', 'robots_txt', 'stripe_webhook', 'alpaca_callback', 
+        'static', 'sitemap', 'stripe_webhook', 'alpaca_callback',
         'sandbox_callback', 'ws_watchlist', 'api_scan', 'api_metrics',
         'api_history', 'api_chart', 'api_execute', 'api_order_status',
-        'api_transparency_stats', 'create_checkout_session', 'dev_unlock'
+        'api_transparency_stats', 'create_checkout_session', 'dev_unlock',
+        'robots_txt'
     ]
 
     for rule in app.url_map.iter_rules():
-        # Only include GET pages that don't require dynamic arguments (like <symbol>)
         if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
             try:
-                url = url_for(rule.endpoint)
                 title = rule.endpoint.replace('_', ' ').title()
+                url = url_for(rule.endpoint)
                 links.append({'url': url, 'title': title})
             except Exception as e:
-                logger.error(f"Sitemap skip: {rule.endpoint} - {e}")
+                logger.error(f"Sitemap Build Error for {rule.endpoint}: {e}")
                 continue
 
     return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
@@ -415,7 +414,7 @@ def sitemap():
 @app.route('/robots.txt')
 def robots_txt():
     """
-    Serves robots.txt dynamically so the Sitemap URL is always correct.
+    Serves the robots.txt file to search engines.
     """
     lines = [
         "User-agent: *",
@@ -424,7 +423,7 @@ def robots_txt():
         "Disallow: /settings",
         "Disallow: /logout",
         "Disallow: /alpaca/",
-        f"Sitemap: {url_for('sitemap', _external=True)}"
+        f"Sitemap: {url_for('sitemap', _external=True)}",
     ]
     return "\n".join(lines), 200, {'Content-Type': 'text/plain'}
 
