@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-      <style>
+    <style>
         body {
             background-color: #060b14;
             background-image: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
@@ -109,7 +109,34 @@
 </head>
 <body>
 
-    {% include 'nav.html' %}
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+            <div class="xean-nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard">Terminal</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/transparency" style="color: var(--accent-blue);">AI Logic</a>
+                    <a href="/settings">Settings</a>
+                {% else %}
+                    <a href="/features">Architecture</a>
+                    <a href="/playbook">Playbook</a>
+                    <a href="/broker-integration">Broker Workflow</a>
+                    <a href="/transparency" style="color: var(--text-main);">AI Logic</a>
+                {% endif %}
+            </div>
+            <div class="xean-nav-actions">
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Terminal</a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
 
     <div class="header-box">
         <div class="sys-tag" style="margin-bottom: 1rem;">DOC_02 // SYSTEM DISCLOSURES</div>
@@ -175,6 +202,10 @@
     </div>
 
     {% include 'footer.html' %}
+
+</body>
+</html>
+
 
 </body>
 </html>
