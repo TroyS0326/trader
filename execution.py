@@ -11,7 +11,6 @@ import websockets
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
-from app import app
 from broker import maybe_activate_runner_trailing
 from db import get_trade_by_target1_id, update_trade_status
 
@@ -48,6 +47,8 @@ class SaaSExecutionManager:
 
     async def handle_fill(self, user_id: int, order: dict):
         """Processes fills for a specific user."""
+        from app import app
+
         order_id = order.get('id')
         logger.info('USER %s FILL: Order %s filled.', user_id, order_id)
         if not order_id:
