@@ -1,3 +1,19 @@
+<style>
+    .xean-nav-links .nav-link { 
+        color: var(--text-muted); 
+        transition: color 0.2s; 
+        text-decoration: none; 
+    }
+    .xean-nav-links .nav-link:hover { 
+        color: var(--text-main); 
+    }
+    .xean-nav-links .nav-link.active { 
+        color: var(--accent-blue); 
+        font-weight: 700; 
+        pointer-events: none;
+    }
+</style>
+
 <nav class="xean-nav" style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(6, 11, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 1000;">
     <div class="xean-nav-inner">
         <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
@@ -6,15 +22,15 @@
         
         <div class="xean-nav-links">
             {% if current_user.is_authenticated %}
-                <a href="/dashboard" class="nav-link">Terminal</a>
-                <a href="/playbook" class="nav-link">Playbook</a>
-                <a href="/transparency" class="nav-link">AI Logic</a>
-                <a href="/settings" class="nav-link">Settings</a>
+                <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">Terminal</a>
+                <a href="/playbook" class="nav-link {% if request.path == '/playbook' %}active{% endif %}">Playbook</a>
+                <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">AI Logic</a>
+                <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">Settings</a>
             {% else %}
-                <a href="/features" class="nav-link">Architecture</a>
-                <a href="/broker-integration" class="nav-link">Broker Workflow</a>
-                <a href="/playbook" class="nav-link">Playbook</a>
-                <a href="/transparency" class="nav-link">AI Logic</a>
+                <a href="/features" class="nav-link {% if request.path == '/features' %}active{% endif %}">Architecture</a>
+                <a href="/broker-integration" class="nav-link {% if request.path == '/broker-integration' %}active{% endif %}">Broker Workflow</a>
+                <a href="/playbook" class="nav-link {% if request.path == '/playbook' %}active{% endif %}">Playbook</a>
+                <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">AI Logic</a>
             {% endif %}
         </div>
 
@@ -30,27 +46,3 @@
         </div>
     </div>
 </nav>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const currentPath = window.location.pathname;
-        const navLinks = document.querySelectorAll('.xean-nav-links .nav-link');
-        
-        navLinks.forEach(link => {
-            if (link.getAttribute('href') === currentPath) {
-                link.style.color = 'var(--accent-blue)';
-                link.style.fontWeight = '700';
-            } else {
-                link.style.color = 'var(--text-muted)';
-            }
-            
-            // Hover effects for non-active links
-            link.addEventListener('mouseover', () => {
-                if (link.getAttribute('href') !== currentPath) link.style.color = 'var(--text-main)';
-            });
-            link.addEventListener('mouseout', () => {
-                if (link.getAttribute('href') !== currentPath) link.style.color = 'var(--text-muted)';
-            });
-        });
-    });
-</script>
