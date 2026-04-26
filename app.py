@@ -391,7 +391,7 @@ def sitemap():
     """
     links = []
     excluded_endpoints = [
-        'static', 'sitemap', 'stripe_webhook', 'alpaca_callback',
+        'static', 'stripe_webhook', 'alpaca_callback',
         'sandbox_callback', 'ws_watchlist', 'api_scan', 'api_metrics',
         'api_history', 'api_chart', 'api_execute', 'api_order_status',
         'api_transparency_stats', 'create_checkout_session', 'dev_unlock',

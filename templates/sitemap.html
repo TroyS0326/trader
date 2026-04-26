@@ -1,17 +1,11 @@
-{% extends "dashboard.html" if current_user.is_authenticated else "landing.html" %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container" style="padding: 4rem 2rem; min-height: 80vh;">
-    <h1 style="color: var(--text-main); margin-bottom: 2rem;">Site Map</h1>
-    <p style="color: var(--text-muted); margin-bottom: 3rem;">A comprehensive directory of all available pages on XeanVI.</p>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+<div class="container" style="padding: 4rem 2rem;">
+    <h1 style="color: var(--text-main);">Site Map</h1>
+    <div style="display: grid; gap: 1.5rem;">
         {% for link in links %}
-            <div style="background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px;">
-                <a href="{{ link.url }}" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">
-                    {{ link.title }}
-                </a>
-            </div>
+            <a href="{{ link.url }}" style="color: var(--accent-blue);">{{ link.title }}</a>
         {% endfor %}
     </div>
 </div>
