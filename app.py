@@ -405,6 +405,23 @@ def sitemap():
     return render_template('sitemap.html', links=sorted(links, key=lambda x: x['title']))
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    """
+    Serves the robots.txt file to search engines.
+    """
+    lines = [
+        "User-agent: *",
+        "Disallow: /dashboard",
+        "Disallow: /api/",
+        "Disallow: /settings",
+        "Disallow: /logout",
+        "Disallow: /alpaca/",
+        f"Sitemap: {url_for('sitemap', _external=True)}",
+    ]
+    return "\n".join(lines), 200, {'Content-Type': 'text/plain'}
+
+
 
 @app.route('/learn')
 @login_required
