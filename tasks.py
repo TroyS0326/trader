@@ -1,4 +1,7 @@
 from celery import Celery
+import json
+import redis
+import config
 from models import db, User
 from broker import submit_order  # Pulling from your existing broker.py
 from ai_catalyst import batch_process_premarket
@@ -6,6 +9,7 @@ from scanner import get_refined_universe
 
 # 1. Connect Celery to your Redis server (the message broker)
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
+redis_client = redis.Redis.from_url('redis://localhost:6379/0', decode_responses=True)
 
 
 @celery_app.task
@@ -72,3 +76,53 @@ def morning_pre_processing():
         return []
     batch_process_premarket(symbols)
     return symbols
+
+
+@celery_app.task
+def async_run_scan_task(user_id):
+    """
+    Background worker task to process heavy market scans and broadcast via WebSockets.
+    """
+    # Local imports to prevent circular dependency issues with Celery.
+    from app import app
+    from models import User
+    from scanner import run_scan, buy_window_open
+    from onboarding import fetch_and_sync_bankroll
+    from db import get_failed_trades_today, insert_scan
+    from watchlist import watchlist_manager
+
+    with app.app_context():
+        user = User.query.get(user_id)
+        if not user:
+            return 'User not found'
+
+        try:
+            fetch_and_sync_bankroll(user)
+            result = run_scan(user)
+
+            risk_controls = {
+                'failed_trades_today': get_failed_trades_today(),
+                'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
+                'buy_window_open': buy_window_open(),
+                'no_buy_before_et': config.NO_BUY_BEFORE_ET,
+            }
+            result['risk_controls'] = risk_controls
+            scan_id = insert_scan(result)
+            result['scan_id'] = scan_id
+
+            redis_client.setex('latest_scan', 300, json.dumps(result))
+            watchlist_manager.set_items(result.get('watchlist', []))
+
+            broadcast_payload = {
+                'type': 'scan_complete',
+                'data': result,
+            }
+            watchlist_manager.broadcast_all(json.dumps(broadcast_payload))
+            return f'Scan complete for User {user_id}'
+        except Exception as exc:
+            error_payload = {
+                'type': 'scan_error',
+                'error': str(exc),
+            }
+            watchlist_manager.broadcast_all(json.dumps(error_payload))
+            return f'Scan failed: {exc}'

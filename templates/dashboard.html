@@ -571,8 +571,15 @@
             state.ws.onmessage = (event) => {
                 try {
                     const wsPayload = JSON.parse(event.data);
-                    if (wsPayload.action === 'trade_alert') showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
-                    else if (wsPayload.type === 'watchlist') renderWatchlist(wsPayload.items || []);
+                    if (wsPayload.action === 'trade_alert') {
+                        showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
+                    } else if (wsPayload.type === 'watchlist') {
+                        renderWatchlist(wsPayload.items || []);
+                    } else if (wsPayload.type === 'scan_complete') {
+                        handleScanComplete(wsPayload.data);
+                    } else if (wsPayload.type === 'scan_error') {
+                        handleScanError(wsPayload.error);
+                    }
                 } catch (e) { console.error(e); }
             };
         }
@@ -581,7 +588,6 @@
         async function startScanner() {
             const btn = document.getElementById('scanButton');
             const statusHeader = document.getElementById('bot-status');
-            const tickerHeader = document.getElementById('target-ticker');
 
             btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> COMPILING...';
             btn.disabled = true;
@@ -601,79 +607,99 @@
                 });
                 const payload = await res.json();
 
-                if (!payload.ok) throw new Error(payload.error);
-
-                const best = payload.data.best_pick;
-                const watchPanel = best.watch_panel || {};
-
-                addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
-
-                tickerHeader.innerText = best.symbol;
-                document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
-                document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
-                document.getElementById('liveIndicator').style.display = 'inline';
-                loadChartData(best.symbol);
-
-                renderWatchPanel(best);
-                renderBestPick(best);
-                renderWatchlist(payload.data.watchlist || []);
-
-                document.getElementById('data-panels').style.display = 'grid';
-
-                // EXECUTION TRIGGER
-                if (best.decision === 'CRITERIA MET') {
-                    addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
-
-                    try {
-                        const execRes = await fetch('/api/execute', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify({
-                                symbol: best.symbol, entry_price: best.entry_price, stop_price: best.stop_price,
-                                target_1: best.target_1, target_2: best.target_2, qty: best.qty,
-                                current_price: best.current_price, buy_upper: best.buy_upper,
-                                score_total: best.score_total, decision: best.decision, scan_id: payload.data.scan_id
-                            })
-                        });
-
-                        const execData = await execRes.json();
-
-                        if (execData.ok) {
-                            addLog(`> [SUCCESS] Order Transmitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
-                            addLog(`> Risk constraint compiled at $${best.stop_price.toFixed(2)}`, "#a1a1aa");
-                            addLog(`> Take-profit boundary compiled at $${best.target_1.toFixed(2)}`, "#a1a1aa");
-
-                            activeTrade = { symbol: best.symbol, entry: best.entry_price, qty: best.qty, stop: best.stop_price, target: best.target_1 };
-
-                            document.getElementById('pos-symbol').textContent = activeTrade.symbol;
-                            document.getElementById('pos-entry').textContent = money(activeTrade.entry);
-                            document.getElementById('pos-stop').textContent = money(activeTrade.stop);
-                            document.getElementById('pos-target').textContent = money(activeTrade.target);
-                            document.getElementById('active-position-card').style.display = 'block';
-                            updateLivePL(Number(best.current_price));
-
-                            const pill = document.getElementById('decisionPill');
-                            pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
-                            pill.className = 'table-pill buy-now';
-                        } else {
-                            addLog(`> [BLOCKED] Execution halted: ${execData.error}`, "var(--danger)");
-                        }
-                    } catch (err) {
-                        addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
+                if (res.status === 202 || payload.ok) {
+                    addLog("> Scan job queued. Awaiting asynchronous results...", "#a1a1aa");
+                    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+                        connectWatchlistSocket();
                     }
                 } else {
-                    addLog("> No current data arrays match execution parameters. System idling in watch mode.", "var(--warning)");
+                    throw new Error(payload.error || "Failed to initiate scan.");
                 }
-
-                connectWatchlistSocket();
-
             } catch (err) {
-                addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
-            } finally {
-                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
-                btn.disabled = false;
-                statusHeader.innerText = "> Awaiting command...";
+                handleScanError(err.message);
             }
+        }
+
+        async function handleScanComplete(data) {
+            const btn = document.getElementById('scanButton');
+            const statusHeader = document.getElementById('bot-status');
+            const tickerHeader = document.getElementById('target-ticker');
+
+            const best = data.best_pick;
+            const watchPanel = best.watch_panel || {};
+
+            addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
+
+            tickerHeader.innerText = best.symbol;
+            document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
+            document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
+            document.getElementById('liveIndicator').style.display = 'inline';
+            loadChartData(best.symbol);
+
+            renderWatchPanel(best);
+            renderBestPick(best);
+            renderWatchlist(data.watchlist || []);
+
+            document.getElementById('data-panels').style.display = 'grid';
+
+            if (best.decision === 'CRITERIA MET') {
+                addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
+
+                try {
+                    const execRes = await fetch('/api/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({
+                            symbol: best.symbol, entry_price: best.entry_price, stop_price: best.stop_price,
+                            target_1: best.target_1, target_2: best.target_2, qty: best.qty,
+                            current_price: best.current_price, buy_upper: best.buy_upper,
+                            score_total: best.score_total, decision: best.decision, scan_id: data.scan_id
+                        })
+                    });
+
+                    const execData = await execRes.json();
+
+                    if (execData.ok) {
+                        addLog(`> [SUCCESS] Order Transmitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                        addLog(`> Risk constraint compiled at $${best.stop_price.toFixed(2)}`, "#a1a1aa");
+                        addLog(`> Take-profit boundary compiled at $${best.target_1.toFixed(2)}`, "#a1a1aa");
+
+                        activeTrade = { symbol: best.symbol, entry: best.entry_price, qty: best.qty, stop: best.stop_price, target: best.target_1 };
+
+                        document.getElementById('pos-symbol').textContent = activeTrade.symbol;
+                        document.getElementById('pos-entry').textContent = money(activeTrade.entry);
+                        document.getElementById('pos-stop').textContent = money(activeTrade.stop);
+                        document.getElementById('pos-target').textContent = money(activeTrade.target);
+                        document.getElementById('active-position-card').style.display = 'block';
+                        updateLivePL(Number(best.current_price));
+
+                        const pill = document.getElementById('decisionPill');
+                        pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
+                        pill.className = 'table-pill buy-now';
+                    } else {
+                        addLog(`> [BLOCKED] Execution halted: ${execData.error}`, "var(--danger)");
+                    }
+                } catch (err) {
+                    addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
+                }
+            } else {
+                addLog("> No current data arrays match execution parameters. System idling in watch mode.", "var(--warning)");
+            }
+
+            btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
+            btn.disabled = false;
+            statusHeader.innerText = "> Awaiting command...";
+        }
+
+        function handleScanError(error) {
+            const btn = document.getElementById('scanButton');
+            const statusHeader = document.getElementById('bot-status');
+
+            addLog(`> [FATAL ERROR] ${error}`, "var(--danger)");
+
+            btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
+            btn.disabled = false;
+            statusHeader.innerText = "> Awaiting command...";
         }
 
         connectWatchlistSocket();
