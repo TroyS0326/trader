@@ -13,6 +13,144 @@
         pointer-events: none;
     }
 
+    .xean-nav-toggle {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.55);
+        color: var(--text-main);
+        cursor: pointer;
+    }
+
+    .xean-nav-toggle-icon,
+    .xean-nav-toggle-icon::before,
+    .xean-nav-toggle-icon::after {
+        width: 18px;
+        height: 2px;
+        background: currentColor;
+        border-radius: 2px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        content: '';
+        display: block;
+    }
+
+    .xean-nav-toggle-icon {
+        position: relative;
+    }
+
+    .xean-nav-toggle-icon::before {
+        position: absolute;
+        top: -6px;
+        left: 0;
+    }
+
+    .xean-nav-toggle-icon::after {
+        position: absolute;
+        top: 6px;
+        left: 0;
+    }
+
+    .xean-nav.mobile-nav-open .xean-nav-toggle-icon {
+        background: transparent;
+    }
+
+    .xean-nav.mobile-nav-open .xean-nav-toggle-icon::before {
+        transform: translateY(6px) rotate(45deg);
+    }
+
+    .xean-nav.mobile-nav-open .xean-nav-toggle-icon::after {
+        transform: translateY(-6px) rotate(-45deg);
+    }
+
+    @media (max-width: 992px) {
+        .xean-nav {
+            overflow-x: clip;
+        }
+
+        .xean-nav-inner {
+            position: relative;
+            flex-wrap: wrap;
+            row-gap: 0.75rem;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        .xean-nav-toggle {
+            display: inline-flex;
+            margin-left: auto;
+            margin-right: 0;
+            order: 2;
+        }
+
+        .xean-nav-links {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 1rem;
+            right: 1rem;
+            z-index: 1001;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(6, 11, 20, 0.97);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            max-width: calc(100vw - 2rem);
+            order: 4;
+        }
+
+        .xean-nav.mobile-nav-open .xean-nav-links {
+            display: flex;
+        }
+
+        .xean-nav-links .nav-link {
+            display: block;
+            width: 100%;
+            padding: 0.9rem 0.85rem;
+            font-size: 1rem;
+            line-height: 1.35;
+            border-radius: 8px;
+        }
+
+        .xean-nav-links .nav-link + .nav-link {
+            margin-top: 0.2rem;
+        }
+
+        .xean-nav-links .nav-link::after {
+            display: none;
+        }
+
+        .xean-nav-actions {
+            width: 100%;
+            margin-left: 0;
+            order: 3;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .xean-nav-actions > a:first-child {
+            margin-right: 0 !important;
+        }
+
+        .xean-nav-actions a.btn,
+        .xean-nav-actions .btn {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+        }
+    }
+
     @media (max-width: 768px) {
         .xean-nav-actions {
             width: 100%;
@@ -26,10 +164,14 @@
 </style>
 
 <nav class="xean-nav" style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(6, 11, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 1000;">
-    <div class="xean-nav-inner">
+    <div class="xean-nav-inner" style="position: relative;">
         <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
             Xean<span style="color: var(--accent-blue);">VI</span>
         </a>
+
+        <button type="button" class="xean-nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+            <span class="xean-nav-toggle-icon"></span>
+        </button>
         
         <div class="xean-nav-links">
             {% if current_user.is_authenticated %}
@@ -58,3 +200,63 @@
         </div>
     </div>
 </nav>
+
+<script>
+(function () {
+    var nav = document.querySelector('.xean-nav');
+    if (!nav) return;
+
+    var toggle = nav.querySelector('.xean-nav-toggle');
+    var navLinks = nav.querySelector('.xean-nav-links');
+    if (!toggle || !navLinks) return;
+
+    var isMobileViewport = function () {
+        return window.matchMedia('(max-width: 992px)').matches;
+    };
+
+    var closeMenu = function () {
+        nav.classList.remove('mobile-nav-open');
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    var openMenu = function () {
+        nav.classList.add('mobile-nav-open');
+        toggle.setAttribute('aria-expanded', 'true');
+    };
+
+    toggle.addEventListener('click', function (event) {
+        event.stopPropagation();
+
+        if (nav.classList.contains('mobile-nav-open')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    navLinks.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+            closeMenu();
+        });
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!isMobileViewport()) return;
+        if (!nav.contains(event.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeMenu();
+        }
+    });
+
+    window.addEventListener('resize', function () {
+        if (!isMobileViewport()) {
+            closeMenu();
+        }
+    });
+})();
+</script>
