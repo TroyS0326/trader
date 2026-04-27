@@ -281,7 +281,7 @@ def join_waitlist():
 @app.route('/pricing')
 def pricing():
     """Allows logged-in users to view the pricing tier list without being bounced."""
-    return render_template('landing.html')
+    return render_template('upgrade.html')
 
 
 @app.route('/signup', methods=['GET', 'POST'])
