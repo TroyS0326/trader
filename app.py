@@ -515,7 +515,7 @@ def create_checkout_session():
             payment_method_types=['card'],
             line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
-            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            success_url=url_for('onboarding', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('upgrade', _external=True),
         )
         return redirect(checkout_session.url, code=303)
@@ -547,7 +547,7 @@ def checkout_redirect():
             payment_method_types=['card'],
             line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
-            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            success_url=url_for('onboarding', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('upgrade', _external=True),
         )
         return redirect(checkout_session.url, code=303)
