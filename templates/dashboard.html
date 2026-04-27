@@ -1,690 +1,503 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Terminal | XeanVI Execution Engine</title>
-    <meta name="description" content="Access your XeanVI trading terminal. Monitor live market scans, manage algorithmic risk, and track automated trade execution in real-time.">
-    <meta name="robots" content="noindex, nofollow, noarchive">
+<title>XeanVI PRO | Live Automated Trading Software & Execution</title>
+<meta name="description" content="Upgrade to XeanVI PRO. Define your playbook rules, connect your broker, and deploy live automated trading software with built-in risk controls.">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="XeanVI">
+<link rel="canonical" href="https://xeanvi.com/">
 
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="XeanVI">
+<meta property="og:url" content="https://xeanvi.com/">
+<meta property="og:title" content="XeanVI PRO | Live Automated Trading Software">
+<meta property="og:description" content="Deploy a live automated trading workflow. Define playbook rules, connect your supported broker API, and let XeanVI PRO scan, validate, and execute trades.">
+<meta property="og:image" content="https://xeanvi.com/static/seo-banner.jpg">
+<meta property="og:image:alt" content="XeanVI PRO automated trading software interface">
 
-    <style>
-        :root {
-            --bg-main: #060b14; /* Deepened the background for a true terminal feel */
-            --bg-card: #0f172a;
-            --bg-input: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-blue: #38bdf8;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --border-color: rgba(255, 255, 255, 0.08);
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="XeanVI PRO | Live Automated Trading Software">
+<meta name="twitter:description" content="Deploy a live automated trading workflow. Define playbook rules, connect your supported broker API, and let XeanVI PRO execute trades.">
+<meta name="twitter:image" content="https://xeanvi.com/static/seo-banner.jpg">
+<meta name="twitter:image:alt" content="XeanVI PRO automated trading software interface">
 
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-        }
+<meta name="theme-color" content="#0f172a">
 
-        body { 
-            font-family: var(--font-sans); 
-            background-color: var(--bg-main); 
-            color: var(--text-main); 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-            background-image: radial-gradient(circle at top center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
-        }
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://xeanvi.com/#organization",
+      "name": "XeanVI",
+      "url": "https://xeanvi.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://xeanvi.com/static/seo-banner.jpg"
+      },
+      "description": "XeanVI provides live automated trading software, enabling retail traders to build playbook rules, scan markets, and route orders via supported broker APIs."
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://xeanvi.com/#website",
+      "url": "https://xeanvi.com/",
+      "name": "XeanVI",
+      "publisher": {
+        "@id": "https://xeanvi.com/#organization"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://xeanvi.com/#software",
+      "name": "XeanVI PRO",
+      "operatingSystem": "Web",
+      "applicationCategory": "FinanceApplication",
+      "url": "https://xeanvi.com/",
+      "description": "XeanVI PRO is a live automated trading software platform. Users define their playbook, connect a supported broker API, and the engine automatically scans, validates, and routes trades with strict risk controls.",
+      "publisher": {
+        "@id": "https://xeanvi.com/#organization"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "19.99",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "url": "https://xeanvi.com/pricing"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://xeanvi.com/#webpage",
+      "url": "https://xeanvi.com/",
+      "name": "XeanVI PRO | Live Automated Trading Software & Execution",
+      "description": "Upgrade to XeanVI PRO. Define your playbook rules, connect your broker, and deploy live automated trading software with built-in risk controls.",
+      "isPartOf": {
+        "@id": "https://xeanvi.com/#website"
+      },
+      "about": {
+        "@id": "https://xeanvi.com/#software"
+      }
+    }
+  ]
+}
+</script>
 
-        /* --- Header Metrics Bar --- */
-        .command-header-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            gap: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-        .header-profile { display: flex; align-items: center; gap: 12px; min-width: 180px; }
-        .profile-name { font-weight: 700; font-size: 1rem; color: var(--text-main); }
-        .profile-tier { 
-            font-family: var(--font-mono); font-size: 0.65rem; font-weight: 800; 
-            color: var(--text-muted); background: rgba(255,255,255,0.05); 
-            padding: 3px 6px; border-radius: 4px; width: fit-content; margin-top: 4px; letter-spacing: 0.05em;
-        }
+<style>
+    /* Landing Page Specific Overrides */
+    h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+    h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
+    h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+    p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
 
-        .header-metrics { display: flex; align-items: center; gap: 30px; flex-grow: 1; justify-content: center; }
-        .h-metric { display: flex; flex-direction: column; align-items: center; }
-        .h-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
-        .h-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.15rem; color: var(--text-main); text-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .h-divider { width: 1px; height: 35px; background: var(--border-color); }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
 
-        /* --- Workspace Layout --- */
-        .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-        
-        .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; height: 500px; flex-shrink: 0; }
-        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 2rem; }
+    nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+    .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
+    .logo span { color: var(--accent-blue); }
+    .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--accent-blue); }
 
-        /* --- Global Card Aesthetics --- */
-        .card, .control-panel, .chart-panel, .data-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .card-header { 
-            font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; 
-            border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.25rem; 
-            display: flex; justify-content: space-between; align-items: center; color: var(--text-muted);
-        }
-        
-        /* Tactical Sub-Tags */
-        .sys-tag { font-family: var(--font-mono); font-size: 0.65rem; background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px; color: var(--accent-blue); }
+    .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; text-decoration: none;}
+    .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); color: #ffffff;}
+    .btn-secondary { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
 
-        /* --- Control Panel & Trigger --- */
-        .control-panel { display: flex; flex-direction: column; background: linear-gradient(180deg, var(--bg-card) 0%, #060b14 100%); }
-        .strategy-select { 
-            background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); 
-            padding: 1rem; border-radius: 8px; width: 100%; margin-bottom: 1.5rem; font-family: var(--font-mono); font-size: 0.85rem; outline: none; transition: border 0.2s;
-        }
-        .strategy-select:focus { border-color: var(--accent-blue); }
+    .hero { padding: 8rem 0; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
+    .hero-content { max-width: 700px; }
 
-        .btn-run-scan { 
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; 
-            border: none; padding: 1.25rem; border-radius: 8px; font-weight: 800; font-size: 1.1rem; 
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3); text-transform: uppercase; letter-spacing: 0.1em; 
-            position: relative; overflow: hidden; margin-top: auto;
-        }
-        .btn-run-scan::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(rgba(255,255,255,0.2), transparent); transform: rotate(45deg); transition: 0.5s; opacity: 0; }
-        .btn-run-scan:hover { box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5); transform: translateY(-2px); }
-        .btn-run-scan:hover::after { opacity: 1; }
-        .btn-run-scan:disabled { background: var(--bg-input); color: var(--text-muted); box-shadow: none; cursor: not-allowed; transform: none; border: 1px solid var(--border-color); }
+    .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
 
-        /* --- Chart Panel --- */
-        .chart-panel { display: flex; flex-direction: column; padding: 1rem; }
-        .chart-container { flex-grow: 1; border-radius: 8px; overflow: hidden; background: #020617; border: 1px solid rgba(255,255,255,0.05); }
+    .risk-disclaimer {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        line-height: 1.6;
+        max-width: 780px;
+        margin: 2rem auto 0;
+        text-align: center;
+    }
 
-        /* --- Data Presentation --- */
-        .action-box { font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; padding: 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid transparent; }
-        .action-box.wait { background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .action-text { color: var(--text-main); }
-        
-        .watch-panel { background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); }
-        .watch-line { font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; color: var(--text-muted); }
-        .watch-line:last-child { margin-bottom: 0; }
-        .watch-line span:last-child { font-weight: 700; color: var(--text-main); }
-        
-        .highlight-green { color: var(--success) !important; text-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
-        .highlight-red { color: var(--danger) !important; text-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+    footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
-        /* Mini Metric Grid */
-        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .mini-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; text-align: center; }
-        .mini-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-        .mini-card .value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-
-        /* Tables */
-        .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: rgba(0,0,0,0.4); padding: 0.85rem 1rem; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        td { padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); }
-        .table-pill { font-family: var(--font-sans); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
-        .buy-now, .table-pill.buy-now { color: var(--success); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-        .table-pill.watch { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-
-        /* --- True Terminal Output --- */
-        .terminal-panel { grid-column: 1 / -1; background: #020617; border-color: rgba(255,255,255,0.05); }
-        .terminal-output { 
-            padding: 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: #a1a1aa; 
-            height: 250px; overflow-y: auto; line-height: 1.7; background: #000; border-radius: 8px; 
-            border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-        }
-        .log-time { color: #52525b; margin-right: 12px; }
-        .terminal-output div { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.05); }
-        .terminal-output div:last-child { border-bottom: none; }
-
-        /* Custom Scrollbar for Terminal */
-        .terminal-output::-webkit-scrollbar { width: 6px; }
-        .terminal-output::-webkit-scrollbar-track { background: #000; }
-        .terminal-output::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-
-        @media (max-width: 992px) {
-            .command-header-bar { flex-direction: column; padding: 1rem; gap: 1rem; }
-            .header-metrics { flex-wrap: wrap; gap: 15px; }
-            .h-divider { display: none; }
-            .workspace { padding: 1rem; }
-            .top-row { display: flex; flex-direction: column; height: auto; }
-            .chart-panel { height: 350px; }
-            .chart-container { height: 100%; min-height: 250px; }
-            .bottom-row { display: flex; flex-direction: column; }
-        }
-    </style>
+    @media (max-width: 768px) {
+        .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
+        .hero { padding: 4rem 0; text-align: center; }
+        .hero-content { margin: 0 auto; }
+        .nav-links { display: none; }
+    }
+</style>
 </head>
 <body>
 
-    {% include 'nav.html' %}
+{% include 'nav.html' %}
 
-    <div style="padding: 1.5rem 2rem 0 2rem;">
-        <div class="command-header-bar">
-            <div class="header-profile">
-                <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
-                    {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
-                </div>
-                <div class="profile-text">
-                    <span class="profile-name">{{ current_user.full_name }}</span>
-                    <span class="profile-tier">
-                        SYS_ADMIN // 
-                        {% if current_user.subscription_status == 'pro' %}
-                            <span style="color: var(--accent-blue);">PRO</span>
-                        {% else %}
-                            FREE
-                        {% endif %}
-                    </span>
+<main>
+    <section class="hero">
+        <div class="container grid-2">
+            <div class="hero-content">
+                <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
+                    Live Automated Trading <span style="color: var(--accent-blue);">Built Around</span> Your Rules and Risk Controls.
+                </h1>
+                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
+                    XeanVI PRO executes your trading playbook. Connect your supported broker API, let our engine scan and validate setups, and deploy live automated routing with strict risk parameters.
+                </p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                    <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
+                    <a href="/features" class="btn btn-secondary">Explore Live Automation</a>
                 </div>
             </div>
 
-            <div class="header-metrics">
-                <div class="h-metric">
-                    <span class="h-label">Environment</span>
-                    <span class="h-value" style="color: var(--success);"><i class="fas fa-flask" style="font-size: 0.8rem; margin-right: 6px;"></i>Sandbox</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Capital Auth</span>
-                    <span class="h-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Model Confidence</span>
-                    <span class="h-value" id="ai-confidence" style="color: var(--accent-blue);">--%</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Logic Alignment</span>
-                    <span class="h-value" id="setup-grade">--</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Max Allowed Risk</span>
-                    <span class="h-value" id="risk-amount" style="color: var(--warning);">--</span>
-                </div>
-            </div>
-
-            <div class="header-actions">
-                <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
-                    <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <div class="workspace">
-
-        <div class="top-row">
-            <div class="control-panel">
-                <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
-                    Command Input <span class="sys-tag">INPUT_REQ</span>
-                </div>
-                
-                <div>
-                    <label style="font-size: 0.75rem; margin-bottom: 8px;">Risk Profile Selection</label>
-                    <select id="strategy-select" class="strategy-select">
-                        <option value="balanced">PROFILE_01: Balanced Growth</option>
-                        <option value="aggressive">PROFILE_02: High Volatility Edge</option>
-                    </select>
+            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;" aria-label="Interactive execution sandbox terminal">
+                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Execution Sandbox</div>
+                        <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                            <span id="sim-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);"></span> Engine Idle
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Sandbox Balance</div>
+                        <div id="sim-bankroll" style="color: var(--text-main); font-weight: 800; font-size: 1.25rem;">$10,000.00</div>
+                    </div>
                 </div>
 
-                <div style="margin-top: auto;">
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; font-family: var(--font-mono);">
-                        > Awaiting scan authorization...
-                    </p>
-                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
-                        <i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan
+                <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
+                    <div style="color: var(--text-muted);">> Sandbox loaded. $10,000 test balance available for workflow validation.</div>
+                </div>
+
+                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run automation test sequence">
+                        <i class="fas fa-play" aria-hidden="true"></i> Test Automation Sequence
                     </button>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div class="chart-panel">
-                <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
-                        TARGET_ASSET: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
+    <section style="padding: 5rem 0; background-color: var(--bg-card); border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">The XeanVI PRO Automation Flow</h2>
+                <p style="max-width: 740px; margin: 0 auto;">
+                    Move from manual screen-watching to a fully automated pipeline. Create an account, build your rules, connect your broker, and let the software handle the execution and risk management.
+                </p>
+            </div>
+            <div class="grid-3">
+                <article style="text-align: center; padding: 2rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                        1
                     </div>
-                    <div id="liveIndicator" style="display:none; color: var(--success); font-family: var(--font-mono); font-size: 0.75rem;">
-                        <span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success);"></span>DATA_STREAM_ACTIVE
+                    <h3 style="font-size: 1.25rem;">Define Your Playbook</h3>
+                    <p style="font-size: 0.95rem; line-height: 1.6;">
+                        Configure strict risk settings, position sizing, and specific technical setups inside your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>. You dictate the exact parameters.
+                    </p>
+                </article>
+
+                <article style="text-align: center; padding: 2rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                        2
                     </div>
+                    <h3 style="font-size: 1.25rem;">Connect Your Broker</h3>
+                    <p style="font-size: 0.95rem; line-height: 1.6;">
+                        Link your supported broker API securely through <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">Broker Integration</a>. XeanVI PRO acts as the execution engine for your external account.
+                    </p>
+                </article>
+
+                <article style="text-align: center; padding: 2rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                        3
+                    </div>
+                    <h3 style="font-size: 1.25rem;">Live Automated Execution</h3>
+                    <p style="font-size: 0.95rem; line-height: 1.6;">
+                        Once armed, XeanVI PRO automatically scans, validates setups, and routes live orders while enforcing your risk limits. (We strongly recommend testing in our paper sandbox first).
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Built for Unemotional Trade Execution</h2>
+                <p style="max-width: 740px; margin: 0 auto;">
+                    XeanVI PRO is designed to remove hesitation. It organizes market review, scores the setups, and instantly pushes broker-connected execution commands the moment your rules are met.
+                </p>
+            </div>
+
+            <div class="grid-2" style="align-items: start; gap: 2rem;">
+                <article style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                            <i class="fas fa-microchip" aria-hidden="true"></i>
+                        </div>
+                        <h3 style="margin: 0; font-size: 1.25rem;">AI-Assisted Setup Validation</h3>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.6;">
+                        Before a trade is routed, XeanVI PRO uses AI-assisted scoring to validate market headlines, catalyst weight, and setup context to ensure it aligns with your pre-defined playbook strategy.
+                    </p>
+                </article>
+
+                <article style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                            <i class="fas fa-server" aria-hidden="true"></i>
+                        </div>
+                        <h3 style="margin: 0; font-size: 1.25rem;">Live Trade Routing & Risk Controls</h3>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.6;">
+                        Say goodbye to manual errors. XeanVI PRO acts as a continuous execution environment that monitors the market and fires bracket orders (entries, stops, and targets) directly to your broker.
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
+                <div style="max-width: 650px;">
+                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Look Under the Hood</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 0;">
+                        Review how XeanVI PRO handles live market scans, validation scoring, order routing, and capital preservation before you turn on your automated playbook.
+                    </p>
                 </div>
-                <div class="chart-container">
-                    <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
+                <div>
+                    <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
+                        See All PRO Features <span style="color: var(--accent-blue);">→</span>
+                    </a>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="bottom-row" id="data-panels" style="display: none;">
-            
-            <div class="data-card">
-                <div class="card-header">
-                    Logic Execution Plan
-                    <span id="decisionPill" class="table-pill watch">AWAITING</span>
-                </div>
-                <div id="actionContainer" class="action-box wait">
-                    <div id="actionPrimary" class="action-text">> Run data scan to calculate parameters.</div>
-                </div>
-                <div class="watch-panel">
-                    <div class="watch-line"><span>Calculated Size:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
-                    <div class="watch-line"><span>Hard Stop Array:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
-                    <div class="watch-line"><span>Target Boundary:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
-                    <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 12px 0;"></div>
-                    <div class="watch-line"><span>Capital Value at Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
-                </div>
+    <section class="section-pad terminal-bg" style="border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <div class="badge-pill">Operations Briefing</div>
+                <h2 class="text-gradient">Common Automation Questions</h2>
+                <p>
+                    Quick answers about the XeanVI PRO live workflow. For deeper technical details, visit the <a href="/features" style="color: var(--accent-blue);">Features Page</a>.
+                </p>
             </div>
 
-            <div class="data-card" id="news-panel">
-                <div class="card-header">
-                    Data Model Inputs
-                    <span class="sys-tag">SYS_ANALYTICS</span>
-                </div>
-                <div class="mini-grid" id="scoreRows">
+            <div class="card" style="max-width: 900px; margin: 0 auto; padding: 0;">
+                <article class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-robot" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
+                            Is this fully automated live trading?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
-                <div id="bestNotes" style="margin-top: 15px; font-family: var(--font-mono); font-size: 0.8rem; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); color: var(--text-muted); line-height: 1.6;">
-                    > Waiting for data feed...
-                </div>
-            </div>
-
-            <div class="data-card" id="watchlist-panel">
-                <div class="card-header">
-                    Active Screener Results
-                    <span class="sys-tag">SYS_FILTER</span>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Sym</th>
-                                <th>Logic Gate</th>
-                                <th>Price</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody id="watchlistBody">
-                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="data-card" id="active-position-card" style="display: none; border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);">
-                <div class="card-header" style="color: var(--text-main);">
-                    Active Position: <span id="pos-symbol" style="color: var(--accent-blue); font-family: var(--font-mono); font-size: 1.2rem; margin-left: 8px;">--</span>
-                    <span class="table-pill buy-now" style="box-shadow: 0 0 15px var(--success);"><i class="fas fa-circle-notch fa-spin" style="margin-right: 6px;"></i>LIVE</span>
-                </div>
-                <div class="mini-grid" style="margin-bottom: 15px;">
-                    <div class="mini-card" style="background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.2);">
-                        <div class="label" style="color: var(--accent-blue);">Fill Price</div>
-                        <div class="value" id="pos-entry">$--</div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            Yes. Once you configure your playbook rules and link a supported broker API, XeanVI PRO will scan, score, and automatically route live trades based exclusively on your defined parameters. We always recommend testing in our sandbox paper mode before risking real capital.
+                        </p>
                     </div>
-                    <div class="mini-card">
-                        <div class="label">Current Mark</div>
-                        <div class="value" id="pos-current">$--</div>
+                </article>
+
+                <article class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-shield-alt" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
+                            How does risk management work?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
-                </div>
-                <div class="action-box" id="pl-container" style="text-align: center; padding: 1.5rem; border: 1px solid transparent;">
-                    <div class="label" style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; color: var(--text-muted);">Unrealized P&L</div>
-                    <div id="pos-pl" style="font-family: var(--font-mono); font-size: 2.8rem; font-weight: 800; letter-spacing: -1px;">$0.00</div>
-                    <div id="pos-pl-pct" style="font-family: var(--font-mono); font-size: 1rem; font-weight: bold; opacity: 0.7;">(0.00%)</div>
-                </div>
-                <div class="watch-panel">
-                    <div class="watch-line"><span>Auto-Stop Order:</span> <span id="pos-stop" class="highlight-red">--</span></div>
-                    <div class="watch-line"><span>Take Profit Bound:</span> <span id="pos-target" class="highlight-green">--</span></div>
-                </div>
-            </div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            You define your max risk, stop-loss percentages, and position sizing right inside your playbook. XeanVI PRO strictly enforces these risk controls on every automated execution, automatically calculating shares and attaching bracket orders to protect your account.
+                        </p>
+                    </div>
+                </article>
 
-            <div class="data-card terminal-panel full-width" id="terminal-panel">
-                <div class="card-header" style="border-bottom-color: rgba(255,255,255,0.05);">
-                    <div><i class="fas fa-terminal" style="margin-right: 8px; color: var(--text-muted);"></i>Execution Logs</div>
-                    <span id="bot-status" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: none;">> Awaiting command...</span>
-                </div>
-                <div class="terminal-output" id="log-container">
-                    <div><span class="log-time">[SYSTEM INIT]</span> <span style="color: var(--success);">Terminal online. Sandbox connection verified.</span></div>
-                </div>
+                <article class="faq-item" style="padding: 1.5rem;">
+                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                            <i class="fas fa-link" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
+                            Do you require a specific broker?
+                        </h3>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
+                    </div>
+                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                        <p style="padding-top: 1rem; margin-bottom: 0;">
+                            No. XeanVI PRO integrates with supported broker APIs. You connect your existing account to authorize execution, and you maintain complete control over your capital and broker permissions at all times.
+                        </p>
+                    </div>
+                </article>
             </div>
-
         </div>
-    </div>
+    </section>
 
-    <script>
-        const csrfToken = "{{ csrf_token() }}";
-        const chartState = { chart: null, series: null };
-        const state = { ws: null };
-        const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
-        let activeTrade = null; 
+    <section id="pricing" class="pricing-section" style="padding: 6rem 0; background-color: var(--bg-card);">
+        <div class="container">
+            <div style="text-align: center; max-width: 820px; margin: 0 auto 4rem;">
+                <h2>Simple Pricing for Live Trading Automation</h2>
+                <p>
+                    Upgrade to XeanVI PRO today. Define your custom rules, test them in the sandbox, and seamlessly transition to live automated trade execution.
+                </p>
+            </div>
 
-        function money(v) {
-            if (v === undefined || v === null || Number.isNaN(Number(v))) return '—';
-            return `$${Number(v).toFixed(2)}`;
+            <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem; align-items: stretch;">
+
+                <article class="card pricing-card" style="text-align: center; padding: 3rem 2rem; display: flex; flex-direction: column; border: 1px solid var(--border-color); background: var(--bg-card);">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Monthly PRO</h3>
+
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                        $19.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/mo</span>
+                    </div>
+
+                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 280px; margin-left: auto; margin-right: auto; flex-grow: 1;">
+                        Month-to-month access to live automated execution, AI setup validation, and continuous market scanning.
+                    </p>
+
+                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0; list-style: none;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Live broker API execution</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Automated playbook routing</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Strict risk management limits</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Paper sandbox test mode</li>
+                    </ul>
+
+                    <a href="/signup?plan=monthly" class="btn btn-secondary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02);">
+                        Start Monthly PRO
+                    </a>
+                </article>
+
+                <article class="card pricing-card" style="text-align: center; padding: 3rem 2rem; position: relative; border: 1px solid var(--accent-blue); background: var(--bg-card); box-shadow: 0 10px 30px rgba(56, 189, 248, 0.08); display: flex; flex-direction: column;">
+
+                    <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none; white-space: nowrap; font-weight: bold;">
+                        BEST VALUE
+                    </div>
+
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Annual PRO</h3>
+
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                        $199.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/yr</span>
+                    </div>
+
+                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 280px; margin-left: auto; margin-right: auto; flex-grow: 1;">
+                        Annual access to XeanVI PRO live execution tools, saving you two months over the standard monthly plan.
+                    </p>
+
+                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0; list-style: none;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Live broker API execution</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Automated playbook routing</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Strict risk management limits</li>
+                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;" aria-hidden="true"></i> Paper sandbox test mode</li>
+                    </ul>
+
+                    <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto;">
+                        Start Annual PRO
+                    </a>
+                </article>
+
+            </div>
+
+            <p class="risk-disclaimer">
+                XeanVI provides live automated trading software, enabling rules-based market review, execution testing, and supported broker connectivity. It does not provide financial advice, investment recommendations, or guaranteed results. Trading involves significant risk, including possible loss of capital. Automation software runs according to user parameters and past performance or paper trading results do not guarantee live trading profitability.
+            </p>
+        </div>
+    </section>
+</main>
+
+{% include 'footer.html' %}
+
+<script>
+    function toggleFAQ(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('.fa-chevron-down');
+        const isCollapsed = !answer.style.maxHeight || answer.style.maxHeight === '0px';
+
+        element.setAttribute('aria-expanded', isCollapsed);
+
+        answer.style.maxHeight = isCollapsed ? `${answer.scrollHeight}px` : '0px';
+        if (icon) {
+            icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
         }
+    }
 
-        function updateLivePL(currentPrice) {
-            if (!activeTrade) return;
-            const pl = (currentPrice - activeTrade.entry) * activeTrade.qty;
-            const plPct = ((currentPrice - activeTrade.entry) / activeTrade.entry) * 100;
-            const plEl = document.getElementById('pos-pl');
-            const pctEl = document.getElementById('pos-pl-pct');
-            const card = document.getElementById('pl-container');
-
-            plEl.textContent = (pl >= 0 ? '+' : '') + money(pl);
-            pctEl.textContent = `(${plPct.toFixed(2)}%)`;
-            document.getElementById('pos-current').textContent = money(currentPrice);
-
-            if (pl >= 0) {
-                plEl.style.color = 'var(--success)';
-                card.style.background = 'rgba(16, 185, 129, 0.05)';
-                card.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-            } else {
-                plEl.style.color = 'var(--danger)';
-                card.style.background = 'rgba(239, 68, 68, 0.05)';
-                card.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-            }
+    function handleFAQKeydown(event, element) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleFAQ(element);
         }
+    }
 
-        // Updated for terminal aesthetic
-        function addLog(message, color) {
-            const terminal = document.getElementById('log-container');
-            if (!terminal) return;
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            terminal.innerHTML += `<div><span class="log-time">[${time}]</span> <span style="color: ${color || '#a1a1aa'};">${message}</span></div>`;
-            terminal.scrollTop = terminal.scrollHeight;
-        }
+    let isSimulating = false;
+    let bankroll = 10000;
 
-        async function updateLiveMetrics() {
-            try {
-                const response = await fetch('/api/metrics');
-                if (!response.ok) throw new Error('Metrics endpoint unavailable');
-                const payload = await response.json();
-                if (payload?.ok) {
-                    const watchItems = payload.data?.watchlist || [];
-                    if (activeTrade?.symbol) {
-                        const match = watchItems.find(item => item.symbol === activeTrade.symbol);
-                        const price = Number(match?.current_price);
-                        if (!Number.isNaN(price)) updateLivePL(price);
-                    }
-                }
-            } catch (err) {
-                console.debug(`Live metrics refresh skipped: ${err.message}`);
-            }
-        }
+    function addSimLog(msg, color = 'var(--text-muted)') {
+        const term = document.getElementById('sim-terminal');
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
+        term.scrollTop = term.scrollHeight;
+    }
 
-        setInterval(() => {
-            updateLiveMetrics();
-            addLog("> Pinging exchange for updated tick data...", "#52525b");
-        }, userRefreshRate);
+    function runSimulation() {
+        if (isSimulating) return;
+        isSimulating = true;
 
-        function initChart() {
-            const container = document.getElementById('tradingview_chart');
-            if (!container) return;
-            container.innerHTML = '';
-            chartState.chart = LightweightCharts.createChart(container, {
-                layout: { background: { color: '#000000' }, textColor: '#94a3b8' }, // Darker chart background
-                grid: {
-                    vertLines: { color: 'rgba(255,255,255,0.03)' },
-                    horzLines: { color: 'rgba(255,255,255,0.03)' }
-                },
-                width: container.clientWidth,
-                height: 350,
-            });
-            chartState.series = chartState.chart.addCandlestickSeries({
-                upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
-            });
-        }
+        const btn = document.getElementById('btn-simulate');
+        const status = document.getElementById('sim-status');
+        const dot = document.getElementById('sim-dot');
+        const br = document.getElementById('sim-bankroll');
 
-        async function loadChartData(ticker) {
-            if (!chartState.chart) initChart();
-            try {
-                const res = await fetch(`/api/chart/${ticker}`);
-                const payload = await res.json();
-                if (payload.ok && chartState.series && chartState.chart) {
-                    chartState.series.setData(payload.data.intraday || []);
-                    chartState.chart.timeScale().fitContent();
-                }
-            } catch (e) {
-                console.error('Chart load failed', e);
-            }
-        }
-        loadChartData('SPY');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Processing Route...';
+        btn.style.background = 'var(--bg-card)';
+        btn.style.color = 'var(--text-muted)';
 
-        function renderWatchPanel(best) {
-            const panel = best.watch_panel || {};
-            const actionContainer = document.getElementById('actionContainer');
-            const actionPrimary = document.getElementById('actionPrimary');
-            const decisionPill = document.getElementById('decisionPill');
+        status.style.color = '#f59e0b';
+        dot.style.background = '#f59e0b';
+        status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Validating Setups...`;
 
-            decisionPill.textContent = best.decision || 'WATCH';
+        document.getElementById('sim-terminal').innerHTML = '';
+        addSimLog("> Initializing automation sequence in test sandbox...", "var(--accent-blue)");
 
-            if (best.decision === 'CRITERIA MET') {
-                decisionPill.className = 'table-pill buy-now';
-                actionContainer.className = 'action-box';
-                actionContainer.style.background = 'rgba(16, 185, 129, 0.1)';
-                actionContainer.style.borderColor = 'var(--success)';
-                actionPrimary.innerHTML = `> ALIGNMENT CONFIRMED.<br>> Calc Execution: <strong>${panel.max_shares || 0} shares</strong> @ ${money(best.current_price)}.<br>> Target Array: ${money(best.target_1)}.`;
-            } else if (best.decision === 'WAIT') {
-                decisionPill.className = 'table-pill watch';
-                actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `> SAFETY GATE ACTIVE.<br>> Halting execution until <strong>${panel.buy_after || '09:45'} ET</strong> per logic constraints.`;
-            } else {
-                decisionPill.className = 'table-pill watch';
-                actionContainer.className = 'action-box wait';
-                actionPrimary.innerHTML = `> Data scanning...<br>> Status Code: <strong>${best.decision}</strong>`;
-            }
+        setTimeout(() => addSimLog("> Scanning real-time feed against Playbook rules..."), 800);
+        setTimeout(() => addSimLog("> Setup identified. Validating AI-assisted score and risk filters...", "#f59e0b"), 2200);
+        setTimeout(() => addSimLog("> Playbook parameters met. Authorized for simulated execution.", "var(--success)"), 3800);
 
-            document.getElementById('watchQtyLine').textContent = `${panel.max_shares || 0} Shares`;
-            document.getElementById('watchRiskLine').textContent = money(panel.max_dollar_loss);
-            document.getElementById('watchStopLine').textContent = money(panel.stop);
-            document.getElementById('watchTpLine').textContent = money(panel.take_profit_range?.[0]);
-        }
+        setTimeout(() => {
+            addSimLog("> Routing limit entry for 50 shares at $128.50.");
+            addSimLog("> Risk bracket applied: Target $131.50 | Hard Stop $127.00.");
+        }, 5000);
 
-        function renderBestPick(best) {
-            const scoreRows = document.getElementById('scoreRows');
-            scoreRows.innerHTML = '';
-            const details = best.details || {};
+        setTimeout(() => {
+            addSimLog("> AUTOMATION TEST UPDATE: Target price achieved in sequence.", "var(--accent-blue)");
+            addSimLog("> <strong>Sandbox execution complete: +$150.00 gross test result.</strong>", "var(--success)");
 
-            const metrics = [
-                { label: 'Rel. Volume', val: details.rvol ? details.rvol + 'x' : '—' },
-                { label: 'Trend Score', val: details.trend_efficiency ? details.trend_efficiency : '—' },
-                { label: 'Morning Gap', val: details.premarket_gap_pct ? details.premarket_gap_pct.toFixed(1) + '%' : '—' },
-                { label: 'Spread', val: details.spread_pct ? (details.spread_pct * 100).toFixed(2) + '%' : '—' }
-            ];
+            bankroll += 150;
+            br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
+            br.style.color = 'var(--success)';
 
-            metrics.forEach(m => {
-                scoreRows.innerHTML += `<div class="mini-card"><div class="label">${m.label}</div><div class="value">${m.val}</div></div>`;
-            });
+            status.style.color = 'var(--success)';
+            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Test Execution Complete`;
 
-            const gradeEl = document.getElementById('setup-grade');
-            const grade = best.setup_grade || 'NO MATCH';
-            gradeEl.innerHTML = `<span style="color: ${grade.includes('A') ? 'var(--success)' : 'var(--warning)'}; font-weight: 800;">[${grade}]</span>`;
-
-            const notes = [];
-            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">> Model integrated Gemini AI sentiment validation.</span>`);
-
-            const skips = details.skip_reasons || [];
-            if (skips.length > 0) {
-                notes.push(`<span style="color: var(--warning);">> SYSTEM OVERRIDE:</span><br><span style="color: var(--text-muted);">  ${skips[0]}</span>`);
-            } else {
-                notes.push(`<span style="color: var(--success);">> SYS_CHECK_OK: Mathematical criteria perfectly aligned.</span>`);
-            }
-            document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
-        }
-
-        function renderWatchlist(items) {
-            const body = document.getElementById('watchlistBody');
-            body.innerHTML = '';
-            if (!items || !items.length) {
-                body.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>';
-                return;
-            }
-            items.slice(0, 5).forEach(item => {
-                const signal = item.live_signal || item.decision || 'WATCH';
-                const cssClass = signal === 'CRITERIA MET' ? 'buy-now' : 'watch';
-                body.innerHTML += `
-                    <tr>
-                        <td style="color: var(--accent-blue);"><strong>${item.symbol}</strong></td>
-                        <td><span class="table-pill ${cssClass}">${signal}</span></td>
-                        <td>${money(item.current_price)}</td>
-                        <td>${item.score_total || '--'}</td>
-                    </tr>`;
-            });
-        }
-
-        function showNotification(title, message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            const toast = document.createElement('div');
-            toast.className = `trade-toast ${type}`;
-            toast.style.background = '#0f172a';
-            toast.style.borderColor = 'rgba(255,255,255,0.1)';
-
-            let icon = '<i class="fas fa-terminal"></i>';
-            if (type === 'success') icon = '<i class="fas fa-check" style="color: var(--success)"></i>';
-            if (type === 'danger') icon = '<i class="fas fa-times" style="color: var(--danger)"></i>';
-
-            toast.innerHTML = `<div class="toast-header" style="font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase;">${icon} ${title}</div><div class="toast-body" style="font-family: var(--font-mono); font-size: 0.8rem; margin-top: 5px;">> ${message}</div>`;
-
-            toast.onclick = () => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); };
-            container.appendChild(toast);
-            setTimeout(() => { if (toast.parentElement) { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); } }, 5000);
-        }
-
-        function connectWatchlistSocket() {
-            if (state.ws) state.ws.close();
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            state.ws = new WebSocket(`${protocol}//${window.location.host}/ws/watchlist`);
-            state.ws.onopen = () => addLog("> WebSocket tunnel established. Subscribed to ticker stream.", "#52525b");
-            state.ws.onmessage = (event) => {
-                try {
-                    const wsPayload = JSON.parse(event.data);
-                    if (wsPayload.action === 'trade_alert') showNotification(wsPayload.title, wsPayload.message, wsPayload.level);
-                    else if (wsPayload.type === 'watchlist') renderWatchlist(wsPayload.items || []);
-                } catch (e) { console.error(e); }
-            };
-        }
-
-        // MAIN EXECUTION
-        async function startScanner() {
-            const btn = document.getElementById('scanButton');
-            const statusHeader = document.getElementById('bot-status');
-            const tickerHeader = document.getElementById('target-ticker');
-
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> COMPILING...';
-            btn.disabled = true;
-            statusHeader.innerText = "> Executing scan routine...";
-            document.getElementById('ai-confidence').textContent = '--%';
-            document.getElementById('setup-grade').innerHTML = '--';
-            document.getElementById('risk-amount').textContent = '--';
-            document.getElementById('data-panels').style.display = 'none';
-
-            addLog("> Initiating quantitative data model...", "var(--warning)");
-            addLog("> Downloading and filtering live exchange tape...", "#a1a1aa");
-
-            try {
-                const res = await fetch('/api/scan', { 
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
-                });
-                const payload = await res.json();
-
-                if (!payload.ok) throw new Error(payload.error);
-
-                const best = payload.data.best_pick;
-                const watchPanel = best.watch_panel || {};
-
-                addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
-
-                tickerHeader.innerText = best.symbol;
-                document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
-                document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
-                document.getElementById('liveIndicator').style.display = 'inline';
-                loadChartData(best.symbol);
-
-                renderWatchPanel(best);
-                renderBestPick(best);
-                renderWatchlist(payload.data.watchlist || []);
-
-                document.getElementById('data-panels').style.display = 'grid';
-
-                // EXECUTION TRIGGER
-                if (best.decision === 'CRITERIA MET') {
-                    addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
-
-                    try {
-                        const execRes = await fetch('/api/execute', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify({
-                                symbol: best.symbol, entry_price: best.entry_price, stop_price: best.stop_price,
-                                target_1: best.target_1, target_2: best.target_2, qty: best.qty,
-                                current_price: best.current_price, buy_upper: best.buy_upper,
-                                score_total: best.score_total, decision: best.decision, scan_id: payload.data.scan_id
-                            })
-                        });
-
-                        const execData = await execRes.json();
-
-                        if (execData.ok) {
-                            addLog(`> [SUCCESS] Order Transmitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
-                            addLog(`> Risk constraint compiled at $${best.stop_price.toFixed(2)}`, "#a1a1aa");
-                            addLog(`> Take-profit boundary compiled at $${best.target_1.toFixed(2)}`, "#a1a1aa");
-
-                            activeTrade = { symbol: best.symbol, entry: best.entry_price, qty: best.qty, stop: best.stop_price, target: best.target_1 };
-
-                            document.getElementById('pos-symbol').textContent = activeTrade.symbol;
-                            document.getElementById('pos-entry').textContent = money(activeTrade.entry);
-                            document.getElementById('pos-stop').textContent = money(activeTrade.stop);
-                            document.getElementById('pos-target').textContent = money(activeTrade.target);
-                            document.getElementById('active-position-card').style.display = 'block';
-                            updateLivePL(Number(best.current_price));
-
-                            const pill = document.getElementById('decisionPill');
-                            pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
-                            pill.className = 'table-pill buy-now';
-                        } else {
-                            addLog(`> [BLOCKED] Execution halted: ${execData.error}`, "var(--danger)");
-                        }
-                    } catch (err) {
-                        addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
-                    }
-                } else {
-                    addLog("> No current data arrays match execution parameters. System idling in watch mode.", "var(--warning)");
-                }
-
-                connectWatchlistSocket();
-
-            } catch (err) {
-                addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
-            } finally {
-                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
+            setTimeout(() => {
+                br.style.color = 'var(--text-main)';
                 btn.disabled = false;
-                statusHeader.innerText = "> Awaiting command...";
-            }
-        }
+                btn.innerHTML = '<i class="fas fa-redo" aria-hidden="true"></i> Run Next Automation Test';
+                btn.style.background = 'var(--accent-blue)';
+                btn.style.color = 'white';
+                isSimulating = false;
+            }, 1800);
 
-        connectWatchlistSocket();
-    </script>
-    <div id="toast-container" aria-live="polite" aria-atomic="true" role="status"></div>
+        }, 7500);
+    }
+</script>
 </body>
 </html>
