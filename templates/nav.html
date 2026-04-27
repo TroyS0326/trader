@@ -27,10 +27,11 @@
                 <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">AI Logic</a>
                 <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">Settings</a>
             {% else %}
-                <a href="/features" class="nav-link {% if request.path == '/features' %}active{% endif %}">Architecture</a>
-                <a href="/broker-integration" class="nav-link {% if request.path == '/broker-integration' %}active{% endif %}">Broker Workflow</a>
+                <a href="/features" class="nav-link {% if request.path == '/features' %}active{% endif %}">Features</a>
+                <a href="/pricing" class="nav-link {% if request.path == '/pricing' %}active{% endif %}">Monthly PRO</a>
                 <a href="/playbook" class="nav-link {% if request.path == '/playbook' %}active{% endif %}">Playbook</a>
-                <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">AI Logic</a>
+                <a href="/broker-integration" class="nav-link {% if request.path == '/broker-integration' %}active{% endif %}">Broker Workflow</a>
+                <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">Transparency</a>
             {% endif %}
         </div>
 
@@ -41,7 +42,7 @@
                 </a>
             {% else %}
                 <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-main)'">Log In</a>
-                <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 800; border-radius: 8px; border: none; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);">Sign Up</a>
+                <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 800; border-radius: 8px; border: none; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);">Start Monthly PRO</a>
             {% endif %}
         </div>
     </div>
