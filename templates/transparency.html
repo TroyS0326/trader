@@ -280,7 +280,7 @@
                 </p>
                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                     {% if current_user.is_authenticated %}
-                        <a href="/pricing" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Upgrade to PRO</a>
+                        <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Upgrade to PRO</a>
                     {% else %}
                         <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Start PRO Automation</a>
                         <a href="/signup" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Test Paper Mode</a>
