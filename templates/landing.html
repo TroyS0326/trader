@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>XeanVI | Systematic Trading Engine</title>
-    <meta name="description" content="Deploy your logic. Let it execute systematically. XeanVI handles market monitoring, entries, and exits automatically based on strict parameters.">
+    <title>XeanVI | Systematic Day Trading Engine & Automated Execution</title>
+    <meta name="description" content="Automate your day trading strategy with XeanVI. Our systematic execution engine scans markets, validates setups, and routes orders securely via Alpaca API.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -27,15 +27,63 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "XeanVI",
-      "operatingSystem": "Web",
-      "applicationCategory": "FinanceApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "19.99",
-        "priceCurrency": "USD"
-      }
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://xeanvi.com/#organization",
+          "name": "XeanVI",
+          "url": "https://xeanvi.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xeanvi.com/static/seo-banner.jpg"
+          },
+          "description": "A quantitative execution engine for retail day traders offering automated market scanning and API-driven order routing."
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI Automated Trading Engine",
+          "operatingSystem": "Web, Windows, macOS, Linux",
+          "applicationCategory": "FinanceApplication",
+          "url": "https://xeanvi.com/",
+          "offers": {
+            "@type": "Offer",
+            "price": "19.99",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://xeanvi.com/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Do I just hit 'Run Morning Scan' once a day?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "It is best practice to run the scan shortly before the open to identify the 'Best Pick' and again after 9:45 AM ET to authorize the engine once the 'WAIT' gate is lifted."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does the AI decide to enter a trade?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The engine uses a Screen, Validate, Execute workflow, utilizing Gemini-based sentiment scoring and strict RVOL filters before transmitting any order."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my money safe during a 'Faceless' setup?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "XeanVI uses secure OAuth tokens. We never see your credentials, and the bot only has permission to trade within your predefined parameters via official brokerage APIs."
+              }
+            }
+          ]
+        }
+      ]
     }
     </script>
 
@@ -48,17 +96,18 @@
         h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1rem; }
         h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
         p { font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-        
+
         .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-        
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+
         nav { padding: 1.5rem 0; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
         .nav-inner { display: flex; justify-content: space-between; align-items: center; }
         .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.05em; color: var(--text-main); }
         .logo span { color: var(--accent-blue); }
         .nav-links a { margin-left: 2rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
         .nav-links a:hover { color: var(--accent-blue); }
-        
+
         .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-align: center; transition: all 0.2s ease; cursor: pointer; border: none; text-decoration: none;}
         .btn-primary { background-color: var(--accent-blue); color: #ffffff; box-shadow: 0 4px 14px var(--accent-glow); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); color: #ffffff;}
@@ -68,9 +117,9 @@
         .hero { padding: 8rem 0; position: relative; overflow: hidden; }
         .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
         .hero-content { max-width: 700px; }
-        
+
         .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
-        
+
         footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
         @media (max-width: 768px) {
@@ -84,221 +133,250 @@
 <body>
 
     {% include 'nav.html' %}
-    <section class="hero">
+    <main>
+        <section class="hero">
+            <div class="container grid-2">
+                <div class="hero-content">
+                    <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
+                        Deploy your logic. <span style="color: var(--accent-blue);">Let it execute</span> Systematically.
+                    </h1>
+                    <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
+                        Stop losing capital to emotion and hesitation. XeanVI is an advanced execution engine for retail day traders. Set your risk parameters once, connect your broker securely, and let our system handle the market monitoring and automated routing.
+                    </p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                        <a href="/signup" class="btn btn-primary">Start Systematic Execution</a>
+                        <a href="/features" class="btn btn-secondary">See How it Works</a>
+                        <a href="/login" style="display: flex; align-items: center; padding: 0 1rem; color: var(--text-muted); text-decoration: none; font-weight: 500;">Login to Dashboard</a>
+                    </div>
+                </div>
 
-        <div class="container grid-2">
-            <div class="hero-content">
-                <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    Deploy your logic. <span style="color: var(--accent-blue);">Let it execute</span> Systematically
-                </h1>
-                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
-                    Set your risk parameters once. Click run. XeanVI handles the market monitoring and systematic execution based strictly on your predefined logic.
-                </p>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-                    <a href="/signup" class="btn btn-primary">Start Systematic Execution</a>
-                    <a href="/features" class="btn btn-secondary">See How it Works</a>
+                <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;" aria-label="Interactive Trading Sandbox Terminal">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Live Sandbox</div>
+                            <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                                <span id="sim-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);"></span> Awaiting Command
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Bankroll</div>
+                            <div id="sim-bankroll" style="color: var(--text-main); font-weight: 800; font-size: 1.25rem;">$10,000.00</div>
+                        </div>
+                    </div>
 
+                    <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
+                        <div style="color: var(--text-muted);">> Engine loaded. $10,000 paper capital available.</div>
+                    </div>
+
+                    <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                        <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run Trading Sandbox Simulation">
+                            <i class="fas fa-play"></i> Run Data Scan
+                        </button>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;">
-                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+        <section style="padding: 5rem 0; background-color: var(--bg-card); border-top: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">From Strategy to Execution in Three Steps</h2>
+                    <p style="max-width: 700px; margin: 0 auto;">We bridge the gap between analyzing the market and actually pulling the trigger. Define your rules, and our engine enforces them without hesitation.</p>
+                </div>
+                <div class="grid-3">
+                    <article style="text-align: center; padding: 2rem;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                            1
+                        </div>
+                        <h3 style="font-size: 1.25rem;">Define Your Playbook</h3>
+                        <p style="font-size: 0.95rem; line-height: 1.6;">Configure your personal risk tolerance, position sizing, and technical setup requirements inside your tailored <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>. You remain in total control of the parameters.</p>
+                    </article>
+                    <article style="text-align: center; padding: 2rem;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                            2
+                        </div>
+                        <h3 style="font-size: 1.25rem;">Secure Broker Integration</h3>
+                        <p style="font-size: 0.95rem; line-height: 1.6;">Link your brokerage account through secure, OAuth-based <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">Broker Integration</a>. We never hold your funds; we only transmit your authorized execution signals.</p>
+                    </article>
+                    <article style="text-align: center; padding: 2rem;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+                            3
+                        </div>
+                        <h3 style="font-size: 1.25rem;">Automated Order Routing</h3>
+                        <p style="font-size: 0.95rem; line-height: 1.6;">Launch the engine. XeanVI scans the market, validates your setups, and routes advanced bracket orders (with automated targets and stop-losses) directly to your broker.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Engineered for Quantitative Precision.</h2>
+                    <p style="max-width: 700px; margin: 0 auto;">Most retail applications are highly subjective and prone to user error. XeanVI is a strict, data-driven engine designed to calculate criteria alignments and execute systematically.</p>
+                </div>
+
+                <div class="grid-2" style="align-items: start; gap: 2rem;">
+                    <article style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                            <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <h3 style="margin: 0; font-size: 1.25rem;">AI Sentiment Validation</h3>
+                        </div>
+                        <p style="font-size: 0.95rem; line-height: 1.6;">Don't trade on social noise. XeanVI uses the <strong>Gemini API</strong> to scan live financial headlines and assign a 0-100 alignment score to data points, acting as a strict quantitative filter before any capital is risked.</p>
+                    </article>
+
+                    <article style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                            <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <h3 style="margin: 0; font-size: 1.25rem;">24/7 Server Persistence</h3>
+                        </div>
+                        <p style="font-size: 0.95rem; line-height: 1.6;">XeanVI runs as a <strong>persistent systemd service</strong> on high-speed VPS architecture. If the market is open, your customized logic is actively processing streaming market data without relying on a fragile mobile browser connection.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
+                    <div style="max-width: 600px;">
+                        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Look Under the Hood</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 0;">Trading automation shouldn't be a black box. Read exactly how our AI Data Scanner interprets volume, how our 24/7 Processing Infrastructure minimizes latency, and how our built-in Crash Protection filters prevent disastrous fills during volatile market events.</p>
+                    </div>
                     <div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Live Sandbox</div>
-                        <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                            <span id="sim-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);"></span> Awaiting Command
+                        <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
+                            See All Core Features <span style="color: var(--accent-blue);">→</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad terminal-bg" style="border-top: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 3rem;">
+                    <div class="badge-pill">Operations Briefing</div>
+                    <h2 class="text-gradient">Common Logic Queries</h2>
+                    <p>Quick answers to the most frequent terminal questions. For deep technical specifications on our routing, visit our <a href="/features" style="color: var(--accent-blue);">Documentation Page</a>.</p>
+                </div>
+
+                <div class="card" style="max-width: 900px; margin: 0 auto; padding: 0;">
+                    <article class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                        <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" aria-expanded="false" role="button" tabindex="0">
+                            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                                <i class="fas fa-microchip" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                                Do I just hit "Run Morning Scan" once a day?
+                            </h3>
+                            <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                         </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Bankroll</div>
-                        <div id="sim-bankroll" style="color: var(--text-main); font-weight: 800; font-size: 1.25rem;">$10,000.00</div>
-                    </div>
-
-                </div>
-
-                <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
-                    <div style="color: var(--text-muted);">> Engine loaded. $10,000 paper capital available.</div>
-
-                </div>
-
-                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
-                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()">
-                        <i class="fas fa-play"></i> Run Data Scan
-                    </button>
-
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="features">
-        <div class="container">
-            <div style="text-align: center; margin-bottom: 4rem;">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Engineered for Quantitative Precision.</h2>
-                <p style="max-width: 700px; margin: 0 auto;">Most retail apps are highly subjective. XeanVI is a data-driven engine designed to calculate criteria alignments and execute systematically.</p>
-            </div>
-
-            <div class="grid-2" style="align-items: start; gap: 2rem;">
-                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                            <i class="fas fa-microchip"></i>
+                        <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                            <p style="padding-top: 1rem; margin-bottom: 0;">
+                                It is best practice to run the scan shortly before the market open to identify the "Best Pick" based on pre-market volume. We recommend running the scanner again after <strong>9:45 AM ET</strong> to authorize the engine once the initial opening volatility "WAIT" gate is lifted.
+                            </p>
                         </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">AI Sentiment Validation</h3>
-                    </div>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">Don't trade on social noise. XeanVI uses the <strong>Gemini API</strong> to scan live headlines and assign a 0-100 alignment score to data points, acting as a strict quantitative filter.</p>
-                </div>
+                    </article>
 
-                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                            <i class="fas fa-server"></i>
+                    <article class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                        <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" aria-expanded="false" role="button" tabindex="0">
+                            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                                <i class="fas fa-brain" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                                How does the AI decide to enter a trade?
+                            </h3>
+                            <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                         </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">24/7 Server Persistence</h3>
-                    </div>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">XeanVI runs as a <strong>persistent systemd service</strong> on high-speed VPS architecture. If the market is open, your logic is actively processing data without relying on a mobile browser.</p>
+                        <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                            <p style="padding-top: 1rem; margin-bottom: 0;">
+                                The engine uses a strict <strong>Screen, Validate, Execute</strong> workflow. It utilizes Gemini-based sentiment scoring alongside hard quantitative metrics like Relative Volume (RVOL) and float size. Only when all parameters defined in your playbook align will it transmit an order.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="faq-item" style="padding: 1.5rem;">
+                        <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" aria-expanded="false" role="button" tabindex="0">
+                            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
+                                <i class="fas fa-lock" style="color: var(--accent-blue); margin-right: 12px;"></i>
+                                Is my money safe during a "Faceless" setup?
+                            </h3>
+                            <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
+                        </div>
+                        <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
+                            <p style="padding-top: 1rem; margin-bottom: 0;">
+                                Yes. XeanVI utilizes secure <strong>OAuth tokens</strong> through official brokerage APIs like Alpaca. We never have access to your login credentials or your funds. The execution bot only has permission to route trades strictly within the risk parameters you have authorized.
+                            </p>
+                        </div>
+                    </article>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section style="padding: 4rem 0; background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
-        <div class="container">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem;">
-                <div style="max-width: 600px;">
-                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Look Under the Hood</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 0;">Want to know exactly how it works? Read about our AI Data Scanner, 24/7 Processing Infrastructure, and the built-in Crash Protection filters.</p>
-            
+        <section id="pricing" class="pricing-section" style="padding: 6rem 0; background-color: var(--bg-card);">
+            <div class="container">
+                <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
+                    <h2>Pro Tools. Beginner Price.</h2>
+                    <p>Equip yourself with the same automation technology used by institutional traders, for less than the cost of one bad emotional trade. Start in our paper-trading sandbox to prove your edge.</p>
                 </div>
-                <div>
-                    <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
-                        See the Features <span style="color: var(--accent-blue);">→</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <section class="section-pad terminal-bg" style="border-top: 1px solid var(--border-color);">
-        <div class="container">
-            <div style="text-align: center; margin-bottom: 3rem;">
-                <div class="badge-pill">Operations Briefing</div>
-                <h2 class="text-gradient">Common Logic Queries</h2>
-                <p>Quick answers to the most frequent terminal questions. For deep technical specs, visit our <a href="/faq" style="color: var(--accent-blue);">Full Documentation</a>.</p>
-            </div>
+                <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem; align-items: stretch;">
 
-            <div class="card" style="max-width: 900px; margin: 0 auto; padding: 0;">
-                <div class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
-                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
-                            <i class="fas fa-microchip" style="color: var(--accent-blue); margin-right: 12px;"></i>
-                            Do I just hit "Run Morning Scan" once a day?
-                        </h3>
-                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
-                    </div>
-                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
-                        <p style="padding-top: 1rem; margin-bottom: 0;">
-                            It is best practice to run the scan shortly before the open to identify the "Best Pick" and again after <strong>9:45 AM ET</strong> to authorize the engine once the "WAIT" gate is lifted.
+                    <article class="card pricing-card" style="text-align: center; padding: 3rem 2rem; display: flex; flex-direction: column; border: 1px solid var(--border-color); background: var(--bg-card);">
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Monthly</h3>
+
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                            $19.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/mo</span>
+                        </div>
+
+                        <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
+                            Pay as you go. Full access to the systematic execution engine and live API routing.
                         </p>
-                    </div>
-                </div>
 
-                <div class="faq-item" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
-                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
-                            <i class="fas fa-brain" style="color: var(--accent-blue); margin-right: 12px;"></i>
-                            How does the AI decide to enter a trade?
-                        </h3>
-                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
-                    </div>
-                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
-                        <p style="padding-top: 1rem; margin-bottom: 0;">
-                            The engine uses a <strong>Screen, Validate, Execute</strong> workflow, utilizing Gemini-based sentiment scoring and strict RVOL filters before transmitting any order.
+                        <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0; list-style: none;">
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
+                            <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
+                        </ul>
+
+                        <a href="/signup?plan=monthly" class="btn btn-secondary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02);">
+                            Initialize Monthly
+                        </a>
+                    </article>
+
+                    <article class="card pricing-card" style="text-align: center; padding: 3rem 2rem; position: relative; border: 1px solid var(--accent-blue); background: var(--bg-card); box-shadow: 0 10px 30px rgba(56, 189, 248, 0.08); display: flex; flex-direction: column;">
+
+                        <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none; white-space: nowrap; font-weight: bold;">
+                            OPTIMAL ALLOCATION
+                        </div>
+
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Annual Pro</h3>
+
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+                            $199.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/yr</span>
+                        </div>
+
+                        <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
+                            Commit to your discipline. Get two months completely free when you pay for the year upfront.
                         </p>
-                    </div>
-                </div>
 
-                <div class="faq-item" style="padding: 1.5rem;">
-                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
-                            <i class="fas fa-lock" style="color: var(--accent-blue); margin-right: 12px;"></i>
-                            Is my money safe during a "Faceless" setup?
-                        </h3>
-                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;"></i>
-                    </div>
-                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
-                        <p style="padding-top: 1rem; margin-bottom: 0;">
-                            XeanVI uses secure <strong>OAuth tokens</strong>. We never see your credentials, and the bot only has permission to trade within your predefined parameters.
-                        </p>
-                    </div>
+                        <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0; list-style: none;">
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
+                            <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
+                            <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
+                        </ul>
+
+                        <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto;">
+                            Initialize Annual
+                        </a>
+                    </article>
+
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section id="pricing" class="pricing-section" style="padding: 6rem 0; background-color: var(--bg-card);">
-        <div class="container">
-            <div style="text-align: center; max-width: 800px; margin: 0 auto 4rem;">
-                <h2>Pro Tools. Beginner Price.</h2>
-                <p>Equip yourself with the same automation technology used by the pros, for less than the cost of one bad trade.</p>
-            </div>
-
-            <div class="grid-2" style="max-width: 900px; margin: 0 auto; gap: 2rem; align-items: stretch;">
-    
-                <div class="card pricing-card" style="text-align: center; padding: 3rem 2rem; display: flex; flex-direction: column; border: 1px solid var(--border-color); background: var(--bg-card);">
-                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Monthly</h3>
-                    
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
-                        $19.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/mo</span>
-                    </div>
-                    
-                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
-                        Pay as you go. Full access to the systematic execution engine.
-                    </p>
-
-                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0;">
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
-                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
-                    </ul>
-
-                    <a href="/signup?plan=monthly" class="btn btn-secondary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02);">
-                        Initialize Monthly
-                    </a>
-                </div>
-
-                <div class="card pricing-card" style="text-align: center; padding: 3rem 2rem; position: relative; border: 1px solid var(--accent-blue); background: var(--bg-card); box-shadow: 0 10px 30px rgba(56, 189, 248, 0.08); display: flex; flex-direction: column;">
-                    
-                    <div class="badge-pill" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border: none; white-space: nowrap; font-weight: bold;">
-                        OPTIMAL ALLOCATION
-                    </div>
-
-                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Annual Pro</h3>
-                    
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
-                        $199.99<span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; font-family: 'Inter', sans-serif;">/yr</span>
-                    </div>
-                    
-                    <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 250px; margin-left: auto; margin-right: auto; flex-grow: 1;">
-                        Commit to your tools. Get two months completely free when you pay for the year upfront.
-                    </p>
-
-                    <ul class="terminal-list" style="text-align: left; margin-bottom: 2.5rem; display: inline-block; margin-left: auto; margin-right: auto; padding: 0;">
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Live Capital Routing</li>
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Full AI NLP Scoring</li>
-                        <li style="margin-bottom: 10px;"><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Unlimited Daily Scans</li>
-                        <li><i class="fas fa-check" style="color: var(--accent-blue); margin-right: 8px;"></i> Advanced Risk Parameters</li>
-                    </ul>
-
-                    <a href="/signup?plan=annual" class="btn btn-primary" style="width: 100%; display: block; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: auto;">
-                        Initialize Annual
-                    </a>
-                </div>
-
-            </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
     {% include 'footer.html' %}
 
@@ -307,6 +385,10 @@
             const answer = element.nextElementSibling;
             const icon = element.querySelector('.fa-chevron-down');
             const isCollapsed = !answer.style.maxHeight || answer.style.maxHeight === '0px';
+
+            // Accessibility update
+            element.setAttribute('aria-expanded', isCollapsed);
+
             answer.style.maxHeight = isCollapsed ? `${answer.scrollHeight}px` : '0px';
             if (icon) {
                 icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
@@ -326,41 +408,41 @@
         function runSimulation() {
             if (isSimulating) return;
             isSimulating = true;
-            
+
             const btn = document.getElementById('btn-simulate');
             const status = document.getElementById('sim-status');
             const dot = document.getElementById('sim-dot');
             const br = document.getElementById('sim-bankroll');
-            
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.style.background = 'var(--bg-card)';
             btn.style.color = 'var(--text-muted)';
-            
+
             status.style.color = '#f59e0b';
             dot.style.background = '#f59e0b';
             status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Data...`;
 
-            document.getElementById('sim-terminal').innerHTML = ''; 
+            document.getElementById('sim-terminal').innerHTML = '';
             addSimLog("> Connecting to Cloud Data Feed...", "var(--accent-blue)");
 
             setTimeout(() => addSimLog("> Analyzing 4,200+ equities for parameter alignment..."), 800);
             setTimeout(() => addSimLog("> Data threshold met on $NVDA. Cross-referencing AI validation...", "#f59e0b"), 2200);
             setTimeout(() => addSimLog("> Alignment Confirmed: Execution criteria met.", "var(--success)"), 3800);
-            
+
             setTimeout(() => {
                 addSimLog("> Transmitting limit order parameters for 50 shares at $128.50.");
                 addSimLog("> System boundaries set: Target $131.50 | Stop $127.00.");
             }, 5000);
-            
+
             setTimeout(() => {
                 addSimLog("> UPDATE: Boundary hit. Target 1 reached. Scaling out.", "var(--accent-blue)");
                 addSimLog("> <strong>Execution Complete: +$150.00 Gross.</strong>", "var(--success)");
-                
+
                 bankroll += 150;
                 br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
                 br.style.color = 'var(--success)';
-                
+
                 status.style.color = 'var(--success)';
                 status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Cycle Completed`;
 
