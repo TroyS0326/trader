@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Upgrade to XeanVI PRO | Unlock Live Algorithmic Trading</title>
-    <meta name="description" content="Unlock live real-money execution via Alpaca with XeanVI PRO. Get full AI catalyst NLP scoring, and advanced performance metrics.">
+    <title>XeanVI PRO Pricing & Upgrade | Live Trading Automation</title>
+    <meta name="description" content="Upgrade to XeanVI PRO for live algorithmic trading execution. Unlock Alpaca API integration, full AI NLP scoring, and automate your day trading edge.">
 
     <meta name="robots" content="index, follow">
     <meta name="author" content="XeanVI">
@@ -13,8 +13,8 @@
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://xeanvi.com/upgrade">
-    <meta property="og:title" content="XeanVI PRO: Professional-Grade Live Trading Automation">
-    <meta property="og:description" content="Stop paper trading and start automating your edge with real capital. Upgrade for live API execution and veteran access.">
+    <meta property="og:title" content="XeanVI PRO Pricing & Upgrade | Live Trading Automation">
+    <meta property="og:description" content="Stop paper trading and start automating your edge with real capital. Upgrade for live API execution and advanced NLP market scoring.">
     <meta property="og:image" content="{{ url_for('static', filename='seo-pro-upgrade.jpg', _external=True) }}">
 
     <meta name="twitter:card" content="summary_large_image">
@@ -23,100 +23,212 @@
     <meta name="twitter:image" content="{{ url_for('static', filename='seo-pro-upgrade.jpg', _external=True) }}">
 
     <meta name="theme-color" content="#0f172a">
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/upgrade#software",
+          "name": "XeanVI PRO",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "description": "Professional-grade automated trading execution engine supporting live brokerage integration and AI sentiment scoring.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Monthly Access",
+              "price": "19.99",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            {
+              "@type": "Offer",
+              "name": "Annual Pro",
+              "price": "199.99",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://xeanvi.com/upgrade#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Can I cancel my subscription at any time?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, you can easily cancel your monthly or annual subscription at any time directly from your account settings. There are no hidden cancellation fees."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I need a supported brokerage account?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. To utilize live execution, you must connect a supported brokerage account using our secure OAuth broker integration. We currently support Alpaca API."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my payment information secure?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Absolutely. All payments are processed through Stripe utilizing 256-bit encryption. XeanVI does not store or have direct access to your credit card details."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        .pricing-header { text-align: center; max-width: 800px; margin: 4rem auto 3rem; }
-        .pricing-header h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main); }
-        .pricing-header p { color: var(--text-muted); font-size: 1.1rem; }
+        .pricing-header { text-align: center; max-width: 800px; margin: 4rem auto 3rem; padding: 0 1rem; }
+        .pricing-header h1 { font-size: clamp(2rem, 4vw, 2.5rem); margin-bottom: 1rem; color: var(--text-main); font-weight: 800; }
+        .pricing-header p { color: var(--text-muted); font-size: 1.1rem; line-height: 1.6; }
 
-        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto 4rem; padding: 0 1.5rem; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto 4rem; padding: 0 1.5rem; }
 
-        .pricing-card { background: var(--bg-card); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; position: relative; text-align: center; }
+        .pricing-card { background: var(--bg-card); padding: 2.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; position: relative; text-align: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .pricing-card.featured { border-color: var(--accent-blue); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); transform: scale(1.02); }
 
-        .badge-featured { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap; }
+        .badge-featured { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
-        .price-block { margin: 1.5rem 0; }
-        .price-amount { font-size: 3.5rem; font-weight: 900; color: var(--text-main); }
-        .price-interval { color: var(--text-muted); }
+        .price-block { margin: 1.5rem 0 1rem; }
+        .price-amount { font-size: 3.5rem; font-weight: 900; color: var(--text-main); font-family: 'JetBrains Mono', monospace; }
+        .price-interval { color: var(--text-muted); font-size: 1.1rem; }
+        
+        .plan-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; min-height: 40px; }
 
-        .feature-list { list-style: none; padding: 0; margin: 2rem 0; text-align: left; }
-        .feature-list li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; color: var(--text-muted); font-size: 0.95rem; }
-        .feature-list li i { color: var(--success); margin-top: 4px; }
+        .feature-list { list-style: none; padding: 0; margin: 0 0 2.5rem 0; text-align: left; }
+        .feature-list li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 12px; color: var(--text-main); font-size: 0.95rem; line-height: 1.4; }
+        .feature-list li i { color: var(--success); margin-top: 3px; font-size: 1.1rem; }
+        .feature-list li span { flex: 1; }
 
-        .checkout-btn { width: 100%; padding: 1.2rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s; }
+        .checkout-btn { width: 100%; padding: 1.2rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
         .checkout-btn.primary { background: linear-gradient(135deg, var(--accent-blue), #2563eb); color: white; box-shadow: 0 4px 15px var(--accent-glow); }
-        .checkout-btn.primary:hover { transform: translateY(-2px); }
+        .checkout-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
         .checkout-btn.secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); }
-        .checkout-btn.secondary:hover { background: rgba(255,255,255,0.05); }
+        .checkout-btn.secondary:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+        
+        .faq-section { max-width: 800px; margin: 4rem auto; padding: 0 1.5rem; }
+        .faq-section h2 { text-align: center; margin-bottom: 2rem; font-size: 2rem; }
+        .faq-grid { display: grid; gap: 1.5rem; }
+        .faq-item { background: var(--bg-card); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; }
+        .faq-item h4 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-main); }
+        .faq-item p { margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; }
+        
+        .trust-banner { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 4rem; padding: 2rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
     </style>
 </head>
 <body class="dash-body">
 
 {% include 'nav.html' %}
     
-    <div class="pricing-header">
-        <h1>Unlock Live Automation</h1>
-        <p>You are currently on the Free Tier (Paper Trading Only). Upgrade to PRO to unlock real-money API execution, and advanced AI metrics.</p>
-    </div>
-
-    <div class="pricing-grid">
-
-        <div class="pricing-card">
-            <div>
-                <h3 style="color: var(--text-muted); font-size: 1.2rem;">Monthly Access</h3>
-                <div class="price-block">
-                    <span class="price-amount">$19.99</span>
-                    <span class="price-interval">/mo</span>
-                </div>
-
-                <ul class="feature-list">
-                    <li><i class="fas fa-check-circle"></i> Live Real-Money Execution via Alpaca</li>
-                    <li><i class="fas fa-check-circle"></i> Full AI Catalyst NLP Scoring</li>
-                    <li><i class="fas fa-check-circle"></i> Priority Dashboard Support</li>
-                </ul>
-            </div>
-
-            <form action="/api/create-checkout-session" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <input type="hidden" name="plan" value="monthly">
-                <button type="submit" class="checkout-btn secondary">Start Monthly Plan</button>
-            </form>
+    <main>
+        <div class="pricing-header">
+            <h1>Execute Your Edge Automatically.</h1>
+            <p>You have tested your strategies in the <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Paper Trading Playbook</a>. Upgrade to XeanVI PRO to unlock live real-money routing, advanced AI market scanning, and true algorithmic discipline.</p>
         </div>
 
-        <div class="pricing-card featured">
-            <div class="badge-featured">RECOMMENDED (SAVE 16%)</div>
-            <div>
-                <h3 style="color: var(--accent-blue); font-size: 1.2rem;">Annual Pro</h3>
-                <div class="price-block">
-                    <span class="price-amount">$199.99</span>
-                    <span class="price-interval">/yr</span>
+        <div class="pricing-grid">
+            <section class="pricing-card">
+                <div>
+                    <h2 style="color: var(--text-main); font-size: 1.4rem; margin: 0;">Monthly Access</h2>
+                    <div class="price-block">
+                        <span class="price-amount">$19.99</span>
+                        <span class="price-interval">/mo</span>
+                    </div>
+                    <p class="plan-desc">Ideal for day traders validating their quantitative strategies in live markets.</p>
+
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check-circle"></i> <span><strong>Live Order Routing</strong> via Alpaca API</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span><strong>Full AI NLP Scoring</strong> for catalyst validation</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span><strong>Unlimited Scans</strong> per trading session</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span>Advanced risk-management parameters</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span>Standard dashboard support</span></li>
+                    </ul>
                 </div>
 
-                <ul class="feature-list">
-                    <li><i class="fas fa-check-circle"></i> <strong>Everything in Monthly, plus:</strong></li>
-                    <li><i class="fas fa-check-circle"></i> Two months completely free</li>
-                    <li><i class="fas fa-check-circle"></i> Exclusive "Veteran" Discord Badge</li>
-                    <li><i class="fas fa-check-circle"></i> Early access to new algorithm features</li>
-                </ul>
-            </div>
+                <form action="/api/create-checkout-session" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="plan" value="monthly">
+                    <button type="submit" class="checkout-btn secondary">Start Monthly</button>
+                </form>
+            </section>
 
-            <form action="/api/create-checkout-session" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <input type="hidden" name="plan" value="annual">
-                <button type="submit" class="checkout-btn primary">Start Annual Plan</button>
-            </form>
+            <section class="pricing-card featured">
+                <div class="badge-featured">RECOMMENDED (SAVE 16%)</div>
+                <div>
+                    <h2 style="color: var(--accent-blue); font-size: 1.4rem; margin: 0;">Annual Pro</h2>
+                    <div class="price-block">
+                        <span class="price-amount">$199.99</span>
+                        <span class="price-interval">/yr</span>
+                    </div>
+                    <p class="plan-desc">Best for disciplined traders committed to long-term systematic execution.</p>
+
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check-circle"></i> <span><strong>Two months completely free</strong></span></li>
+                        <li><i class="fas fa-check-circle"></i> <span><strong>All Monthly Features included</strong></span></li>
+                        <li><i class="fas fa-check-circle"></i> <span>Early access to new <a href="/features" style="color: var(--text-main); text-decoration: underline;">algorithm features</a></span></li>
+                        <li><i class="fas fa-check-circle"></i> <span>Exclusive "Veteran" status badge</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span>Priority routing for support tickets</span></li>
+                    </ul>
+                </div>
+
+                <form action="/api/create-checkout-session" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="plan" value="annual">
+                    <button type="submit" class="checkout-btn primary">Start Annual</button>
+                </form>
+            </section>
+        </div>
+        
+        <div class="trust-banner">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 2rem; flex-wrap: wrap; max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-shield-alt" style="font-size: 1.5rem; color: var(--accent-blue);"></i>
+                    <span style="text-align: left;"><strong>Secure Integration</strong><br>OAuth Broker Connect</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-lock" style="font-size: 1.5rem; color: var(--success);"></i>
+                    <span style="text-align: left;"><strong>256-bit Encryption</strong><br>Powered by Stripe</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-calendar-times" style="font-size: 1.5rem; color: var(--text-muted);"></i>
+                    <span style="text-align: left;"><strong>No Commitments</strong><br>Cancel Anytime</span>
+                </div>
+            </div>
         </div>
 
-    </div>
+        <section class="faq-section">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <article class="faq-item">
+                    <h4>Do I need a supported brokerage account?</h4>
+                    <p>Yes. To utilize real-money execution, you must connect a supported brokerage account using our secure <a href="/broker-integration" style="color: var(--accent-blue);">OAuth broker integration</a>. Currently, XeanVI strictly routes through Alpaca API for high-speed execution.</p>
+                </article>
+                <article class="faq-item">
+                    <h4>Can I cancel my subscription at any time?</h4>
+                    <p>Yes. You can easily manage or cancel your monthly or annual subscription at any time directly from your account settings. There are no hidden cancellation fees, and your access remains active until the end of the billing period.</p>
+                </article>
+                <article class="faq-item">
+                    <h4>Is my payment information secure?</h4>
+                    <p>Absolutely. All payments are processed through Stripe utilizing industry-standard 256-bit SSL encryption. XeanVI does not store, process, or have direct access to your credit card details.</p>
+                </article>
+            </div>
+        </section>
 
-    <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4rem;">
-        <p><i class="fas fa-lock"></i> Secure 256-bit SSL Checkout. Cancel anytime.</p>
-    </div>
+    </main>
 
-        {% include 'footer.html' %}
+    {% include 'footer.html' %}
 
 </body>
 </html>
