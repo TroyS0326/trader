@@ -195,6 +195,29 @@
                     Hard-code sector exclusions. The engine will automatically drop these assets from the morning scan matrix.
                 </p>
 
+            <div class="config-block">
+                <div class="config-header">
+                    <div class="config-title"><i class="fas fa-wallet" style="color: var(--warning);"></i> Risk & Capital Allocation</div>
+                    <span class="sys-tag">CAPITAL_CONTROL</span>
+                </div>
+                
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    Define your daily authorized bankroll. The execution engine uses this value to calculate position sizing and enforce your maximum dollar-loss limits.
+                </p>
+
+                <div class="logic-row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                    <label class="logic-label" for="bankroll">AUTHORIZED_DAILY_BANKROLL (USD)</label>
+                    <div style="position: relative; width: 100%;">
+                        <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">$</span>
+                        <input type="number" step="0.01" name="bankroll" id="bankroll" 
+                               value="{{ "%.2f"|format(current_user.bankroll) }}" 
+                               style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px 12px 12px 30px; color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; outline: none;"
+                               placeholder="5000.00">
+                    </div>
+                    <div class="logic-desc">Note: This value is used as the basis for all automated risk calculations today.</div>
+                </div>
+            </div>
+
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent-blue); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.1em;">
                     // Ethical Sector Blocks
                 </div>
