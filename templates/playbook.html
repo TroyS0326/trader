@@ -426,7 +426,7 @@
 
                 <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
                     {% if current_user.is_authenticated %}
-                        <a href="/pricing" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Upgrade to PRO</a>
+                        <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Upgrade to PRO</a>
                         <a href="/playbook" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Edit Playbook</a>
                     {% else %}
                         <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Start Monthly PRO</a>
