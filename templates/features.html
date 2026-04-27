@@ -110,7 +110,11 @@
                     Unlock the full potential of systematic execution. XeanVI PRO connects your customized playbook rules to automated market scans, AI-assisted setup validation, and live broker API order routing with strict risk controls.
                 </p>
                 <div style="margin-top: 2rem;">
-                    <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
+                    {% else %}
+                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
+                    {% endif %}
                 </div>
             </div>
         </header>
@@ -223,7 +227,11 @@
                             <i class="fas fa-list-check" style="color: var(--accent-blue);" aria-hidden="true"></i> Full transparency with detailed execution logs
                         </li>
                     </ul>
-                    <a href="/upgrade" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Review Pricing</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="/upgrade" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Review Pricing</a>
+                    {% else %}
+                        <a href="/signup?plan=monthly" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Review Pricing</a>
+                    {% endif %}
                 </div>
                 <div style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
                     <i class="fas fa-user-shield" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;" aria-hidden="true"></i>
