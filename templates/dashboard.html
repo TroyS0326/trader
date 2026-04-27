@@ -175,6 +175,87 @@
             .chart-container { height: 100%; min-height: 250px; }
             .bottom-row { display: flex; flex-direction: column; }
         }
+
+        @media (max-width: 768px) {
+            body {
+                height: auto;
+                min-height: 100vh;
+                overflow: auto;
+            }
+
+            .command-header-bar {
+                border-radius: 10px;
+                padding: 0.85rem;
+            }
+
+            .header-profile {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .profile-name {
+                font-size: 0.95rem;
+                overflow-wrap: anywhere;
+            }
+
+            .header-metrics {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 0.8rem;
+            }
+
+            .h-metric {
+                align-items: flex-start;
+                min-width: calc(50% - 0.5rem);
+            }
+
+            .h-label {
+                font-size: 0.62rem;
+                margin-bottom: 2px;
+            }
+
+            .h-value {
+                font-size: 0.95rem;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .header-actions .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .mode-selector {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .card, .control-panel, .chart-panel, .data-card {
+                padding: 1rem;
+            }
+
+            .btn-run-scan {
+                font-size: 0.95rem;
+                padding: 1rem;
+                letter-spacing: 0.05em;
+            }
+
+            .chart-panel {
+                height: 300px;
+            }
+
+            .terminal-output {
+                height: 210px;
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.65rem 0.5rem;
+                font-size: 0.74rem;
+            }
+        }
     </style>
 </head>
 <body>
