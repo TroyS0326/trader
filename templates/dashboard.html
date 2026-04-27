@@ -233,6 +233,19 @@
                     <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
                 </a>
                 {% endif %}
+
+            <div class="mode-selector" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+                <span class="mode-label" style="font-family: var(--font-mono); font-size:0.7rem; color:var(--text-muted);">EXECUTION_ENVIRONMENT:</span>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="mode-toggle" 
+                           {% if current_user.trading_mode == 'live' %}checked{% endif %}
+                           onchange="updateTradingMode(this.checked)">
+                    <label for="mode-toggle"></label>
+                </div>
+                <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}">
+                    {{ current_user.trading_mode|upper }}
+                </span>
+            </div>
             </div>
         </div>
     </div>
@@ -418,6 +431,30 @@
                 card.style.background = 'rgba(239, 68, 68, 0.05)';
                 card.style.borderColor = 'rgba(239, 68, 68, 0.2)';
             }
+        }
+
+
+        function updateTradingMode(isLive) {
+            const mode = isLive ? 'live' : 'paper';
+            fetch('/api/update_mode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trading_mode: mode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload(); // Refresh to update the "Capital Auth" and WSS connections
+                } else {
+                    alert("FREEMIUM_GATE_BLOCK: " + data.message);
+                    document.getElementById('mode-toggle').checked = false;
+                }
+            })
+            .catch(() => {
+                alert('Mode update failed. Please try again.');
+                const toggle = document.getElementById('mode-toggle');
+                if (toggle) toggle.checked = !isLive;
+            });
         }
 
         // Updated for terminal aesthetic
