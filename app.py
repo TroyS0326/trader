@@ -280,8 +280,7 @@ def join_waitlist():
 
 @app.route('/pricing')
 def pricing():
-    """Allows logged-in users to view the pricing tier list without being bounced."""
-    return render_template('upgrade.html')
+    return render_template('upgrade.html', current_user=current_user)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -486,7 +485,7 @@ def dashboard():
 def upgrade():
     # If they are already PRO, don't let them buy it again!
     if current_user.subscription_status == 'pro':
-        flash("You are already a PRO member. Your AI execution is unlocked.", "success")
+        flash("You are already a PRO member. Your automation tools are unlocked.", "success")
         return redirect(url_for('dashboard'))
 
     return render_template('upgrade.html', current_user=current_user)
