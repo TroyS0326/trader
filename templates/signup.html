@@ -2,41 +2,33 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<title>Sign Up for XeanVI | Start Paper Trading Automation</title>
-<meta name="description" content="Create a free XeanVI account to build your trading playbook, test rule-based strategies in a paper trading sandbox, and prepare your workflow for automation.">
+    <title>Sign Up | Create Your XeanVI Account for Trading Automation</title>
+    <meta name="description" content="Create your XeanVI account to set up your trading playbook, test your rules in paper mode, and upgrade to PRO for live broker-connected automation.">
 
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta name="author" content="XeanVI">
-<link rel="canonical" href="https://xeanvi.com/signup">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/signup">
 
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="XeanVI">
-<meta property="og:url" content="https://xeanvi.com/signup">
-<meta property="og:title" content="Sign Up for XeanVI | Start Paper Trading Automation">
-<meta property="og:description" content="Create your free account and test rule-based trading workflows in a paper trading sandbox before connecting live execution tools.">
-<meta property="og:image" content="https://xeanvi.com/static/seo-signup.jpg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="XeanVI">
+    <meta property="og:url" content="https://xeanvi.com/signup">
+    <meta property="og:title" content="Sign Up | Create Your XeanVI Account for Trading Automation">
+    <meta property="og:description" content="Set up your playbook, test in the sandbox, and upgrade to XeanVI PRO for live automated trade execution via a supported broker API.">
+    <meta property="og:image" content="https://xeanvi.com/static/seo-signup.jpg">
+    <meta property="og:image:alt" content="XeanVI PRO trading automation signup screen">
 
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sign Up for XeanVI | Start Paper Trading Automation">
-<meta name="twitter:description" content="Create a free XeanVI account to build your playbook, test rule-based strategies, and explore trading automation tools.">
-<meta name="twitter:image" content="https://xeanvi.com/static/seo-signup.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sign Up | Create Your XeanVI Account for Trading Automation">
+    <meta name="twitter:description" content="Set up your playbook, test in the sandbox, and upgrade to XeanVI PRO for live automated trade execution.">
+    <meta name="twitter:image" content="https://xeanvi.com/static/seo-signup.jpg">
+    <meta name="twitter:image:alt" content="XeanVI PRO trading automation signup screen">
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
-        {
-          "@type": "WebPage",
-          "@id": "https://xeanvi.com/signup",
-          "url": "https://xeanvi.com/signup",
-          "name": "Sign Up for XeanVI | Systematic Trading Automation",
-          "description": "Create your free XeanVI account to automate your day trading strategy. Start in our paper trading sandbox, define your playbook, and execute systematically.",
-          "isPartOf": {
-            "@id": "https://xeanvi.com/#website"
-          }
-        },
         {
           "@type": "Organization",
           "@id": "https://xeanvi.com/#organization",
@@ -48,11 +40,23 @@
           }
         },
         {
-          "@type": "SoftwareApplication",
-          "@id": "https://xeanvi.com/#software",
+          "@type": "WebSite",
+          "@id": "https://xeanvi.com/#website",
+          "url": "https://xeanvi.com/",
           "name": "XeanVI",
-          "applicationCategory": "FinanceApplication",
-          "operatingSystem": "Web"
+          "publisher": {
+            "@id": "https://xeanvi.com/#organization"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/signup#webpage",
+          "url": "https://xeanvi.com/signup",
+          "name": "Sign Up | Create Your XeanVI Account for Trading Automation",
+          "description": "Create your XeanVI account to set up your trading playbook, test your rules in paper mode, and upgrade to PRO for live broker-connected automation.",
+          "isPartOf": {
+            "@id": "https://xeanvi.com/#website"
+          }
         }
       ]
     }
@@ -61,7 +65,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-      <style>
+    
+    <style>
         body {
             background-color: var(--bg-main);
             background-image: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
@@ -81,14 +86,14 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             display: flex;
             overflow: hidden;
         }
         .auth-info-side {
             background: #020617;
-            padding: 3rem 2rem;
+            padding: 3rem;
             width: 45%;
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -96,31 +101,35 @@
             justify-content: center;
         }
         .auth-form-side {
-            padding: 3rem 2.5rem;
+            padding: 3rem;
             width: 55%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .sys-status {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.65rem;
-            color: var(--success);
+            color: var(--accent-blue);
             text-transform: uppercase;
             letter-spacing: 0.1em;
             display: flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 1rem;
+            font-weight: bold;
         }
         .sys-status::before {
             content: '';
             display: block;
             width: 6px;
             height: 6px;
-            background: var(--success);
+            background: var(--accent-blue);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--success);
+            box-shadow: 0 0 8px var(--accent-blue);
         }
         
-        .input-group { margin-bottom: 1.25rem; }
+        .input-group { margin-bottom: 1.5rem; }
         .input-group label {
             display: block;
             font-family: 'JetBrains Mono', monospace;
@@ -135,10 +144,10 @@
             background: #020617;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 0.85rem 1rem;
+            padding: 1rem;
             border-radius: 8px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             outline: none;
             transition: all 0.3s ease;
         }
@@ -151,7 +160,7 @@
             background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
             color: #fff;
             border: none;
-            padding: 1rem;
+            padding: 1.1rem;
             border-radius: 8px;
             font-weight: 800;
             font-size: 1rem;
@@ -160,7 +169,11 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
-            margin-top: 1rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         .btn-auth:hover {
             transform: translateY(-2px);
@@ -173,19 +186,18 @@
             margin-top: 2rem;
         }
         .trust-list li {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.5rem;
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            line-height: 1.5;
+            gap: 15px;
+            line-height: 1.6;
         }
         .trust-list i {
             color: var(--accent-blue);
             margin-top: 4px;
-            font-size: 1rem;
+            font-size: 1.2rem;
         }
         
         .security-badge {
@@ -193,9 +205,23 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 1.5rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .flash-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-align: center;
         }
 
         @media (max-width: 850px) {
@@ -213,50 +239,51 @@
         <section class="auth-terminal-wide">
             
             <div class="auth-info-side">
-                <div class="sys-status">SYS_REGISTRATION_ACTIVE</div>
-                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Initialize Your Edge.</h2>
-                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">Create your XeanVI account to deploy quantitative execution models. Remove the emotional drag and automate your day trading strategy.</p>
+                <div class="sys-status">PRO_SYSTEM_INITIALIZATION</div>
+                <h2 style="font-size: 2rem; margin-bottom: 1rem; letter-spacing: -0.5px; line-height: 1.2;">Build Your Automated Workflow</h2>
+                <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 1rem;">
+                    Create your account, define your playbook, and upgrade to XeanVI PRO to automate market scans, validation, and live order routing through your supported broker API.
+                </p>
                 
                 <ul class="trust-list">
                     <li>
-                        <i class="fas fa-shield-alt"></i>
+                        <i class="fas fa-book-open" aria-hidden="true"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Risk-Free Sandbox Environment</strong>
-                            Test strategies in our simulated terminal. No credit card required to build your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">1. Define Your Playbook</strong>
+                            Set up your exact strategy rules, strict risk limits, and automated bracket order preferences inside the <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>.
                         </div>
                     </li>
                     <li>
-                        <i class="fas fa-link"></i>
+                        <i class="fas fa-flask" aria-hidden="true"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Secure Broker Independence</strong>
-                            When ready for live routing, connect via secure <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">OAuth Broker Integration</a>. We never have access to your personal funds.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">2. Test in Paper Mode</strong>
+                            Safely validate your automated logic and risk execution in our simulated testing sandbox before risking live capital.
                         </div>
                     </li>
                     <li>
-                        <i class="fas fa-microchip"></i>
+                        <i class="fas fa-bolt" aria-hidden="true"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Advanced Server Architecture</strong>
-                            Leverage 24/7 VPS persistence and <a href="/features" style="color: var(--accent-blue); text-decoration: none;">AI Sentiment Analysis</a> to execute purely on data.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">3. Live PRO Automation</strong>
+                            Upgrade to PRO and securely connect a <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">supported broker API</a> to unlock live, unemotional trade routing driven by your settings.
                         </div>
                     </li>
                 </ul>
             </div>
 
-<div class="auth-form-side">
-    <h1 style="font-size: 1.4rem; margin-bottom: 0.5rem;">
-        Create Your Free XeanVI PTrading Automation Account
-    </h1>
+            <div class="auth-form-side">
+                <h1 style="font-size: 1.8rem; margin-bottom: 0.75rem; letter-spacing: -0.5px;">
+                    Create Your XeanVI Account
+                </h1>
 
-    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        Sign up for a free trading account today. You can upgrade to our 
-        <a href="/upgrade" style="color: var(--accent-blue);">Live Execution Pro Plans</a> 
-        at any time from your dashboard.
-    </p>
+                <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.6;">
+                    Sign up to set up your trading rules and test in paper mode. Upgrade to PRO whenever you are ready for live, broker-connected automation.
+                </p>
+
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="flash-msg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-align: center;" role="alert">
-                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>{{ message }}
+                            <div class="flash-msg {{ category }}" role="alert">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;" aria-hidden="true"></i>{{ message }}
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -266,32 +293,34 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="input-group">
-                        <label for="full_name">Operator Alias (Full Name)</label>
+                        <label for="full_name">Full Name</label>
                         <input type="text" id="full_name" name="full_name" class="auth-input" required placeholder="John Doe" autocomplete="name">
                     </div>
 
                     <div class="input-group">
-                        <label for="email">User Identifier (Email Address)</label>
-                        <input type="email" id="email" name="email" class="auth-input" required placeholder="operator@domain.com" autocomplete="email">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="auth-input" required placeholder="you@example.com" autocomplete="email">
                     </div>
                     
                     <div class="input-group">
-                        <label for="password">Decryption Key (Secure Password)</label>
+                        <label for="password">Secure Password</label>
                         <input type="password" id="password" name="password" class="auth-input" required placeholder="••••••••••••" autocomplete="new-password">
                     </div>
 
                     <button type="submit" class="btn-auth">
-                        <i class="fas fa-fingerprint" style="margin-right: 8px;"></i> Initialize Terminal
+                        Start Your PRO Setup <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
                 </form>
 
                 <div class="security-badge">
-                    <i class="fas fa-lock" style="color: var(--success);"></i> 
-                    <span>By signing up, you agree to our <a href="/terms" style="color: var(--text-muted); text-decoration: underline;">Terms</a> and <a href="/privacy" style="color: var(--text-muted); text-decoration: underline;">Privacy Policy</a>.</span>
+                    <div>
+                        <i class="fas fa-lock" style="color: var(--success); margin-right: 5px;" aria-hidden="true"></i> By signing up, you agree to our <a href="/terms" style="color: var(--text-main); text-decoration: underline;">Terms</a> and <a href="/privacy" style="color: var(--text-main); text-decoration: underline;">Privacy Policy</a>.<br>
+                        <span style="display: block; margin-top: 8px; font-size: 0.75rem; opacity: 0.8;">XeanVI provides automation software, not financial advice. Trading involves significant risk.</span>
+                    </div>
                 </div>
 
-                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                    Already established? <a href="/login" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">Authenticate Here (Login)</a>
+                <div style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    Already have an account? <a href="/login" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">Log In</a>
                 </div>
             </div>
 
