@@ -296,6 +296,26 @@ def place_managed_entry_order(
         if qty > max_safe_qty:
             qty = max(1, max_safe_qty)
 
+    # Reality check: ensure intended trade cost does not exceed live broker buying power.
+    actual_buying_power: float | None = None
+    try:
+        account_data = _get_json(f'{get_execution_base_url(user)}/v2/account', token=user_token)
+        actual_buying_power = float(account_data.get('buying_power') or 0.0)
+    except (BrokerError, TypeError, ValueError) as exc:
+        logger.warning('Unable to validate buying power for %s: %s', symbol, exc)
+
+    estimated_cost = float(qty) * float(entry_price)
+    if actual_buying_power is not None and estimated_cost > actual_buying_power:
+        return {
+            'status': 'rejected',
+            'symbol': symbol.upper(),
+            'reason': (
+                'Account reality check failed. Intended trade cost '
+                f'${estimated_cost:.2f} exceeds actual broker buying power '
+                f'of ${actual_buying_power:.2f}.'
+            ),
+        }
+
     _ = target_2_price  # reserved for external broker adapters and journaling.
     entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy', user=user)
     entry_id = entry.get('id')
