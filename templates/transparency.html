@@ -4,87 +4,259 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>AI Transparency & Performance Report | XeanVI Algorithmic Trading</title>
-    <meta name="description" content="Review the XeanVI AI decision pipeline and historical performance metrics. Detailed transparency on NLP catalyst scoring, risk alignment, and simulated backtest results.">
+    <title>Trading Transparency & Paper Trading Reports | XeanVI</title>
+    <meta name="description" content="Review XeanVI transparency information, including paper trading reports, AI-assisted scoring logic, broker data permissions, privacy controls, and trading risk disclosures.">
 
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
     <link rel="canonical" href="https://xeanvi.com/transparency">
 
-    <meta property="og:type" content="article">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="XeanVI">
     <meta property="og:url" content="https://xeanvi.com/transparency">
-    <meta property="og:title" content="XeanVI AI Transparency: How We Score the Market">
-    <meta property="og:description" content="An under-the-hood look at our AI processing logic, data ingestion, and Q1 2026 simulated performance reports.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-transparency-data.jpg', _external=True) }}">
+    <meta property="og:title" content="Trading Transparency & Paper Trading Reports | XeanVI">
+    <meta property="og:description" content="See how XeanVI explains paper trading reports, AI-assisted market scoring, broker permissions, privacy controls, and risk disclosures.">
+    <meta property="og:image" content="https://xeanvi.com/static/seo-transparency-data.jpg">
+    <meta property="og:image:alt" content="XeanVI transparency dashboard and paper trading report preview">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="XeanVI Performance & AI Logic Report">
-    <meta name="twitter:description" content="Explore our 62.4% historical win rate and the NLP engine driving our catalyst scoring.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='seo-transparency-data.jpg', _external=True) }}">
+    <meta name="twitter:title" content="Trading Transparency & Paper Trading Reports | XeanVI">
+    <meta name="twitter:description" content="Review XeanVI paper trading reports, AI-assisted scoring logic, broker permissions, privacy controls, and trading risk disclosures.">
+    <meta name="twitter:image" content="https://xeanvi.com/static/seo-transparency-data.jpg">
+    <meta name="twitter:image:alt" content="XeanVI transparency dashboard and paper trading report preview">
 
     <meta name="theme-color" content="#0f172a">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://xeanvi.com/#organization",
+          "name": "XeanVI",
+          "url": "https://xeanvi.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xeanvi.com/static/seo-banner.jpg"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://xeanvi.com/#website",
+          "url": "https://xeanvi.com/",
+          "name": "XeanVI",
+          "publisher": {
+            "@id": "https://xeanvi.com/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "description": "XeanVI is a web-based trading workflow platform for paper trading, market scanning, AI-assisted scoring, playbook-based strategy rules, broker connection tools, and systematic automation workflows.",
+          "publisher": {
+            "@id": "https://xeanvi.com/#organization"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/transparency#webpage",
+          "url": "https://xeanvi.com/transparency",
+          "name": "Trading Transparency & Paper Trading Reports | XeanVI",
+          "description": "Review XeanVI transparency information, including paper trading reports, AI-assisted scoring logic, broker data permissions, privacy controls, and trading risk disclosures.",
+          "isPartOf": {
+            "@id": "https://xeanvi.com/#website"
+          },
+          "about": {
+            "@id": "https://xeanvi.com/#software"
+          }
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { background-color: #060b14; display: flex; flex-direction: column; min-height: 100vh; }
+        .hero-section { padding: 5rem 2rem 3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.05) 0%, transparent 60%); }
+        .sys-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); padding: 4px 10px; border-radius: 4px; display: inline-block; margin-bottom: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+        .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); }
+
+        .settings-card { background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+
+        .disclosure-box {
+            background: #020617;
+            border: 1px dashed rgba(255,255,255,0.15);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: left;
+            margin: 2rem auto 0;
+            max-width: 850px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .faq-details { background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
+        .faq-details summary { padding: 1.5rem; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
+        .faq-details summary::-webkit-details-marker { display: none; }
+        .faq-details summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--accent-blue); transition: transform 0.3s; }
+        .faq-details[open] summary::after { transform: rotate(180deg); }
+        .faq-content { padding: 0 1.5rem 1.5rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
+
+        .disabled-link {
+            opacity: 0.7;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body class="dash-body">
 
-   
+    {% include 'nav.html' %}
 
-{% include 'nav.html' %}
-
-
-    <div class="container" style="max-width: 1000px; margin: 4rem auto; padding: 0 2rem;">
-        <div style="text-align: center; margin-bottom: 4rem;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Trust & Transparency</h1>
-            <p style="color: var(--text-muted); font-size: 1.1rem;">Institutional-grade disclosures for the modern algorithmic trader.</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-            <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-line" style="color: var(--success);"></i> Performance Audits</h3>
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">View our latest simulated vs. live execution delta reports. We provide raw CSV exports of AI decision logs for independent verification.</p>
-                <a href="#" class="btn-secondary" style="display: block; text-align: center; padding: 0.75rem; border-radius: 6px; text-decoration: none;">Download Q1 Audit (.pdf)</a>
+    <main>
+        <header class="hero-section">
+            <div class="container" style="max-width: 850px;">
+                <div class="sys-tag">TRANSPARENCY_REPORT</div>
+                <h1 style="font-size: clamp(2.2rem, 5vw, 3rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">
+                    Trading Transparency, <span class="text-gradient">Paper Reports</span>, and Risk Disclosures
+                </h1>
+                <p style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; margin-bottom: 0;">
+                    XeanVI is built to help users understand how the platform handles paper trading reports, AI-assisted scoring, broker permissions, privacy controls, and automation risk before connecting live trading tools.
+                </p>
             </div>
+        </header>
 
-            <div class="settings-card" style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-shield" style="color: var(--accent-blue);"></i> Data Privacy</h3>
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your Alpaca OAuth tokens are encrypted using AES-256-GCM. XeanVI never stores your brokerage passwords.</p>
-                <a href="/privacy" style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem; text-decoration: none;">Review Privacy Policy →</a>
+        <section style="padding: 4rem 0; border-bottom: 1px solid var(--border-color); background: #020617;">
+            <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem;">
+                <div style="margin-bottom: 2rem; text-align: center;">
+                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Latest Paper Trading Report Snapshot</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 760px; margin: 0 auto;">
+                        The data below is intended for transparency around simulated or paper trading workflows. Paper trading results are not live capital results and do not guarantee future performance. Review how the <a href="/features" style="color: var(--accent-blue);">XeanVI engine</a> behaves under defined rules before using any live broker-connected tools.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="stat-card">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Win Rate</p>
+                        <h3 id="stat-winrate" style="color: var(--success); font-size: 2.2rem; margin: 0;">--%</h3>
+                    </div>
+                    <div class="stat-card">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Profit Factor</p>
+                        <h3 id="stat-profitfactor" style="color: var(--accent-blue); font-size: 2.2rem; margin: 0;">--</h3>
+                    </div>
+                    <div class="stat-card">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Trades</p>
+                        <h3 id="stat-trades" style="font-size: 2.2rem; margin: 0; color: var(--text-main);">--</h3>
+                    </div>
+                    <div class="stat-card">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Max Paper Drawdown</p>
+                        <h3 id="stat-drawdown" style="color: var(--danger); font-size: 2.2rem; margin: 0;">$--</h3>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <canvas id="equityChart" width="400" height="150" aria-label="Line chart showing paper trading equity curve data when available" role="img"></canvas>
+                </div>
+
+                <div class="disclosure-box">
+                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px;">PAPER TRADING DISCLOSURE //</strong>
+                    Paper trading and simulated results are educational and informational only. They may not reflect real market fills, commissions, liquidity constraints, slippage, execution delays, outages, spread changes, or emotional decision-making during live trading. Trading involves risk, including possible loss of capital.
+                </div>
             </div>
+        </section>
 
-        </div>
-    </div>
+        <section style="padding: 4rem 0;">
+            <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
+
+                    <article class="settings-card">
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;"><i class="fas fa-chart-line" style="color: var(--success); margin-right: 10px;" aria-hidden="true"></i> Paper Trading Audit Logs</h3>
+                        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; flex-grow: 1;">
+                            XeanVI is designed to help users review paper trading activity, rule triggers, skipped setups, and decision logs tied to their <a href="/playbook" style="color: var(--text-muted); text-decoration: underline;">Trading Playbook</a>. These reports are intended to support review and learning, not to imply live trading results.
+                        </p>
+                        <a href="#" class="btn btn-secondary disabled-link" aria-disabled="true" style="display: block; text-align: center; padding: 1rem; border-radius: 6px; font-weight: bold; margin-top: auto;">Audit Downloads Coming Soon</a>
+                    </article>
+
+                    <article class="settings-card">
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;"><i class="fas fa-user-shield" style="color: var(--accent-blue); margin-right: 10px;" aria-hidden="true"></i> Data Privacy & Broker Permissions</h3>
+                        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; flex-grow: 1;">
+                            XeanVI uses supported <a href="/broker-integration" style="color: var(--text-muted); text-decoration: underline;">broker integration</a> workflows so users can review permissions before connecting. Users should verify what account data, trading permissions, and authorization controls are shown by the broker before enabling live tools.
+                        </p>
+                        <a href="/privacy" class="btn" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); display: block; text-align: center; padding: 1rem; border-radius: 6px; font-weight: bold; margin-top: auto;">Review Full Privacy Policy →</a>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <section style="padding: 4rem 0; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05);">
+            <div class="container" style="max-width: 800px; margin: 0 auto; padding: 0 2rem;">
+                <h2 style="font-size: 2rem; text-align: center; margin-bottom: 3rem;">Transparency FAQs</h2>
+
+                <details class="faq-details">
+                    <summary>Are the report metrics based on live capital?</summary>
+                    <div class="faq-content">
+                        Unless clearly labeled otherwise, the metrics shown on this page should be treated as paper trading or simulated workflow data. Paper trading can help users review strategy behavior, but it does not guarantee live results.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>How does XeanVI use AI-assisted market scoring?</summary>
+                    <div class="faq-content">
+                        XeanVI may use AI-assisted scoring to help organize market context, news language, and catalyst information. These scores are software-generated workflow signals and should not be treated as financial advice or investment recommendations.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>Can I review individual paper trading decisions?</summary>
+                    <div class="faq-content">
+                        XeanVI is designed to help users review paper trading activity, rule triggers, and skipped setups. Any downloadable logs or exports should be used for workflow review, not as proof of future live trading performance.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>Does XeanVI guarantee trading results?</summary>
+                    <div class="faq-content">
+                        No. XeanVI provides trading workflow software, paper trading tools, market review features, and supported broker connectivity. It does not provide financial advice, investment recommendations, or guaranteed trading results.
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <section style="padding: 5rem 2rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div class="container" style="max-width: 760px;">
+                <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Start With Paper Trading and Review the Data</h2>
+                <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
+                    Create a free account to review the paper trading workflow, define your playbook rules, and understand the risks before considering any <a href="/pricing" style="color: var(--accent-blue);">PRO broker-connected tools</a>.
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    {% if current_user.is_authenticated %}
+                        <a href="/dashboard" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Open Dashboard</a>
+                    {% else %}
+                        <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Create Free Account</a>
+                        <a href="/login" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Log In</a>
+                    {% endif %}
+                </div>
+
+                <p style="color: var(--text-muted); font-size: 0.8rem; max-width: 720px; margin: 2rem auto 0; line-height: 1.6;">
+                    XeanVI provides software for trading workflow automation, market review, paper trading, and broker connectivity. It does not provide financial advice, investment recommendations, or guaranteed results. Trading involves risk, including possible loss of capital.
+                </p>
+            </div>
+        </section>
+    </main>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <div class="container" style="max-width: 1000px; margin: 0 auto 4rem auto; padding: 0 2rem;">
-        <div style="margin-top: 3rem;">
-            <h2 style="margin-bottom: 1.5rem;">Q1 2026 AI Performance Backtest</h2>
-
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
-                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Win Rate</p>
-                    <h3 id="stat-winrate" style="color: var(--success); font-size: 1.8rem;">--%</h3>
-                </div>
-                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Profit Factor</p>
-                    <h3 id="stat-profitfactor" style="color: var(--accent-blue); font-size: 1.8rem;">--</h3>
-                </div>
-                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Trades</p>
-                    <h3 id="stat-trades" style="font-size: 1.8rem;">--</h3>
-                </div>
-                <div class="stat-card" style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Max Drawdown</p>
-                    <h3 id="stat-drawdown" style="color: var(--danger); font-size: 1.8rem;">$--</h3>
-                </div>
-            </div>
-
-            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                <canvas id="equityChart" width="400" height="150"></canvas>
-            </div>
-        </div>
-    </div>
-
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             fetch('/api/transparency/stats')
@@ -104,7 +276,7 @@
                             data: {
                                 labels: stats.equity_curve_labels,
                                 datasets: [{
-                                    label: 'Cumulative Net Profit ($)',
+                                    label: 'Paper Trading Equity Curve ($)',
                                     data: stats.equity_curve_data,
                                     borderColor: '#3b82f6',
                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -133,10 +305,11 @@
                         });
                     }
                 })
-                .catch(error => console.error("Error loading performance data:", error));
+                .catch(error => console.error("Error loading paper trading data:", error));
         });
     </script>
-        {% include 'footer.html' %}
+
+    {% include 'footer.html' %}
 
 </body>
 </html>
