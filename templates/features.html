@@ -3,119 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>XeanVI Architecture | Systematic Execution</title>
-    <meta name="description" content="See what XeanVI automates: data monitoring, logic execution, and strict risk control within a single toolkit.">
     
+    <title>XeanVI Features | Advanced Algorithmic Trading Tools</title>
+    <meta name="description" content="Explore XeanVI's quantitative trading features. Automate your strategy with AI sentiment scoring, managed bracket orders, and live Alpaca API execution.">
+    
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/features">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://xeanvi.com/features">
+    <meta property="og:title" content="XeanVI Features | Advanced Algorithmic Trading Tools">
+    <meta property="og:description" content="Automate your day trading strategy. Discover how our execution engine uses quantitative data to replace emotional trading.">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/features#webpage",
+          "url": "https://xeanvi.com/features",
+          "name": "XeanVI Features | Advanced Algorithmic Trading Tools",
+          "description": "Explore the core features of the XeanVI trading engine, including AI sentiment analysis, automated execution, and risk management."
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web, Linux",
+          "description": "A quantitative execution engine for retail day traders offering automated market scanning, risk management, and API-driven order routing."
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://xeanvi.com/features#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Do I need to know how to code to use these features?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. XeanVI provides a visual dashboard where you set your rules in the Trading Playbook. The engine translates your preferences into code automatically."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How fast does the automated execution trigger?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Because XeanVI runs on persistent VPS architecture, logic validation and order routing happen in milliseconds, directly via official broker APIs."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Does XeanVI have access to my bank account?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Never. We use secure OAuth Broker Integration. We only transmit execution commands to your broker based on your strict playbook parameters."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        .feature-details summary { cursor: pointer; padding: 1.5rem; font-weight: 600; font-size: 1.1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1rem; transition: background 0.2s; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        .feature-details summary::-webkit-details-marker { display: none; }
+        .feature-details summary:hover { background: rgba(255,255,255,0.02); }
+        .feature-details summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--accent-blue); transition: transform 0.3s; }
+        .feature-details[open] summary::after { transform: rotate(180deg); }
+        .feature-details .faq-content { padding: 0 1.5rem 1.5rem; color: var(--text-muted); line-height: 1.6; }
+    </style>
 </head>
 <body class="auth-body">
 
     {% include 'nav.html' %}
 
-    <header class="page-header">
-        <div class="container">
-            <div class="badge-pill" style="font-family: 'JetBrains Mono', monospace;">MOD_EXECUTION</div>
-            <h1>Systematic <span class="text-gradient">Architecture</span></h1>
-            <p>XeanVI automates quantitative logic processing and eliminates emotional intervention from your strategy.</p>
-        </div>
-    </header>
-
-    <section class="section-pad" style="background: var(--bg-main);">
-        <div class="container">
-            <div style="text-align: center; margin-bottom: 3rem;">
-                <h2 style="font-size: 2rem;">The Quantitative Advantage</h2>
-                <p style="color: var(--text-muted);">How our engine compares to standard retail setups.</p>
+    <main>
+        <header class="page-header" style="padding-top: 5rem; padding-bottom: 3rem; text-align: center;">
+            <div class="container">
+                <div class="badge-pill" style="font-family: 'JetBrains Mono', monospace; margin: 0 auto 1rem;">MOD_EXECUTION</div>
+                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem;">Systematic <span class="text-gradient">Architecture</span></h1>
+                <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 700px; margin: 0 auto; line-height: 1.6;">
+                    Most retail day traders lose because of hesitation, emotion, and slow manual execution. XeanVI replaces the human flaw with strict quantitative logic, automating your strategy from the opening bell to the final scale-out.
+                </p>
             </div>
+        </header>
 
-            <div class="card" style="padding: 0; overflow: hidden; max-width: 1000px; margin: 0 auto; border: 1px solid var(--border-color);">
-                <div class="table-wrap">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                        <thead>
-                            <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
-                                <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted);">Capability Parameter</th>
-                                <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted);">Standard Retail Tools</th>
-                                <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent-blue);">XeanVI Engine</th>
-                            </tr>
-                        </thead>
-                        <tbody style="font-size: 1rem;">
-                            <tr style="border-bottom: 1px solid var(--border-color);">
-                                <td style="padding: 1.5rem; font-weight: 600;">Logic Origin</td>
-                                <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Social Sentiment</td>
-                                <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.05); border-left: 1px solid var(--border-color);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Quantitative API Data Scoring</td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);">
-                                <td style="padding: 1.5rem; font-weight: 600;">Infrastructure</td>
-                                <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Mobile-Client Dependent</td>
-                                <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.05); border-left: 1px solid var(--border-color);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Persistent VPS (systemd)</td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid var(--border-color);">
-                                <td style="padding: 1.5rem; font-weight: 600;">Execution Mode</td>
-                                <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Manual Review & Click</td>
-                                <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.05); border-left: 1px solid var(--border-color);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Automated Broker API Routing</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 1.5rem; font-weight: 600;">Risk Protocol</td>
-                                <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Emotional Interventions</td>
-                                <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.05); border-left: 1px solid var(--border-color);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Hard-Coded Bracket Orders</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="section-pad" style="border-top: 1px solid var(--border-color);">
-        <div class="container">
-            <div class="grid-3">
-                <div class="feature-box card">
-                    <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                        <i class="fas fa-microchip"></i>
-                    </div>
-                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">Data-Driven Processing</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        Every asset is passed through our scoring model. We filter out noise and strictly measure mathematical parameter alignments—including AI sentiment validation—before transmitting an order.
-                    </p>
+        <section class="section-pad" style="border-top: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Built for Algorithmic Discipline</h2>
+                    <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">Configure your rules once in your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">Trading Playbook</a>, and let the engine handle the heavy lifting. Explore the core toolset powering your automation.</p>
                 </div>
 
-                <div class="feature-box card">
-                    <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                        <i class="fas fa-server"></i>
+                <div class="grid-3">
+                    <div class="feature-box card" style="display: flex; flex-direction: column;">
+                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">AI Catalyst & NLP Scoring</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
+                            Don't trade blindly on social media hype. XeanVI utilizes the Gemini NLP API to rapidly digest live financial news and assign a hard 0-100 quantitative sentiment score. If a stock's catalyst doesn't meet your strict baseline, the engine refuses to trade it, saving your capital from false breakouts.
+                        </p>
                     </div>
-                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">Enterprise Reliability</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        XeanVI is built on <strong>Flask</strong> and <strong>systemd</strong>. This ensures that your logic processing remains active through network flickers without any browser or mobile dependency.
-                    </p>
-                </div>
 
-                <div class="feature-box card">
-                    <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                        <i class="fas fa-bolt"></i>
+                    <div class="feature-box card" style="display: flex; flex-direction: column;">
+                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
+                            <i class="fas fa-crosshairs"></i>
+                        </div>
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Advanced Managed Routing</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
+                            A single market order is not a strategy. When parameters align, XeanVI routes institutional-grade One-Cancels-Other (OCO) bracket orders. It automatically calculates your target scale-outs and trailing stop-losses based on real-time ATR (Average True Range), enforcing risk management without you lifting a finger.
+                        </p>
                     </div>
-                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">Conditional Entry</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        Routes logic-based limit orders the exact moment pre-set parameters are met. Calculates Kelly Criterion position sizing instantly to prevent over-leveraging on any single execution.
-                    </p>
+
+                    <div class="feature-box card" style="display: flex; flex-direction: column;">
+                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">24/7 VPS Persistence</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
+                            Standard retail tools crash when your phone loses service. XeanVI operates on a persistent systemd Linux architecture. Your execution logic runs directly on high-speed servers, ensuring millisecond reactions to market data even if your browser is closed.
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="cta section-pad" style="border-top: 1px solid var(--border-color); background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 60%);">
-        <div class="container">
-            <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Ready to deploy your logic?</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-                Connect your paper trading sandbox today and watch the systematic engine process the market.
-            </p>
-            {% if current_user.is_authenticated %}
-                <a href="/dashboard" class="btn btn-primary" style="padding: 1rem 2rem;">Access Terminal</a>
-            {% else %}
-                <a href="/signup" class="btn btn-primary" style="padding: 1rem 2rem;">Initialize Sandbox</a>
-            {% endif %}
-        </div>
-    </section>
+        <section class="section-pad" style="background: var(--bg-main); border-top: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 3rem;">
+                    <h2 style="font-size: 2rem;">The Quantitative Advantage</h2>
+                    <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">See exactly how our systematic framework eliminates the common pitfalls of standard retail day trading.</p>
+                </div>
+
+                <div class="card" style="padding: 0; overflow: hidden; max-width: 1000px; margin: 0 auto; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="table-wrap">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
+                                    <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Capability Parameter</th>
+                                    <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Standard Retail Tools</th>
+                                    <th style="padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent-blue); text-transform: uppercase;">XeanVI Engine</th>
+                                </tr>
+                            </thead>
+                            <tbody style="font-size: 1rem;">
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Logic Origin</td>
+                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Social Sentiment & Emotion</td>
+                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Quantitative NLP & Live Tape Data</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Infrastructure</td>
+                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Mobile-Client Dependent</td>
+                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Persistent Cloud VPS (systemd)</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Execution Mode</td>
+                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Manual Review & Click</td>
+                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Automated API Data Routing</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Risk Protocol</td>
+                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-times" style="color: var(--danger); margin-right: 8px;"></i> Holding losers, cutting winners</td>
+                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;"></i> Hard-Coded Bracket Orders & Scaling</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad" style="border-top: 1px solid var(--border-color);">
+            <div class="container grid-2" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 4rem; align-items: center;">
+                <div>
+                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">Institutional Security for Retail Traders</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6;">
+                        Trusting an algorithm with your capital requires total transparency. We built XeanVI with a "faceless" architecture. You manage your funds directly with your brokerage; we simply provide the logic engine that tells them when to execute.
+                    </p>
+                    <ul style="list-style: none; padding: 0; margin-bottom: 2rem;">
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
+                            <i class="fas fa-shield-check" style="color: var(--success);"></i> Secure <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">OAuth Broker Integration</a>
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
+                            <i class="fas fa-shield-check" style="color: var(--success);"></i> Multi-Tier Paper Trading Sandbox
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
+                            <i class="fas fa-shield-check" style="color: var(--success);"></i> No access to your credentials or transfers
+                        </li>
+                    </ul>
+                    <a href="/pricing" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">View Pro Plans</a>
+                </div>
+                <div style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
+                    <i class="fas fa-lock" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">End-to-End Encryption</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">All API keys and session tokens are secured via 256-bit encryption before entering our database. You retain full control to revoke authorization at any time.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad" style="background: var(--bg-main); border-top: 1px solid var(--border-color);">
+            <div class="container" style="max-width: 800px;">
+                <div style="text-align: center; margin-bottom: 3rem;">
+                    <h2 style="font-size: 2rem;">Platform Architecture FAQs</h2>
+                </div>
+                
+                <details class="feature-details">
+                    <summary>Do I need to know how to code to use these features?</summary>
+                    <div class="faq-content">
+                        No coding experience is required. XeanVI provides a visual, intuitive dashboard. You simply set your risk parameters and technical preferences inside your <a href="/playbook" style="color: var(--accent-blue);">Trading Playbook</a>, and the engine automatically translates those rules into executable code.
+                    </div>
+                </details>
+                
+                <details class="feature-details">
+                    <summary>How fast does the automated execution trigger?</summary>
+                    <div class="faq-content">
+                        Extremely fast. Because XeanVI is hosted on dedicated VPS infrastructure, our web-socket connections stream directly to the broker. When your playbook conditions are met, order routing happens in milliseconds, bypassing the latency of human reaction time.
+                    </div>
+                </details>
+
+                <details class="feature-details">
+                    <summary>Can I test the features before risking real money?</summary>
+                    <div class="faq-content">
+                        Absolutely. Every account begins in our Paper Trading Sandbox. You have full access to the AI scanning and execution routing using simulated capital, allowing you to prove your strategy's edge before upgrading to a live account.
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <section class="cta section-pad" style="border-top: 1px solid var(--border-color); background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 60%); text-align: center;">
+            <div class="container">
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">Ready to deploy your logic?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; font-size: 1.1rem;">
+                    Stop letting emotion dictate your P&L. Start in the paper trading sandbox today and watch the systematic engine process the market with zero hesitation.
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    {% if current_user.is_authenticated %}
+                        <a href="/dashboard" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold;">Access Terminal</a>
+                    {% else %}
+                        <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold;">Initialize Sandbox Account</a>
+                        <a href="/login" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold;">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
 
     {% include 'footer.html' %}
 
