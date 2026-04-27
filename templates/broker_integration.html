@@ -3,22 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    
-    <title>Broker API Architecture | XeanVI</title>
-    <meta name="description" content="Optimize your Broker API trading with XeanVI. Automated managed execution, bid/ask-pegged entries, and real-time paper trading orchestration.">
-    
+
+    <title>Broker Integration | Alpaca API Trading Automation | XeanVI</title>
+    <meta name="description" content="Learn how XeanVI supports broker-connected trading workflows through Alpaca API integration, paper trading, playbook rules, and user-controlled automation settings.">
+
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/broker-integration">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="XeanVI">
+    <meta property="og:url" content="https://xeanvi.com/broker-integration">
+    <meta property="og:title" content="Broker Integration | Alpaca API Trading Automation | XeanVI">
+    <meta property="og:description" content="Connect supported broker tools, review API permissions, test paper trading workflows, and manage rule-based automation settings with XeanVI.">
+    <meta property="og:image" content="https://xeanvi.com/static/seo-broker-integration.jpg">
+    <meta property="og:image:alt" content="XeanVI broker integration and API automation workflow preview">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Broker Integration | Alpaca API Trading Automation | XeanVI">
+    <meta name="twitter:description" content="Review XeanVI broker integration tools for Alpaca API support, paper trading, playbook rules, and user-controlled automation settings.">
+    <meta name="twitter:image" content="https://xeanvi.com/static/seo-broker-integration.jpg">
+    <meta name="twitter:image:alt" content="XeanVI broker integration and API automation workflow preview">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://xeanvi.com/#organization",
+          "name": "XeanVI",
+          "url": "https://xeanvi.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xeanvi.com/static/seo-banner.jpg"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://xeanvi.com/#website",
+          "url": "https://xeanvi.com/",
+          "name": "XeanVI",
+          "publisher": {
+            "@id": "https://xeanvi.com/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "description": "XeanVI is a web-based trading workflow platform for paper trading, market scanning, playbook-based strategy rules, broker connection tools, and systematic automation workflows.",
+          "featureList": [
+            "Alpaca API support",
+            "Paper trading workflows",
+            "Broker connection settings",
+            "Rule-based automation tools",
+            "Trading Playbook controls"
+          ],
+          "publisher": {
+            "@id": "https://xeanvi.com/#organization"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/broker-integration#webpage",
+          "url": "https://xeanvi.com/broker-integration",
+          "name": "Broker Integration | Alpaca API Trading Automation | XeanVI",
+          "description": "Learn how XeanVI supports broker-connected trading workflows through Alpaca API integration, paper trading, playbook rules, and user-controlled automation settings.",
+          "isPartOf": {
+            "@id": "https://xeanvi.com/#website"
+          },
+          "about": {
+            "@id": "https://xeanvi.com/#software"
+          }
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
      <style>
+        body {
+            background-color: #060b14;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
         .hero-section {
             padding: 6rem 2rem 4rem;
             text-align: center;
             background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        
+
         .sys-tag {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.7rem;
@@ -29,13 +112,14 @@
             display: inline-block;
             margin-bottom: 1.5rem;
             letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
         .module-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 2rem;
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -47,6 +131,8 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .module-icon {
@@ -67,19 +153,22 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
             color: var(--text-muted);
+            flex-grow: 1;
         }
 
         .terminal-list li {
             margin-bottom: 0.8rem;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
+            line-height: 1.5;
         }
 
         .terminal-list li::before {
             content: '>';
             color: var(--accent-blue);
             font-weight: bold;
+            margin-top: 2px;
         }
 
         .disclosure-box {
@@ -95,79 +184,221 @@
             color: var(--text-muted);
             line-height: 1.6;
         }
+
+        .faq-details {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .faq-details summary {
+            padding: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        .faq-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .faq-details summary::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: var(--accent-blue);
+            transition: transform 0.3s;
+        }
+
+        .faq-details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .faq-content {
+            padding: 0 1.5rem 1.5rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
-<body class="auth-body">
+<body>
 
     {% include 'nav.html' %}
 
-    <header class="hero-section">
-        <div class="container">
-            <div class="sys-tag">INFRASTRUCTURE_02</div>
-            <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">Broker API <span class="text-gradient">Orchestration</span></h1>
-            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 650px; margin: 0 auto; line-height: 1.6;">
-                XeanVI isn't just a scanner; it's a high-precision orchestration layer for your brokerage account, built strictly for disciplined quantitative execution.
-            </p>
-        </div>
-    </header>
+    <main>
+        <header class="hero-section">
+            <div class="container">
+                <div class="sys-tag">BROKER_API_WORKFLOW</div>
+                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">
+                    Broker Integration for <span class="text-gradient">Rule-Based Trading Automation</span>
+                </h1>
+                <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 760px; margin: 0 auto 2rem; line-height: 1.6;">
+                    XeanVI helps connect your <a href="/playbook" style="color: var(--accent-blue); text-decoration: underline;">Trading Playbook</a> rules with supported broker API workflows. Start in paper trading, review your permissions, and control how automation settings are used.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                    {% if current_user.is_authenticated %}
+                        <a href="/settings" class="btn btn-primary" style="padding: 0.8rem 2rem;">Manage Connections</a>
+                    {% else %}
+                        <a href="/signup" class="btn btn-primary" style="padding: 0.8rem 2rem;">Start Paper Trading</a>
+                    {% endif %}
+                    <a href="/features" class="btn btn-secondary" style="padding: 0.8rem 2rem;">View Features</a>
+                </div>
+            </div>
+        </header>
 
-    <section class="section-pad" style="background: #060b14;">
-        <div class="container">
-            <div class="module-grid">
-                
-                <div class="module-card">
-                    <div class="module-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
-                        <i class="fas fa-microchip"></i>
-                    </div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Managed Entry Logic</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        Stop chasing price. XeanVI utilizes mathematically calculated <strong>bid/ask-pegged limit orders</strong> to guarantee you enter exactly at the model's specified price matrix.
+        <section class="section-pad" style="background: #060b14;">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Why Broker API Workflows Matter</h2>
+                    <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto; line-height: 1.6;">
+                        Broker API tools can help turn a manual trading process into a more structured workflow. XeanVI focuses on paper trading, user-defined playbook rules, supported broker connections, and automation settings that users can review and control.
                     </p>
-                    <ul class="terminal-list">
-                        <li>15-Second Entry Timeouts</li>
-                        <li>Automatic Stale Order Cancellation</li>
-                        <li>Microsecond Quote Peeking</li>
-                    </ul>
                 </div>
 
-                <div class="module-card">
-                    <div class="module-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
-                        <i class="fas fa-shield-halved"></i>
+                <div class="module-grid">
+
+                    <div class="module-card">
+                        <div class="module-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
+                            <i class="fas fa-lock" aria-hidden="true"></i>
+                        </div>
+                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">User-Controlled Broker Authorization</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                            Your brokerage account remains separate from XeanVI. Supported broker integrations are designed around authorization flows where you review permissions, connect your account, and can disconnect access when needed.
+                        </p>
+                        <ul class="terminal-list">
+                            <li>Broker account remains under your control</li>
+                            <li>Review permissions before connecting</li>
+                            <li>Disconnect supported integrations when needed</li>
+                        </ul>
                     </div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Automated Risk Gates</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        The system enforces your logic rules directly at the exchange level. Trailing boundaries and hard stops are manipulated automatically via OAuth token mapping.
-                    </p>
-                    <ul class="terminal-list">
-                        <li>Target-1 Scale-Out Subroutines</li>
-                        <li>Trailing Stop Deployment for Target-2</li>
-                        <li>Global Daily Loss Lock Protection</li>
-                    </ul>
+
+                    <div class="module-card">
+                        <div class="module-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                            <i class="fas fa-microchip" aria-hidden="true"></i>
+                        </div>
+                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Playbook-Based Order Settings</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                            XeanVI connects your <a href="/features" style="color: var(--text-main); text-decoration: underline;">automation features</a> with the rules you define in your Trading Playbook, including entry preferences, order settings, paper trading tests, and review controls.
+                        </p>
+                        <ul class="terminal-list">
+                            <li>Rule-based entry and review settings</li>
+                            <li>Paper trading before live workflow use</li>
+                            <li>Configurable automation preferences</li>
+                        </ul>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        </div>
+                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Risk and Exit Controls</h3>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                            Define stop settings, target rules, and daily review limits inside your playbook. XeanVI is designed to support structured risk workflows, but users remain responsible for reviewing settings and monitoring trading activity.
+                        </p>
+                        <ul class="terminal-list">
+                            <li>Stop and exit-rule preferences</li>
+                            <li>Target and scale-setting controls</li>
+                            <li>User responsibility for all live trading activity</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad" style="background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div class="container" style="max-width: 900px; text-align: center;">
+                <div class="badge-pill" style="margin-bottom: 1.5rem;">SUPPORTED BROKER CONNECTION</div>
+                <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">Built for Alpaca API Support</h2>
+                <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 3rem;">
+                    XeanVI is designed to support Alpaca API workflows for paper trading and broker-connected automation. Whether you are testing inside the <a href="/" style="color: var(--accent-blue);">paper trading sandbox</a> or reviewing live workflow tools through a <a href="/pricing" style="color: var(--accent-blue);">PRO plan</a>, you should verify broker permissions, settings, and risk controls before enabling any live activity.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; text-align: left; background: #0f172a; padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div>
+                        <div style="color: var(--accent-blue); font-size: 1.5rem; margin-bottom: 1rem;">1</div>
+                        <h4 style="margin-bottom: 0.5rem;">Create or Use an Alpaca Account</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Use a supported Alpaca account and review whether you are connecting paper or live trading permissions.</p>
+                    </div>
+                    <div>
+                        <div style="color: var(--success); font-size: 1.5rem; margin-bottom: 1rem;">2</div>
+                        <h4 style="margin-bottom: 0.5rem;">Connect Through XeanVI</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Open broker settings, review the requested permissions, and connect the supported API workflow from your dashboard.</p>
+                    </div>
+                    <div>
+                        <div style="color: var(--warning); font-size: 1.5rem; margin-bottom: 1rem;">3</div>
+                        <h4 style="margin-bottom: 0.5rem;">Test and Review Rules</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Start with paper trading, review market scans, validate playbook behavior, and only enable live tools when you understand the risk.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad" style="background: #060b14;">
+            <div class="container" style="max-width: 800px;">
+                <h2 style="font-size: 2rem; text-align: center; margin-bottom: 3rem;">Broker Integration FAQs</h2>
+
+                <details class="faq-details">
+                    <summary>Which brokers does XeanVI currently support?</summary>
+                    <div class="faq-content">
+                        XeanVI is currently designed around Alpaca API support for paper trading and broker-connected automation workflows. Users should confirm supported account types, permissions, and availability before relying on any live workflow.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>Can XeanVI withdraw or transfer my funds?</summary>
+                    <div class="faq-content">
+                        XeanVI is designed for trading workflow automation and broker connectivity, not fund transfers. Users should always review the exact permissions shown by the broker during authorization and disconnect access if they no longer want the integration active.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>Do I need to leave my computer running for supported API workflows?</summary>
+                    <div class="faq-content">
+                        XeanVI is designed for web-based workflow access, so users can manage settings from the dashboard rather than relying only on a local desktop session. You should still monitor account activity, broker status, and automation settings when using live tools.
+                    </div>
+                </details>
+
+                <details class="faq-details">
+                    <summary>Should I test in paper trading before live trading?</summary>
+                    <div class="faq-content">
+                        Yes. Paper trading is strongly recommended before enabling any live broker-connected workflow. It helps you review setup behavior, order settings, playbook rules, and risk controls without using real capital.
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <section class="section-pad" style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: #0f172a;">
+            <div class="container">
+                <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Start With Paper Trading Before Connecting Live Tools</h2>
+                <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem; max-width: 650px; margin-left: auto; margin-right: auto;">
+                    Use paper credentials first, refine your playbook rules, review broker permissions, and understand the risks before enabling any live trading workflow.
+                </p>
+
+                <div class="disclosure-box">
+                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px; font-size: 0.9rem;"><i class="fas fa-balance-scale" style="margin-right: 8px;" aria-hidden="true"></i> BROKER AUTHORIZATION DISCLOSURE //</strong>
+                    XeanVI provides trading workflow software, paper trading tools, market review features, and supported broker connectivity. By connecting a broker account, you may authorize XeanVI to transmit trading instructions based on settings you configure. XeanVI does not provide financial advice, investment recommendations, or guaranteed results. Trading involves risk, including possible loss of capital. Always review broker permissions and test workflows in paper trading mode before using live tools.
                 </div>
 
+                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                    {% if current_user.is_authenticated %}
+                        <a href="/settings" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Go to Broker Settings</a>
+                        <a href="/playbook" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Review Playbook</a>
+                    {% else %}
+                        <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Start Paper Trading</a>
+                        <a href="/login" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Log In</a>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-    </section>
-
-    <section class="section-pad" style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: #0f172a;">
-        <div class="container">
-            <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Initialize Your Sandbox Environment</h2>
-            <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem;">
-                Connect to the API infrastructure using paper credentials to refine your systematic edge with zero capital risk.
-            </p>
-
-            <div class="disclosure-box">
-                <strong style="color: var(--text-main); display: block; margin-bottom: 10px; font-size: 0.9rem;">REQUIRED AUTHORIZATION DISCLOSURE //</strong>
-                By allowing XeanVI to access your broker account via OAuth, you grant the system read-access to account architecture and authorization to transmit logic-based transactions at your explicit direction. The broker does not warrant or guarantee that external system logic will function as expected under extreme volatility.
-            </div>
-
-            {% if current_user.is_authenticated %}
-                <a href="/settings" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Go to Broker Settings</a>
-            {% else %}
-                <a href="/signup" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Initialize Connection</a>
-            {% endif %}
-        </div>
-    </section>
+        </section>
+    </main>
 
     {% include 'footer.html' %}
 
