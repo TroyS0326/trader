@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>XeanVI PRO | Automated Trading Execution Platform</title>
-    <meta name="description" content="Join the XeanVI PRO waitlist for automated trading execution, rule-based playbook validation, market scanning, and disciplined live trading workflows.">
+    <title>XeanVI PRO | Automated Trading Built for Discipline</title>
+    <meta name="description" content="XeanVI PRO is an automated trading command center that helps traders follow their rules, validate setups, and manage live trading workflows with discipline.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -15,99 +15,31 @@
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="XeanVI">
-    <meta property="og:title" content="XeanVI PRO | Automated Trading Execution Platform">
-    <meta property="og:description" content="Join the XeanVI PRO waitlist for automated trading execution, rule-based trade validation, market scanning, and disciplined live trading workflows.">
+    <meta property="og:title" content="XeanVI PRO | Automated Trading Built for Discipline">
+    <meta property="og:description" content="Join the XeanVI PRO waitlist for automated trading workflows, rule validation, and disciplined live trading execution.">
     <meta property="og:url" content="https://xeanvi.com/">
 
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="XeanVI PRO | Automated Trading Execution Platform">
-    <meta name="twitter:description" content="Automated trading execution, rule-based validation, and disciplined PRO workflows for serious retail traders.">
+    <meta name="twitter:title" content="XeanVI PRO | Automated Trading Built for Discipline">
+    <meta name="twitter:description" content="Automated trading workflows for traders who want rules, structure, and execution discipline.">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "Organization",
-          "@id": "https://xeanvi.com/#organization",
-          "name": "XeanVI",
-          "url": "https://xeanvi.com/",
-          "email": "support@xeanvi.com",
-          "description": "XeanVI builds automated trading execution software for rule-based retail trading workflows."
-        },
-        {
-          "@type": "WebSite",
-          "@id": "https://xeanvi.com/#website",
-          "url": "https://xeanvi.com/",
-          "name": "XeanVI",
-          "publisher": {
-            "@id": "https://xeanvi.com/#organization"
-          }
-        },
-        {
-          "@type": "WebPage",
-          "@id": "https://xeanvi.com/#webpage",
-          "url": "https://xeanvi.com/",
-          "name": "XeanVI PRO Automated Trading Execution Platform",
-          "description": "Join the XeanVI PRO waitlist for automated trading execution, rule-based playbook validation, market scanning, and disciplined live trading workflows.",
-          "isPartOf": {
-            "@id": "https://xeanvi.com/#website"
-          },
-          "about": {
-            "@id": "https://xeanvi.com/#organization"
-          }
-        },
-        {
-          "@type": "SoftwareApplication",
-          "@id": "https://xeanvi.com/#software",
-          "name": "XeanVI PRO",
-          "applicationCategory": "FinanceApplication",
-          "operatingSystem": "Web",
-          "url": "https://xeanvi.com/",
-          "description": "XeanVI PRO is an automated trading execution platform designed to help traders follow predefined rules, scan market conditions, validate setups, and manage execution workflows with discipline.",
-          "publisher": {
-            "@id": "https://xeanvi.com/#organization"
-          },
-          "offers": {
-            "@type": "Offer",
-            "url": "https://xeanvi.com/pricing.html",
-            "availability": "https://schema.org/PreOrder"
-          }
-        },
-        {
-          "@type": "FAQPage",
-          "@id": "https://xeanvi.com/#faq",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "What is XeanVI PRO?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "XeanVI PRO is an automated trading execution platform built for traders who want rule-based scanning, trade validation, and disciplined execution workflows."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Does XeanVI guarantee profits?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "No. XeanVI does not guarantee profits, returns, trade outcomes, or risk-free trading. Trading involves risk, and users remain responsible for their own trading decisions."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Is paper trading the main product?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "No. Paper trading is intended as a testing and practice mode. XeanVI PRO is positioned around live automated trading workflows for users who understand the risks of active trading."
-              }
-            }
-          ]
-        }
-      ]
+      "@type": "SoftwareApplication",
+      "name": "XeanVI PRO",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "url": "https://xeanvi.com/",
+      "description": "XeanVI PRO is an automated trading command center that helps traders follow predefined rules, validate setups, and manage live trading workflows with discipline.",
+      "offers": {
+        "@type": "Offer",
+        "url": "https://xeanvi.com/",
+        "availability": "https://schema.org/PreOrder"
+      }
     }
     </script>
 
@@ -120,7 +52,6 @@
             --text-muted: #94a3b8;
             --accent: #3b82f6;
             --gold: #fbbf24;
-            --green: #22c55e;
         }
 
         body {
@@ -131,47 +62,61 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        .coming-soon-badge {
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 60px 0;
+        }
+
+        .badge-soft {
             background-color: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.35);
             font-weight: 700;
-            letter-spacing: 2px;
-            padding: 8px 20px;
+            letter-spacing: 1.5px;
+            padding: 8px 18px;
             border-radius: 50px;
             display: inline-block;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
         }
 
         .display-title {
             font-weight: 800;
-            font-size: 3.5rem;
-            letter-spacing: -1px;
+            font-size: 3.4rem;
+            letter-spacing: -1.5px;
             color: #ffffff;
+            line-height: 1.1;
         }
 
-        .text-muted { color: var(--text-muted) !important; }
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        .trust-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 28px 0;
+        }
+
+        .trust-list li {
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        .trust-list li::before {
+            content: "✓";
+            color: #60a5fa;
+            font-weight: 800;
+            margin-right: 10px;
+        }
 
         .glass-card {
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .feature-box {
-            background-color: var(--bg-base);
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent);
-            padding: 24px;
-            border-radius: 8px;
-            height: 100%;
-        }
-
-        .feature-box h3,
-        .feature-box h5 {
-            font-size: 1.1rem;
+            border-radius: 16px;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.35);
         }
 
         .form-control-custom {
@@ -179,7 +124,7 @@
             border: 1px solid var(--border-color);
             color: #ffffff;
             padding: 16px;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
         }
 
         .form-control-custom:focus {
@@ -192,8 +137,8 @@
         .btn-custom {
             background-color: var(--accent);
             color: #ffffff;
-            font-weight: 700;
-            letter-spacing: 1px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
             padding: 16px 32px;
             border: none;
             transition: 0.2s ease;
@@ -204,307 +149,133 @@
             color: #ffffff;
         }
 
-        .terminal {
-            background-color: #020617;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-        }
-
-        .terminal-header {
-            background-color: var(--bg-card);
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            gap: 8px;
-        }
-
-        .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .dot.r { background: #ef4444; }
-        .dot.y { background: #eab308; }
-        .dot.g { background: #22c55e; }
-
         .promo-text {
             color: var(--gold);
-            font-weight: 600;
+            font-weight: 700;
             background: rgba(251, 191, 36, 0.1);
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             border: 1px solid rgba(251, 191, 36, 0.2);
-            display: inline-block;
         }
 
         .risk-note {
-            border: 1px solid rgba(251, 191, 36, 0.25);
-            background: rgba(251, 191, 36, 0.08);
-            color: #fde68a;
-            border-radius: 8px;
-            padding: 16px;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.6;
         }
 
-        .section-title {
-            font-weight: 800;
-            color: #ffffff;
-            letter-spacing: -0.5px;
-        }
-
-        .internal-link {
+        a {
             color: #bfdbfe;
-            text-decoration: none;
-            font-weight: 600;
         }
 
-        .internal-link:hover {
+        a:hover {
             color: #ffffff;
-            text-decoration: underline;
         }
 
         @media (max-width: 768px) {
-            .display-title { font-size: 2.5rem; }
+            .page-wrap {
+                padding: 36px 0;
+                align-items: flex-start;
+            }
+
+            .display-title {
+                font-size: 2.45rem;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <main class="container py-5 mt-4">
-        <div class="row align-items-center g-5">
+    <main class="page-wrap">
+        <div class="container">
+            <div class="row align-items-center g-5">
 
-            <section class="col-lg-6 pe-lg-5" aria-labelledby="main-heading">
-                <div class="coming-soon-badge mb-4">XeanVI PRO Coming Soon</div>
+                <section class="col-lg-6">
+                    <div class="badge-soft mb-4">XeanVI PRO Coming Soon</div>
 
-                <h1 id="main-heading" class="display-title mb-4">Automated Trading Execution Built for Discipline.</h1>
+                    <h1 class="display-title mb-4">
+                        Automated Trading Built for Traders Who Follow Rules.
+                    </h1>
 
-                <p class="lead text-muted mb-4">
-                    XeanVI PRO is a rule-based automated trading platform for active traders who want structured market scanning,
-                    playbook validation, and managed execution workflows without emotional decision-making taking over the trade.
-                </p>
+                    <p class="lead text-muted mb-4">
+                        XeanVI is a live trading automation platform that helps traders scan the market, validate setups,
+                        and manage execution based on predefined rules.
+                    </p>
 
-                <p class="text-muted mb-4">
-                    Built for traders who already understand risk, XeanVI helps turn a written trading plan into a repeatable
-                    execution process. Define your rules, monitor qualifying conditions, validate the setup, and prepare execution
-                    workflows through one focused trading command center.
-                </p>
+                    <p class="text-muted mb-4">
+                        It is built for traders who want more discipline, less hesitation, and a cleaner way to turn their
+                        trading playbook into an automated workflow.
+                    </p>
 
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <a href="pricing.html" class="internal-link">View XeanVI PRO pricing</a>
-                    <a href="features.html" class="internal-link">Explore automation features</a>
-                    <a href="playbook.html" class="internal-link">Read the trading playbook</a>
-                </div>
+                    <ul class="trust-list">
+                        <li>Scans for trading conditions that match your rules</li>
+                        <li>Checks setups before execution workflows are prepared</li>
+                        <li>Helps reduce emotional, rushed, or off-plan trading decisions</li>
+                        <li>Built around XeanVI PRO monthly access for serious traders</li>
+                    </ul>
 
-                <div class="risk-note mb-4">
-                    Trading involves risk. XeanVI does not guarantee profits, returns, account growth, trade outcomes, or risk-free live trading.
-                    Automation can support discipline, but it does not remove market risk.
-                </div>
+                    <p class="risk-note mb-0">
+                        XeanVI does not guarantee profits, returns, or risk-free trading. Trading involves risk, and users
+                        are responsible for their own trading decisions.
+                    </p>
+                </section>
 
-                <div class="glass-card p-4 p-md-5 mt-5">
-                    <h2 class="fw-bold mb-3 h4">Join the XeanVI PRO Waitlist</h2>
+                <section class="col-lg-5 offset-lg-1">
+                    <div class="glass-card p-4 p-md-5">
+                        <h2 class="fw-bold mb-3 h3">Join the XeanVI PRO Waitlist</h2>
 
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                      {% if messages %}
-                        {% for category, message in messages %}
-                          {% if category == 'error' %}
-                            <div class="alert alert-dismissible fade show p-3 mb-4 rounded" role="alert" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;">
-                              {{ message }}
-                              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                          {% else %}
-                            <div class="alert alert-dismissible fade show p-3 mb-4 rounded" role="alert" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac;">
-                              {{ message }}
-                              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
+                        <p class="text-muted mb-4">
+                            Get early access before public launch and be first in line when XeanVI PRO opens.
+                        </p>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                          {% if messages %}
+                            {% for category, message in messages %}
+                              {% if category == 'error' %}
+                                <div class="alert alert-dismissible fade show p-3 mb-4 rounded" role="alert" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;">
+                                  {{ message }}
+                                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                              {% else %}
+                                <div class="alert alert-dismissible fade show p-3 mb-4 rounded" role="alert" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac;">
+                                  {{ message }}
+                                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                              {% endif %}
+                            {% endfor %}
                           {% endif %}
-                        {% endfor %}
-                      {% endif %}
-                    {% endwith %}
+                        {% endwith %}
 
-                    <p class="promo-text mb-4">
-                        LIMITED PRO ALLOCATION: The first 25 waitlist members receive 3 months of XeanVI PRO access free upon launch.
-                    </p>
+                        <p class="promo-text mb-4">
+                            First 25 waitlist members receive 3 months of XeanVI PRO access free at launch.
+                        </p>
 
-                    <form action="{{ url_for('join_waitlist') }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="mb-3">
-                            <label for="waitlist-email" class="visually-hidden">Email address</label>
-                            <input id="waitlist-email" type="email" name="email" class="form-control form-control-custom rounded" placeholder="Enter your email address" required>
-                        </div>
-                        <button type="submit" class="btn btn-custom w-100 rounded">JOIN THE PRO WAITLIST</button>
-                    </form>
+                        <form action="{{ url_for('join_waitlist') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <p class="mt-3 mb-0 small text-muted">
-                        Already have access? <a href="login.html" class="text-white">Log in here</a>.
-                        Questions? Contact <a href="mailto:support@xeanvi.com" class="text-white">support@xeanvi.com</a>
-                    </p>
-                </div>
-            </section>
+                            <div class="mb-3">
+                                <label for="email" class="visually-hidden">Email address</label>
+                                <input id="email" type="email" name="email" class="form-control form-control-custom rounded" placeholder="Enter your email address" required>
+                            </div>
 
-            <section class="col-lg-6" aria-label="XeanVI trading automation preview">
-                <div class="terminal mb-5 shadow-lg" aria-label="XeanVI execution workflow preview">
-                    <div class="terminal-header">
-                        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
-                    </div>
-                    <div class="p-4 text-muted">
-                        <div class="mb-2"><span class="text-white">SYSTEM:</span> ARMING PRO EXECUTION WORKFLOW... <span class="text-success">READY</span></div>
-                        <div class="mb-2"><span class="text-white">SCAN:</span> RVOL > 1.5 | MOMENTUM WINDOW ACTIVE</div>
-                        <div class="mb-4"><span class="text-white">VALIDATE:</span> PLAYBOOK CONDITIONS CONFIRMED</div>
+                            <button type="submit" class="btn btn-custom w-100 rounded">
+                                JOIN THE WAITLIST
+                            </button>
+                        </form>
 
-                        <div class="p-3" style="background-color: rgba(59,130,246,0.1); border-left: 2px solid var(--accent);">
-                            <div class="text-white">> PREPARING RULE-BASED ENTRY WORKFLOW</div>
-                            <div>> ATTACHING MANAGED RISK PARAMETERS</div>
-                            <div>> TARGET LOGIC: SCALE PLAN LOADED</div>
-                            <div>> EXIT LOGIC: STOP RULES ACTIVE</div>
-                        </div>
-                    </div>
-                </div>
+                        <p class="mt-3 mb-0 small text-muted">
+                            No spam. No hype. Just early access updates.
+                        </p>
 
-                <div class="d-flex flex-column gap-3">
-                    <div class="feature-box">
-                        <h2 class="fw-bold text-white mb-2 h5">1. Automated Market Screening</h2>
-                        <p class="text-muted small mb-0">
-                            XeanVI scans for rule-based trading conditions such as relative volume, volatility expansion,
-                            momentum behavior, and catalyst-style setups so traders can focus on qualified opportunities instead of noise.
+                        <p class="mt-2 mb-0 small text-muted">
+                            Questions? Contact <a href="mailto:support@xeanvi.com">support@xeanvi.com</a>
                         </p>
                     </div>
+                </section>
 
-                    <div class="feature-box">
-                        <h2 class="fw-bold text-white mb-2 h5">2. Playbook Rule Validation</h2>
-                        <p class="text-muted small mb-0">
-                            Before a trade workflow is prepared, XeanVI checks whether the setup matches predefined playbook logic,
-                            helping users avoid impulse entries that do not fit their own strategy.
-                        </p>
-                    </div>
-
-                    <div class="feature-box">
-                        <h2 class="fw-bold text-white mb-2 h5">3. Managed PRO Execution Workflows</h2>
-                        <p class="text-muted small mb-0">
-                            XeanVI PRO is built around structured execution workflows, including entry preparation, bracket-style risk planning,
-                            scale-out logic, stop rules, and trade management discipline.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
+            </div>
         </div>
-
-        <section class="row mt-5 pt-5 g-4" aria-labelledby="why-xeanvi">
-            <div class="col-12">
-                <h2 id="why-xeanvi" class="section-title mb-3">Why Traders Join XeanVI PRO</h2>
-                <p class="text-muted">
-                    Most trading mistakes do not come from a lack of information. They come from hesitation, overtrading, emotional entries,
-                    late exits, and abandoning a plan under pressure. XeanVI is designed to help traders bring more structure to the process by
-                    combining automated scanning, setup validation, and execution discipline into one focused workflow.
-                </p>
-            </div>
-
-            <div class="col-md-4">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Built for Active Traders</h3>
-                    <p class="text-muted small mb-0">
-                        XeanVI is designed for traders who want a serious command center for rule-based day trading workflows, not a generic signal feed.
-                    </p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">PRO-First Positioning</h3>
-                    <p class="text-muted small mb-0">
-                        The platform is centered around monthly XeanVI PRO access, with paper trading used as a testing mode before live workflow use.
-                    </p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Rules Over Emotion</h3>
-                    <p class="text-muted small mb-0">
-                        XeanVI helps traders follow predefined rules, validate setups, and manage execution logic without turning every trade into a manual decision.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section class="row mt-5 pt-4 g-4" aria-labelledby="how-it-works">
-            <div class="col-12">
-                <h2 id="how-it-works" class="section-title mb-3">How XeanVI PRO Works</h2>
-            </div>
-
-            <div class="col-md-3">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Scan</h3>
-                    <p class="text-muted small mb-0">Monitor market conditions for setups that match predefined trading criteria.</p>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Validate</h3>
-                    <p class="text-muted small mb-0">Check whether the setup fits the trader’s playbook before an execution workflow is prepared.</p>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Execute</h3>
-                    <p class="text-muted small mb-0">Use structured execution logic for entries, exits, risk parameters, and trade management.</p>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="feature-box">
-                    <h3 class="fw-bold text-white mb-2">Review</h3>
-                    <p class="text-muted small mb-0">Analyze workflow behavior and refine trading rules over time.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="row mt-5 pt-4" aria-labelledby="faq">
-            <div class="col-lg-8">
-                <h2 id="faq" class="section-title mb-4">XeanVI PRO FAQ</h2>
-
-                <div class="mb-4">
-                    <h3 class="h5 fw-bold text-white">Is XeanVI a trading signal service?</h3>
-                    <p class="text-muted">
-                        XeanVI is not positioned as a simple signal feed. It is designed as an automated trading execution and workflow platform
-                        for traders who want to define, validate, and follow their own trading rules.
-                    </p>
-                </div>
-
-                <div class="mb-4">
-                    <h3 class="h5 fw-bold text-white">Does XeanVI guarantee profitable trades?</h3>
-                    <p class="text-muted">
-                        No. XeanVI does not guarantee profits, account growth, returns, or any specific trading outcome. Trading involves substantial risk,
-                        and users are responsible for their own trading decisions.
-                    </p>
-                </div>
-
-                <div class="mb-4">
-                    <h3 class="h5 fw-bold text-white">Is paper trading the main product?</h3>
-                    <p class="text-muted">
-                        No. Paper trading should be treated as a testing mode for validating rules and workflows. The core product is XeanVI PRO,
-                        a monthly platform for automated trading execution workflows.
-                    </p>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="glass-card p-4">
-                    <h2 class="h4 fw-bold mb-3">Get Early PRO Access</h2>
-                    <p class="text-muted">
-                        Join the waitlist before public launch and be first in line for XeanVI PRO access.
-                    </p>
-                    <a href="#waitlist-email" class="btn btn-custom w-100 rounded">JOIN THE WAITLIST</a>
-                    <div class="mt-3 small">
-                        <a href="features.html" class="internal-link d-block mb-2">See platform features</a>
-                        <a href="pricing.html" class="internal-link d-block mb-2">View pricing</a>
-                        <a href="broker-integration.html" class="internal-link d-block">Learn about broker connection workflows</a>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
 
     {% include 'footer.html' %}
