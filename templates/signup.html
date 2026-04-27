@@ -3,7 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Establish Credentials | XeanVI Terminal</title>
+    
+    <title>Sign Up for XeanVI | Systematic Trading Automation</title>
+    <meta name="description" content="Create your free XeanVI account to automate your day trading strategy. Start in our paper trading sandbox, define your playbook, and execute systematically.">
+
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/signup">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://xeanvi.com/signup">
+    <meta property="og:title" content="Create Your XeanVI Trading Account">
+    <meta property="og:description" content="Automate your edge. Build your rules in our risk-free sandbox before deploying live API execution.">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/signup",
+          "url": "https://xeanvi.com/signup",
+          "name": "Sign Up for XeanVI | Systematic Trading Automation",
+          "description": "Create your free XeanVI account to automate your day trading strategy. Start in our paper trading sandbox, define your playbook, and execute systematically.",
+          "isPartOf": {
+            "@id": "https://xeanvi.com/#website"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://xeanvi.com/#organization",
+          "name": "XeanVI",
+          "url": "https://xeanvi.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xeanvi.com/static/seo-banner.jpg"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web"
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -122,14 +169,26 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
             color: var(--text-muted);
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 12px;
+            line-height: 1.5;
         }
         .trust-list i {
             color: var(--accent-blue);
-            margin-top: 3px;
+            margin-top: 4px;
+            font-size: 1rem;
+        }
+        
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1.5rem;
         }
 
         @media (max-width: 850px) {
@@ -143,46 +202,47 @@
 
     {% include 'nav.html' %}
 
-    <div class="auth-wrapper">
-        <div class="auth-terminal-wide">
+    <main class="auth-wrapper">
+        <section class="auth-terminal-wide">
             
             <div class="auth-info-side">
                 <div class="sys-status">SYS_REGISTRATION_ACTIVE</div>
-                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Engine Access</h2>
-                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Establish your terminal credentials to deploy quantitative execution models.</p>
+                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Initialize Your Edge.</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">Create your XeanVI account to deploy quantitative execution models. Remove the emotional drag and automate your day trading strategy.</p>
                 
                 <ul class="trust-list">
                     <li>
-                        <i class="fas fa-check-circle"></i>
+                        <i class="fas fa-shield-alt"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">End-to-End Encrypted</strong>
-                            Data transmission strictly secured via systemd VPS architecture.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Risk-Free Sandbox Environment</strong>
+                            Test strategies in our simulated terminal. No credit card required to build your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>.
                         </div>
                     </li>
                     <li>
-                        <i class="fas fa-check-circle"></i>
+                        <i class="fas fa-link"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Broker Independence</strong>
-                            OAuth integrated. Your exchange credentials remain fully isolated.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Secure Broker Independence</strong>
+                            When ready for live routing, connect via secure <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">OAuth Broker Integration</a>. We never have access to your personal funds.
                         </div>
                     </li>
                     <li>
-                        <i class="fas fa-check-circle"></i>
+                        <i class="fas fa-microchip"></i>
                         <div>
-                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Multi-Tier Execution</strong>
-                            Seamlessly toggle between simulated paper trading and live capital routing.
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Advanced Server Architecture</strong>
+                            Leverage 24/7 VPS persistence and <a href="/features" style="color: var(--accent-blue); text-decoration: none;">AI Sentiment Analysis</a> to execute purely on data.
                         </div>
                     </li>
                 </ul>
             </div>
 
             <div class="auth-form-side">
-                <h1 style="font-size: 1.4rem; margin-bottom: 1.5rem;">Establish Credentials</h1>
+                <h1 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Establish Credentials</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Sign up for a free paper-trading account today. You can upgrade to our <a href="/pricing" style="color: var(--accent-blue);">Live Execution Pro Plans</a> at any time from your dashboard.</p>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="flash-msg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-align: center;">
+                            <div class="flash-msg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-align: center;" role="alert">
                                 <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>{{ message }}
                             </div>
                         {% endfor %}
@@ -193,18 +253,18 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="input-group">
-                        <label for="full_name">Operator Alias (Name)</label>
-                        <input type="text" id="full_name" name="full_name" class="auth-input" required placeholder="John Doe">
+                        <label for="full_name">Operator Alias (Full Name)</label>
+                        <input type="text" id="full_name" name="full_name" class="auth-input" required placeholder="John Doe" autocomplete="name">
                     </div>
 
                     <div class="input-group">
-                        <label for="email">User Identifier (Email)</label>
-                        <input type="email" id="email" name="email" class="auth-input" required placeholder="operator@domain.com">
+                        <label for="email">User Identifier (Email Address)</label>
+                        <input type="email" id="email" name="email" class="auth-input" required placeholder="operator@domain.com" autocomplete="email">
                     </div>
                     
                     <div class="input-group">
-                        <label for="password">Decryption Key (Password)</label>
-                        <input type="password" id="password" name="password" class="auth-input" required placeholder="••••••••••••">
+                        <label for="password">Decryption Key (Secure Password)</label>
+                        <input type="password" id="password" name="password" class="auth-input" required placeholder="••••••••••••" autocomplete="new-password">
                     </div>
 
                     <button type="submit" class="btn-auth">
@@ -212,13 +272,18 @@
                     </button>
                 </form>
 
-                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
-                    Already established? <a href="/login" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">Authenticate Here</a>
+                <div class="security-badge">
+                    <i class="fas fa-lock" style="color: var(--success);"></i> 
+                    <span>By signing up, you agree to our <a href="/terms" style="color: var(--text-muted); text-decoration: underline;">Terms</a> and <a href="/privacy" style="color: var(--text-muted); text-decoration: underline;">Privacy Policy</a>.</span>
+                </div>
+
+                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    Already established? <a href="/login" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">Authenticate Here (Login)</a>
                 </div>
             </div>
 
-        </div>
-    </div>
+        </section>
+    </main>
 
     {% include 'footer.html' %}
 
