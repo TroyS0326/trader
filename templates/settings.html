@@ -148,38 +148,25 @@
 
         <div class="config-block">
             <div class="config-header">
-                <div class="config-title"><i class="fas fa-link" style="color: var(--accent-blue);"></i> OAuth Broker Gateway</div>
-                <span class="sys-tag">API_ROUTING</span>
+                <div class="config-title"><i class="fas fa-link"></i> Broker Connectivity</div>
             </div>
 
-            {% if current_user.alpaca_access_token %}
-                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <div style="color: var(--success); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px;">
-                            <i class="fas fa-shield-check" style="margin-right: 6px;"></i> TOKEN_VERIFIED
-                        </div>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Encrypted connection to brokerage established.</span>
+            <div class="logic-row">
+                <div class="logic-info">
+                    <div class="logic-label">STATUS:
+                        {% if current_user.alpaca_access_token %}
+                            <span style="color: var(--accent-blue);">CONNECTED</span>
+                        {% else %}
+                            <span style="color: var(--warning);">NOT_LINKED</span>
+                        {% endif %}
                     </div>
-                    <a href="/alpaca/logout" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.3); color: var(--danger); font-size: 0.85rem;">Revoke Access</a>
+                    <div class="logic-desc">To switch to LIVE trading, you must authorize your Live Brokerage profile.</div>
                 </div>
-            {% else %}
-                <div style="background: #020617; border: 1px dashed rgba(255,255,255,0.1); padding: 2rem; border-radius: 8px; text-align: center;">
-                    <i class="fas fa-lock" style="color: var(--text-muted); font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Gateway Inactive</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                        Establish a secure OAuth connection to enable live data processing and execution orchestration.
-                    </p>
 
-                    <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); text-align: left; margin-bottom: 1.5rem; line-height: 1.6;">
-                        <strong style="color: var(--text-main); display: block; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Authorize XeanVI</strong>
-                        By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue); text-decoration: underline;">learn more about XeanVI</a>.
-                    </div>
-
-                    <a href="/alpaca/login" class="btn btn-primary" style="padding: 0.85rem 2rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">
-                        <i class="fas fa-key" style="margin-right: 8px;"></i> Authorize Broker API
-                    </a>
-                </div>
-            {% endif %}
+                <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+                    <i class="fas fa-sync-alt"></i> Re-Link Broker for LIVE
+                </a>
+            </div>
         </div>
 
         <form action="/settings" method="POST">
