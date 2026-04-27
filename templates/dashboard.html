@@ -228,10 +228,11 @@
             </div>
 
             <div class="header-actions">
+                {% if current_user.subscription_status != 'pro' %}
                 <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
                     <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
                 </a>
-
+                {% endif %}
             </div>
         </div>
     </div>
