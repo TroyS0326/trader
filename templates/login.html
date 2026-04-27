@@ -3,7 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Secure Auth | XeanVI Terminal</title>
+    
+    <title>Login to XeanVI | Access Your Trading Command Center</title>
+    <meta name="description" content="Log in to your XeanVI account to access your automated trading dashboard. Run AI market scans, review your playbook, and manage your broker connection.">
+
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/login">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://xeanvi.com/login">
+    <meta property="og:title" content="Login to XeanVI | Access Your Trading Command Center">
+    <meta property="og:description" content="Authenticate your session to deploy quantitative models, review your playbook, and manage live API routing.">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": "https://xeanvi.com/login",
+          "url": "https://xeanvi.com/login",
+          "name": "Login to XeanVI | Access Your Trading Command Center",
+          "description": "Log in to your XeanVI account to access your automated trading dashboard. Run AI market scans, review your playbook, and manage your broker connection.",
+          "isPartOf": {
+            "@id": "https://xeanvi.com/#website"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://xeanvi.com/#organization",
+          "name": "XeanVI",
+          "url": "https://xeanvi.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://xeanvi.com/static/seo-banner.jpg"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://xeanvi.com/#software",
+          "name": "XeanVI",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web"
+        }
+      ]
+    }
+    </script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -120,6 +167,8 @@
             margin-top: 1.5rem;
             font-size: 0.85rem;
             color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem;
         }
         .auth-footer-links a {
             color: var(--accent-blue);
@@ -140,24 +189,38 @@
             font-size: 0.8rem;
             text-align: center;
         }
+        
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1.25rem;
+        }
     </style>
 </head>
 <body>
 
     {% include 'nav.html' %}
 
-    <div class="auth-wrapper">
-        <div class="auth-terminal">
+    <main class="auth-wrapper">
+        <section class="auth-terminal">
             <div class="auth-header">
                 <div class="sys-status">AUTH_SERVER_ONLINE</div>
                 <h1 style="font-size: 1.5rem; margin: 0; letter-spacing: -0.5px;">Initialize Session</h1>
             </div>
             
             <div class="auth-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; text-align: center;">
+                    Welcome back. Authenticate to access your systematic execution dashboard, adjust your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none;">Trading Playbook</a>, and manage your secure <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">broker connection</a>.
+                </p>
+
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="flash-msg {{ category }}">
+                            <div class="flash-msg {{ category }}" role="alert">
                                 <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>{{ message }}
                             </div>
                         {% endfor %}
@@ -184,12 +247,21 @@
                     </button>
                 </form>
 
+                <div class="security-badge">
+                    <i class="fas fa-lock" style="color: var(--success);"></i> 
+                    <span>256-bit Encrypted Session</span>
+                </div>
+
                 <div class="auth-footer-links">
-                    No clearance? <a href="/signup">Establish Credentials</a>
+                    No clearance? <a href="/signup">Establish Credentials (Sign Up)</a>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">
+                        Explore <a href="/features" style="color: var(--text-muted); text-decoration: underline;">Features</a> | 
+                        View <a href="/pricing" style="color: var(--text-muted); text-decoration: underline;">Pro Plans</a>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     {% include 'footer.html' %}
 
