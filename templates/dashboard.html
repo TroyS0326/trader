@@ -96,6 +96,29 @@
         
         /* Tactical Sub-Tags */
         .sys-tag { font-family: var(--font-mono); font-size: 0.65rem; background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px; color: var(--accent-blue); }
+        .market-health-badge {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .market-health-badge.aligned {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.45);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+        .market-health-badge.caution {
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.45);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+        }
 
         /* --- Control Panel & Trigger --- */
         .control-panel { display: flex; flex-direction: column; background: linear-gradient(180deg, var(--bg-card) 0%, #060b14 100%); }
@@ -315,7 +338,7 @@
                 </a>
                 {% endif %}
 
-            <div class="mode-selector" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+            <div class="mode-selector" style="display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap: wrap;">
                 <span class="mode-label" style="font-family: var(--font-mono); font-size:0.7rem; color:var(--text-muted);">EXECUTION_ENVIRONMENT:</span>
                 <div class="toggle-switch">
                     <input type="checkbox" id="mode-toggle" 
@@ -325,6 +348,14 @@
                 </div>
                 <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}">
                     {{ current_user.trading_mode|upper }}
+                </span>
+                {% set caution_regime = market_regime_status in ['high_volatility', 'chop'] %}
+                <span class="market-health-badge {% if caution_regime %}caution{% else %}aligned{% endif %}">
+                    {% if caution_regime %}
+                        MARKET: HIGH VOLATILITY (RISK HALVED)
+                    {% else %}
+                        MARKET: ALIGNED
+                    {% endif %}
                 </span>
             </div>
             </div>
