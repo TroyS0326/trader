@@ -764,6 +764,35 @@
             };
         }
 
+        function renderThesisPanel(thesis, keyReasons, riskText) {
+            const thesisPanel = document.getElementById('ai-thesis-panel');
+            const thesisText = document.getElementById('ai-thesis-text');
+            const reasonsList = document.getElementById('ai-thesis-reasons');
+            const riskNote = document.getElementById('ai-thesis-risk');
+            if (!thesisPanel || !thesisText || !reasonsList || !riskNote) return;
+
+            if (!thesis) {
+                thesisText.innerText = '';
+                reasonsList.innerHTML = '';
+                riskNote.innerText = '';
+                thesisPanel.style.display = 'none';
+                return;
+            }
+
+            thesisText.innerText = thesis;
+            reasonsList.innerHTML = '';
+            if (Array.isArray(keyReasons)) {
+                keyReasons.forEach(reason => {
+                    const li = document.createElement('li');
+                    li.innerText = reason;
+                    reasonsList.appendChild(li);
+                });
+            }
+
+            riskNote.innerText = riskText || '';
+            thesisPanel.style.display = 'block';
+        }
+
         // MAIN EXECUTION
         async function startScanner() {
             const btn = document.getElementById('scanButton');
@@ -777,6 +806,7 @@
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
+            renderThesisPanel(null, [], '');
 
             addLog("> Initiating quantitative data model...", "var(--warning)");
             addLog("> Downloading and filtering live exchange tape...", "#a1a1aa");
@@ -852,31 +882,7 @@
                             document.getElementById('active-position-card').style.display = 'block';
                             updateLivePL(Number(best.current_price));
 
-                            const thesisPanel = document.getElementById('ai-thesis-panel');
-                            const thesisText = document.getElementById('ai-thesis-text');
-                            const reasonsList = document.getElementById('ai-thesis-reasons');
-                            const riskNote = document.getElementById('ai-thesis-risk');
-
-                            if (execData.thesis) {
-                                thesisText.innerText = execData.thesis;
-                                reasonsList.innerHTML = '';
-
-                                if (Array.isArray(execData.key_reasons)) {
-                                    execData.key_reasons.forEach(reason => {
-                                        const li = document.createElement('li');
-                                        li.innerText = reason;
-                                        reasonsList.appendChild(li);
-                                    });
-                                }
-
-                                riskNote.innerText = execData.risk_note || '';
-                                thesisPanel.style.display = 'block';
-                            } else {
-                                thesisText.innerText = '';
-                                reasonsList.innerHTML = '';
-                                riskNote.innerText = '';
-                                thesisPanel.style.display = 'none';
-                            }
+                            renderThesisPanel(execData.thesis, execData.key_reasons, execData.risk_note);
 
                             const pill = document.getElementById('decisionPill');
                             pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
