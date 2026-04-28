@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func
 
 import config
-from models import db, Trade, Scan
+from models import db, Trade, Scan, MarketRegime
 
 
 def utc_now() -> datetime:
@@ -160,3 +160,8 @@ def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> 
 
     trade = query.order_by(Trade.id.desc()).first()
     return _model_to_dict(trade) if trade else None
+
+
+def get_current_market_regime() -> Optional[Dict[str, Any]]:
+    regime = MarketRegime.query.order_by(MarketRegime.updated_at.desc(), MarketRegime.id.desc()).first()
+    return _model_to_dict(regime) if regime else None
