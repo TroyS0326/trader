@@ -904,6 +904,8 @@ def api_execute():
             user=current_user,
         )
 
+        risk_per_share = round(entry_price - stop_price, 2)
+
         # --- NEW: Generate AI Explainability Thesis ---
         try:
             setup_context = {
@@ -913,17 +915,12 @@ def api_execute():
                 'setup_grade': setup_grade,
                 'catalyst_score': catalyst_score,
                 'rvol': (data.get('details') or {}).get('rvol', 'N/A'),
-                'range_break': opening_confirmed,
                 'entry_price': entry_price,
                 'stop_price': stop_price,
                 'target_1': target_1,
                 'target_2': target_2,
-                'current_price': current_price,
-                'buy_upper': buy_upper,
                 'qty': qty,
-                'risk_per_share': round(entry_price - stop_price, 2),
-                'reward_risk_ratio': round((target_1 - entry_price) / (entry_price - stop_price), 2) if entry_price > stop_price else 0,
-                'timestamp_et': now_et().strftime('%Y-%m-%d %H:%M:%S')
+                'risk_per_share': risk_per_share,
             }
             thesis_result = generate_trade_thesis(setup_context)
         except Exception as e:
@@ -951,7 +948,7 @@ def api_execute():
             'target_1': target_1,
             'target_2': target_2,
             'qty': qty,
-            'risk_per_share': float(data.get('risk_per_share', 0)),
+            'risk_per_share': risk_per_share,
             'reward_to_target_1': round(target_1 - entry_price, 2),
             'reward_to_target_2': round(target_2 - entry_price, 2),
             'rr_ratio_1': data.get('rr_ratio_1'),
