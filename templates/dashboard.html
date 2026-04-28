@@ -465,6 +465,17 @@
                 </div>
             </div>
 
+            <div id="ai-thesis-panel" class="data-card" style="display: none; margin-top: 15px; border-left: 3px solid var(--accent-blue); background: rgba(0, 0, 0, 0.2);">
+                <div class="card-body">
+                    <h6 style="color: var(--accent-blue); text-transform: uppercase; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;">
+                        Why XeanVI Flagged This Setup
+                    </h6>
+                    <p id="ai-thesis-text" style="font-size: 0.9rem; line-height: 1.4; margin-bottom: 12px;"></p>
+                    <ul id="ai-thesis-reasons" style="font-size: 0.85rem; padding-left: 20px; margin-bottom: 12px; color: var(--text-secondary);"></ul>
+                    <div id="ai-thesis-risk" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;"></div>
+                </div>
+            </div>
+
             <div class="data-card terminal-panel full-width" id="terminal-panel">
                 <div class="card-header" style="border-bottom-color: rgba(255,255,255,0.05);">
                     <div><i class="fas fa-terminal" style="margin-right: 8px; color: var(--text-muted);"></i>Execution Logs</div>
@@ -798,6 +809,25 @@
                             document.getElementById('pos-target').textContent = money(activeTrade.target);
                             document.getElementById('active-position-card').style.display = 'block';
                             updateLivePL(Number(best.current_price));
+
+                            if (execData.thesis) {
+                                document.getElementById('ai-thesis-text').innerText = execData.thesis;
+
+                                const reasonsList = document.getElementById('ai-thesis-reasons');
+                                reasonsList.innerHTML = '';
+                                if (execData.key_reasons && Array.isArray(execData.key_reasons)) {
+                                    execData.key_reasons.forEach(reason => {
+                                        const li = document.createElement('li');
+                                        li.innerText = reason;
+                                        reasonsList.appendChild(li);
+                                    });
+                                }
+
+                                document.getElementById('ai-thesis-risk').innerText = execData.risk_note || '';
+                                document.getElementById('ai-thesis-panel').style.display = 'block';
+                            } else {
+                                document.getElementById('ai-thesis-panel').style.display = 'none';
+                            }
 
                             const pill = document.getElementById('decisionPill');
                             pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> LIVE_POSITION';
