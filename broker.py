@@ -129,6 +129,56 @@ def get_latest_quote(symbol: str, user: Any | None = None) -> Dict[str, Any]:
     return (data.get('quotes') or {}).get(symbol, {})
 
 
+def analyze_order_book_imbalance(symbol: str, api_client: Any) -> Dict[str, Any]:
+    symbol = symbol.upper()
+    order_book = api_client.get_latest_orderbook(symbol)
+
+    # Alpaca clients may return either model objects or plain dicts.
+    bids = getattr(order_book, 'bids', None)
+    asks = getattr(order_book, 'asks', None)
+    if bids is None or asks is None:
+        bids = (order_book or {}).get('bids', [])
+        asks = (order_book or {}).get('asks', [])
+
+    def _price_size(level: Any) -> tuple[float, float]:
+        if isinstance(level, dict):
+            price = float(level.get('p') or level.get('price') or 0)
+            size = float(level.get('s') or level.get('size') or 0)
+            return price, size
+        price = float(getattr(level, 'p', getattr(level, 'price', 0)) or 0)
+        size = float(getattr(level, 's', getattr(level, 'size', 0)) or 0)
+        return price, size
+
+    top_bid_volume = sum(_price_size(level)[1] for level in list(bids)[:10])
+    top_ask_volume = sum(_price_size(level)[1] for level in list(asks)[:10])
+
+    if top_ask_volume <= 0 and top_bid_volume <= 0:
+        imbalance_ratio = 1.0
+    elif top_ask_volume <= 0:
+        imbalance_ratio = float('inf')
+    else:
+        imbalance_ratio = top_bid_volume / top_ask_volume
+
+    dominant_side = 'buy' if top_bid_volume >= top_ask_volume else 'sell'
+
+    all_levels = [_price_size(level) for level in list(bids) + list(asks)]
+    total_book_volume = sum(size for _, size in all_levels)
+    institutional_wall_price = None
+
+    if total_book_volume > 0:
+        wall_threshold = total_book_volume * 0.30
+        for price, size in all_levels:
+            if size > wall_threshold:
+                institutional_wall_price = price
+                break
+
+    return {
+        'imbalance_ratio': imbalance_ratio,
+        'dominant_side': dominant_side,
+        'institutional_wall_price': institutional_wall_price,
+    }
+
+
 def submit_order(payload: Dict[str, Any], token: str | None = None, user: Any | None = None) -> Dict[str, Any]:
     base_url = get_execution_base_url(user)
     return _post_json(f'{base_url}/v2/orders', payload, token=token)
