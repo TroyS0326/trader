@@ -906,25 +906,26 @@ def api_execute():
 
         risk_per_share = round(entry_price - stop_price, 2)
 
+        setup_context = {
+            'symbol': data['symbol'],
+            'decision': data.get('decision', 'N/A'),
+            'score_total': score_total,
+            'setup_grade': setup_grade,
+            'catalyst_score': catalyst_score,
+            'rvol': data.get('rvol', (data.get('details') or {}).get('rvol', 'N/A')),
+            'entry_price': entry_price,
+            'stop_price': stop_price,
+            'target_1': target_1,
+            'target_2': target_2,
+            'qty': qty,
+            'risk_per_share': risk_per_share,
+        }
+
         # --- NEW: Generate AI Explainability Thesis ---
         try:
-            setup_context = {
-                'symbol': data['symbol'],
-                'decision': data.get('decision', 'N/A'),
-                'score_total': score_total,
-                'setup_grade': setup_grade,
-                'catalyst_score': catalyst_score,
-                'rvol': (data.get('details') or {}).get('rvol', 'N/A'),
-                'entry_price': entry_price,
-                'stop_price': stop_price,
-                'target_1': target_1,
-                'target_2': target_2,
-                'qty': qty,
-                'risk_per_share': risk_per_share,
-            }
             thesis_result = generate_trade_thesis(setup_context)
-        except Exception as e:
-            logger.error(f"Thesis generation exception: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Thesis generation exception: {exc}")
             # Ultimate failsafe so /api/execute never breaks
             thesis_result = {
                 "thesis": f"XeanVI is flagging this setup because {data['symbol']} has a score_total of {score_total} with setup grade {setup_grade}. This is a probability-based setup.",
