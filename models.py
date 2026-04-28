@@ -194,3 +194,13 @@ class Scan(db.Model):
     best_decision = db.Column(db.String(20), nullable=True)
     best_score = db.Column(db.Integer, nullable=True)
     payload_json = db.Column(db.Text, nullable=False)
+
+
+class MarketRegime(db.Model):
+    __tablename__ = 'market_regimes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    vix_value = db.Column(db.Float, nullable=True)
+    spy_trend = db.Column(db.String(50), nullable=True)
+    regime_status = db.Column(db.String(50), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
