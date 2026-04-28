@@ -492,9 +492,13 @@ def api_strategy_sandbox():
     params = {
         'min_score_to_execute': _clamp(_to_int(data.get('min_score_to_execute'), 0), 0, 100),
         'target2_trailing_stop_pct': _clamp(_to_float(data.get('target2_trailing_stop_pct'), 5.0), 0.5, 25.0),
-        'min_catalyst_score': _clamp(_to_int(data.get('min_catalyst_score'), 0), 0, 10),
-        'min_rvol': _clamp(_to_float(data.get('min_rvol'), 0.0), 0.0, 20.0),
-        'max_spread_pct': _clamp(_to_float(data.get('max_spread_pct'), 0.10), 0.0, 0.10),
+        'min_catalyst_score': _clamp(
+            _to_int(data.get('min_catalyst_score', data.get('minimum_catalyst_score')), 0), 0, 10
+        ),
+        'min_rvol': _clamp(_to_float(data.get('min_rvol', data.get('minimum_rvol')), 0.0), 0.0, 20.0),
+        'max_spread_pct': _clamp(
+            _to_float(data.get('max_spread_pct', data.get('max_spread_percent')), 0.10), 0.0, 0.10
+        ),
     }
     days = _clamp(_to_int(data.get('days', 30), 30), 1, 90)
 
@@ -517,7 +521,16 @@ def api_strategy_sandbox():
             )
             return fail('Unable to run strategy sandbox right now. Please try again shortly.', 500)
         simulation.pop('ok', None)
-        return ok(simulation)
+        metrics = simulation.get('metrics') if isinstance(simulation.get('metrics'), dict) else {}
+        payload = {
+            **metrics,
+            'params': simulation.get('params', params),
+            'baseline_params': simulation.get('baseline_params', {}),
+            'warnings': simulation.get('warnings', []),
+            'data_window': simulation.get('data_window', {}),
+            'disclosure': simulation.get('disclosure', ''),
+        }
+        return ok(payload)
     except Exception:
         logger.exception('Strategy sandbox simulation crashed for user_id=%s', getattr(current_user, 'id', None))
         return fail('Unable to run strategy sandbox right now. Please try again shortly.', 500)
