@@ -34,6 +34,7 @@ from models import User, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
+from explainability import generate_trade_thesis
 
 app = Flask(__name__)
 
@@ -896,6 +897,39 @@ def api_execute():
             target_2_price=target_2,
             user=current_user,
         )
+
+        # --- NEW: Generate AI Explainability Thesis ---
+        try:
+            setup_context = {
+                'symbol': data['symbol'],
+                'decision': data.get('decision', 'N/A'),
+                'score_total': score_total,
+                'setup_grade': setup_grade,
+                'catalyst_score': catalyst_score,
+                'rvol': (data.get('details') or {}).get('rvol', 'N/A'),
+                'range_break': opening_confirmed,
+                'entry_price': entry_price,
+                'stop_price': stop_price,
+                'target_1': target_1,
+                'target_2': target_2,
+                'current_price': current_price,
+                'buy_upper': buy_upper,
+                'qty': qty,
+                'risk_per_share': round(entry_price - stop_price, 2),
+                'reward_risk_ratio': round((target_1 - entry_price) / (entry_price - stop_price), 2) if entry_price > stop_price else 0,
+                'timestamp_et': now_et().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            thesis_result = generate_trade_thesis(setup_context)
+        except Exception as e:
+            logger.error(f"Thesis generation exception: {str(e)}")
+            # Ultimate failsafe so /api/execute never breaks
+            thesis_result = {
+                "thesis": f"XeanVI is flagging this setup because {data['symbol']} has a score_total of {score_total} with setup grade {setup_grade}. This is a probability-based setup.",
+                "key_reasons": ["Systematic criteria met", "Risk parameters defined"],
+                "risk_note": "This is a probability-based setup, not a guaranteed outcome."
+            }
+        # ----------------------------------------------
+
         trade_payload = {
             'user_id': current_user.id,
             'scan_id': data.get('scan_id'),
@@ -926,6 +960,7 @@ def api_execute():
             'raw_json': {
                 'order_bundle': order,
                 'execution_request': data,
+                'ai_explainability': thesis_result
             },
         }
         trade_id = insert_trade(trade_payload)
@@ -953,6 +988,9 @@ def api_execute():
                 'target_1': target_1,
                 'target_2': target_2,
                 'max_dollar_loss': round((entry_price - stop_price) * qty, 2),
+                'thesis': thesis_result.get('thesis', ''),
+                'key_reasons': thesis_result.get('key_reasons', []),
+                'risk_note': thesis_result.get('risk_note', ''),
                 'risk_controls': {
                     'failed_trades_today': get_failed_trades_today(),
                     'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
