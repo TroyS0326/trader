@@ -35,6 +35,7 @@ from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
+from analyze_performance import run_strategy_simulation
 
 app = Flask(__name__)
 
@@ -393,6 +394,7 @@ def sitemap_xml():
         'stripe_webhook', 'create_checkout_session', 'checkout_redirect',
         'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
         'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
+        'api_strategy_sandbox',
         'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
         'learn', 'learn_topic', 'transparency', 'join_waitlist',
         'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback'
@@ -465,6 +467,60 @@ def api_transparency_stats():
         return ok(data)
     except FileNotFoundError:
         return fail("Performance report is currently generating. Please check back shortly.", 404)
+
+
+@app.route('/api/strategy-sandbox', methods=['POST'])
+@login_required
+def api_strategy_sandbox():
+    data = request.get_json(silent=True) or {}
+
+    def _to_int(value, default):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _to_float(value, default):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _clamp(value, min_value, max_value):
+        return max(min_value, min(value, max_value))
+
+    params = {
+        'min_score_to_execute': _clamp(_to_int(data.get('min_score_to_execute'), 0), 0, 100),
+        'target2_trailing_stop_pct': _clamp(_to_float(data.get('target2_trailing_stop_pct'), 5.0), 0.5, 25.0),
+        'min_catalyst_score': _clamp(_to_int(data.get('min_catalyst_score'), 0), 0, 10),
+        'min_rvol': _clamp(_to_float(data.get('min_rvol'), 0.0), 0.0, 20.0),
+        'max_spread_pct': _clamp(_to_float(data.get('max_spread_pct'), 0.10), 0.0, 0.10),
+    }
+    days = _clamp(_to_int(data.get('days', 30), 30), 1, 90)
+
+    default_csv_path = os.path.join(app.root_path, 'historical_data.csv')
+    configured_csv_path = os.getenv('HISTORICAL_DATA_PATH', '').strip()
+    if configured_csv_path:
+        resolved_configured = os.path.abspath(configured_csv_path)
+        root_path = os.path.abspath(app.root_path)
+        csv_path = resolved_configured if resolved_configured.startswith(root_path + os.sep) else default_csv_path
+    else:
+        csv_path = default_csv_path
+
+    try:
+        simulation = run_strategy_simulation(params=params, days=days, csv_path=csv_path)
+        if not isinstance(simulation, dict) or not simulation.get('ok'):
+            logger.error(
+                'Strategy sandbox returned non-ok response for user_id=%s: %s',
+                getattr(current_user, 'id', None),
+                simulation,
+            )
+            return fail('Unable to run strategy sandbox right now. Please try again shortly.', 500)
+        simulation.pop('ok', None)
+        return ok(simulation)
+    except Exception:
+        logger.exception('Strategy sandbox simulation crashed for user_id=%s', getattr(current_user, 'id', None))
+        return fail('Unable to run strategy sandbox right now. Please try again shortly.', 500)
 
 
 @app.route('/logout')
