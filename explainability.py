@@ -17,7 +17,7 @@ except ImportError:
 EXPECTED_KEYS = ("thesis", "key_reasons", "risk_note")
 
 
-def generate_fallback_thesis(setup: Dict[str, Any]) -> Dict[str, Any]:
+def generate_fallback_thesis(setup: Dict) -> Dict[str, Any]:
     """Return a deterministic safety-net thesis payload."""
     symbol = setup.get("symbol", "UNKNOWN")
     setup_grade = setup.get("setup_grade", "N/A")
@@ -62,7 +62,7 @@ def _is_valid_payload(payload: Dict[str, Any]) -> bool:
     return all(isinstance(reason, str) for reason in reasons)
 
 
-def generate_trade_thesis(setup: Dict[str, Any]) -> Dict[str, Any]:
+def generate_trade_thesis(setup: Dict) -> Dict[str, Any]:
     """Generate a thesis using Gemini; fallback deterministically on any failure."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not HAS_GEMINI or not api_key:
@@ -85,7 +85,8 @@ def generate_trade_thesis(setup: Dict[str, Any]) -> Dict[str, Any]:
 
         prompt = (
             "Return JSON with exactly three keys: thesis (string), "
-            "key_reasons (list of exactly 3 strings), and risk_note (string).\n"
+            "key_reasons (list of exactly 3 strings), and risk_note (string). "
+            "Do not include markdown, commentary, or extra keys.\n"
             "Trade setup payload:\n"
             f"{json.dumps(setup, separators=(',', ':'))}"
         )
