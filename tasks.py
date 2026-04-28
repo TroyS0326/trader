@@ -9,7 +9,7 @@ from models import db, MarketRegime, User
 from broker import place_managed_entry_order
 from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
-from utils import calculate_user_kelly_fraction
+from analyze_performance import calculate_user_kelly_fraction
 import config
 
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
