@@ -197,15 +197,10 @@ class Scan(db.Model):
 
 
 class MarketRegime(db.Model):
-    __tablename__ = 'market_regime'
+    __tablename__ = 'market_regimes'
 
     id = db.Column(db.Integer, primary_key=True)
-    as_of = db.Column(db.DateTime, nullable=False, index=True, default=datetime.utcnow)
-    regime_status = db.Column(db.String(32), nullable=False, default='normal')
-    spy_price = db.Column(db.Float, nullable=True)
-    spy_day_high = db.Column(db.Float, nullable=True)
-    spy_day_low = db.Column(db.Float, nullable=True)
-    spy_range_pct = db.Column(db.Float, nullable=True)
-    vixy_price = db.Column(db.Float, nullable=True)
-    vixy_prev_close = db.Column(db.Float, nullable=True)
-    vixy_day_change_pct = db.Column(db.Float, nullable=True)
+    vix_value = db.Column(db.Float, nullable=True)
+    spy_trend = db.Column(db.String(50), nullable=True)
+    regime_status = db.Column(db.String(50), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
