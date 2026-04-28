@@ -164,18 +164,21 @@ def analyze_order_book_imbalance(symbol: str, api_client: Any) -> Dict[str, Any]
     all_levels = [_price_size(level) for level in list(bids) + list(asks)]
     total_book_volume = sum(size for _, size in all_levels)
     institutional_wall_price = None
+    institutional_wall_side = None
 
     if total_book_volume > 0:
         wall_threshold = total_book_volume * 0.30
-        for price, size in all_levels:
+        for price, size in [_price_size(level) for level in list(asks)]:
             if size > wall_threshold:
                 institutional_wall_price = price
+                institutional_wall_side = 'sell'
                 break
 
     return {
         'imbalance_ratio': imbalance_ratio,
         'dominant_side': dominant_side,
         'institutional_wall_price': institutional_wall_price,
+        'institutional_wall_side': institutional_wall_side,
     }
 
 
@@ -377,6 +380,43 @@ def place_managed_entry_order(
                 f'${estimated_cost:.2f} exceeds actual broker buying power '
                 f'of ${actual_buying_power:.2f}.'
             ),
+        }
+
+    class _OrderBookApiClient:
+        def __init__(self, token: str | None, user_obj: Any | None = None):
+            self._token = token
+            self._user = user_obj
+
+        def get_latest_orderbook(self, orderbook_symbol: str) -> Dict[str, Any]:
+            response = _get_json(
+                f'{ALPACA_DATA_BASE}/v2/stocks/{orderbook_symbol.upper()}/orderbooks/latest',
+                params={'feed': _resolve_feed(self._user)},
+                token=self._token,
+            )
+            return (response or {}).get('orderbook', {})
+
+    latest_quote = get_latest_quote(symbol, user=user)
+    current_price = float(latest_quote.get('ap') or latest_quote.get('bp') or entry_price or 0)
+    order_book_metrics = analyze_order_book_imbalance(symbol, _OrderBookApiClient(user_token, user))
+    imbalance_ratio = float(order_book_metrics.get('imbalance_ratio') or 0.0)
+    institutional_wall_price = order_book_metrics.get('institutional_wall_price')
+    institutional_wall_side = (order_book_metrics.get('institutional_wall_side') or '').lower()
+
+    has_massive_sell_pressure = imbalance_ratio > 0 and imbalance_ratio <= (1 / 3)
+    has_nearby_sell_wall = (
+        institutional_wall_side == 'sell'
+        and institutional_wall_price is not None
+        and current_price > 0
+        and 0 <= (float(institutional_wall_price) - current_price) / current_price <= 0.01
+    )
+
+    if has_massive_sell_pressure or has_nearby_sell_wall:
+        rejection_reason = 'L2 Liquidity Rejection: Massive sell wall detected.'
+        logger.warning(rejection_reason)
+        return {
+            'status': 'rejected',
+            'symbol': symbol.upper(),
+            'reason': rejection_reason,
         }
 
     _ = target_2_price  # reserved for external broker adapters and journaling.
