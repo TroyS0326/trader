@@ -497,14 +497,12 @@
             </div>
 
             <div id="ai-thesis-panel" class="data-card" style="display: none; margin-top: 15px; border-left: 3px solid var(--accent-blue); background: rgba(0, 0, 0, 0.2);">
-                <div class="card-body">
-                    <h6 style="color: var(--accent-blue); text-transform: uppercase; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;">
-                        Why XeanVI Flagged This Setup
-                    </h6>
-                    <p id="ai-thesis-text" style="font-size: 0.9rem; line-height: 1.4; margin-bottom: 12px;"></p>
-                    <ul id="ai-thesis-reasons" style="font-size: 0.85rem; padding-left: 20px; margin-bottom: 12px; color: var(--text-secondary);"></ul>
-                    <div id="ai-thesis-risk" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;"></div>
+                <div class="card-header" style="color: var(--accent-blue); border-bottom-color: rgba(56, 189, 248, 0.2); margin-bottom: 0.85rem;">
+                    Why XeanVI Flagged This Setup
                 </div>
+                <p id="ai-thesis-text" style="font-size: 0.9rem; line-height: 1.45; margin-bottom: 12px;"></p>
+                <ul id="ai-thesis-reasons" style="font-size: 0.85rem; padding-left: 20px; margin-bottom: 12px; color: var(--text-muted);"></ul>
+                <div id="ai-thesis-risk" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;"></div>
             </div>
 
             <div class="data-card terminal-panel full-width" id="terminal-panel">
@@ -854,12 +852,16 @@
                             document.getElementById('active-position-card').style.display = 'block';
                             updateLivePL(Number(best.current_price));
 
-                            if (execData.thesis) {
-                                document.getElementById('ai-thesis-text').innerText = execData.thesis;
+                            const thesisPanel = document.getElementById('ai-thesis-panel');
+                            const thesisText = document.getElementById('ai-thesis-text');
+                            const reasonsList = document.getElementById('ai-thesis-reasons');
+                            const riskNote = document.getElementById('ai-thesis-risk');
 
-                                const reasonsList = document.getElementById('ai-thesis-reasons');
+                            if (execData.thesis) {
+                                thesisText.innerText = execData.thesis;
                                 reasonsList.innerHTML = '';
-                                if (execData.key_reasons && Array.isArray(execData.key_reasons)) {
+
+                                if (Array.isArray(execData.key_reasons)) {
                                     execData.key_reasons.forEach(reason => {
                                         const li = document.createElement('li');
                                         li.innerText = reason;
@@ -867,10 +869,13 @@
                                     });
                                 }
 
-                                document.getElementById('ai-thesis-risk').innerText = execData.risk_note || '';
-                                document.getElementById('ai-thesis-panel').style.display = 'block';
+                                riskNote.innerText = execData.risk_note || '';
+                                thesisPanel.style.display = 'block';
                             } else {
-                                document.getElementById('ai-thesis-panel').style.display = 'none';
+                                thesisText.innerText = '';
+                                reasonsList.innerHTML = '';
+                                riskNote.innerText = '';
+                                thesisPanel.style.display = 'none';
                             }
 
                             const pill = document.getElementById('decisionPill');
