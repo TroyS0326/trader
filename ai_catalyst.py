@@ -6,6 +6,7 @@ import numpy as np
 import xgboost as xgb
 from transformers import pipeline
 import pandas as pd
+import yfinance as yf
 
 from feature_store import store
 from scanner import get_company_news
@@ -177,3 +178,74 @@ def batch_process_premarket(symbols: List[str]):
         })
 
     logger.info("Pre-market refinement complete. AI high-probability weights are live.")
+
+
+def fetch_sec_financials(symbol: str) -> str:
+    """
+    Pull key SEC-adjacent financial context via yfinance and return
+    a clean, human-readable summary string.
+    """
+    try:
+        ticker = yf.Ticker(symbol)
+        info = ticker.info or {}
+        financials = ticker.financials
+    except Exception as e:
+        logger.error(f"Failed to fetch SEC financial data for {symbol}: {e}")
+        return f"SEC Financial Snapshot ({symbol.upper()}): unavailable."
+
+    total_debt = info.get("totalDebt", "N/A")
+    float_size = info.get("floatShares", "N/A")
+    short_interest = info.get("shortPercentOfFloat", info.get("sharesPercentSharesOut", "N/A"))
+
+    # Prefer explicit quarterly revenue growth from info; fallback to a simple
+    # QoQ estimate from financial statement rows if possible.
+    revenue_growth = info.get("revenueGrowth")
+    if revenue_growth is None and isinstance(financials, pd.DataFrame) and not financials.empty:
+        try:
+            revenue_row = financials.loc["Total Revenue"].dropna()
+            if len(revenue_row) >= 2 and revenue_row.iloc[1] != 0:
+                revenue_growth = (revenue_row.iloc[0] - revenue_row.iloc[1]) / abs(revenue_row.iloc[1])
+        except Exception:
+            revenue_growth = "N/A"
+
+    def _fmt_int(value: Any) -> str:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return f"{int(value):,}"
+        return str(value)
+
+    def _fmt_pct(value: Any) -> str:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return f"{value * 100:.2f}%"
+        return str(value)
+
+    return (
+        f"SEC Financial Snapshot ({symbol.upper()}): "
+        f"Total Debt: {_fmt_int(total_debt)} | "
+        f"Float Size: {_fmt_int(float_size)} shares | "
+        f"Short Interest: {_fmt_pct(short_interest)} | "
+        f"Latest Quarterly Revenue Growth: {_fmt_pct(revenue_growth)}"
+    )
+
+
+def fetch_social_sentiment(symbol: str) -> str:
+    """
+    Mock/placeholder social sentiment stream.
+    Simulates scraping Reddit (r/pennystocks, r/wallstreetbets) and X for a cashtag.
+    """
+    cashtag = f"${symbol.upper()}"
+
+    # Deterministic mock levels for robust placeholder behavior.
+    social_profiles = {
+        "high": "High retail chatter. 80% rocket emojis. Keywords: squeeze, moon.",
+        "moderate": "Moderate retail chatter. 52% bullish mentions. Keywords: breakout, momentum.",
+        "low": "Low retail chatter. Mixed sentiment. Keywords: watchlist, speculative.",
+    }
+
+    bucket = sum(ord(c) for c in cashtag) % 3
+    profile_key = ["high", "moderate", "low"][bucket]
+
+    return (
+        f"Social Sentiment ({cashtag}) [Mock]: "
+        f"Sources=Reddit(r/pennystocks,r/wallstreetbets)+X. "
+        f"{social_profiles[profile_key]}"
+    )
