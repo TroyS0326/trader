@@ -1,11 +1,35 @@
+from datetime import datetime
+
+import requests
 from celery import Celery
-from models import db, User
+from celery.schedules import crontab
+from flask import Flask
+
+from models import db, MarketRegime, User
 from broker import place_managed_entry_order
 from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
 import config
 
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
+celery_app.conf.timezone = 'UTC'
+celery_app.conf.beat_schedule = {
+    'update-market-regime-every-5-minutes': {
+        'task': 'tasks.update_market_regime_task',
+        'schedule': crontab(minute='*/5'),
+    },
+}
+
+_db_app = Flask(__name__)
+_db_app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{config.DB_PATH}"
+_db_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(_db_app)
+
+ALPACA_HEADERS = {
+    'APCA-API-KEY-ID': config.ALPACA_API_KEY,
+    'APCA-API-SECRET-KEY': config.ALPACA_API_SECRET,
+}
+CHOP_RANGE_THRESHOLD_PCT = 0.006  # 0.6% daily range on SPY ~= tight/choppy market
 
 @celery_app.task
 def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
@@ -78,3 +102,107 @@ def morning_pre_processing():
         return []
     batch_process_premarket(symbols)
     return symbols
+
+
+def _safe_float(value):
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _fetch_snapshot(symbols):
+    response = requests.get(
+        f'{config.ALPACA_DATA_BASE}/v2/stocks/snapshots',
+        headers=ALPACA_HEADERS,
+        params={'symbols': ','.join(symbols), 'feed': 'iex'},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _extract_from_snapshot(snapshot):
+    latest_trade = snapshot.get('latestTrade') or {}
+    daily_bar = snapshot.get('dailyBar') or {}
+    prev_daily_bar = snapshot.get('prevDailyBar') or {}
+    return {
+        'last_price': _safe_float(latest_trade.get('p') or daily_bar.get('c')),
+        'day_high': _safe_float(daily_bar.get('h')),
+        'day_low': _safe_float(daily_bar.get('l')),
+        'prev_close': _safe_float(prev_daily_bar.get('c')),
+    }
+
+
+def _fetch_latest_15m_bars(symbols):
+    response = requests.get(
+        f'{config.ALPACA_DATA_BASE}/v2/stocks/bars/latest',
+        headers=ALPACA_HEADERS,
+        params={'symbols': ','.join(symbols), 'timeframe': '15Min', 'feed': 'iex'},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json().get('bars') or {}
+
+
+@celery_app.task
+def update_market_regime_task():
+    """
+    Refreshes the latest market regime classification every 5 minutes.
+    Regime is 'high_volatility' when VIXY spikes >5% on day OR SPY is unusually tight/choppy.
+    """
+    if not config.ALPACA_API_KEY or not config.ALPACA_API_SECRET:
+        return 'Skipped: missing ALPACA_API_KEY/ALPACA_API_SECRET.'
+
+    snapshots = _fetch_snapshot(['SPY', 'VIXY'])
+    spy_data = _extract_from_snapshot(snapshots.get('SPY') or {})
+    vixy_data = _extract_from_snapshot(snapshots.get('VIXY') or {})
+    latest_bars = _fetch_latest_15m_bars(['SPY', 'VIXY'])
+
+    if spy_data['last_price'] is None:
+        spy_data['last_price'] = _safe_float((latest_bars.get('SPY') or {}).get('c'))
+    if vixy_data['last_price'] is None:
+        vixy_data['last_price'] = _safe_float((latest_bars.get('VIXY') or {}).get('c'))
+
+    spy_price = spy_data['last_price']
+    spy_day_high = spy_data['day_high']
+    spy_day_low = spy_data['day_low']
+    vixy_price = vixy_data['last_price']
+    vixy_prev_close = vixy_data['prev_close']
+
+    vixy_day_change_pct = None
+    if vixy_price and vixy_prev_close and vixy_prev_close > 0:
+        vixy_day_change_pct = ((vixy_price - vixy_prev_close) / vixy_prev_close) * 100.0
+
+    spy_range_pct = None
+    if spy_price and spy_price > 0 and spy_day_high is not None and spy_day_low is not None:
+        spy_range_pct = (spy_day_high - spy_day_low) / spy_price
+
+    high_vix = (vixy_day_change_pct or 0.0) > 5.0
+    tight_chop = spy_range_pct is not None and spy_range_pct <= CHOP_RANGE_THRESHOLD_PCT
+    regime_status = 'high_volatility' if (high_vix or tight_chop) else 'normal'
+
+    with _db_app.app_context():
+        latest = MarketRegime.query.order_by(MarketRegime.id.desc()).first()
+        if latest is None:
+            latest = MarketRegime()
+            db.session.add(latest)
+
+        latest.as_of = datetime.utcnow()
+        latest.regime_status = regime_status
+        latest.spy_price = spy_price
+        latest.spy_day_high = spy_day_high
+        latest.spy_day_low = spy_day_low
+        latest.spy_range_pct = spy_range_pct
+        latest.vixy_price = vixy_price
+        latest.vixy_prev_close = vixy_prev_close
+        latest.vixy_day_change_pct = vixy_day_change_pct
+        db.session.commit()
+
+    return {
+        'regime_status': regime_status,
+        'vixy_day_change_pct': vixy_day_change_pct,
+        'spy_range_pct': spy_range_pct,
+    }
