@@ -1,6 +1,7 @@
 import logging
 import json
 import time
+import os
 from typing import List, Dict, Any
 import numpy as np
 import xgboost as xgb
@@ -12,6 +13,12 @@ from feature_store import store
 from scanner import get_company_news
 
 logger = logging.getLogger(__name__)
+
+try:
+    import google.generativeai as genai
+    HAS_GEMINI = True
+except Exception:
+    HAS_GEMINI = False
 
 try:
     with open('catalyst_feedback.json', 'r', encoding='utf-8') as f:
@@ -249,3 +256,90 @@ def fetch_social_sentiment(symbol: str) -> str:
         f"Sources=Reddit(r/pennystocks,r/wallstreetbets)+X. "
         f"{social_profiles[profile_key]}"
     )
+
+
+def _fallback_catalyst_payload(symbol: str, comprehensive_dossier: str) -> Dict[str, Any]:
+    """Strict JSON-safe fallback payload for frontend stability."""
+    return {
+        "symbol": symbol.upper(),
+        "catalyst_score": 35,
+        "risk_flag": "PUMP_AND_DUMP_RISK",
+        "forensic_note": (
+            "Fallback path used. Could not validate with Gemini, so score is capped "
+            "for safety and marked as pump-and-dump risk."
+        ),
+        "comprehensive_dossier_excerpt": comprehensive_dossier[:350],
+    }
+
+
+def generate_catalyst_score(symbol: str) -> Dict[str, Any]:
+    """
+    Gemini-backed catalyst scoring with strict JSON output and forensic pump-and-dump rules.
+    """
+    news_data = get_company_news(symbol, lookback_days=2)
+    sec_financials = fetch_sec_financials(symbol)
+    social_sentiment = fetch_social_sentiment(symbol)
+
+    comprehensive_dossier = (
+        "=== NEWS DATA ===\n"
+        f"{json.dumps(news_data, ensure_ascii=False, separators=(',', ':'))}\n\n"
+        "=== SEC FINANCIALS ===\n"
+        f"{sec_financials}\n\n"
+        "=== SOCIAL SENTIMENT ===\n"
+        f"{social_sentiment}"
+    )
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not (HAS_GEMINI and api_key):
+        return _fallback_catalyst_payload(symbol, comprehensive_dossier)
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=(
+                "You are an institutional forensic auditor. Cross-reference the provided News, "
+                "SEC Financials, and Social Sentiment. Your primary goal is to detect Pump and "
+                "Dump schemes.\n"
+                "RULE 1: If social sentiment is 'high retail chatter' but the SEC data shows high "
+                "debt, massive recent dilution, or poor revenue, you MUST flag this as a "
+                "'PUMP_AND_DUMP_RISK'.\n"
+                "RULE 2: If flagged as a risk, cap the maximum catalyst score at 40/100, regardless "
+                "of the news hype.\n"
+                "RULE 3: Include a 'forensic_note' in your JSON response detailing why the setup was "
+                "validated or flagged.\n"
+                "Return STRICT JSON only with keys: symbol (string), catalyst_score (integer 0-100), "
+                "risk_flag (string: PUMP_AND_DUMP_RISK or CLEAR), forensic_note (string)."
+            ),
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
+            ),
+        )
+
+        prompt = (
+            "Analyze this comprehensive_dossier and return strict JSON only.\n\n"
+            f"comprehensive_dossier:\n{comprehensive_dossier}"
+        )
+        response = model.generate_content(prompt, request_options={"timeout": 12.0})
+        parsed = json.loads(response.text)
+
+        required_keys = {"symbol", "catalyst_score", "risk_flag", "forensic_note"}
+        if set(parsed.keys()) != required_keys:
+            raise ValueError("Gemini payload keys invalid")
+        if not isinstance(parsed["symbol"], str):
+            raise ValueError("symbol must be string")
+        if not isinstance(parsed["forensic_note"], str):
+            raise ValueError("forensic_note must be string")
+        if not isinstance(parsed["catalyst_score"], int):
+            raise ValueError("catalyst_score must be integer")
+        if parsed["risk_flag"] not in {"PUMP_AND_DUMP_RISK", "CLEAR"}:
+            raise ValueError("risk_flag invalid")
+        if parsed["risk_flag"] == "PUMP_AND_DUMP_RISK":
+            parsed["catalyst_score"] = min(parsed["catalyst_score"], 40)
+        parsed["catalyst_score"] = max(0, min(parsed["catalyst_score"], 100))
+        parsed["symbol"] = symbol.upper()
+        return parsed
+    except Exception as e:
+        logger.warning("Gemini catalyst scoring failed for %s: %s", symbol, e)
+        return _fallback_catalyst_payload(symbol, comprehensive_dossier)
