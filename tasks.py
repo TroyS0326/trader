@@ -9,6 +9,7 @@ from models import db, MarketRegime, User
 from broker import place_managed_entry_order
 from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
+from utils import calculate_user_kelly_fraction
 import config
 
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
@@ -70,21 +71,26 @@ def trigger_system_wide_buy(symbol, entry, stop, target_1, target_2):
     active_users = User.query.filter_by(subscription_status='pro').all()
     
     for user in active_users:
-        # Calculate dynamic position sizing locally based on the individual's bankroll
         risk_per_share = entry - stop
         if risk_per_share <= 0:
             continue
-            
-        # Defaults to a 1% risk if user hasn't specified
-        user_risk_pct = getattr(user, 'risk_pct', 1.0)
-        dollar_risk = user.bankroll * (user_risk_pct / 100.0)
-        
+
+        kelly_fraction = calculate_user_kelly_fraction(user.id)
+
+        if kelly_fraction is None:
+            user_risk_pct = getattr(user, 'risk_pct', 1.0)
+            dollar_risk = user.bankroll * (user_risk_pct / 100.0)
+        elif kelly_fraction == 0:
+            continue
+        else:
+            dollar_risk = user.bankroll * kelly_fraction
+
         # Enforce maximum dollar risk cap
         if dollar_risk > config.MAX_DOLLAR_LOSS_PER_TRADE:
             dollar_risk = config.MAX_DOLLAR_LOSS_PER_TRADE
-            
+
         qty = int(dollar_risk // risk_per_share)
-        
+
         if qty > 0:
             execute_user_trade_task.delay(
                 user.id, symbol, qty, entry, stop, target_1, target_2
