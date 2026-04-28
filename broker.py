@@ -23,6 +23,19 @@ class BrokerError(Exception):
     pass
 
 
+def get_current_market_regime() -> str:
+    """
+    Global market regime hook for dynamic execution risk controls.
+    Falls back to "normal" if no classifier is available.
+    """
+    try:
+        from scanner import check_vix_circuit_breaker
+
+        return 'high_volatility' if check_vix_circuit_breaker() else 'normal'
+    except Exception:
+        return 'normal'
+
+
 def get_execution_base_url(user: Any | None = None) -> str:
     # Safely extract user properties
     trading_mode = getattr(user, 'trading_mode', 'paper')
@@ -289,7 +302,18 @@ def place_managed_entry_order(
     avg_1m_volume: float = 0.0,
     user: Any | None = None,
 ) -> Dict[str, Any]:
+    regime_status = get_current_market_regime()
     user_token = getattr(user, 'alpaca_access_token', None) if user else None
+
+    if regime_status in {'high_volatility', 'chop'}:
+        qty = max(1, qty // 2)
+        stop_distance = abs(float(entry_price) - float(stop_price))
+        tightened_stop_distance = stop_distance * 0.7
+        if stop_price <= entry_price:
+            stop_price = float(entry_price) - tightened_stop_distance
+        else:
+            stop_price = float(entry_price) + tightened_stop_distance
+
     # Microstructure liquidity cap (max 5% of 1-minute volume).
     if avg_1m_volume > 0:
         max_safe_qty = int(0.05 * avg_1m_volume)
