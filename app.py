@@ -478,7 +478,13 @@ def logout():
 @login_required
 def dashboard():
     # Clean, quiet entry into the command center
-    return render_template('dashboard.html', current_user=current_user)
+    latest_regime = trade_db.get_current_market_regime() or {}
+    market_regime_status = (latest_regime.get('regime_status') or 'normal').lower()
+    return render_template(
+        'dashboard.html',
+        current_user=current_user,
+        market_regime_status=market_regime_status,
+    )
 
 
 @app.route('/upgrade')
