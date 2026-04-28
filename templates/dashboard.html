@@ -783,15 +783,28 @@
                     addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
 
                     try {
+                        const executePayload = {
+                            symbol: best.symbol,
+                            qty: best.qty,
+                            buy_upper: best.buy_upper,
+                            scan_id: payload.data.scan_id
+                        };
+
+                        if (best.score_total !== undefined) executePayload.score_total = best.score_total;
+                        if (best.setup_grade) executePayload.setup_grade = best.setup_grade;
+                        if (best.scores && best.scores.catalyst !== undefined) executePayload.catalyst_score = best.scores.catalyst;
+                        if (best.decision) executePayload.decision = best.decision;
+                        if (best.details) executePayload.details = best.details;
+                        if (best.entry || best.entry_price) executePayload.entry_price = best.entry || best.entry_price;
+                        if (best.stop || best.stop_price) executePayload.stop_price = best.stop || best.stop_price;
+                        if (best.target_1) executePayload.target_1 = best.target_1;
+                        if (best.target_2) executePayload.target_2 = best.target_2;
+                        if (best.current_price) executePayload.current_price = best.current_price;
+
                         const execRes = await fetch('/api/execute', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify({
-                                symbol: best.symbol, entry_price: best.entry_price, stop_price: best.stop_price,
-                                target_1: best.target_1, target_2: best.target_2, qty: best.qty,
-                                current_price: best.current_price, buy_upper: best.buy_upper,
-                                score_total: best.score_total, decision: best.decision, scan_id: payload.data.scan_id
-                            })
+                            body: JSON.stringify(executePayload)
                         });
 
                         const execData = await execRes.json();
