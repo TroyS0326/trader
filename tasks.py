@@ -190,15 +190,10 @@ def update_market_regime_task():
             latest = MarketRegime()
             db.session.add(latest)
 
-        latest.as_of = datetime.utcnow()
         latest.regime_status = regime_status
-        latest.spy_price = spy_price
-        latest.spy_day_high = spy_day_high
-        latest.spy_day_low = spy_day_low
-        latest.spy_range_pct = spy_range_pct
-        latest.vixy_price = vixy_price
-        latest.vixy_prev_close = vixy_prev_close
-        latest.vixy_day_change_pct = vixy_day_change_pct
+        latest.vix_value = vixy_price
+        latest.spy_trend = 'chop' if tight_chop else 'normal'
+        latest.updated_at = datetime.utcnow()
         db.session.commit()
 
     return {

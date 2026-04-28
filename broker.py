@@ -14,6 +14,7 @@ from config import (
     ENTRY_ORDER_TIMEOUT_SECONDS,
     TARGET2_TRAILING_STOP_PCT,
 )
+from db import get_current_market_regime
 
 TIMEOUT = 20
 logger = logging.getLogger(__name__)
@@ -21,19 +22,6 @@ logger = logging.getLogger(__name__)
 
 class BrokerError(Exception):
     pass
-
-
-def get_current_market_regime() -> str:
-    """
-    Global market regime hook for dynamic execution risk controls.
-    Falls back to "normal" if no classifier is available.
-    """
-    try:
-        from scanner import check_vix_circuit_breaker
-
-        return 'high_volatility' if check_vix_circuit_breaker() else 'normal'
-    except Exception:
-        return 'normal'
 
 
 def get_execution_base_url(user: Any | None = None) -> str:
@@ -302,7 +290,8 @@ def place_managed_entry_order(
     avg_1m_volume: float = 0.0,
     user: Any | None = None,
 ) -> Dict[str, Any]:
-    regime_status = get_current_market_regime()
+    regime_data = get_current_market_regime() or {}
+    regime_status = (regime_data.get('regime_status') or 'normal').lower()
     user_token = getattr(user, 'alpaca_access_token', None) if user else None
 
     if regime_status in {'high_volatility', 'chop'}:
