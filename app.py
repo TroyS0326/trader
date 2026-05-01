@@ -653,10 +653,8 @@ def settings():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
-    # Retrieve the environment from the URL and lock to supported values only.
-    target_env = (request.args.get('env', 'paper') or 'paper').strip().lower()
-    if target_env not in {'paper', 'live'}:
-        target_env = 'paper'
+    # Detect if we want 'live' or 'paper' (default to paper for safety)
+    target_env = request.args.get('env', 'paper')
 
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
@@ -667,7 +665,7 @@ def alpaca_login():
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
         'scope': 'trading',
         'state': oauth_state,
-        'env': target_env,
+        'env': target_env  # This forces Alpaca to only show the relevant account type
     }
 
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
