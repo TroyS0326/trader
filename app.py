@@ -157,6 +157,8 @@ def ensure_schema_migrations() -> None:
             conn.execute(text("ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
             conn.execute(text("ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
             conn.execute(text("ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
+        if 'trading_mode' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
         if 'alpaca_data_feed' not in existing_columns:
             conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
         conn.commit()
