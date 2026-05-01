@@ -117,25 +117,105 @@ class User(UserMixin, db.Model):
     esg_tobacco = db.Column(db.Boolean, nullable=False, default=False)
     exclude_penny_stocks = db.Column(db.Boolean, nullable=False, default=True)
     exclude_biotech = db.Column(db.Boolean, nullable=False, default=False)
+    # Legacy fields kept for backward compatibility
     _alpaca_access_token = db.Column('alpaca_access_token', db.Text, nullable=True)
     alpaca_account_id = db.Column(db.String(100), nullable=True)
+
+    # Separate Alpaca connections
+    _alpaca_paper_access_token = db.Column('alpaca_paper_access_token', db.Text, nullable=True)
+    _alpaca_live_access_token = db.Column('alpaca_live_access_token', db.Text, nullable=True)
+
+    alpaca_paper_account_id = db.Column(db.String(100), nullable=True)
+    alpaca_live_account_id = db.Column(db.String(100), nullable=True)
+
+    paper_bankroll = db.Column(db.Float, nullable=False, default=0.0)
+    live_bankroll = db.Column(db.Float, nullable=False, default=0.0)
+
     alpaca_data_feed = db.Column(db.String(10), nullable=False, default='iex')
+
+    def _decrypt_token_value(self, encrypted_value: Optional[str]) -> Optional[str]:
+        if not encrypted_value:
+            return None
+        try:
+            return TOKEN_CIPHER.decrypt(encrypted_value.encode('utf-8')).decode('utf-8')
+        except (InvalidToken, ValueError, TypeError):
+            return encrypted_value
+
+
+    def _encrypt_token_value(self, token: Optional[str]) -> Optional[str]:
+        if not token:
+            return None
+        return TOKEN_CIPHER.encrypt(token.encode('utf-8')).decode('utf-8')
+
+
+    @property
+    def alpaca_paper_access_token(self) -> Optional[str]:
+        return self._decrypt_token_value(self._alpaca_paper_access_token)
+
+
+    @alpaca_paper_access_token.setter
+    def alpaca_paper_access_token(self, token: Optional[str]) -> None:
+        self._alpaca_paper_access_token = self._encrypt_token_value(token)
+
+
+    @property
+    def alpaca_live_access_token(self) -> Optional[str]:
+        return self._decrypt_token_value(self._alpaca_live_access_token)
+
+
+    @alpaca_live_access_token.setter
+    def alpaca_live_access_token(self, token: Optional[str]) -> None:
+        self._alpaca_live_access_token = self._encrypt_token_value(token)
+
 
     @property
     def alpaca_access_token(self) -> Optional[str]:
-        if not self._alpaca_access_token:
-            return None
-        try:
-            return TOKEN_CIPHER.decrypt(self._alpaca_access_token.encode('utf-8')).decode('utf-8')
-        except (InvalidToken, ValueError, TypeError):
-            return self._alpaca_access_token
+        """
+        Active token based on selected trading mode.
+
+        This keeps older code working while routing orders to the correct account.
+        """
+        if getattr(self, 'trading_mode', 'paper') == 'live':
+            return self.alpaca_live_access_token or self._decrypt_token_value(self._alpaca_access_token)
+
+        return self.alpaca_paper_access_token or self._decrypt_token_value(self._alpaca_access_token)
+
 
     @alpaca_access_token.setter
     def alpaca_access_token(self, token: Optional[str]) -> None:
-        if not token:
-            self._alpaca_access_token = None
-            return
-        self._alpaca_access_token = TOKEN_CIPHER.encrypt(token.encode('utf-8')).decode('utf-8')
+        """
+        Legacy setter.
+
+        If old code writes current_user.alpaca_access_token, save it to the active mode.
+        """
+        if getattr(self, 'trading_mode', 'paper') == 'live':
+            self.alpaca_live_access_token = token
+        else:
+            self.alpaca_paper_access_token = token
+
+        # Keep legacy field populated for backward compatibility.
+        self._alpaca_access_token = self._encrypt_token_value(token)
+
+
+    @property
+    def active_alpaca_account_id(self) -> Optional[str]:
+        if getattr(self, 'trading_mode', 'paper') == 'live':
+            return self.alpaca_live_account_id or self.alpaca_account_id
+        return self.alpaca_paper_account_id or self.alpaca_account_id
+
+
+    @property
+    def active_bankroll(self) -> float:
+        if getattr(self, 'trading_mode', 'paper') == 'live':
+            return float(self.live_bankroll or 0.0)
+        return float(self.paper_bankroll or 0.0)
+
+
+    def sync_legacy_bankroll_from_active_mode(self) -> None:
+        """
+        Keeps current_user.bankroll compatible with old templates/calculations.
+        """
+        self.bankroll = self.active_bankroll
 
 
 class Waitlist(db.Model):
