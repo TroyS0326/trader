@@ -559,7 +559,10 @@
             const mode = isLive ? 'live' : 'paper';
             fetch('/api/update_mode', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ trading_mode: mode })
             })
             .then(response => response.json())
@@ -567,7 +570,7 @@
                 if (data.status === 'success') {
                     location.reload(); // Refresh to update the "Capital Auth" and WSS connections
                 } else {
-                    alert("FREEMIUM_GATE_BLOCK: " + data.message);
+                    alert("EXECUTION_BLOCK: " + data.message);
                     document.getElementById('mode-toggle').checked = false;
                 }
             })
