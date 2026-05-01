@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import redis
 import requests
 from celery import Celery
 from celery.schedules import crontab
@@ -7,12 +8,14 @@ from flask import Flask
 
 from models import db, MarketRegime, User
 from broker import place_managed_entry_order
+from execution_guard import validate_execution_against_approved_scan, audit_trade_log
 from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
 from analyze_performance import calculate_user_kelly_fraction
 import config
 
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
+redis_client = redis.Redis.from_url('redis://localhost:6379/0', decode_responses=True)
 celery_app.conf.timezone = 'UTC'
 celery_app.conf.beat_schedule = {
     'update-market-regime-every-5-minutes': {
@@ -33,7 +36,7 @@ ALPACA_HEADERS = {
 CHOP_RANGE_THRESHOLD_PCT = 0.006  # 0.6% daily range on SPY ~= tight/choppy market
 
 @celery_app.task
-def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
+def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
     """
     Worker task for parallel execution of AI-triggered setups.
     Updated to utilize the modern `place_managed_entry_order` from broker.py.
@@ -47,6 +50,16 @@ def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, targe
         return f'Risk sizing too small for User {user_id}'
 
     try:
+        guard = validate_execution_against_approved_scan(
+            redis_client=redis_client,
+            user=user,
+            symbol=symbol,
+            scan_id=scan_id,
+        )
+
+        if not guard.get("ok"):
+            return f'LIVE trade blocked for User {user_id}: {guard.get("error")}'
+
         # Route through the same bracket logic used in manual testing
         order = place_managed_entry_order(
             symbol=symbol,
@@ -57,12 +70,24 @@ def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, targe
             target_2_price=target_2_price,
             user=user
         )
+        audit_trade_log(
+            logger=celery_app.log.get_default_logger(),
+            user=user,
+            symbol=symbol,
+            scan_id=scan_id,
+            qty=qty,
+            entry_price=entry_price,
+            stop_price=stop_price,
+            target_1=target_1_price,
+            target_2=target_2_price,
+            order_result=order,
+        )
         return f'Success: {qty} shares of {symbol} executed for User {user_id}. Order ID: {order.get("id")}'
     except Exception as e:
         return f'Execution failed for User {user_id}: {str(e)}'
 
 
-def trigger_system_wide_buy(symbol, entry, stop, target_1, target_2):
+def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
     """
     Called by the master scanner when an A/A+ setup is found.
     Calculates dynamic sizing per user based on their specific risk tolerances
@@ -93,7 +118,7 @@ def trigger_system_wide_buy(symbol, entry, stop, target_1, target_2):
 
         if qty > 0:
             execute_user_trade_task.delay(
-                user.id, symbol, qty, entry, stop, target_1, target_2
+                user.id, scan_id, symbol, qty, entry, stop, target_1, target_2
             )
 
     print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
