@@ -13,7 +13,6 @@ from analyze_performance import calculate_user_kelly_fraction
 import config
 
 celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
-celery = celery_app
 celery_app.conf.timezone = 'UTC'
 celery_app.conf.beat_schedule = {
     'update-market-regime-every-5-minutes': {
@@ -63,7 +62,7 @@ def execute_user_trade_task(user_id, symbol, qty, entry_price, stop_price, targe
         return f'Execution failed for User {user_id}: {str(e)}'
 
 
-def _dispatch_system_wide_buy(symbol, entry, stop, target_1, target_2):
+def trigger_system_wide_buy(symbol, entry, stop, target_1, target_2):
     """
     Called by the master scanner when an A/A+ setup is found.
     Calculates dynamic sizing per user based on their specific risk tolerances
@@ -98,14 +97,6 @@ def _dispatch_system_wide_buy(symbol, entry, stop, target_1, target_2):
             )
 
     print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
-
-
-@celery.task(name='tasks.trigger_system_wide_buy')
-def trigger_system_wide_buy():
-    """
-    Celery-registered task entrypoint used by worker discovery.
-    """
-    return 'System-wide buy trigger task registered.'
 
 
 def morning_pre_processing():
@@ -216,6 +207,10 @@ def update_market_regime_task():
         'vixy_day_change_pct': vixy_day_change_pct,
         'spy_range_pct': spy_range_pct,
     }
+
+
+celery = celery_app
+
 
 from celery.schedules import crontab
 
