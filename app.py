@@ -653,8 +653,13 @@ def settings():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
+    env = request.args.get('env', 'paper')
+    if env not in {'paper', 'live'}:
+        env = 'paper'
+
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
+    session['oauth_env'] = env
 
     params = {
         'response_type': 'code',
@@ -662,10 +667,38 @@ def alpaca_login():
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
         'scope': 'trading',
         'state': oauth_state,
-        'env': 'paper',
+        'env': env,
     }
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
+
+
+@app.route('/api/update_mode', methods=['POST'])
+@login_required
+def update_mode():
+    data = request.get_json(silent=True) or {}
+    new_mode = data.get('trading_mode')
+
+    if new_mode not in {'paper', 'live'}:
+        return jsonify({'status': 'error', 'message': 'Invalid trading mode.'}), 400
+
+    if new_mode == 'live' and current_user.subscription_status != 'pro':
+        return jsonify({
+            'status': 'error',
+            'message': 'Live Trading requires a PRO subscription.'
+        }), 403
+
+    if new_mode == 'live' and not current_user.alpaca_access_token:
+        return jsonify({
+            'status': 'error',
+            'message': 'Please link your Live Broker account in Settings first.'
+        }), 400
+
+    current_user.trading_mode = new_mode
+    db.session.commit()
+    fetch_and_sync_bankroll(current_user)
+
+    return jsonify({'status': 'success', 'mode': current_user.trading_mode})
 
 
 @app.route('/alpaca/callback')
