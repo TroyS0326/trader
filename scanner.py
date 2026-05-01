@@ -1544,5 +1544,5 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     }
     end_time = time.perf_counter()
     execution_time = (end_time - start_time) * 1000
-    print(f"⚡ SCAN LOOP COMPLETE: Processed {len(watchlist)} tickers in {execution_time:.2f} ms", flush=True)
+    logging.info(f"⚡ SCAN LOOP COMPLETE: Processed {len(symbols)} tickers in {execution_time:.2f} ms")
     return result
