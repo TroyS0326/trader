@@ -35,6 +35,11 @@ from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
+from execution_guard import (
+    approve_scan_for_user,
+    validate_execution_against_approved_scan,
+    audit_trade_log,
+)
 
 app = Flask(__name__)
 
@@ -812,8 +817,11 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
+
+        approved_plan = approve_scan_for_user(redis_client, current_user, result)
+        result["approved_execution_plan"] = approved_plan
         try:
-            redis_client.setex('latest_scan', 300, json.dumps(result))
+            redis_client.setex(f'latest_scan:{current_user.id}', 60 * 60 * 8, json.dumps(result))
         except Exception as redis_exc:
             logger.warning(f"Redis cache write failed (bypassing): {redis_exc}")
         watchlist_manager.set_items(result.get('watchlist', []))
