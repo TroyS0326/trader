@@ -683,16 +683,21 @@ def alpaca_login():
 @app.route('/api/update_mode', methods=['POST'])
 @login_required
 def update_mode():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     new_mode = data.get('trading_mode')
 
     if new_mode not in {'paper', 'live'}:
-        return jsonify({'ok': False, 'message': 'Invalid trading mode.'}), 400
+        return jsonify({
+            'ok': False,
+            'status': 'error',
+            'message': 'Invalid trading mode.'
+        }), 400
 
     # Block non-PRO users from going Live
     if new_mode == 'live' and current_user.subscription_status != 'pro':
         return jsonify({
             'ok': False,
+            'status': 'error',
             'message': 'PRO_UPGRADE_REQUIRED: Live execution is a premium feature.'
         }), 403
 
@@ -700,20 +705,38 @@ def update_mode():
     if new_mode == 'live' and not current_user.alpaca_access_token:
         return jsonify({
             'ok': False,
+            'status': 'error',
             'message': 'BROKER_LINK_REQUIRED: Re-link your account for LIVE in Settings.'
         }), 400
 
+    # Save the mode FIRST. This is the most important part.
     current_user.trading_mode = new_mode
     db.session.commit()
 
-    # Re-sync bankroll immediately for the selected environment
-    fetch_and_sync_bankroll(current_user)
-    db.session.refresh(current_user)
+    bankroll_synced = False
+    bankroll_error = None
+
+    # Try to sync bankroll, but NEVER let bankroll sync break the Paper/Live switch.
+    try:
+        fetch_and_sync_bankroll(current_user)
+        db.session.refresh(current_user)
+        bankroll_synced = True
+    except Exception as exc:
+        bankroll_error = str(exc)
+        logger.error(
+            "Mode switched to %s for user %s, but bankroll sync failed: %s",
+            new_mode,
+            current_user.id,
+            bankroll_error,
+        )
 
     return jsonify({
+        'ok': True,
         'status': 'success',
         'mode': current_user.trading_mode,
         'bankroll': current_user.bankroll,
+        'bankroll_synced': bankroll_synced,
+        'bankroll_error': bankroll_error,
     })
 
 
