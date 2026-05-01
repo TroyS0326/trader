@@ -105,6 +105,7 @@ class User(UserMixin, db.Model):
     zip_code = db.Column(db.String(20), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
     subscription_status = db.Column(db.String(50), nullable=False, default='free')
+    trading_mode = db.Column(db.String(20), nullable=False, default='paper')
     bankroll = db.Column(db.Float, nullable=False, default=0.0)
     risk_pct = db.Column(db.Float, nullable=False, default=1.0)
     refresh_interval = db.Column(db.Integer, nullable=False, default=30000)
