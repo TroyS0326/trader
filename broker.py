@@ -25,13 +25,16 @@ class BrokerError(Exception):
 
 
 def get_execution_base_url(user: Any | None = None) -> str:
-    trading_mode = str(getattr(user, 'trading_mode', 'paper') or 'paper').strip().lower()
-    sub_status = str(getattr(user, 'subscription_status', 'free') or 'free').strip().lower()
+    # Safely extract user properties
+    trading_mode = getattr(user, 'trading_mode', 'paper')
+    sub_status = getattr(user, 'subscription_status', 'free')
 
+    # STRICT GATE: Only route to LIVE if both conditions are met
     if trading_mode == 'live' and sub_status == 'pro':
-        return 'https://api.alpaca.markets'  # Real Money
+        return 'https://api.alpaca.markets'
 
-    return 'https://paper-api.alpaca.markets'  # Sandbox
+    # Default fallback is ALWAYS the paper environment
+    return 'https://paper-api.alpaca.markets'
 
 
 def _is_retryable_request_error(exc: BaseException) -> bool:
