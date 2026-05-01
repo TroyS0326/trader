@@ -307,7 +307,15 @@
             <div class="header-metrics">
                 <div class="h-metric">
                     <span class="h-label">Environment</span>
-                    <span class="h-value" style="color: var(--success);"><i class="fas fa-flask" style="font-size: 0.8rem; margin-right: 6px;"></i>Sandbox</span>
+                    {% if current_user.trading_mode == 'live' %}
+                        <span class="h-value" style="color: var(--danger);">
+                            <i class="fas fa-broadcast-tower" style="font-size: 0.8rem; margin-right: 6px;"></i>LIVE MONEY
+                        </span>
+                    {% else %}
+                        <span class="h-value" style="color: var(--success);">
+                            <i class="fas fa-flask" style="font-size: 0.8rem; margin-right: 6px;"></i>Paper
+                        </span>
+                    {% endif %}
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
