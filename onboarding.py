@@ -70,7 +70,7 @@ def verify_alpaca_data_feed(user):
 
 
 def fetch_and_sync_bankroll(user):
-    """Automatically pulls the real account equity into the bankroll setting."""
+    """Automatically pulls the selected Alpaca environment equity into the bankroll setting."""
     if not user.alpaca_access_token:
         return
 
@@ -80,8 +80,13 @@ def fetch_and_sync_bankroll(user):
         "accept": "application/json",
     }
 
-    # Sandbox OAuth tokens must query the paper endpoint.
-    url = "https://paper-api.alpaca.markets/v2/account"
+    trading_mode = getattr(user, "trading_mode", "paper")
+    subscription_status = getattr(user, "subscription_status", "free")
+
+    if trading_mode == "live" and subscription_status == "pro":
+        url = "https://api.alpaca.markets/v2/account"
+    else:
+        url = "https://paper-api.alpaca.markets/v2/account"
 
     try:
         res = requests.get(url, headers=headers, timeout=10)
@@ -89,8 +94,19 @@ def fetch_and_sync_bankroll(user):
             data = res.json()
             user.bankroll = float(data.get('equity', 0.0))
             db.session.commit()
-            logger.info("Bankroll synced for user %s: $%s", user.id, user.bankroll)
+            logger.info(
+                "Bankroll synced for user %s mode=%s equity=$%s",
+                user.id,
+                trading_mode,
+                user.bankroll,
+            )
         else:
-            logger.error("Bankroll sync failed for %s: %s", user.id, res.text)
+            logger.error(
+                "Bankroll sync failed for user %s mode=%s endpoint=%s response=%s",
+                user.id,
+                trading_mode,
+                url,
+                res.text,
+            )
     except Exception as e:
         logger.error("Error during bankroll sync: %s", str(e))
