@@ -824,7 +824,7 @@ def update_mode():
     # Force the incoming string to lowercase so it matches our array perfectly
     new_mode = data.get('mode', '').lower() 
     
-    # TEMPORARY DEVELOPER BYPASS: keep PRO-gate disabled for test accounts.
+    # --- COMMENT THESE TWO LINES OUT FOR TODAY'S TEST ---
     # if new_mode in ['live', 'live_armed'] and current_user.subscription_status != 'pro':
     #     return jsonify({"error": "PRO upgrade required for live execution"}), 403
 
