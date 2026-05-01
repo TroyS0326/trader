@@ -634,8 +634,10 @@ def onboarding():
             flash('You must acknowledge the trading risks to proceed.', 'error')
             return redirect(url_for('onboarding'))
 
-        current_user.bankroll = float(request.form.get('bankroll', 5000.0))
+        starting_bankroll = float(request.form.get('bankroll', 5000.0))
         current_user.trading_mode = 'paper'
+        current_user.paper_bankroll = starting_bankroll
+        current_user.bankroll = starting_bankroll
         # Optional: Add a 'risk_acknowledged' timestamp to your User model
         db.session.commit()
 
@@ -649,7 +651,12 @@ def onboarding():
 def settings():
     if request.method == 'POST':
         # 1. Update Core Settings
-        current_user.bankroll = float(request.form.get('bankroll', 0.0))
+        new_bankroll = float(request.form.get('bankroll', 0.0))
+        if current_user.trading_mode == 'live':
+            current_user.live_bankroll = new_bankroll
+        else:
+            current_user.paper_bankroll = new_bankroll
+        current_user.sync_legacy_bankroll_from_active_mode()
         refresh_interval = int(request.form.get('refresh_interval', 30000))
         current_user.refresh_interval = (
             refresh_interval if refresh_interval in VALID_REFRESH_INTERVALS else 30000
