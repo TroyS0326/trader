@@ -3,7 +3,7 @@ from datetime import datetime, time, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 import config
 from models import db, Trade, Scan, MarketRegime
@@ -161,6 +161,98 @@ def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> 
     trade = query.order_by(Trade.id.desc()).first()
     return _model_to_dict(trade) if trade else None
 
+
+
+
+def ensure_trade_audit_table() -> None:
+    db.session.execute(text("""
+        CREATE TABLE IF NOT EXISTS trade_audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL,
+            user_id INTEGER,
+            email TEXT,
+            trading_mode TEXT,
+            subscription_status TEXT,
+            symbol TEXT,
+            scan_id INTEGER,
+            qty REAL,
+            entry_price REAL,
+            stop_price REAL,
+            target_1 REAL,
+            target_2 REAL,
+            order_id TEXT,
+            order_status TEXT,
+            raw_json TEXT
+        )
+    """))
+    db.session.commit()
+
+
+def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
+    ensure_trade_audit_table()
+    raw_json = payload.get('raw_json', {})
+    raw_json_str = raw_json if isinstance(raw_json, str) else json.dumps(raw_json)
+
+    result = db.session.execute(
+        text("""
+            INSERT INTO trade_audit_logs (
+                created_at, user_id, email, trading_mode, subscription_status,
+                symbol, scan_id, qty, entry_price, stop_price, target_1, target_2,
+                order_id, order_status, raw_json
+            )
+            VALUES (
+                :created_at, :user_id, :email, :trading_mode, :subscription_status,
+                :symbol, :scan_id, :qty, :entry_price, :stop_price, :target_1, :target_2,
+                :order_id, :order_status, :raw_json
+            )
+        """),
+        {
+            'created_at': payload.get('created_at') or utc_now().isoformat(),
+            'user_id': payload.get('user_id'),
+            'email': payload.get('email'),
+            'trading_mode': payload.get('trading_mode'),
+            'subscription_status': payload.get('subscription_status'),
+            'symbol': payload.get('symbol'),
+            'scan_id': payload.get('scan_id'),
+            'qty': payload.get('qty'),
+            'entry_price': payload.get('entry_price'),
+            'stop_price': payload.get('stop_price'),
+            'target_1': payload.get('target_1'),
+            'target_2': payload.get('target_2'),
+            'order_id': payload.get('order_id'),
+            'order_status': payload.get('order_status'),
+            'raw_json': raw_json_str,
+        },
+    )
+    db.session.commit()
+    return int(result.lastrowid)
+
+
+def get_recent_trade_audit_logs(limit: int = 50) -> Iterable[Dict[str, Any]]:
+    ensure_trade_audit_table()
+    rows = db.session.execute(
+        text("""
+            SELECT id, created_at, user_id, email, trading_mode, subscription_status,
+                   symbol, scan_id, qty, entry_price, stop_price, target_1, target_2,
+                   order_id, order_status, raw_json
+            FROM trade_audit_logs
+            ORDER BY id DESC
+            LIMIT :limit
+        """),
+        {'limit': limit},
+    ).mappings().all()
+
+    logs = []
+    for row in rows:
+        item = dict(row)
+        raw = item.get('raw_json')
+        if isinstance(raw, str):
+            try:
+                item['raw_json'] = json.loads(raw)
+            except json.JSONDecodeError:
+                pass
+        logs.append(item)
+    return logs
 
 def get_current_market_regime() -> Optional[Dict[str, Any]]:
     regime = MarketRegime.query.order_by(MarketRegime.updated_at.desc(), MarketRegime.id.desc()).first()
