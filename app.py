@@ -887,7 +887,7 @@ def api_metrics():
     """Returns the latest scan data and risk stats for the dashboard refresh."""
     latest_scan_data = None
     try:
-        raw_scan = redis_client.get('latest_scan')
+        raw_scan = redis_client.get(f'latest_scan:{current_user.id}')
         if raw_scan:
             latest_scan_data = json.loads(raw_scan)
     except Exception as redis_exc:
