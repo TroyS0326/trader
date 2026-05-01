@@ -339,35 +339,21 @@
                 {% endif %}
 
             <div class="mode-selector" style="display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap: wrap;">
-                <span class="mode-label" style="font-family: var(--font-mono); font-size:0.75rem; color:var(--text-muted); letter-spacing: 1px;">
-                    MODE_SELECTION:
-                </span>
-
-                <div class="execution-mode-selector" style="display: flex; gap: 10px; margin-top: 15px;">
+                <div class="execution-mode-container" style="display: flex; gap: 10px; margin-top: 15px;">
                     <div onclick="setMode('paper')"
-                         style="cursor: pointer; flex: 1; padding: 10px; border-radius: 8px; border: 1px solid {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--border-color)' }}; background: {{ 'rgba(56, 189, 248, 0.1)' if current_user.trading_mode != 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-family: var(--font-mono); font-size: 0.7rem; color: {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }}; font-weight: 800;">
-                                <i class="fas fa-vial" style="margin-right: 6px;"></i> PAPER_SANDBOX
-                            </span>
-                            <div style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent-blue); background: {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'transparent' }};"></div>
-                        </div>
+                         style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--border-color)' }}; background: {{ 'rgba(56, 189, 248, 0.1)' if current_user.trading_mode != 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--text-main)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
+                            PAPER
+                        </span>
                     </div>
 
                     <div onclick="setMode('live')"
-                         style="cursor: pointer; flex: 1; padding: 10px; border-radius: 8px; border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--border-color)' }}; background: {{ 'rgba(16, 185, 129, 0.1)' if current_user.trading_mode == 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-family: var(--font-mono); font-size: 0.7rem; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: 800;">
-                                <i class="fas fa-bolt" style="margin-right: 6px;"></i> LIVE_PRO_ARMED
-                            </span>
-                            <div style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--success); background: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'transparent' }};"></div>
-                        </div>
+                         style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--border-color)' }}; background: {{ 'rgba(16, 185, 129, 0.1)' if current_user.trading_mode == 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
+                            LIVE
+                        </span>
                     </div>
                 </div>
-
-                <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}" style="border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--accent-blue)' }};">
-                    {{ current_user.trading_mode|upper }}_MODE_ACTIVE
-                </span>
                 {% set caution_regime = market_regime_status in ['high_volatility', 'chop'] %}
                 <span class="market-health-badge {% if caution_regime %}caution{% else %}aligned{% endif %}">
                     {% if caution_regime %}
@@ -575,23 +561,29 @@
 
 
         function setMode(mode) {
+            // Show a loading state if needed, then fetch
             fetch('/api/update_mode', {
                 method: 'POST',
-                headers: {
+                headers: { 
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': "{{ csrf_token() }}" // Standard Flask-WTF CSRF
                 },
                 body: JSON.stringify({ trading_mode: mode })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    location.reload();
+                    // Success: Reload to apply new bankroll and API environment
+                    location.reload(); 
                 } else {
-                    alert(data.message || "Execution blocked.");
+                    // Show error (e.g. "Pro Upgrade Required")
+                    alert(data.message || "Execution Error");
                 }
             })
-            .catch(err => console.error("Mode update failed:", err));
+            .catch(err => {
+                console.error("System Error updating mode:", err);
+                alert("CRITICAL_ERR: Mode change failed to reach server.");
+            });
         }
 
         // Updated for terminal aesthetic
