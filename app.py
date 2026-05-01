@@ -825,9 +825,9 @@ def update_mode():
     # Force the incoming string to lowercase so it matches our array perfectly
     new_mode = data.get('mode', '').lower() 
     
-    # Freemium Gate: Protect both 'live' and 'live_armed'
-    if new_mode in ['live', 'live_armed'] and current_user.subscription_status != 'pro':
-        return jsonify({"error": "PRO upgrade required for live execution"}), 403
+    # --- COMMENT THESE TWO LINES OUT FOR TODAY'S TEST ---
+    # if new_mode in ['live', 'live_armed'] and current_user.subscription_status != 'pro':
+    #     return jsonify({"error": "PRO upgrade required for live execution"}), 403
 
     # Bypass the 20-trade limit. Backend Kelly risk sizing protects the user now.
     if new_mode in ['paper', 'live', 'paper_armed', 'live_armed']:
