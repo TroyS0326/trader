@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-import logging
 from statistics import mean
-import time
 from typing import Any, Dict, List, Tuple, Optional
 from zoneinfo import ZoneInfo
 
@@ -430,20 +428,6 @@ def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
         return payload if isinstance(payload, dict) else {}
     except requests.RequestException:
         return {}
-
-
-def prefetch_company_profiles(symbols: List[str]) -> Dict[str, Dict[str, Any]]:
-    profiles: Dict[str, Dict[str, Any]] = {}
-    for symbol in symbols:
-        profiles[symbol] = get_company_profile(symbol)
-    return profiles
-
-
-def prefetch_alpaca_assets(symbols: List[str]) -> Dict[str, Dict[str, Any]]:
-    assets: Dict[str, Dict[str, Any]] = {}
-    for symbol in symbols:
-        assets[symbol] = get_alpaca_asset(symbol)
-    return assets
 
 
 def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> float:
@@ -1425,7 +1409,6 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
 
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
-    start_time = time.perf_counter()
     feed = resolve_data_feed(user)
     symbols = get_refined_universe(user=user)
     if not symbols:
@@ -1450,9 +1433,6 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     spy_change_pct = ((spy_curr - spy_prev) / spy_prev * 100.0) if spy_prev > 0 else 0.0
     spy_minute_bars = minute_bars_map.get('SPY', [])
     market_internals = get_market_internals_bias(feed=feed)
-    symbol_metadata = [symbol for symbol in symbols if symbol != 'SPY']
-    all_profiles = prefetch_company_profiles(symbol_metadata)
-    all_assets = prefetch_alpaca_assets(symbol_metadata)
 
     ranked = []
     print(f"\n--- DEBUG: STARTING SCAN LOOP FOR {len(symbols)} SYMBOLS ---")
@@ -1480,8 +1460,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
 
         # We removed the silent exception so we can see exact crashes
         try:
-            profile = all_profiles.get(symbol, {})
-            asset = all_assets.get(symbol, {})
+            profile = get_company_profile(symbol)
+            asset = get_alpaca_asset(symbol)
             ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals))
             print(f" -> SUCCESS: Analyzed {symbol}")
         except Exception as e:
@@ -1517,7 +1497,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         market_call = f"{valid_candidates[0]['setup_grade']} setup available"
     elif any(r.get('setup_grade') == 'WATCH' for r in ranked):
         market_call = 'WATCH ONLY'
-    result = {
+    return {
         'generated_at': now_utc().isoformat(),
         'day_of_week': now_et().strftime('%A'),
         'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2), 'market_internals': market_internals},
@@ -1542,7 +1522,3 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
     }
-    end_time = time.perf_counter()
-    execution_time = (end_time - start_time) * 1000
-    logging.info(f"⚡ SCAN LOOP COMPLETE: Processed {len(symbols)} tickers in {execution_time:.2f} ms")
-    return result
