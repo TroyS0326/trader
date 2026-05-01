@@ -338,16 +338,30 @@
                 </a>
                 {% endif %}
 
-            <div class="mode-selector" style="display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap: wrap;">
-                <span class="mode-label" style="font-family: var(--font-mono); font-size:0.7rem; color:var(--text-muted);">EXECUTION_ENVIRONMENT:</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="mode-toggle" 
-                           {% if current_user.trading_mode == 'live' %}checked{% endif %}
-                           onchange="updateTradingMode(this.checked)">
-                    <label for="mode-toggle"></label>
+            <div class="mode-selector" style="display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap: wrap;">
+                <span class="mode-label" style="font-family: var(--font-mono); font-size:0.75rem; color:var(--text-muted); letter-spacing: 1px;">
+                    ARMED_ENVIRONMENT:
+                </span>
+
+                <div class="toggle-container" style="display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <span style="font-family: var(--font-mono); font-size: 0.65rem; padding: 4px 8px; color: {{ 'var(--text-main)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }};">
+                        PAPER
+                    </span>
+
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="mode-toggle" 
+                               {% if current_user.trading_mode == 'live' %}checked{% endif %}
+                               onchange="updateTradingMode(this.checked)">
+                        <label for="mode-toggle"></label>
+                    </div>
+
+                    <span style="font-family: var(--font-mono); font-size: 0.65rem; padding: 4px 8px; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: bold;">
+                        LIVE_PRO
+                    </span>
                 </div>
-                <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}">
-                    {{ current_user.trading_mode|upper }}
+
+                <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}" style="border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--accent-blue)' }};">
+                    {{ current_user.trading_mode|upper }}_MODE_ACTIVE
                 </span>
                 {% set caution_regime = market_regime_status in ['high_volatility', 'chop'] %}
                 <span class="market-health-badge {% if caution_regime %}caution{% else %}aligned{% endif %}">
