@@ -676,31 +676,30 @@ def alpaca_login():
 @app.route('/api/update_mode', methods=['POST'])
 @login_required
 def update_mode():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json()
     new_mode = data.get('trading_mode')
 
     if new_mode not in {'paper', 'live'}:
         return jsonify({'ok': False, 'message': 'Invalid trading mode.'}), 400
 
-    # Safeguard: Only PRO users can switch to Live
+    # Block non-PRO users from going Live
     if new_mode == 'live' and current_user.subscription_status != 'pro':
         return jsonify({
             'ok': False,
-            'message': 'FREEMIUM_GATE_BLOCK: Live execution requires a PRO subscription.'
+            'message': 'PRO_UPGRADE_REQUIRED: Live execution is a premium feature.'
         }), 403
 
-    # Safeguard: Ensure a broker is connected before going Live
+    # Ensure broker is connected for Live mode
     if new_mode == 'live' and not current_user.alpaca_access_token:
         return jsonify({
             'ok': False,
-            'message': 'LINK_REQUIRED: Connect your live broker account in Settings first.'
+            'message': 'BROKER_LINK_REQUIRED: Re-link your account for LIVE in Settings.'
         }), 400
 
     current_user.trading_mode = new_mode
     db.session.commit()
 
     # Re-sync bankroll immediately for the new mode
-    from onboarding import fetch_and_sync_bankroll
     fetch_and_sync_bankroll(current_user)
 
     return jsonify({'status': 'success', 'mode': current_user.trading_mode})
