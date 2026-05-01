@@ -160,18 +160,12 @@
                             <span style="color: var(--warning);">NOT_LINKED</span>
                         {% endif %}
                     </div>
-                    <div class="logic-desc">Choose which Alpaca environment you want to link below.</div>
+                    <div class="logic-desc">To switch to LIVE trading, you must authorize your Live Brokerage profile.</div>
                 </div>
 
-                <div class="connection-actions">
-                    <a href="{{ url_for('alpaca_login', env='paper') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-flask"></i> Link Paper Account
-                    </a>
-
-                    <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary">
-                        <i class="fas fa-wallet"></i> Link Live Account ($100+)
-                    </a>
-                </div>
+                <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+                    <i class="fas fa-sync-alt"></i> Re-Link Broker for LIVE
+                </a>
             </div>
         </div>
 
