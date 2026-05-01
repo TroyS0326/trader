@@ -605,11 +605,6 @@
             }
         }
 
-        setInterval(() => {
-            updateLiveMetrics();
-            addLog("> Pinging exchange for updated tick data...", "#52525b");
-        }, userRefreshRate);
-
         function initChart() {
             const container = document.getElementById('tradingview_chart');
             if (!container) return;
