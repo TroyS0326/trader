@@ -173,12 +173,12 @@ class User(UserMixin, db.Model):
         """
         Active token based on selected trading mode.
 
-        This keeps older code working while routing orders to the correct account.
+        Live mode strictly uses the live token; paper mode strictly uses the paper token.
         """
         if getattr(self, 'trading_mode', 'paper') == 'live':
-            return self.alpaca_live_access_token or self._decrypt_token_value(self._alpaca_access_token)
+            return self.alpaca_live_access_token
 
-        return self.alpaca_paper_access_token or self._decrypt_token_value(self._alpaca_access_token)
+        return self.alpaca_paper_access_token
 
 
     @alpaca_access_token.setter
