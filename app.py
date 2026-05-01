@@ -785,7 +785,7 @@ def alpaca_callback():
             verify_alpaca_data_feed(current_user)
             fetch_and_sync_bankroll(current_user)
             db.session.commit()
-            flash("Broker connected and bankroll synced!", "success")
+            flash("Broker connected. You can now choose Paper or Live mode from the dashboard.", "success")
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
