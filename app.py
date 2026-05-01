@@ -166,6 +166,18 @@ def ensure_schema_migrations() -> None:
             conn.execute(text("ALTER TABLE user ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
         if 'alpaca_data_feed' not in existing_columns:
             conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
+        if 'alpaca_paper_access_token' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_access_token TEXT"))
+        if 'alpaca_live_access_token' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_access_token TEXT"))
+        if 'alpaca_paper_account_id' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_account_id VARCHAR(100)"))
+        if 'alpaca_live_account_id' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_account_id VARCHAR(100)"))
+        if 'paper_bankroll' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+        if 'live_bankroll' not in existing_columns:
+            conn.execute(text("ALTER TABLE user ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
         conn.commit()
 
 
