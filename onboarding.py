@@ -94,16 +94,23 @@ def detect_and_store_alpaca_connection(user, token: str) -> dict:
         result["live_account_id"] = user.alpaca_live_account_id
         result["live_equity"] = user.live_bankroll
 
-    # Legacy compatibility: keep old fields populated with whichever account is active.
+    # Legacy compatibility: keep old fields populated WITHOUT using the alpaca_access_token setter.
+    legacy_token = None
+    legacy_account_id = None
+
     if getattr(user, "trading_mode", "paper") == "live" and user.alpaca_live_access_token:
-        user.alpaca_access_token = user.alpaca_live_access_token
-        user.alpaca_account_id = user.alpaca_live_account_id
+        legacy_token = user.alpaca_live_access_token
+        legacy_account_id = user.alpaca_live_account_id
     elif user.alpaca_paper_access_token:
-        user.alpaca_access_token = user.alpaca_paper_access_token
-        user.alpaca_account_id = user.alpaca_paper_account_id
+        legacy_token = user.alpaca_paper_access_token
+        legacy_account_id = user.alpaca_paper_account_id
     elif user.alpaca_live_access_token:
-        user.alpaca_access_token = user.alpaca_live_access_token
-        user.alpaca_account_id = user.alpaca_live_account_id
+        legacy_token = user.alpaca_live_access_token
+        legacy_account_id = user.alpaca_live_account_id
+
+    if legacy_token:
+        user._alpaca_access_token = user._encrypt_token_value(legacy_token)
+        user.alpaca_account_id = legacy_account_id
 
     user.sync_legacy_bankroll_from_active_mode()
 
