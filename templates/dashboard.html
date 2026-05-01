@@ -324,6 +324,16 @@
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
+                    <span class="h-label">Paper Equity</span>
+                    <span class="h-value">${{ "{:,.2f}".format(current_user.paper_bankroll) }}</span>
+                </div>
+                <div class="h-divider"></div>
+                <div class="h-metric">
+                    <span class="h-label">Live Equity</span>
+                    <span class="h-value">${{ "{:,.2f}".format(current_user.live_bankroll) }}</span>
+                </div>
+                <div class="h-divider"></div>
+                <div class="h-metric">
                     <span class="h-label">Model Confidence</span>
                     <span class="h-value" id="ai-confidence" style="color: var(--accent-blue);">--%</span>
                 </div>
