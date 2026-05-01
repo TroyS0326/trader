@@ -817,6 +817,25 @@ def api_metrics():
     })
 
 
+
+@app.route('/api/update_mode', methods=['POST'])
+@login_required
+def update_mode():
+    data = request.get_json()
+    new_mode = data.get('mode')
+    
+    # Freemium Gate: Only PRO users can flip to LIVE
+    if new_mode == 'live' and current_user.subscription_status != 'pro':
+        return jsonify({"error": "PRO upgrade required for live execution"}), 403
+
+    # Bypass the 20-trade limit. Backend Kelly risk sizing protects the user now.
+    if new_mode in ['paper', 'live', 'paper_armed', 'live_armed']:
+        current_user.trading_mode = new_mode
+        db.session.commit()
+        return jsonify({"status": "success", "mode": new_mode})
+        
+    return jsonify({"error": "Invalid mode"}), 400
+
 @app.route('/api/history')
 def api_history():
     return ok({'scans': get_recent_scans(), 'trades': get_recent_trades(), 'failed_trades_today': get_failed_trades_today()})
