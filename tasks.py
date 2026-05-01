@@ -207,19 +207,3 @@ def update_market_regime_task():
         'vixy_day_change_pct': vixy_day_change_pct,
         'spy_range_pct': spy_range_pct,
     }
-
-
-celery = celery_app
-
-
-from celery.schedules import crontab
-
-# --- SYSTEM MASTER CLOCK ---
-# This replaces the user's phone browser. It triggers the scan centrally.
-celery.conf.beat_schedule = {
-    'run-system-wide-scan-30s': {
-        'task': 'tasks.trigger_system_wide_buy', 
-        'schedule': 30.0, 
-    },
-}
-celery.conf.timezone = 'America/New_York'
