@@ -875,6 +875,8 @@ def api_chart(symbol: str):
 @login_required
 def api_execute():
     data = request.get_json(silent=True) or {}
+    symbol = str(data.get("symbol") or "").upper().strip()
+    scan_id = data.get("scan_id") or data.get("scanId")
 
     # --- FREEMIUM GATE ---
     # Assuming you have a toggle for 'trading_mode' (paper vs live)
@@ -941,6 +943,23 @@ def api_execute():
         if (entry_price - stop_price) * qty > config.MAX_DOLLAR_LOSS_PER_TRADE + 0.01:
             return fail('Execution blocked because the trade risks more than the max dollar loss.', 403)
 
+        guard = validate_execution_against_approved_scan(
+            redis_client=redis_client,
+            user=current_user,
+            symbol=symbol,
+            scan_id=scan_id,
+        )
+        if not guard.get("ok"):
+            logger.warning(
+                "LIVE_TRADE_BLOCKED user_id=%s email=%s symbol=%s scan_id=%s reason=%s",
+                current_user.id,
+                current_user.email,
+                symbol,
+                scan_id,
+                guard.get("error"),
+            )
+            return fail(guard.get("error", "Trade blocked."), guard.get("status", 400))
+
         order = place_managed_entry_order(
             symbol=data['symbol'],
             qty=qty,
@@ -949,6 +968,18 @@ def api_execute():
             target_1_price=target_1,
             target_2_price=target_2,
             user=current_user,
+        )
+        audit_trade_log(
+            logger=logger,
+            user=current_user,
+            symbol=symbol,
+            scan_id=scan_id,
+            qty=data.get("qty"),
+            entry_price=data.get("entry_price"),
+            stop_price=data.get("stop_price"),
+            target_1=data.get("target_1"),
+            target_2=data.get("target_2"),
+            order_result=order,
         )
 
         risk_per_share = round(entry_price - stop_price, 2)
