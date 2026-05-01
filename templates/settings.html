@@ -163,7 +163,7 @@
                     <div class="logic-desc">To switch to LIVE trading, you must authorize your Live Brokerage profile.</div>
                 </div>
 
-                <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+                <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
                     <i class="fas fa-sync-alt"></i> Re-Link Broker for LIVE
                 </a>
             </div>
