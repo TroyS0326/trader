@@ -822,11 +822,10 @@ def api_metrics():
 @login_required
 def update_mode():
     data = request.get_json()
-    # Force the incoming string to lowercase so it matches our array perfectly
-    new_mode = data.get('mode', '').lower() 
+    new_mode = data.get('mode')
     
-    # Freemium Gate: Protect both 'live' and 'live_armed'
-    if new_mode in ['live', 'live_armed'] and current_user.subscription_status != 'pro':
+    # Freemium Gate: Only PRO users can flip to LIVE
+    if new_mode == 'live' and current_user.subscription_status != 'pro':
         return jsonify({"error": "PRO upgrade required for live execution"}), 403
 
     # Bypass the 20-trade limit. Backend Kelly risk sizing protects the user now.
