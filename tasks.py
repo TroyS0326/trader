@@ -41,50 +41,51 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
     Worker task for parallel execution of AI-triggered setups.
     Updated to utilize the modern `place_managed_entry_order` from broker.py.
     """
-    user = User.query.get(user_id)
-    # Target only upgraded accounts for automated execution
-    if not user or user.subscription_status != 'pro':
-        return f'User {user_id} inactive or non-PRO. Trade aborted.'
+    with _db_app.app_context():
+        user = User.query.get(user_id)
+        # Target only upgraded accounts for automated execution
+        if not user or user.subscription_status != 'pro':
+            return f'User {user_id} inactive or non-PRO. Trade aborted.'
 
-    if qty < 1:
-        return f'Risk sizing too small for User {user_id}'
+        if qty < 1:
+            return f'Risk sizing too small for User {user_id}'
 
-    try:
-        guard = validate_execution_against_approved_scan(
-            redis_client=redis_client,
-            user=user,
-            symbol=symbol,
-            scan_id=scan_id,
-        )
+        try:
+            guard = validate_execution_against_approved_scan(
+                redis_client=redis_client,
+                user=user,
+                symbol=symbol,
+                scan_id=scan_id,
+            )
 
-        if not guard.get("ok"):
-            return f'LIVE trade blocked for User {user_id}: {guard.get("error")}'
+            if not guard.get("ok"):
+                return f'LIVE trade blocked for User {user_id}: {guard.get("error")}'
 
-        # Route through the same bracket logic used in manual testing
-        order = place_managed_entry_order(
-            symbol=symbol,
-            qty=qty,
-            entry_price=entry_price,
-            stop_price=stop_price,
-            target_1_price=target_1_price,
-            target_2_price=target_2_price,
-            user=user
-        )
-        audit_trade_log(
-            logger=celery_app.log.get_default_logger(),
-            user=user,
-            symbol=symbol,
-            scan_id=scan_id,
-            qty=qty,
-            entry_price=entry_price,
-            stop_price=stop_price,
-            target_1=target_1_price,
-            target_2=target_2_price,
-            order_result=order,
-        )
-        return f'Success: {qty} shares of {symbol} executed for User {user_id}. Order ID: {order.get("id")}'
-    except Exception as e:
-        return f'Execution failed for User {user_id}: {str(e)}'
+            # Route through the same bracket logic used in manual testing
+            order = place_managed_entry_order(
+                symbol=symbol,
+                qty=qty,
+                entry_price=entry_price,
+                stop_price=stop_price,
+                target_1_price=target_1_price,
+                target_2_price=target_2_price,
+                user=user
+            )
+            audit_trade_log(
+                logger=celery_app.log.get_default_logger(),
+                user=user,
+                symbol=symbol,
+                scan_id=scan_id,
+                qty=qty,
+                entry_price=entry_price,
+                stop_price=stop_price,
+                target_1=target_1_price,
+                target_2=target_2_price,
+                order_result=order,
+            )
+            return f'Success: {qty} shares of {symbol} executed for User {user_id}. Order ID: {order.get("id")}'
+        except Exception as e:
+            return f'Execution failed for User {user_id}: {str(e)}'
 
 
 def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
