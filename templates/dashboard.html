@@ -340,24 +340,29 @@
 
             <div class="mode-selector" style="display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap: wrap;">
                 <span class="mode-label" style="font-family: var(--font-mono); font-size:0.75rem; color:var(--text-muted); letter-spacing: 1px;">
-                    ARMED_ENVIRONMENT:
+                    MODE_SELECTION:
                 </span>
 
-                <div class="toggle-container" style="display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <span style="font-family: var(--font-mono); font-size: 0.65rem; padding: 4px 8px; color: {{ 'var(--text-main)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }};">
-                        PAPER
-                    </span>
-
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="mode-toggle" 
-                               {% if current_user.trading_mode == 'live' %}checked{% endif %}
-                               onchange="updateTradingMode(this.checked)">
-                        <label for="mode-toggle"></label>
+                <div class="execution-mode-selector" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <div onclick="setMode('paper')"
+                         style="cursor: pointer; flex: 1; padding: 10px; border-radius: 8px; border: 1px solid {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--border-color)' }}; background: {{ 'rgba(56, 189, 248, 0.1)' if current_user.trading_mode != 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-family: var(--font-mono); font-size: 0.7rem; color: {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }}; font-weight: 800;">
+                                <i class="fas fa-vial" style="margin-right: 6px;"></i> PAPER_SANDBOX
+                            </span>
+                            <div style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent-blue); background: {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'transparent' }};"></div>
+                        </div>
                     </div>
 
-                    <span style="font-family: var(--font-mono); font-size: 0.65rem; padding: 4px 8px; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: bold;">
-                        LIVE_PRO
-                    </span>
+                    <div onclick="setMode('live')"
+                         style="cursor: pointer; flex: 1; padding: 10px; border-radius: 8px; border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--border-color)' }}; background: {{ 'rgba(16, 185, 129, 0.1)' if current_user.trading_mode == 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-family: var(--font-mono); font-size: 0.7rem; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: 800;">
+                                <i class="fas fa-bolt" style="margin-right: 6px;"></i> LIVE_PRO_ARMED
+                            </span>
+                            <div style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--success); background: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'transparent' }};"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <span id="mode-display" class="sys-tag {% if current_user.trading_mode == 'live' %}tag-live{% else %}tag-paper{% endif %}" style="border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--accent-blue)' }};">
@@ -569,8 +574,7 @@
         }
 
 
-        function updateTradingMode(isLive) {
-            const mode = isLive ? 'live' : 'paper';
+        function setMode(mode) {
             fetch('/api/update_mode', {
                 method: 'POST',
                 headers: {
@@ -582,17 +586,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    location.reload(); // Refresh to update the "Capital Auth" and WSS connections
+                    location.reload();
                 } else {
-                    alert("EXECUTION_BLOCK: " + data.message);
-                    document.getElementById('mode-toggle').checked = false;
+                    alert(data.message || "Execution blocked.");
                 }
             })
-            .catch(() => {
-                alert('Mode update failed. Please try again.');
-                const toggle = document.getElementById('mode-toggle');
-                if (toggle) toggle.checked = !isLive;
-            });
+            .catch(err => console.error("Mode update failed:", err));
         }
 
         // Updated for terminal aesthetic
