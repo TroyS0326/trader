@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from db import insert_trade_audit_log
 
 
 APPROVED_SCAN_TTL_SECONDS = 60 * 60 * 8  # 8 hours / trading day
