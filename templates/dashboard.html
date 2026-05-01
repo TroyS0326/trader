@@ -320,7 +320,7 @@
                 <div class="h-divider"></div>
                 <div class="h-metric">
                     <span class="h-label">Capital Auth</span>
-                    <span class="h-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
+                    <span class="h-value" id="capital-auth-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
@@ -579,13 +579,20 @@
                 body: JSON.stringify({ trading_mode: mode })
             })
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Success: Reload to apply new bankroll and API environment
-                    location.reload(); 
+            .then(result => {
+                if (result.status === 'success') {
+                    if (result.bankroll !== undefined) {
+                        const capitalEl = document.getElementById("capital-auth-value");
+                        if (capitalEl) {
+                            capitalEl.textContent = "$" + Number(result.bankroll).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
                 } else {
                     // Show error (e.g. "Pro Upgrade Required")
-                    alert(data.message || "Execution Error");
+                    alert(result.message || "Execution Error");
                 }
             })
             .catch(err => {
