@@ -160,16 +160,19 @@
                             <span style="color: var(--warning);">NOT_LINKED</span>
                         {% endif %}
                     </div>
-                    <div class="logic-desc">To switch to LIVE trading, you must authorize your Live Brokerage profile.</div>
+                    <div class="logic-desc">Connect your Alpaca brokerage account. Alpaca will ask you which account to authorize and then request permission.</div>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
-                        <i class="fas fa-broadcast-tower"></i> Connect Live Alpaca
+                    <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+                        <i class="fas fa-link"></i> Connect Broker
                     </a>
-                    <a href="{{ url_for('alpaca_login', env='paper') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
-                        <i class="fas fa-vial"></i> Connect Paper Alpaca
+
+                    {% if current_user.alpaca_access_token %}
+                    <a href="{{ url_for('alpaca_logout') }}" class="btn btn-secondary" style="font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">
+                        <i class="fas fa-unlink"></i> Disconnect
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
