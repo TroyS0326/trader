@@ -218,6 +218,8 @@ def audit_trade_log(
     }
 
     try:
+        from db import insert_trade_audit_log
+
         audit_id = insert_trade_audit_log(payload)
     except Exception as exc:
         audit_id = None
