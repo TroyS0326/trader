@@ -826,10 +826,18 @@ def sandbox_callback():
 @app.route('/alpaca/logout')
 @login_required
 def alpaca_logout():
+    current_user.alpaca_paper_access_token = None
+    current_user.alpaca_live_access_token = None
+    current_user.alpaca_paper_account_id = None
+    current_user.alpaca_live_account_id = None
+    current_user._alpaca_access_token = None
     current_user.alpaca_access_token = None
     current_user.alpaca_account_id = None
+    current_user.paper_bankroll = 0.0
+    current_user.live_bankroll = 0.0
+    current_user.bankroll = 0.0
     db.session.commit()
-    flash('Alpaca account disconnected.', 'success')
+    flash('Alpaca accounts disconnected.', 'success')
     return redirect(url_for('dashboard'))
 
 
