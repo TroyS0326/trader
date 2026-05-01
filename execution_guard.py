@@ -107,7 +107,7 @@ def validate_execution_against_approved_scan(
             "error": "LIVE_BLOCKED: User is not PRO.",
         }
 
-    if not getattr(user, "alpaca_access_token", None):
+    if not getattr(user, "alpaca_live_access_token", None):
         return {
             "ok": False,
             "status": 403,
