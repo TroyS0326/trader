@@ -94,35 +94,36 @@ def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
     Calculates dynamic sizing per user based on their specific risk tolerances
     before pushing to the Celery broker.
     """
-    active_users = User.query.filter_by(subscription_status='pro').all()
-    
-    for user in active_users:
-        risk_per_share = entry - stop
-        if risk_per_share <= 0:
-            continue
+    with _db_app.app_context():
+        active_users = User.query.filter_by(subscription_status='pro').all()
 
-        kelly_fraction = calculate_user_kelly_fraction(user.id)
+        for user in active_users:
+            risk_per_share = entry - stop
+            if risk_per_share <= 0:
+                continue
 
-        if kelly_fraction is None:
-            user_risk_pct = getattr(user, 'risk_pct', 1.0)
-            dollar_risk = user.bankroll * (user_risk_pct / 100.0)
-        elif kelly_fraction == 0:
-            continue
-        else:
-            dollar_risk = user.bankroll * kelly_fraction
+            kelly_fraction = calculate_user_kelly_fraction(user.id)
 
-        # Enforce maximum dollar risk cap
-        if dollar_risk > config.MAX_DOLLAR_LOSS_PER_TRADE:
-            dollar_risk = config.MAX_DOLLAR_LOSS_PER_TRADE
+            if kelly_fraction is None:
+                user_risk_pct = getattr(user, 'risk_pct', 1.0)
+                dollar_risk = user.bankroll * (user_risk_pct / 100.0)
+            elif kelly_fraction == 0:
+                continue
+            else:
+                dollar_risk = user.bankroll * kelly_fraction
 
-        qty = int(dollar_risk // risk_per_share)
+            # Enforce maximum dollar risk cap
+            if dollar_risk > config.MAX_DOLLAR_LOSS_PER_TRADE:
+                dollar_risk = config.MAX_DOLLAR_LOSS_PER_TRADE
 
-        if qty > 0:
-            execute_user_trade_task.delay(
-                user.id, scan_id, symbol, qty, entry, stop, target_1, target_2
-            )
+            qty = int(dollar_risk // risk_per_share)
 
-    print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
+            if qty > 0:
+                execute_user_trade_task.delay(
+                    user.id, scan_id, symbol, qty, entry, stop, target_1, target_2
+                )
+
+        print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
 
 
 def morning_pre_processing():
