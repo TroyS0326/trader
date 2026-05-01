@@ -706,10 +706,15 @@ def update_mode():
     current_user.trading_mode = new_mode
     db.session.commit()
 
-    # Re-sync bankroll immediately for the new mode
+    # Re-sync bankroll immediately for the selected environment
     fetch_and_sync_bankroll(current_user)
+    db.session.refresh(current_user)
 
-    return jsonify({'status': 'success', 'mode': current_user.trading_mode})
+    return jsonify({
+        'status': 'success',
+        'mode': current_user.trading_mode,
+        'bankroll': current_user.bankroll,
+    })
 
 
 @app.route('/alpaca/callback')
