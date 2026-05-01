@@ -568,37 +568,33 @@
         }
 
 
-        function setMode(mode) {
-            // Show a loading state if needed, then fetch
-            fetch('/api/update_mode', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token() }}" // Standard Flask-WTF CSRF
-                },
-                body: JSON.stringify({ trading_mode: mode })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status === 'success') {
-                    if (result.bankroll !== undefined) {
-                        const capitalEl = document.getElementById("capital-auth-value");
-                        if (capitalEl) {
-                            capitalEl.textContent = "$" + Number(result.bankroll).toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            });
-                        }
-                    }
-                } else {
-                    // Show error (e.g. "Pro Upgrade Required")
-                    alert(result.message || "Execution Error");
+        async function setMode(mode) {
+            try {
+                const response = await fetch('/api/update_mode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        trading_mode: mode
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.ok === false) {
+                    alert(result.message || result.error || 'Unable to switch trading mode.');
+                    return;
                 }
-            })
-            .catch(err => {
-                console.error("System Error updating mode:", err);
-                alert("CRITICAL_ERR: Mode change failed to reach server.");
-            });
+
+                // Reload so the server-rendered dashboard reflects the true saved mode.
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Mode switch failed:', error);
+                alert('Mode switch failed. Check server logs.');
+            }
         }
 
         // Updated for terminal aesthetic
