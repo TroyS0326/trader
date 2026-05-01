@@ -31,7 +31,7 @@ from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get
 from execution import start_engine
 from models import db
 from models import User, Waitlist
-from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed
+from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
@@ -708,42 +708,39 @@ def update_mode():
             'message': 'PRO_UPGRADE_REQUIRED: Live execution is a premium feature.'
         }), 403
 
-    # Ensure broker is connected for Live mode
-    if new_mode == 'live' and not current_user.alpaca_access_token:
+    # Ensure broker is connected for Paper mode
+    if new_mode == 'paper' and not current_user.alpaca_paper_access_token:
         return jsonify({
             'ok': False,
             'status': 'error',
-            'message': 'BROKER_LINK_REQUIRED: Re-link your account for LIVE in Settings.'
+            'message': 'PAPER_BROKER_LINK_REQUIRED: Connect your Alpaca Paper account first.'
+        }), 400
+
+    # Ensure broker is connected for Live mode
+    if new_mode == 'live' and not current_user.alpaca_live_access_token:
+        return jsonify({
+            'ok': False,
+            'status': 'error',
+            'message': 'LIVE_BROKER_LINK_REQUIRED: Connect your Alpaca Live account first.'
         }), 400
 
     # Save the mode FIRST. This is the most important part.
     current_user.trading_mode = new_mode
     db.session.commit()
 
-    bankroll_synced = False
-    bankroll_error = None
-
-    # Try to sync bankroll, but NEVER let bankroll sync break the Paper/Live switch.
     try:
         fetch_and_sync_bankroll(current_user)
         db.session.refresh(current_user)
-        bankroll_synced = True
     except Exception as exc:
-        bankroll_error = str(exc)
-        logger.error(
-            "Mode switched to %s for user %s, but bankroll sync failed: %s",
-            new_mode,
-            current_user.id,
-            bankroll_error,
-        )
+        logger.error("Mode switched but bankroll sync failed: %s", exc)
 
     return jsonify({
         'ok': True,
         'status': 'success',
         'mode': current_user.trading_mode,
         'bankroll': current_user.bankroll,
-        'bankroll_synced': bankroll_synced,
-        'bankroll_error': bankroll_error,
+        'paper_bankroll': current_user.paper_bankroll,
+        'live_bankroll': current_user.live_bankroll,
     })
 
 
@@ -792,12 +789,26 @@ def alpaca_callback():
 
         data = response.json()
         if 'access_token' in data:
-            current_user.alpaca_access_token = data['access_token']
-            current_user.alpaca_account_id = data.get('account_id')
-            verify_alpaca_data_feed(current_user)
-            fetch_and_sync_bankroll(current_user)
-            db.session.commit()
-            flash("Broker connected. You can now choose Paper or Live mode from the dashboard.", "success")
+            token = data['access_token']
+
+            connection_result = detect_and_store_alpaca_connection(current_user, token)
+
+            connected_parts = []
+            if connection_result.get("paper_connected"):
+                connected_parts.append("Paper")
+            if connection_result.get("live_connected"):
+                connected_parts.append("Live")
+
+            if connected_parts:
+                flash(
+                    f"Broker connected: {', '.join(connected_parts)} account(s) authorized.",
+                    "success"
+                )
+            else:
+                flash(
+                    "Alpaca authorized, but no Paper or Live trading account could be verified. Check Alpaca permissions.",
+                    "error"
+                )
         else:
             flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
     except Exception as e:
