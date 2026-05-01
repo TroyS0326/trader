@@ -836,6 +836,7 @@
 
                 if (!payload.ok) throw new Error(payload.error);
 
+                const latestScanId = payload.data.scan_id;
                 const best = payload.data.best_pick;
                 const watchPanel = best.watch_panel || {};
 
@@ -862,7 +863,7 @@
                             symbol: best.symbol,
                             qty: best.qty,
                             buy_upper: best.buy_upper,
-                            scan_id: payload.data.scan_id
+                            scan_id: latestScanId
                         };
 
                         if (best.score_total !== undefined) executePayload.score_total = best.score_total;
