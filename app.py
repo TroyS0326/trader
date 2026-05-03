@@ -845,16 +845,16 @@ def get_user_setup_checklist(user: User) -> dict:
     items = [
         {
             'field': 'onboarding_completed',
-            'label': 'Risk acknowledgment completed',
-            'short_label': 'Risk Acknowledgment',
-            'description': 'Accept risk protocols and initialize paper trading defaults.',
+            'label': 'Paper-mode risk setup completed',
+            'short_label': 'Paper Setup',
+            'description': 'Accept the trading risk acknowledgment, choose paper mode, and set your starting paper bankroll.',
             'completed': bool(user.onboarding_completed),
             'required': True,
             'optional': False,
             'url': url_for('onboarding'),
-            'action_label': 'Open Onboarding',
-            'completed_action_label': 'Open Again',
-            'completed_note': 'Risk acknowledgement and paper defaults are configured.',
+            'action_label': 'Start Paper Setup',
+            'completed_action_label': 'Review Paper Setup',
+            'completed_note': 'Paper-mode setup is complete. Your account starts in paper mode so you can test rules before broker-connected workflows.',
             'icon': 'fa-shield-halved',
         },
         {
@@ -921,7 +921,7 @@ def get_user_setup_checklist(user: User) -> dict:
             'completed': bool(user.broker_connection_started or user.alpaca_access_token),
             'required': False,
             'optional': True,
-            'url': url_for('settings'),
+            'url': url_for('onboarding'),
             'action_label': 'Connect Broker',
             'completed_action_label': 'Open Again',
             'completed_note': 'Broker connection is linked for optional live workflows.',
@@ -1091,13 +1091,20 @@ def stripe_webhook():
 @app.route('/onboarding', methods=['GET', 'POST'])
 @login_required
 def onboarding():
+    setup_checklist = get_user_setup_checklist(current_user)
+    broker_unlocked = setup_checklist['core_complete']
+
     if request.method == 'POST':
-        # Ensure the risk checkbox was checked
         if not request.form.get('risk_ack'):
-            flash('You must acknowledge the trading risks to proceed.', 'error')
+            flash('You must acknowledge the trading risk before continuing.', 'error')
             return redirect(url_for('onboarding'))
 
-        starting_bankroll = float(request.form.get('bankroll', 5000.0))
+        try:
+            starting_bankroll = float(request.form.get('bankroll', 5000.0))
+        except (TypeError, ValueError):
+            flash('Enter a valid starting paper bankroll amount.', 'error')
+            return redirect(url_for('onboarding'))
+
         current_user.trading_mode = 'paper'
         current_user.paper_bankroll = starting_bankroll
         current_user.bankroll = starting_bankroll
@@ -1106,10 +1113,15 @@ def onboarding():
         db.session.commit()
         track_user_event('onboarding_completed', user=current_user, context={'starting_bankroll': starting_bankroll})
 
-        flash('Risk protocols accepted. Welcome to the Command Center.', 'success')
+        flash('Paper-mode risk setup saved.', 'success')
         return redirect(url_for('setup_checklist'))
 
-    return render_template('onboarding.html', current_user=current_user)
+    return render_template(
+        'onboarding.html',
+        current_user=current_user,
+        setup_checklist=setup_checklist,
+        broker_unlocked=broker_unlocked,
+    )
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -1145,6 +1157,11 @@ def settings():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
+    setup_checklist = get_user_setup_checklist(current_user)
+    if not setup_checklist['core_complete']:
+        flash('Complete the core setup checklist before connecting a broker.', 'error')
+        return redirect(url_for('setup_checklist'))
+
     current_user.broker_connection_started = True
     db.session.commit()
     track_user_event('broker_connection_started', user=current_user)
