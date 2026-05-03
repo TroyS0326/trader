@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
-<body style="background:#040711; color:var(--text-main);">
+<body style="background:#040711; color:var(--text-main); min-height:100vh; display:flex; flex-direction:column;">
 {% include 'nav.html' %}
-<main style="max-width:980px; margin:1.5rem auto 2.5rem; padding:0 1rem;">
+<main style="max-width:980px; margin:1.5rem auto 2.5rem; padding:0 1rem; flex:1;">
     <section style="background:rgba(15,23,42,0.86); border:1px solid var(--border-color); border-radius:14px; padding:1.2rem 1.1rem; margin-bottom:1rem;">
         <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:center;">
             <div>
@@ -70,5 +70,6 @@ async function markSetupChecklistStep(step) {
     }
 }
 </script>
+{% include 'footer.html' %}
 </body>
 </html>
