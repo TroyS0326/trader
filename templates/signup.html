@@ -223,6 +223,34 @@
             font-size: 0.85rem;
             text-align: center;
         }
+        .agreement-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 0.5rem 0 1rem;
+            padding: 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(2, 6, 23, 0.75);
+        }
+        .agreement-row input[type="checkbox"] {
+            margin-top: 0.25rem;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .agreement-label {
+            margin: 0;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+        .agreement-label a {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
 
         @media (max-width: 850px) {
             .auth-terminal-wide { flex-direction: column; max-width: 450px; }
@@ -289,7 +317,7 @@
                     {% endif %}
                 {% endwith %}
 
-                <form method="POST" action="{{ url_for('signup') }}">
+                <form method="POST" action="{{ url_for('signup', plan=request.args.get('plan')) if request.args.get('plan') else url_for('signup') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="input-group">
@@ -307,6 +335,13 @@
                         <input type="password" id="password" name="password" class="auth-input" required placeholder="••••••••••••" autocomplete="new-password">
                     </div>
 
+                    <div class="agreement-row">
+                        <input type="checkbox" id="tos_agreement" name="tos_agreement" value="1" required>
+                        <label for="tos_agreement" class="agreement-label">
+                            I understand and agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>. I also understand that XeanVI provides trading automation software, not financial advice, and that trading involves significant risk, including possible loss of capital.
+                        </label>
+                    </div>
+
                     <button type="submit" class="btn-auth">
                         Start Your PRO Setup <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
@@ -314,8 +349,8 @@
 
                 <div class="security-badge">
                     <div>
-                        <i class="fas fa-lock" style="color: var(--success); margin-right: 5px;" aria-hidden="true"></i> By signing up, you agree to our <a href="/terms" style="color: var(--text-main); text-decoration: underline;">Terms</a> and <a href="/privacy" style="color: var(--text-main); text-decoration: underline;">Privacy Policy</a>.<br>
-                        <span style="display: block; margin-top: 8px; font-size: 0.75rem; opacity: 0.8;">XeanVI provides automation software, not financial advice. Trading involves significant risk.</span>
+                        <i class="fas fa-shield-alt" style="color: var(--success); margin-right: 5px;" aria-hidden="true"></i>
+                        Your account setup is protected with CSRF safeguards and secure password handling. Always protect your credentials and use strong, unique passwords.
                     </div>
                 </div>
 
