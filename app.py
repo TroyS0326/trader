@@ -32,7 +32,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import User, Waitlist
+from models import User, UserEvent, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
 from watchlist import watchlist_manager
@@ -107,6 +107,7 @@ sock = Sock(app)
 logger = logging.getLogger(__name__)
 stripe.api_key = config.STRIPE_SECRET_KEY
 redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'), decode_responses=True)
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '').strip().lower()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -427,6 +428,20 @@ def ensure_schema_migrations() -> None:
 
 ensure_db_initialized()
 
+def track_user_event(event_name: str, user: User = None, context: dict = None) -> None:
+    try:
+        event = UserEvent(
+            user_id=getattr(user, 'id', None),
+            event_name=event_name,
+            event_context=json.dumps(context or {}),
+        )
+        db.session.add(event)
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        logger.warning('Failed to track user event %s: %s', event_name, exc)
+
+
 def order_outcome_from_payload(order: dict) -> str:
     status = (order.get('status') or '').lower()
     if order.get('strategy') == 'target1_then_trailing_runner':
@@ -463,8 +478,10 @@ def order_outcome_from_payload(order: dict) -> str:
 
 @app.route('/')
 def index():
-    # 1. If you are logged in, you always go to the dashboard
     if current_user.is_authenticated:
+        setup_checklist = get_user_setup_checklist(current_user)
+        if setup_checklist['core_complete']:
+            return redirect(url_for('dashboard'))
         return redirect(url_for('setup_checklist'))
 
     # 2. Check for the secret session flag
@@ -576,6 +593,7 @@ def signup():
         )
         db.session.add(new_user)
         db.session.commit()
+        track_user_event('signup_completed', user=new_user, context={'plan': intended_plan or ''})
         add_signup_user_to_brevo(new_user)
         login_user(new_user)
 
@@ -926,6 +944,7 @@ def get_user_setup_checklist(user: User) -> dict:
 @app.route('/setup-checklist')
 @login_required
 def setup_checklist():
+    track_user_event('setup_checklist_viewed', user=current_user)
     checklist = get_user_setup_checklist(current_user)
     return render_template('setup_checklist.html', current_user=current_user, setup_checklist=checklist)
 
@@ -934,6 +953,7 @@ def setup_checklist():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    track_user_event('dashboard_viewed', user=current_user)
     # Clean, quiet entry into the command center
     latest_regime = trade_db.get_current_market_regime() or {}
     market_regime_status = (latest_regime.get('regime_status') or 'normal').lower()
@@ -949,6 +969,7 @@ def dashboard():
 @app.route('/upgrade')
 @login_required
 def upgrade():
+    track_user_event('upgrade_page_viewed', user=current_user)
     # If they are already PRO, don't let them buy it again!
     if current_user.subscription_status == 'pro':
         flash("You are already a PRO member. Your automation tools are unlocked.", "success")
@@ -975,6 +996,7 @@ def create_checkout_session():
         return redirect(url_for('upgrade'))
 
     try:
+        track_user_event('checkout_started', user=current_user, context={'plan': plan})
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
             client_reference_id=str(current_user.id),
@@ -1007,6 +1029,7 @@ def checkout_redirect():
         return redirect(url_for('upgrade'))
 
     try:
+        track_user_event('checkout_started', user=current_user, context={'plan': plan, 'source': 'checkout_redirect'})
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
             client_reference_id=str(current_user.id),
@@ -1081,6 +1104,7 @@ def onboarding():
         current_user.onboarding_completed = True
         current_user.paper_bankroll_set = starting_bankroll > 0
         db.session.commit()
+        track_user_event('onboarding_completed', user=current_user, context={'starting_bankroll': starting_bankroll})
 
         flash('Risk protocols accepted. Welcome to the Command Center.', 'success')
         return redirect(url_for('setup_checklist'))
@@ -1123,6 +1147,7 @@ def settings():
 def alpaca_login():
     current_user.broker_connection_started = True
     db.session.commit()
+    track_user_event('broker_connection_started', user=current_user)
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
 
@@ -1155,7 +1180,22 @@ def api_setup_checklist_mark():
 
     setattr(current_user, step, True)
     db.session.commit()
+    if step == 'first_scan_completed':
+        track_user_event('first_scan_completed', user=current_user)
     return ok({'step': step, 'setup_checklist': get_user_setup_checklist(current_user)})
+
+
+
+
+@app.route('/api/admin/conversion-summary')
+@login_required
+def api_admin_conversion_summary():
+    if not ADMIN_EMAIL or (current_user.email or '').strip().lower() != ADMIN_EMAIL:
+        return fail('Forbidden', 403)
+
+    rows = db.session.query(UserEvent.event_name, db.func.count(UserEvent.id)).group_by(UserEvent.event_name).all()
+    counts = {event_name: count for event_name, count in rows}
+    return ok({'counts': counts})
 
 
 @app.route('/api/update_mode', methods=['POST'])
