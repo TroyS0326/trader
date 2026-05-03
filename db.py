@@ -307,10 +307,16 @@ def insert_trade(trade_data: Dict[str, Any]) -> int:
         order_status=trade_data.get('order_status'),
         filled_avg_price=trade_data.get('filled_avg_price'),
         filled_qty=trade_data.get('filled_qty'),
+        exit_price=trade_data.get('exit_price'),
+        pnl=trade_data.get('pnl'),
+        pnl_source=trade_data.get('pnl_source'),
+        closed_at=trade_data.get('closed_at'),
         outcome=trade_data.get('outcome'),
         notes=trade_data.get('notes'),
         raw_json=json.dumps(trade_data.get('raw_json', {})),
     )
+    maybe_store_realized_pnl(trade)
+
     db.session.add(trade)
     db.session.commit()
     return trade.id
@@ -326,6 +332,10 @@ def update_trade_status(order_id: str, updates: Dict[str, Any]) -> None:
         'status',
         'filled_avg_price',
         'filled_qty',
+        'exit_price',
+        'pnl',
+        'pnl_source',
+        'closed_at',
         'outcome',
         'notes',
         'raw_json',
@@ -343,6 +353,8 @@ def update_trade_status(order_id: str, updates: Dict[str, Any]) -> None:
         if key == 'raw_json':
             value = json.dumps(value) if isinstance(value, dict) else value
         setattr(trade, key, value)
+
+    maybe_store_realized_pnl(trade)
 
     trade.updated_at = utc_now()
     db.session.commit()
