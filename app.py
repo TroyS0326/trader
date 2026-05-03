@@ -143,6 +143,156 @@ def fail(message: str, status: int = 400, **extras):
     return jsonify(payload), status
 
 
+PASSWORD_RESET_SALT = 'xeanvi-password-reset'
+
+
+def get_password_reset_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+
+def password_hash_fingerprint(user: User) -> str:
+    """
+    Makes password reset tokens automatically invalid after the password changes.
+    This avoids needing a separate password_reset_tokens database table.
+    """
+    return hashlib.sha256(user.password_hash.encode('utf-8')).hexdigest()[:24]
+
+
+def generate_password_reset_token(user: User) -> str:
+    serializer = get_password_reset_serializer()
+
+    payload = {
+        'user_id': user.id,
+        'email': user.email,
+        'pwd': password_hash_fingerprint(user),
+    }
+
+    return serializer.dumps(payload, salt=PASSWORD_RESET_SALT)
+
+
+def verify_password_reset_token(token: str):
+    serializer = get_password_reset_serializer()
+    max_age = getattr(config, 'PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS', 3600)
+
+    try:
+        data = serializer.loads(
+            token,
+            salt=PASSWORD_RESET_SALT,
+            max_age=max_age,
+        )
+    except SignatureExpired:
+        logger.warning('Expired password reset token used.')
+        return None
+    except BadSignature:
+        logger.warning('Invalid password reset token used.')
+        return None
+    except Exception as exc:
+        logger.error('Password reset token verification failed: %s', exc)
+        return None
+
+    user_id = data.get('user_id')
+    email = data.get('email')
+    pwd_fingerprint = data.get('pwd')
+
+    if not user_id or not email or not pwd_fingerprint:
+        return None
+
+    user = User.query.get(int(user_id))
+
+    if not user:
+        return None
+
+    if user.email != email:
+        return None
+
+    if password_hash_fingerprint(user) != pwd_fingerprint:
+        return None
+
+    return user
+
+
+def build_password_reset_url(user: User) -> str:
+    token = generate_password_reset_token(user)
+    base_url = getattr(config, 'APP_BASE_URL', 'https://xeanvi.com').rstrip('/')
+    return f'{base_url}{url_for("reset_password_with_token", token=token)}'
+
+
+def send_password_reset_email(user: User, reset_url: str) -> bool:
+    """
+    Sends a Brevo transactional password reset email using a saved Brevo template.
+    Required env vars:
+      BREVO_API_KEY
+      BREVO_RESET_PASSWORD_TEMPLATE_ID
+      BREVO_SENDER_EMAIL
+      BREVO_SENDER_NAME
+    """
+    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
+    template_id = getattr(config, 'BREVO_RESET_PASSWORD_TEMPLATE_ID', None) or os.getenv('BREVO_RESET_PASSWORD_TEMPLATE_ID')
+
+    if not api_key:
+        logger.error('BREVO_API_KEY is missing. Password reset email not sent.')
+        return False
+
+    if not template_id:
+        logger.error('BREVO_RESET_PASSWORD_TEMPLATE_ID is missing. Password reset email not sent.')
+        return False
+
+    try:
+        template_id = int(template_id)
+    except ValueError:
+        logger.error('BREVO_RESET_PASSWORD_TEMPLATE_ID must be a number.')
+        return False
+
+    full_name = (user.full_name or '').strip()
+    first_name = full_name.split(' ')[0] if full_name else 'there'
+
+    payload = {
+        'sender': {
+            'name': getattr(config, 'BREVO_SENDER_NAME', 'XeanVI Security'),
+            'email': getattr(config, 'BREVO_SENDER_EMAIL', 'support@xeanvi.com'),
+        },
+        'to': [
+            {
+                'email': user.email,
+                'name': full_name or user.email,
+            }
+        ],
+        'templateId': template_id,
+        'params': {
+            'first_name': first_name,
+            'reset_url': reset_url,
+            'expires_minutes': int(getattr(config, 'PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS', 3600) / 60),
+            'support_email': getattr(config, 'BREVO_SENDER_EMAIL', 'support@xeanvi.com'),
+        },
+        'tags': ['password-reset'],
+    }
+
+    headers = {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': api_key,
+    }
+
+    try:
+        response = requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            json=payload,
+            headers=headers,
+            timeout=15,
+        )
+
+        if response.status_code in [200, 201, 202]:
+            logger.info('Password reset email sent to user_id=%s', user.id)
+            return True
+
+        logger.error('Brevo password reset email failed: %s %s', response.status_code, response.text)
+        return False
+
+    except Exception as exc:
+        logger.error('Brevo password reset email exception: %s', exc)
+        return False
+
+
 def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
     inspector = inspect(db.engine)
