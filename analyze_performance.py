@@ -13,6 +13,7 @@ from models import db, Trade
 
 BASE_DIR = Path(__file__).resolve().parent
 REPORT_PATH = BASE_DIR / "static" / "performance_report.json"
+MIN_PUBLIC_PERFORMANCE_TRADES = int(os.getenv("MIN_PUBLIC_PERFORMANCE_TRADES", "25"))
 
 
 def create_report_app() -> Flask:
@@ -35,6 +36,9 @@ def empty_report(message: str, total_db_trades: int = 0) -> Dict[str, Any]:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": "real_database_pnl_column",
         "message": message,
+        "public_report_ready": False,
+        "minimum_public_trades": MIN_PUBLIC_PERFORMANCE_TRADES,
+        "public_status": "building_sample_size",
         "total_db_trades": total_db_trades,
         "total_trades": 0,
         "included_realized_trades": 0,
@@ -118,6 +122,7 @@ def calculate_metrics(trades: List[Trade], total_db_trades: int) -> Dict[str, An
     net_profit = round(sum(pnls), 2)
 
     total_trades = len(rows)
+    public_report_ready = total_trades >= MIN_PUBLIC_PERFORMANCE_TRADES
     win_rate = round((len(winners) / total_trades) * 100, 2) if total_trades else 0.0
 
     if gross_loss > 0:
@@ -150,6 +155,9 @@ def calculate_metrics(trades: List[Trade], total_db_trades: int) -> Dict[str, An
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": "real_database_pnl_column",
         "message": "Performance report generated from saved realized P&L in the trades table.",
+        "public_report_ready": public_report_ready,
+        "minimum_public_trades": MIN_PUBLIC_PERFORMANCE_TRADES,
+        "public_status": "ready" if public_report_ready else "building_sample_size",
         "total_db_trades": total_db_trades,
         "total_trades": total_trades,
         "included_realized_trades": total_trades,
