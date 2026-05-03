@@ -57,6 +57,13 @@ STRIPE_PRICE_ID_ANNUAL = os.getenv('STRIPE_PRICE_ID_ANNUAL')
 BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 BREVO_LIST_ID = int(os.getenv('BREVO_LIST_ID', '5'))
 
+# Password reset email settings
+APP_BASE_URL = os.getenv('APP_BASE_URL', 'https://xeanvi.com').rstrip('/')
+BREVO_RESET_PASSWORD_TEMPLATE_ID = os.getenv('BREVO_RESET_PASSWORD_TEMPLATE_ID')
+BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'support@xeanvi.com')
+BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'XeanVI Security')
+PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS = int(os.getenv('PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS', '3600'))
+
 DB_PATH = str(BASE_DIR / 'veteran_trades.db')
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
 WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
