@@ -137,6 +137,7 @@ class User(UserMixin, db.Model):
     paper_bankroll_set = db.Column(db.Boolean, nullable=False, default=False)
     first_scan_completed = db.Column(db.Boolean, nullable=False, default=False)
     playbook_reviewed = db.Column(db.Boolean, nullable=False, default=False)
+    transparency_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     broker_connection_started = db.Column(db.Boolean, nullable=False, default=False)
 
     def _decrypt_token_value(self, encrypted_value: Optional[str]) -> Optional[str]:

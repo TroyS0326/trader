@@ -353,6 +353,9 @@ def ensure_schema_migrations() -> None:
             if 'playbook_reviewed' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
 
+            if 'transparency_reviewed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN transparency_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+
             if 'broker_connection_started' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
 
@@ -737,13 +740,17 @@ def learn_topic(topic):
 def transparency():
     # In a fully fleshed-out app, you might pass dynamic backtest stats here
     # from your analyze_performance.py script. For now, we render the hub.
+    if current_user.is_authenticated and not current_user.transparency_reviewed:
+        current_user.transparency_reviewed = True
+        db.session.commit()
     return render_template('transparency.html', current_user=current_user)
 
 
 @app.route('/transparency/reviewed', methods=['POST'])
 @login_required
 def transparency_reviewed():
-    session[f"transparency_reviewed:{current_user.id}"] = True
+    current_user.transparency_reviewed = True
+    db.session.commit()
     return ok({'tracked': True})
 
 
@@ -766,33 +773,89 @@ def logout():
     return redirect(url_for('login'))
 
 
+
+def get_user_setup_checklist(user: User) -> dict:
+    items = [
+        {
+            'field': 'onboarding_completed',
+            'label': 'Risk acknowledgment completed',
+            'completed': bool(user.onboarding_completed),
+            'required': True,
+            'optional': False,
+            'action_label': 'Go to Onboarding',
+            'url': url_for('onboarding'),
+        },
+        {
+            'field': 'paper_bankroll_set',
+            'label': 'Paper bankroll configured',
+            'completed': bool(user.paper_bankroll_set or (user.paper_bankroll or 0) > 0),
+            'required': True,
+            'optional': False,
+            'action_label': 'Open Settings',
+            'url': url_for('settings'),
+        },
+        {
+            'field': 'playbook_reviewed',
+            'label': 'Trading Playbook reviewed',
+            'completed': bool(user.playbook_reviewed),
+            'required': True,
+            'optional': False,
+            'action_label': 'Review Playbook',
+            'url': url_for('playbook'),
+        },
+        {
+            'field': 'first_scan_completed',
+            'label': 'First paper scan completed',
+            'completed': bool(user.first_scan_completed),
+            'required': True,
+            'optional': False,
+            'action_label': 'Run Paper Scan',
+            'url': None,
+        },
+        {
+            'field': 'transparency_reviewed',
+            'label': 'Transparency rules reviewed',
+            'completed': bool(user.transparency_reviewed),
+            'required': True,
+            'optional': False,
+            'action_label': 'View Transparency',
+            'url': url_for('transparency'),
+        },
+        {
+            'field': 'broker_connection_started',
+            'label': 'Broker connection optional',
+            'completed': bool(user.broker_connection_started or user.alpaca_access_token),
+            'required': False,
+            'optional': True,
+            'action_label': 'Connect Broker',
+            'url': url_for('settings'),
+        },
+    ]
+    total_required = sum(1 for item in items if item['required'])
+    completed_required = sum(1 for item in items if item['required'] and item['completed'])
+    percent_complete = int(round((completed_required / total_required) * 100)) if total_required else 0
+    core_complete = completed_required == total_required
+    return {
+        'items': items,
+        'completed_required': completed_required,
+        'total_required': total_required,
+        'percent_complete': percent_complete,
+        'core_complete': core_complete,
+    }
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     # Clean, quiet entry into the command center
     latest_regime = trade_db.get_current_market_regime() or {}
     market_regime_status = (latest_regime.get('regime_status') or 'normal').lower()
-    checklist = {
-        'onboarding_completed': bool(current_user.onboarding_completed),
-        'paper_bankroll_set': bool(current_user.paper_bankroll_set or (current_user.paper_bankroll or 0) > 0),
-        'playbook_reviewed': bool(current_user.playbook_reviewed),
-        'first_scan_completed': bool(current_user.first_scan_completed),
-        'transparency_reviewed': bool(session.get(f"transparency_reviewed:{current_user.id}", False)),
-        'broker_connection_started': bool(current_user.broker_connection_started or current_user.alpaca_access_token),
-    }
-    setup_completed = all([
-        checklist['onboarding_completed'],
-        checklist['paper_bankroll_set'],
-        checklist['playbook_reviewed'],
-        checklist['first_scan_completed'],
-        checklist['transparency_reviewed'],
-    ])
+    checklist = get_user_setup_checklist(current_user)
     return render_template(
         'dashboard.html',
         current_user=current_user,
         market_regime_status=market_regime_status,
         setup_checklist=checklist,
-        setup_completed=setup_completed,
     )
 
 
@@ -986,6 +1049,26 @@ def alpaca_login():
 
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
     return redirect(alpaca_auth_url)
+
+
+
+@app.route('/api/setup-checklist/mark', methods=['POST'])
+@login_required
+def api_setup_checklist_mark():
+    data = request.get_json(silent=True) or {}
+    step = data.get('step')
+    allowed_steps = {
+        'playbook_reviewed',
+        'first_scan_completed',
+        'transparency_reviewed',
+        'broker_connection_started',
+    }
+    if step not in allowed_steps:
+        return fail('Invalid setup checklist step.', 400)
+
+    setattr(current_user, step, True)
+    db.session.commit()
+    return ok({'step': step, 'setup_checklist': get_user_setup_checklist(current_user)})
 
 
 @app.route('/api/update_mode', methods=['POST'])
