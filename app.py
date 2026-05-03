@@ -293,6 +293,56 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
         return False
 
 
+def add_signup_user_to_brevo(user):
+    if not getattr(config, 'BREVO_WELCOME_TEMPLATE_ENABLED', False):
+        logger.info('Brevo signup automation disabled; skipping user_id=%s', user.id)
+        return
+
+    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
+    list_id = getattr(config, 'BREVO_SIGNUP_LIST_ID', 0)
+
+    if not api_key:
+        logger.error('Brevo signup automation skipped: missing BREVO_API_KEY for user_id=%s', user.id)
+        return
+
+    if not list_id:
+        logger.error('Brevo signup automation skipped: missing BREVO_SIGNUP_LIST_ID for user_id=%s', user.id)
+        return
+
+    full_name = (user.full_name or '').strip()
+    first_name = full_name.split(' ')[0] if full_name else ''
+
+    payload = {
+        'email': user.email,
+        'attributes': {
+            'FIRSTNAME': first_name,
+            'FULLNAME': full_name or user.email,
+            'SUBSCRIPTION_STATUS': user.subscription_status or 'free',
+            'SIGNUP_SOURCE': 'xeanvi_signup',
+        },
+        'listIds': [list_id],
+        'updateEnabled': True,
+    }
+
+    headers = {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': api_key,
+    }
+
+    try:
+        response = requests.post('https://api.brevo.com/v3/contacts', json=payload, headers=headers, timeout=15)
+
+        if response.status_code in [200, 201, 204]:
+            logger.info('Brevo signup automation success for user_id=%s email=%s list_id=%s', user.id, user.email, list_id)
+            return
+
+        logger.error('Brevo signup automation failed for user_id=%s status=%s response=%s', user.id, response.status_code, response.text)
+    except Exception as exc:
+        logger.error('Brevo signup automation exception for user_id=%s: %s', user.id, exc)
+
+
+
 def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
     inspector = inspect(db.engine)
@@ -528,6 +578,7 @@ def signup():
         )
         db.session.add(new_user)
         db.session.commit()
+        add_signup_user_to_brevo(new_user)
         login_user(new_user)
 
         # REDIRECT LOGIC: If they chose a plan, send them to upgrade first
