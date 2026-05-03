@@ -524,6 +524,75 @@ def login():
 
 
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+@app.route('/reset_password', methods=['GET', 'POST'])
+@limiter.limit("5 per hour")
+def forgot_password():
+    """
+    Step 1:
+    User enters email.
+    If account exists, send password reset email.
+    Always show the same response to avoid exposing whether an email exists.
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip().lower()
+
+        if email:
+            user = User.query.filter_by(email=email).first()
+
+            if user:
+                reset_url = build_password_reset_url(user)
+                send_password_reset_email(user, reset_url)
+
+        flash(
+            'If that email exists in our system, a password reset link has been sent.',
+            'success',
+        )
+        return redirect(url_for('forgot_password'))
+
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit("10 per hour")
+def reset_password_with_token(token):
+    """
+    Step 2:
+    User clicks secure email link and sets a new password.
+    """
+    if current_user.is_authenticated:
+        logout_user()
+
+    user = verify_password_reset_token(token)
+
+    if not user:
+        flash('That password reset link is invalid or expired. Please request a new one.', 'error')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+
+        if len(password) < 8:
+            flash('Your new password must be at least 8 characters long.', 'error')
+            return redirect(url_for('reset_password_with_token', token=token))
+
+        if password != confirm_password:
+            flash('Passwords do not match. Please try again.', 'error')
+            return redirect(url_for('reset_password_with_token', token=token))
+
+        user.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        db.session.commit()
+
+        flash('Your password has been updated. You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
+
+
 @app.route('/features')
 def features():
     return render_template('features.html')
