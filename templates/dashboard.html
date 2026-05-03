@@ -242,16 +242,9 @@
                 font-size: 0.95rem;
             }
 
-            .setup-card { margin: 1.25rem 2rem 0; background: rgba(15, 23, 42, 0.86); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.25rem; }
-        .setup-card-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
-        .setup-card-head h2 { margin:0; font-size:1.1rem; }
-        .setup-card-head span { font-family: var(--font-mono); color: var(--accent-blue); font-size: 0.8rem; }
-        .setup-copy { color: var(--text-muted); margin: 0.5rem 0 0.75rem; font-size: 0.9rem; }
-        .setup-list { list-style:none; padding:0; margin:0; display:grid; gap:0.6rem; }
-        .setup-list li { display:flex; justify-content:space-between; gap:0.8rem; align-items:center; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:0.55rem 0.75rem; background: rgba(2, 6, 23, 0.7); }
-        .setup-list a, .setup-link-btn { color: var(--accent-blue); background:none; border:0; cursor:pointer; font-size:0.85rem; font-weight:700; text-decoration:none; }
-        .setup-list li.optional { border-style: dashed; opacity: 0.92; }
-        .setup-list li em { color: var(--text-muted); font-style: normal; font-size: 0.72rem; margin-left: 0.35rem; }
+            .setup-banner { margin: 1rem 0 0.5rem; padding: 0.75rem 0.9rem; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; background: rgba(30, 41, 59, 0.55); display:flex; justify-content:space-between; align-items:center; gap:0.8rem; flex-wrap:wrap; }
+            .setup-banner p { margin:0; color: var(--text-muted); font-size: 0.82rem; }
+            .setup-banner a { color: var(--accent-blue); font-weight:700; text-decoration:none; font-size: 0.82rem; }
 
         .header-actions {
                 width: 100%;
@@ -397,32 +390,12 @@
         </div>
 
     <div class="workspace">
-
-        <section class="setup-card" aria-label="XeanVI Setup Checklist">
-            <div class="setup-card-head">
-                <h2>First-Run Setup Checklist</h2>
-                <span>{{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }})</span>
-            </div>
-            {% if setup_checklist.core_complete %}
-                <p class="setup-copy">Core setup is complete. Keep paper-mode execution, user-defined rules, risk controls, and transparent reporting active while you evaluate broker-connected workflows.</p>
-            {% else %}
-                <p class="setup-copy">Complete these paper-first steps to lock in user-defined rules, risk controls, and transparent reporting before enabling broker-connected workflows.</p>
-                <ul class="setup-list">
-                    {% for item in setup_checklist.items %}
-                        <li class="{{ 'optional' if item.optional else '' }}">
-                            <span>{{ '✅' if item.completed else '⬜' }} {{ item.label }} {% if item.optional %}<em>(OPTIONAL)</em>{% endif %}</span>
-                            {% if item.field == 'first_scan_completed' %}
-                                <button type="button" class="setup-link-btn" onclick="startScanner()">{{ item.action_label }}</button>
-                            {% elif item.field in ['playbook_reviewed', 'transparency_reviewed', 'broker_connection_started'] %}
-                                <a href="{{ item.url }}" onclick="markSetupChecklistStep('{{ item.field }}')">{{ item.action_label }}</a>
-                            {% else %}
-                                <a href="{{ item.url }}">{{ item.action_label }}</a>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+        {% if setup_checklist and not setup_checklist.core_complete %}
+        <section class="setup-banner" aria-label="Setup checklist reminder">
+            <p>Setup incomplete: {{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}). Finish setup tasks before live workflow.</p>
+            <a href="{{ url_for('setup_checklist') }}">Open Setup Checklist →</a>
         </section>
+        {% endif %}
 
         <div class="top-row">
             <div class="control-panel">

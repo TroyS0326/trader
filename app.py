@@ -465,7 +465,7 @@ def order_outcome_from_payload(order: dict) -> str:
 def index():
     # 1. If you are logged in, you always go to the dashboard
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('setup_checklist'))
 
     # 2. Check for the secret session flag
     if session.get('dev_access'):
@@ -828,56 +828,86 @@ def get_user_setup_checklist(user: User) -> dict:
         {
             'field': 'onboarding_completed',
             'label': 'Risk acknowledgment completed',
+            'short_label': 'Risk Acknowledgment',
+            'description': 'Accept risk protocols and initialize paper trading defaults.',
             'completed': bool(user.onboarding_completed),
             'required': True,
             'optional': False,
-            'action_label': 'Go to Onboarding',
             'url': url_for('onboarding'),
+            'action_label': 'Open Onboarding',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Risk acknowledgement and paper defaults are configured.',
+            'icon': 'fa-shield-halved',
         },
         {
             'field': 'paper_bankroll_set',
             'label': 'Paper bankroll configured',
+            'short_label': 'Paper Bankroll',
+            'description': 'Set your paper bankroll and risk sizing baseline in settings.',
             'completed': bool(user.paper_bankroll_set or (user.paper_bankroll or 0) > 0),
             'required': True,
             'optional': False,
-            'action_label': 'Open Settings',
             'url': url_for('settings'),
+            'action_label': 'Open Settings',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Paper bankroll baseline is set for risk controls.',
+            'icon': 'fa-wallet',
         },
         {
             'field': 'playbook_reviewed',
-            'label': 'Trading Playbook reviewed',
+            'label': 'Trading playbook reviewed',
+            'short_label': 'Playbook',
+            'description': 'Review the user-defined rules that govern signal and execution behavior.',
             'completed': bool(user.playbook_reviewed),
             'required': True,
             'optional': False,
-            'action_label': 'Review Playbook',
             'url': url_for('playbook'),
+            'action_label': 'Review Playbook',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Playbook has been reviewed and acknowledged.',
+            'icon': 'fa-book-open',
         },
         {
             'field': 'first_scan_completed',
             'label': 'First paper scan completed',
+            'short_label': 'First Scan',
+            'description': 'Run one paper scan to validate scanner output and workflow readiness.',
             'completed': bool(user.first_scan_completed),
             'required': True,
             'optional': False,
-            'action_label': 'Run Paper Scan',
-            'url': None,
+            'url': url_for('dashboard'),
+            'action_label': 'Open Scanner',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Initial paper scan is complete.',
+            'icon': 'fa-radar',
         },
         {
             'field': 'transparency_reviewed',
             'label': 'Transparency rules reviewed',
+            'short_label': 'Transparency',
+            'description': 'Review model logic, safeguards, and reporting transparency rules.',
             'completed': bool(user.transparency_reviewed),
             'required': True,
             'optional': False,
-            'action_label': 'View Transparency',
             'url': url_for('transparency'),
+            'action_label': 'View Transparency',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Transparency rules have been reviewed.',
+            'icon': 'fa-circle-info',
         },
         {
             'field': 'broker_connection_started',
             'label': 'Broker connection optional',
+            'short_label': 'Broker Connection',
+            'description': 'Optionally connect your broker after core paper workflow is complete.',
             'completed': bool(user.broker_connection_started or user.alpaca_access_token),
             'required': False,
             'optional': True,
-            'action_label': 'Connect Broker',
             'url': url_for('settings'),
+            'action_label': 'Connect Broker',
+            'completed_action_label': 'Open Again',
+            'completed_note': 'Broker connection is linked for optional live workflows.',
+            'icon': 'fa-link',
         },
     ]
     total_required = sum(1 for item in items if item['required'])
@@ -891,6 +921,14 @@ def get_user_setup_checklist(user: User) -> dict:
         'percent_complete': percent_complete,
         'core_complete': core_complete,
     }
+
+
+@app.route('/setup-checklist')
+@login_required
+def setup_checklist():
+    checklist = get_user_setup_checklist(current_user)
+    return render_template('setup_checklist.html', current_user=current_user, setup_checklist=checklist)
+
 
 
 @app.route('/dashboard')
@@ -1045,7 +1083,7 @@ def onboarding():
         db.session.commit()
 
         flash('Risk protocols accepted. Welcome to the Command Center.', 'success')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('setup_checklist'))
 
     return render_template('onboarding.html', current_user=current_user)
 
