@@ -299,3 +299,12 @@ class MarketRegime(db.Model):
     spy_trend = db.Column(db.String(50), nullable=True)
     regime_status = db.Column(db.String(50), nullable=True)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class UserEvent(db.Model):
+    __tablename__ = 'user_events'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    event_name = db.Column(db.String(80), nullable=False, index=True)
+    event_context = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
