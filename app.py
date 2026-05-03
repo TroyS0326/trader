@@ -294,20 +294,16 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
 
 
 def add_signup_user_to_brevo(user):
-    if not getattr(config, 'BREVO_WELCOME_TEMPLATE_ENABLED', False):
-        logger.info('Brevo signup automation disabled; skipping user_id=%s', user.id)
-        return
-
     api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
     list_id = getattr(config, 'BREVO_SIGNUP_LIST_ID', 0)
 
     if not api_key:
         logger.error('Brevo signup automation skipped: missing BREVO_API_KEY for user_id=%s', user.id)
-        return
+        return False
 
     if not list_id:
         logger.error('Brevo signup automation skipped: missing BREVO_SIGNUP_LIST_ID for user_id=%s', user.id)
-        return
+        return False
 
     full_name = (user.full_name or '').strip()
     first_name = full_name.split(' ')[0] if full_name else ''
@@ -316,7 +312,7 @@ def add_signup_user_to_brevo(user):
         'email': user.email,
         'attributes': {
             'FIRSTNAME': first_name,
-            'FULLNAME': full_name or user.email,
+            'FULLNAME': user.full_name or '',
             'SUBSCRIPTION_STATUS': user.subscription_status or 'free',
             'SIGNUP_SOURCE': 'xeanvi_signup',
         },
@@ -335,11 +331,13 @@ def add_signup_user_to_brevo(user):
 
         if response.status_code in [200, 201, 204]:
             logger.info('Brevo signup automation success for user_id=%s email=%s list_id=%s', user.id, user.email, list_id)
-            return
+            return True
 
         logger.error('Brevo signup automation failed for user_id=%s status=%s response=%s', user.id, response.status_code, response.text)
+        return False
     except Exception as exc:
         logger.error('Brevo signup automation exception for user_id=%s: %s', user.id, exc)
+        return False
 
 
 
