@@ -635,7 +635,8 @@ def sitemap_xml():
         'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
         'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
         'learn', 'learn_topic', 'transparency', 'join_waitlist',
-        'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback'
+        'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback',
+        'forgot_password', 'reset_password_with_token',
     ]
 
     # Use 'https' and your actual domain for the sitemap links
