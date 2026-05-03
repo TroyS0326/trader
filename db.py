@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime, time, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
@@ -30,6 +31,234 @@ def _model_to_dict(obj) -> Dict[str, Any]:
         else:
             data[column.name] = val
     return data
+
+
+CLOSED_TRADE_OUTCOMES = {
+    'win',
+    'loss',
+    'stopped_out',
+    'target_hit',
+    'target1_hit',
+    'target2_hit',
+    'closed',
+    'breakeven_or_small_win',
+}
+
+NON_REALIZED_TRADE_STATES = {
+    'open',
+    'pending',
+    'working',
+    'working_or_filled',
+    'new',
+    'accepted',
+    'partially_filled',
+    'rejected',
+    'failed',
+    'canceled',
+    'cancelled',
+    'expired',
+    'done_for_day',
+}
+
+PNL_KEYS = {
+    'pnl',
+    'realized_pnl',
+    'realized_pl',
+    'realized_profit',
+    'profit_loss',
+    'net_pnl',
+    'net_profit',
+    'pl',
+}
+
+EXIT_PRICE_KEYS = {
+    'exit_price',
+    'close_price',
+    'closed_price',
+    'average_exit_price',
+    'filled_exit_price',
+    'sell_price',
+}
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if not math.isfinite(result):
+        return None
+
+    return result
+
+
+def _load_json_payload(value: Any) -> Any:
+    if not value:
+        return {}
+
+    if isinstance(value, (dict, list)):
+        return value
+
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+
+    return {}
+
+
+def _find_numeric_key(obj: Any, keys: set[str]) -> Optional[float]:
+    """
+    Recursively searches nested raw_json for a numeric value matching one of the requested keys.
+    """
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if str(key).lower() in keys:
+                numeric = _safe_float(value)
+                if numeric is not None:
+                    return numeric
+
+        for value in obj.values():
+            found = _find_numeric_key(value, keys)
+            if found is not None:
+                return found
+
+    elif isinstance(obj, list):
+        for item in obj:
+            found = _find_numeric_key(item, keys)
+            if found is not None:
+                return found
+
+    return None
+
+
+def _trade_state(trade: Trade) -> str:
+    return (
+        getattr(trade, 'outcome', None)
+        or getattr(trade, 'status', None)
+        or getattr(trade, 'order_status', None)
+        or ''
+    ).strip().lower()
+
+
+def calculate_realized_trade_pnl(trade: Trade) -> Optional[Dict[str, Any]]:
+    """
+    Calculates realized P&L for a completed trade.
+
+    Priority:
+    1. Use direct raw_json realized P&L if present.
+    2. Use raw_json exit price if present.
+    3. Fall back to stop/target based on completed outcome.
+
+    Returns None when the trade is not complete or does not have enough data.
+    """
+    raw_payload = _load_json_payload(getattr(trade, 'raw_json', None))
+
+    raw_pnl = _find_numeric_key(raw_payload, PNL_KEYS)
+    raw_exit_price = _find_numeric_key(raw_payload, EXIT_PRICE_KEYS)
+
+    if raw_pnl is not None:
+        return {
+            'pnl': round(raw_pnl, 2),
+            'exit_price': raw_exit_price,
+            'pnl_source': 'raw_json_realized_pnl',
+            'closed_at': utc_now(),
+        }
+
+    state = _trade_state(trade)
+
+    if not state or state in NON_REALIZED_TRADE_STATES:
+        return None
+
+    if state not in CLOSED_TRADE_OUTCOMES:
+        return None
+
+    qty = _safe_float(getattr(trade, 'filled_qty', None)) or _safe_float(getattr(trade, 'qty', None))
+    entry_price = _safe_float(getattr(trade, 'filled_avg_price', None)) or _safe_float(getattr(trade, 'entry_price', None))
+
+    if qty is None or qty <= 0:
+        return None
+
+    if entry_price is None or entry_price <= 0:
+        return None
+
+    side = (getattr(trade, 'side', None) or 'buy').strip().lower()
+    direction = -1 if side in {'sell', 'short'} else 1
+
+    exit_price = raw_exit_price
+    pnl_source = 'estimated_from_exit_price'
+
+    if exit_price is None:
+        if state in {'loss', 'stopped_out'}:
+            exit_price = _safe_float(getattr(trade, 'stop_price', None))
+            pnl_source = 'estimated_from_stop_price'
+
+        elif state in {'win', 'target_hit', 'target2_hit', 'closed'}:
+            exit_price = (
+                _safe_float(getattr(trade, 'target_2', None))
+                or _safe_float(getattr(trade, 'target_1', None))
+            )
+            pnl_source = 'estimated_from_target_price'
+
+        elif state in {'target1_hit'}:
+            exit_price = _safe_float(getattr(trade, 'target_1', None))
+            pnl_source = 'estimated_from_target_1'
+
+        elif state == 'breakeven_or_small_win':
+            target_1 = _safe_float(getattr(trade, 'target_1', None))
+
+            if target_1 is None:
+                return {
+                    'pnl': 0.0,
+                    'exit_price': entry_price,
+                    'pnl_source': 'estimated_breakeven',
+                    'closed_at': utc_now(),
+                }
+
+            half_qty = qty / 2
+            pnl = (target_1 - entry_price) * half_qty * direction
+
+            return {
+                'pnl': round(pnl, 2),
+                'exit_price': entry_price,
+                'pnl_source': 'estimated_half_target_1_half_breakeven',
+                'closed_at': utc_now(),
+            }
+
+    if exit_price is None or exit_price <= 0:
+        return None
+
+    pnl = (exit_price - entry_price) * qty * direction
+
+    return {
+        'pnl': round(pnl, 2),
+        'exit_price': round(exit_price, 4),
+        'pnl_source': pnl_source,
+        'closed_at': utc_now(),
+    }
+
+
+def maybe_store_realized_pnl(trade: Trade) -> None:
+    """
+    Stores realized P&L once, when enough completed trade information exists.
+    """
+    if getattr(trade, 'pnl', None) is not None:
+        return
+
+    pnl_data = calculate_realized_trade_pnl(trade)
+
+    if not pnl_data:
+        return
+
+    trade.pnl = pnl_data.get('pnl')
+    trade.exit_price = pnl_data.get('exit_price')
+    trade.pnl_source = pnl_data.get('pnl_source')
+    trade.closed_at = pnl_data.get('closed_at') or utc_now()
 
 
 def insert_scan(payload: Dict[str, Any]) -> int:
