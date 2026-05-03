@@ -11,10 +11,25 @@
 <body class="auth-body">
 {% include 'nav.html' %}
 
-<main style="max-width: 760px; margin: 2.5rem auto; padding: 0 1rem;">
-    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem;">
-        <h1 style="margin: 0 0 0.5rem;">Paper-Mode Risk Setup</h1>
-        <p style="margin: 0 0 1.25rem; color: var(--text-muted);">Start in paper mode first. Set your starting paper bankroll and acknowledge the trading risk before using the terminal.</p>
+<main style="max-width: 760px; margin: 2.5rem auto; padding: 0 1rem; display:grid; gap:1rem;">
+    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
+        <h1 style="margin: 0 0 0.5rem;">Connect Alpaca Paper Account</h1>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">XeanVI uses Alpaca’s paper trading environment for paper-mode order routing. Connect your Alpaca paper account first so the system can place and monitor paper orders before any live workflow is considered.</p>
+
+        {% if current_user.alpaca_paper_access_token or current_user.alpaca_paper_account_id %}
+            <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Paper account connected.</p>
+            <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">Continue to paper bankroll/risk setup below.</p>
+        {% else %}
+            {% include 'partials/alpaca_authorization_disclosure.html' %}
+            <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="margin-top: 1rem; display: inline-flex;">
+                <i class="fas fa-link"></i>&nbsp;Connect Alpaca Paper Account
+            </a>
+        {% endif %}
+    </section>
+
+    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
+        <h2 style="margin: 0 0 0.5rem;">Set Paper Bankroll and Risk Acknowledgment</h2>
+        <p style="margin: 0 0 1.25rem; color: var(--text-muted);">Set your starting paper bankroll and acknowledge that trading risk remains with user-defined settings and broker-connected workflows.</p>
 
         <form action="{{ url_for('onboarding') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -26,29 +41,12 @@
 
             <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom: 1.2rem;">
                 <input type="checkbox" id="risk_ack" name="risk_ack" required style="margin-top:4px;">
-                <label for="risk_ack" style="font-size: 0.9rem; color: var(--text-main); text-transform:none; letter-spacing:0;">I understand trading risk remains and accept responsibility for my user-defined settings and order-routing workflows.</label>
+                <label for="risk_ack" style="font-size: 0.9rem; color: var(--text-main); text-transform:none; letter-spacing:0;">I understand trading risk remains and accept responsibility for my user-defined settings and paper-mode order-routing workflows.</label>
             </div>
 
             <button type="submit" class="btn btn-primary">Save Paper Setup</button>
         </form>
     </section>
-
-    {% if broker_unlocked %}
-    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem;">
-        <h2 style="margin: 0 0 0.5rem;">Broker Connection Unlocked</h2>
-        <p style="margin: 0 0 1rem; color: var(--text-muted);">You completed the core setup checklist. You can now connect a supported Alpaca account if you choose.</p>
-
-        {% if current_user.alpaca_access_token %}
-            <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Alpaca account connected.</p>
-            <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">Broker-connected workflows are available for your account.</p>
-        {% else %}
-            {% include 'partials/alpaca_authorization_disclosure.html' %}
-            <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="margin-top: 1rem; display: inline-flex;">
-                <i class="fas fa-link"></i>&nbsp;Connect Alpaca
-            </a>
-        {% endif %}
-    </section>
-    {% endif %}
 
     <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
         <a href="{{ url_for('setup_checklist') }}" class="btn btn-secondary">Back to Setup Checklist</a>

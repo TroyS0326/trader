@@ -841,6 +841,14 @@ def logout():
 
 
 
+def user_has_alpaca_paper_connection(user: User) -> bool:
+    return bool(
+        getattr(user, 'alpaca_paper_account_id', None)
+        or getattr(user, 'alpaca_paper_access_token', None)
+        or getattr(user, 'alpaca_access_token', None)
+    )
+
+
 def get_user_setup_checklist(user: User) -> dict:
     items = [
         {
@@ -914,18 +922,18 @@ def get_user_setup_checklist(user: User) -> dict:
             'icon': 'fa-circle-info',
         },
         {
-            'field': 'broker_connection_started',
-            'label': 'Broker connection optional',
-            'short_label': 'Broker Connection',
-            'description': 'Optionally connect your broker after core paper workflow is complete.',
-            'completed': bool(user.broker_connection_started or user.alpaca_access_token),
-            'required': False,
-            'optional': True,
+            'field': 'alpaca_paper_connected',
+            'label': 'Alpaca paper account connected',
+            'short_label': 'Alpaca Paper',
+            'description': 'Connect your Alpaca paper account so XeanVI can route paper-mode orders through Alpaca’s paper trading environment.',
+            'completed': user_has_alpaca_paper_connection(user) or bool(user.broker_connection_started and getattr(user, 'alpaca_paper_account_id', None)),
+            'required': True,
+            'optional': False,
             'url': url_for('onboarding'),
-            'action_label': 'Connect Broker',
-            'completed_action_label': 'Open Again',
-            'completed_note': 'Broker connection is linked for optional live workflows.',
-            'icon': 'fa-link',
+            'action_label': 'Connect Alpaca Paper',
+            'completed_action_label': 'Review Connection',
+            'completed_note': 'Your Alpaca paper account is connected. Paper-mode order routing can now use Alpaca’s paper trading environment.',
+            'icon': 'fa-plug',
         },
     ]
     total_required = sum(1 for item in items if item['required'])
@@ -1092,7 +1100,6 @@ def stripe_webhook():
 @login_required
 def onboarding():
     setup_checklist = get_user_setup_checklist(current_user)
-    broker_unlocked = setup_checklist['core_complete']
 
     if request.method == 'POST':
         if not request.form.get('risk_ack'):
@@ -1120,7 +1127,6 @@ def onboarding():
         'onboarding.html',
         current_user=current_user,
         setup_checklist=setup_checklist,
-        broker_unlocked=broker_unlocked,
     )
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -1158,9 +1164,9 @@ def settings():
 @login_required
 def alpaca_login():
     setup_checklist = get_user_setup_checklist(current_user)
-    if not setup_checklist['core_complete']:
-        flash('Complete the core setup checklist before connecting a broker.', 'error')
-        return redirect(url_for('setup_checklist'))
+    if not current_user.onboarding_completed:
+        flash('Complete onboarding before connecting your Alpaca paper account.', 'error')
+        return redirect(url_for('onboarding'))
 
     current_user.broker_connection_started = True
     db.session.commit()
@@ -1174,6 +1180,7 @@ def alpaca_login():
         'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
         'scope': 'trading',
         'state': oauth_state,
+        'env': 'paper',
     }
 
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
@@ -1237,7 +1244,7 @@ def update_mode():
         }), 403
 
     # Ensure broker is connected for Paper mode
-    if new_mode == 'paper' and not current_user.alpaca_paper_access_token:
+    if new_mode == 'paper' and not user_has_alpaca_paper_connection(current_user):
         return jsonify({
             'ok': False,
             'status': 'error',
@@ -1478,6 +1485,9 @@ def api_execute():
     missing = [k for k in required if k not in data]
     if missing:
         return fail(f'Missing fields: {", ".join(missing)}')
+
+    if not user_has_alpaca_paper_connection(current_user):
+        return fail('Connect your Alpaca paper account before routing paper orders.', 400)
 
     failed_today = get_failed_trades_today()
     if failed_today >= config.MAX_FAILED_TRADES_PER_DAY:
