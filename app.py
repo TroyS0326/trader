@@ -1173,6 +1173,8 @@ def alpaca_login():
     track_user_event('broker_connection_started', user=current_user)
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
+    session['alpaca_oauth_user_id'] = current_user.id
+    session['alpaca_oauth_env'] = 'paper'
 
     params = {
         'response_type': 'code',
@@ -1294,6 +1296,13 @@ def alpaca_callback():
         flash("Authorization failed.", "error")
         return redirect(url_for('settings'))
 
+    if session.get('alpaca_oauth_user_id') != current_user.id:
+        flash('Your Alpaca connection session expired or changed. Please try again.', 'error')
+        session.pop('oauth_state', None)
+        session.pop('alpaca_oauth_user_id', None)
+        session.pop('alpaca_oauth_env', None)
+        return redirect(url_for('onboarding'))
+
     # Use the centralized OAuth token endpoint
     token_url = "https://api.alpaca.markets/oauth/token"
     payload = {
@@ -1325,6 +1334,9 @@ def alpaca_callback():
         data = response.json()
         if 'access_token' in data:
             token = data['access_token']
+            session.pop('oauth_state', None)
+            session.pop('alpaca_oauth_user_id', None)
+            session.pop('alpaca_oauth_env', None)
 
             connection_result = detect_and_store_alpaca_connection(current_user, token)
 

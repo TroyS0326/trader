@@ -20,6 +20,15 @@
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Paper account connected.</p>
             <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">Continue to paper bankroll/risk setup below.</p>
         {% else %}
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 193, 7, 0.12); border: 1px solid rgba(255, 193, 7, 0.45); border-radius: 8px;">
+                <strong style="display: block; margin-bottom: 0.4rem; color: var(--text-main);">Already logged into the wrong Alpaca account?</strong>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem; line-height: 1.45;">
+                    Alpaca may skip the login screen if you are already signed into Alpaca in this browser. To connect a different Alpaca account, log out of Alpaca first or use a private/incognito window.
+                </p>
+                <a href="https://app.alpaca.markets/logout" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="margin-top: 0.75rem; display: inline-flex;">
+                    Open Alpaca Logout
+                </a>
+            </div>
             {% include 'partials/alpaca_authorization_disclosure.html' %}
             <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="margin-top: 1rem; display: inline-flex;">
                 <i class="fas fa-link"></i>&nbsp;Connect Alpaca Paper Account
