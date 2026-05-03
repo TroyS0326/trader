@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>Terminal | XeanVI Execution Engine</title>
     <meta name="description" content="Access your XeanVI trading terminal. Monitor live market scans, manage algorithmic risk, and track automated trade execution in real-time.">
@@ -249,6 +250,8 @@
         .setup-list { list-style:none; padding:0; margin:0; display:grid; gap:0.6rem; }
         .setup-list li { display:flex; justify-content:space-between; gap:0.8rem; align-items:center; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:0.55rem 0.75rem; background: rgba(2, 6, 23, 0.7); }
         .setup-list a, .setup-link-btn { color: var(--accent-blue); background:none; border:0; cursor:pointer; font-size:0.85rem; font-weight:700; text-decoration:none; }
+        .setup-list li.optional { border-style: dashed; opacity: 0.92; }
+        .setup-list li em { color: var(--text-muted); font-style: normal; font-size: 0.72rem; margin-left: 0.35rem; }
 
         .header-actions {
                 width: 100%;
@@ -392,29 +395,34 @@
             </div>
             </div>
         </div>
-    </div>
-
-    </div>
-
-    {% if not setup_completed %}
-    <section class="setup-card" aria-label="XeanVI Setup Checklist">
-        <div class="setup-card-head">
-            <h2>XeanVI Setup Checklist</h2>
-            <span>{{ ([setup_checklist.onboarding_completed, setup_checklist.paper_bankroll_set, setup_checklist.playbook_reviewed, setup_checklist.first_scan_completed, setup_checklist.transparency_reviewed]|select('equalto', True)|list|length) }}/5 core steps complete</span>
-        </div>
-        <p class="setup-copy">Use paper-mode testing with user-defined rules before enabling broker-connected workflows. Keep risk controls active and review transparent reporting after enough completed trades exist.</p>
-        <ul class="setup-list">
-            <li><span>{{ '✅' if setup_checklist.onboarding_completed else '⬜' }} Risk acknowledgment completed</span><a href="{{ url_for('onboarding') }}">Go to Onboarding</a></li>
-            <li><span>{{ '✅' if setup_checklist.paper_bankroll_set else '⬜' }} Paper bankroll configured</span><a href="{{ url_for('settings') }}">Open Settings</a></li>
-            <li><span>{{ '✅' if setup_checklist.playbook_reviewed else '⬜' }} Trading Playbook reviewed</span><a href="{{ url_for('playbook') }}">Review Playbook</a></li>
-            <li><span>{{ '✅' if setup_checklist.first_scan_completed else '⬜' }} First paper scan completed</span><button type="button" class="setup-link-btn" onclick="startScanner()">Run Paper Scan</button></li>
-            <li><span>{{ '✅' if setup_checklist.transparency_reviewed else '⬜' }} Transparency rules reviewed</span><a href="{{ url_for('transparency') }}" onclick="markTransparencyReviewed()">View Transparency</a></li>
-            <li><span>{{ '✅' if setup_checklist.broker_connection_started else '⬜' }} Broker connection optional</span><a href="{{ url_for('settings') }}">Connect Broker</a></li>
-        </ul>
-    </section>
-    {% endif %}
 
     <div class="workspace">
+
+        <section class="setup-card" aria-label="XeanVI Setup Checklist">
+            <div class="setup-card-head">
+                <h2>First-Run Setup Checklist</h2>
+                <span>{{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }})</span>
+            </div>
+            {% if setup_checklist.core_complete %}
+                <p class="setup-copy">Core setup is complete. Keep paper-mode execution, user-defined rules, risk controls, and transparent reporting active while you evaluate broker-connected workflows.</p>
+            {% else %}
+                <p class="setup-copy">Complete these paper-first steps to lock in user-defined rules, risk controls, and transparent reporting before enabling broker-connected workflows.</p>
+                <ul class="setup-list">
+                    {% for item in setup_checklist.items %}
+                        <li class="{{ 'optional' if item.optional else '' }}">
+                            <span>{{ '✅' if item.completed else '⬜' }} {{ item.label }} {% if item.optional %}<em>(OPTIONAL)</em>{% endif %}</span>
+                            {% if item.field == 'first_scan_completed' %}
+                                <button type="button" class="setup-link-btn" onclick="startScanner()">{{ item.action_label }}</button>
+                            {% elif item.field in ['playbook_reviewed', 'transparency_reviewed', 'broker_connection_started'] %}
+                                <a href="{{ item.url }}" onclick="markSetupChecklistStep('{{ item.field }}')">{{ item.action_label }}</a>
+                            {% else %}
+                                <a href="{{ item.url }}">{{ item.action_label }}</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
 
         <div class="top-row">
             <div class="control-panel">
@@ -572,7 +580,7 @@
     </div>
 
     <script>
-        const csrfToken = "{{ csrf_token() }}";
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const chartState = { chart: null, series: null };
         const state = { ws: null };
         const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
@@ -852,11 +860,15 @@
         }
 
         // MAIN EXECUTION
-        async function markTransparencyReviewed() {
+        async function markSetupChecklistStep(step) {
             try {
-                await fetch('/transparency/reviewed', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } });
+                await fetch('/api/setup-checklist/mark', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ step })
+                });
             } catch (err) {
-                console.warn('Transparency review tracking failed', err);
+                console.warn('Setup checklist tracking failed', err);
             }
         }
 
@@ -903,6 +915,7 @@
                 renderWatchlist(payload.data.watchlist || []);
 
                 document.getElementById('data-panels').style.display = 'grid';
+                markSetupChecklistStep('first_scan_completed');
 
                 // EXECUTION TRIGGER
                 if (best.decision === 'CRITERIA MET') {
