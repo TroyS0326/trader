@@ -41,7 +41,7 @@
                     {% endif %}
                 </div>
                 {% if item.url %}
-                <a href="{{ item.url }}" {% if item.field in ['playbook_reviewed', 'transparency_reviewed', 'broker_connection_started'] %}onclick="markSetupChecklistStep('{{ item.field }}')"{% endif %} style="text-decoration:none; border:1px solid rgba(56,189,248,0.45); border-radius:8px; padding:0.45rem 0.75rem; color:var(--accent-blue); font-weight:700; font-size:0.8rem;">
+                <a href="{{ item.url }}" {% if item.field in ['playbook_reviewed', 'transparency_reviewed'] %}onclick="markSetupChecklistStep('{{ item.field }}')"{% endif %} style="text-decoration:none; border:1px solid rgba(56,189,248,0.45); border-radius:8px; padding:0.45rem 0.75rem; color:var(--accent-blue); font-weight:700; font-size:0.8rem;">
                     {{ item.completed_action_label if item.completed else item.action_label }}
                 </a>
                 {% endif %}
