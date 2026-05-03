@@ -3,171 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-    <title>Account Setup | XeanVI AI Trading Configuration</title>
-    <meta name="description" content="Configure your XeanVI command center. Securely link your brokerage, set your trading bankroll, and initialize your algorithmic risk profile.">
-
+    <title>Paper-Mode Setup | XeanVI</title>
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <meta name="author" content="XeanVI">
-    <link rel="canonical" href="https://xeanvi.com/onboarding">
-
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="XeanVI | Account Initialization">
-    <meta property="og:description" content="Complete your algorithmic trading profile to access the command center.">
-    <meta property="og:image" content="{{ url_for('static', filename='seo-secure-icon.jpg', _external=True) }}">
-
-    <meta name="theme-color" content="#0f172a">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .wizard-container { max-width: 600px; margin: 4rem auto; padding: 2rem; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        .wizard-header { text-align: center; margin-bottom: 2rem; }
-        .progress-bar { display: flex; justify-content: space-between; margin-bottom: 2rem; position: relative; }
-        .progress-bar::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: var(--border-color); z-index: 0; }
-        .step-indicator { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-main); border: 2px solid var(--border-color); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; z-index: 1; transition: all 0.3s; }
-        .step-indicator.active { border-color: var(--accent-blue); background: var(--accent-blue); color: white; box-shadow: 0 0 10px var(--accent-glow); }
-        .step-indicator.completed { border-color: var(--success); background: var(--success); color: white; }
-
-        .wizard-step { display: none; animation: fadeIn 0.4s; }
-        .wizard-step.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .step-title { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main); }
-        .step-desc { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5; }
-
-        .btn-wizard { width: 100%; padding: 1rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; transition: all 0.2s; text-align: center; display: block; }
-        .btn-next { background: var(--text-main); color: var(--bg-main); margin-top: 1.5rem; }
-        .btn-next:hover { background: white; transform: translateY(-2px); }
-    </style>
 </head>
 <body class="auth-body">
-
 {% include 'nav.html' %}
 
-    <a href="/" class="logo" style="display: block; text-align: center; margin-top: 2rem;">Xean<span>VI</span></a>
+<main style="max-width: 760px; margin: 2.5rem auto; padding: 0 1rem;">
+    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem;">
+        <h1 style="margin: 0 0 0.5rem;">Paper-Mode Risk Setup</h1>
+        <p style="margin: 0 0 1.25rem; color: var(--text-muted);">Start in paper mode first. Set your starting paper bankroll and acknowledge the trading risk before using the terminal.</p>
 
-    <div class="wizard-container">
-        <div class="progress-bar">
-            <div class="step-indicator active" id="ind-1">1</div>
-            <div class="step-indicator" id="ind-2">2</div>
-            <div class="step-indicator" id="ind-3">3</div>
-        </div>
-
-        <div class="wizard-step active" id="step-1">
-            <h2 class="step-title">Link Your Broker</h2>
-            <p class="step-desc">XeanVI needs a secure connection to your brokerage to execute trades automatically. We use strict OAuth integration—we never see your banking details or passwords.</p>
-
-            {% if current_user.alpaca_access_token %}
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 1.5rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem;">
-                    <i class="fas fa-check-circle" style="color: var(--success); font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <h3 style="color: var(--success); margin-bottom: 0.5rem;">Broker Connected</h3>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Your Alpaca account is securely linked.</p>
-                </div>
-                <button class="btn-wizard btn-next" onclick="nextStep(2)">Continue to Risk Profile</button>
-            {% else %}
-                <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 2rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem;">
-                    <i class="fas fa-university" style="color: var(--text-muted); font-size: 2.5rem; margin-bottom: 1rem;"></i>
-                    <h3 style="margin-bottom: 1rem;">Alpaca Securities</h3>
-                    <a href="/alpaca/login" class="btn-wizard" style="background: var(--success); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">Connect Securely</a>
-
-                    <div style="margin-top: 1.5rem; text-align: left; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                        <strong style="color: var(--text-main); display: block; margin-bottom: 5px;">Authorize XeanVI</strong>
-                        By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that XeanVI will work as advertised or expected. Before authorizing, <a href="/features" style="color: var(--accent-blue);">learn more about XeanVI</a>.
-                    </div>
-
-                    <div style="margin-top: 1rem; text-align: left; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px dashed var(--border-color);">
-                        <h5 style="margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--accent-blue);">
-                            <i class="fas fa-lightbulb"></i> Quick Start: How to find your keys
-                        </h5>
-                        <ol style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.5;">
-                            <li>Log in to your <a href="https://app.alpaca.markets/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue);">Alpaca Dashboard</a>.</li>
-                            <li>On the right sidebar, click <strong>"Generate New Keys"</strong>.</li>
-                            <li>Copy the <strong>API Key ID</strong> and <strong>Secret Key</strong>.</li>
-                            <li style="color: var(--warning);"><em>Important:</em> Save your Secret Key immediately; it won't be shown again!</li>
-                        </ol>
-                    </div>
-                </div>
-                <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">Don't have an Alpaca account? <a href="https://alpaca.markets" target="_blank" style="color: var(--accent-blue);">Create one for free</a>.</p>
-            {% endif %}
-        </div>
-
-        <form action="/onboarding" method="POST" id="onboarding-form">
+        <form action="{{ url_for('onboarding') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-            <div class="wizard-step" id="step-2">
-                <h2 class="step-title">Set Your Bankroll</h2>
-                <p class="step-desc">How much capital are you allocating to the XeanVI system? The AI uses this number to automatically calculate safe position sizes for every trade.</p>
-
-                <div class="input-group">
-                    <label>Daily Bankroll Limit (USD)</label>
-                    <div style="position: relative;">
-                        <span style="position: absolute; left: 15px; top: 15px; color: var(--text-muted); font-weight: bold; font-size: 1.1rem;">$</span>
-                        <input type="number" name="bankroll" class="auth-input" value="5000" style="padding-left: 35px; font-weight: bold; font-size: 1.2rem;" required>
-                    </div>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;"><i class="fas fa-shield-alt"></i> Safe Mode: We recommend starting with $5,000 in Paper Trading mode to test the waters.</p>
-                </div>
-
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" class="btn-wizard" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);" onclick="prevStep(1)">Back</button>
-                    <button type="button" class="btn-wizard btn-next" style="margin-top: 0;" onclick="nextStep(3)">Review & Finish</button>
-                </div>
+            <div class="input-group" style="margin-bottom: 1rem;">
+                <label for="bankroll">Starting Paper Bankroll (USD)</label>
+                <input id="bankroll" type="number" name="bankroll" class="auth-input" min="0" step="0.01" value="{{ current_user.paper_bankroll or current_user.bankroll or 5000 }}" required>
             </div>
 
-            <div class="wizard-step" id="step-3">
-                <h2 class="step-title">Initialization Complete</h2>
-                <p class="step-desc">Your command center is ready. By default, your account is locked into <strong>Paper Trading</strong> mode.</p>
-
-                <div style="background: var(--bg-main); border: 1px solid var(--accent-blue); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
-                    <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> Best Practices</h4>
-                    <ul style="color: var(--text-muted); font-size: 0.9rem; margin-left: 1rem; line-height: 1.6;">
-                        <li>Run the Morning Scan daily between 9:00 AM and 9:30 AM EST.</li>
-                        <li>Let the bot take at least 20 paper trades to verify your broker latency.</li>
-                        <li>You can switch to Live Real-Money trading in the Settings panel at any time.</li>
-                    </ul>
-                </div>
-
-                <div class="config-panel" style="margin-top: 2rem; border-color: var(--warning);">
-                    <div class="panel-title" style="color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> Final Risk Acknowledgment</div>
-                    <div style="display: flex; align-items: flex-start; gap: 12px; margin-top: 1rem;">
-                        <input type="checkbox" id="risk_ack" name="risk_ack" required style="margin-top: 5px;">
-                        <label for="risk_ack" style="font-size: 0.85rem; color: var(--text-main); text-transform: none; letter-spacing: 0;">
-                            I understand that XeanVI is an automated execution tool. I accept full responsibility for all trades executed via my connected Alpaca account and acknowledge the risks associated with algorithmic trading.
-                        </label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-wizard" style="background: var(--accent-blue); color: white; box-shadow: 0 4px 15px var(--accent-glow);">Enter Command Center</button>
+            <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom: 1.2rem;">
+                <input type="checkbox" id="risk_ack" name="risk_ack" required style="margin-top:4px;">
+                <label for="risk_ack" style="font-size: 0.9rem; color: var(--text-main); text-transform:none; letter-spacing:0;">I understand trading risk remains and accept responsibility for my user-defined settings and order-routing workflows.</label>
             </div>
+
+            <button type="submit" class="btn btn-primary">Save Paper Setup</button>
         </form>
-    </div>
+    </section>
 
-    {% include 'footer.html' %}
+    {% if broker_unlocked %}
+    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem;">
+        <h2 style="margin: 0 0 0.5rem;">Broker Connection Unlocked</h2>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">You completed the core setup checklist. You can now connect a supported Alpaca account if you choose.</p>
 
-    <script>
-        // Simple JS to handle the step transitions
-        function nextStep(stepNum) {
-            document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + stepNum).classList.add('active');
-
-            document.getElementById('ind-' + (stepNum - 1)).classList.remove('active');
-            document.getElementById('ind-' + (stepNum - 1)).classList.add('completed');
-            document.getElementById('ind-' + stepNum).classList.add('active');
-        }
-
-        function prevStep(stepNum) {
-            document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + stepNum).classList.add('active');
-
-            document.getElementById('ind-' + (stepNum + 1)).classList.remove('active');
-            document.getElementById('ind-' + stepNum).classList.remove('completed');
-            document.getElementById('ind-' + stepNum).classList.add('active');
-        }
-
-        // Auto-advance to step 2 if they return from Alpaca OAuth with a token
         {% if current_user.alpaca_access_token %}
-            // Wait a brief moment so the user sees the "Success" screen before advancing
-            setTimeout(() => { nextStep(2); }, 1500);
+            <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Alpaca account connected.</p>
+            <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">Broker-connected workflows are available for your account.</p>
+        {% else %}
+            {% include 'partials/alpaca_authorization_disclosure.html' %}
+            <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="margin-top: 1rem; display: inline-flex;">
+                <i class="fas fa-link"></i>&nbsp;Connect Alpaca
+            </a>
         {% endif %}
-    </script>
-    </body>
+    </section>
+    {% endif %}
+
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <a href="{{ url_for('setup_checklist') }}" class="btn btn-secondary">Back to Setup Checklist</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Go to Dashboard</a>
+    </div>
+</main>
+
+{% include 'footer.html' %}
+</body>
 </html>

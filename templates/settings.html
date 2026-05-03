@@ -133,7 +133,7 @@
         <div style="margin-bottom: 2rem;">
             <div class="sys-tag" style="display: inline-block; margin-bottom: 10px;">SYS_CONFIG</div>
             <h1 style="font-size: 2rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Account Configuration</h1>
-            <p style="color: var(--text-muted); font-size: 1rem;">Manage broker authorization and logic exclusion parameters.</p>
+            <p style="color: var(--text-muted); font-size: 1rem;">Manage risk, filters, bankroll, and display preferences. Broker authorization is handled from onboarding.</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -160,17 +160,18 @@
                             <span style="color: var(--warning);">NOT_LINKED</span>
                         {% endif %}
                     </div>
-                    <div class="logic-desc">Connect your Alpaca brokerage account. Alpaca will ask you which account to authorize and then request permission.</div>
+                    <div class="logic-desc">Broker status is shown here. Broker authorization is available in onboarding once core checklist steps are complete.</div>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <a href="{{ url_for('alpaca_login') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
-                        <i class="fas fa-link"></i> Connect Broker
-                    </a>
-
                     {% if current_user.alpaca_access_token %}
                     <a href="{{ url_for('alpaca_logout') }}" class="btn btn-secondary" style="font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">
                         <i class="fas fa-unlink"></i> Disconnect
+                    </a>
+                    {% else %}
+                    <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 350px;">Broker connection is managed through onboarding after your core checklist is complete.</div>
+                    <a href="{{ url_for('onboarding') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+                        <i class="fas fa-route"></i> Open Onboarding
                     </a>
                     {% endif %}
                 </div>
