@@ -258,6 +258,13 @@ class Trade(db.Model):
     order_status = db.Column(db.String(32), nullable=True)
     filled_avg_price = db.Column(db.Float, nullable=True)
     filled_qty = db.Column(db.Float, nullable=True)
+
+    # Realized performance tracking
+    exit_price = db.Column(db.Float, nullable=True)
+    pnl = db.Column(db.Float, nullable=True)
+    pnl_source = db.Column(db.String(64), nullable=True)
+    closed_at = db.Column(db.DateTime, nullable=True)
+
     outcome = db.Column(db.String(32), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     raw_json = db.Column(db.Text, nullable=True)
