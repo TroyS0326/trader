@@ -184,7 +184,55 @@
                     </p>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div id="performance-building-state" style="display: none; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; text-align: left;">
+    <div style="display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-blue); background: rgba(56, 189, 248, 0.1); padding: 5px 10px; border-radius: 4px; margin-bottom: 1rem; letter-spacing: 0.08em;">
+        LIVE_REPORT_BUILDING
+    </div>
+
+    <h3 style="font-size: 1.6rem; margin-bottom: 1rem;">Verified Results Are Being Collected</h3>
+
+    <p style="color: var(--text-muted); line-height: 1.7; font-size: 0.98rem; margin-bottom: 1.25rem;">
+        XeanVI is currently collecting completed trade data before publishing public-facing win rate, profit factor, drawdown, and equity curve statistics. We do this intentionally so early users are not shown tiny-sample results that could be misleading.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
+            <div style="color: var(--success); font-size: 1.4rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-shield-alt" aria-hidden="true"></i>
+            </div>
+            <strong style="display:block; margin-bottom: 0.5rem;">Risk Rules First</strong>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                Every trade is checked against defined entry, stop, target, and bankroll rules before execution.
+            </p>
+        </div>
+
+        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
+            <div style="color: var(--accent-blue); font-size: 1.4rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-database" aria-hidden="true"></i>
+            </div>
+            <strong style="display:block; margin-bottom: 0.5rem;">Real P&L Tracking</strong>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                Completed trades are logged with realized P&L, exit price, outcome, and execution status.
+            </p>
+        </div>
+
+        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
+            <div style="color: var(--danger); font-size: 1.4rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
+            </div>
+            <strong style="display:block; margin-bottom: 0.5rem;">No Fake Performance</strong>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                Public results stay hidden until enough completed trades exist to show a more responsible sample.
+            </p>
+        </div>
+    </div>
+
+    <p id="sample-size-note" style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.8rem; margin-top: 1.5rem; margin-bottom: 0;">
+        Verified public report activates after enough completed trades are recorded.
+    </p>
+</div>
+<div id="performance-live-state" style="display: none;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                     <div class="stat-card">
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Win Rate</p>
                         <h3 id="stat-winrate" style="color: var(--success); font-size: 2.2rem; margin: 0;">--%</h3>
@@ -203,13 +251,14 @@
                     </div>
                 </div>
 
-                <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <canvas id="equityChart" width="400" height="150" aria-label="Line chart showing simulated execution equity curve data" role="img"></canvas>
-                </div>
+                    <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <canvas id="equityChart" width="400" height="150" aria-label="Line chart showing verified execution equity curve data" role="img"></canvas>
+    </div>
+</div>
 
                 <div class="disclosure-box">
-                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px;">PAPER TRADING DISCLOSURE //</strong>
-                    Paper trading and simulated results are educational and informational only. They assume perfect executions and may not reflect real market fills, liquidity constraints, slippage, execution delays, spread changes, or the psychological pressures of live trading. Upgrading to live automation introduces these real-world risks. Trading involves significant risk, including possible loss of capital.
+                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px;">TRANSPARENCY DISCLOSURE //</strong>
+                    Performance data is displayed only when enough completed trade records exist to avoid misleading early-stage statistics. Any published results are informational only and do not guarantee future performance. Live trading involves real market risk, including liquidity constraints, slippage, execution delays, spread changes, and possible loss of capital.
                 </div>
             </div>
         </section>
@@ -296,56 +345,85 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            fetch('/api/transparency/stats')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.ok && data.data) {
-                        const stats = data.data;
+    document.addEventListener("DOMContentLoaded", function() {
+        const buildingState = document.getElementById('performance-building-state');
+        const liveState = document.getElementById('performance-live-state');
+        const sampleSizeNote = document.getElementById('sample-size-note');
 
-                        document.getElementById('stat-winrate').innerText = stats.win_rate + '%';
-                        document.getElementById('stat-profitfactor').innerText = stats.profit_factor;
-                        document.getElementById('stat-trades').innerText = stats.total_trades;
-                        document.getElementById('stat-drawdown').innerText = '$' + stats.max_drawdown_dollars;
+        fetch('/api/transparency/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok || !data.data) {
+                    buildingState.style.display = 'block';
+                    liveState.style.display = 'none';
+                    return;
+                }
 
-                        const ctx = document.getElementById('equityChart').getContext('2d');
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: stats.equity_curve_labels,
-                                datasets: [{
-                                    label: 'Simulated Execution Equity Curve ($)',
-                                    data: stats.equity_curve_data,
-                                    borderColor: '#3b82f6',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    borderWidth: 2,
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 0
-                                }]
+                const stats = data.data;
+                const publicReady = Boolean(stats.public_report_ready);
+                const totalTrades = Number(stats.total_trades || 0);
+                const minimumTrades = Number(stats.minimum_public_trades || 25);
+
+                if (!publicReady) {
+                    buildingState.style.display = 'block';
+                    liveState.style.display = 'none';
+
+                    sampleSizeNote.innerText =
+                        `Verified report status: ${totalTrades}/${minimumTrades} completed trades recorded. Public performance metrics activate after the minimum sample size is reached.`;
+
+                    return;
+                }
+
+                buildingState.style.display = 'none';
+                liveState.style.display = 'block';
+
+                document.getElementById('stat-winrate').innerText = stats.win_rate + '%';
+                document.getElementById('stat-profitfactor').innerText = stats.profit_factor;
+                document.getElementById('stat-trades').innerText = stats.total_trades;
+                document.getElementById('stat-drawdown').innerText = '$' + stats.max_drawdown_dollars;
+
+                const ctx = document.getElementById('equityChart').getContext('2d');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: stats.equity_curve_labels,
+                        datasets: [{
+                            label: 'Verified Execution Equity Curve ($)',
+                            data: stats.equity_curve_data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                grid: { color: '#1e293b' },
+                                ticks: { color: '#94a3b8' }
                             },
-                            options: {
-                                responsive: true,
-                                plugins: {
-                                    legend: { display: false }
-                                },
-                                scales: {
-                                    y: {
-                                        grid: { color: '#1e293b' },
-                                        ticks: { color: '#94a3b8' }
-                                    },
-                                    x: {
-                                        grid: { display: false },
-                                        ticks: { color: '#94a3b8', maxTicksLimit: 10 }
-                                    }
-                                }
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#94a3b8', maxTicksLimit: 10 }
                             }
-                        });
+                        }
                     }
-                })
-                .catch(error => console.error("Error loading execution data:", error));
-        });
-    </script>
+                });
+            })
+            .catch(error => {
+                console.error("Error loading execution data:", error);
+                buildingState.style.display = 'block';
+                liveState.style.display = 'none';
+            });
+    });
+</script>
 
     {% include 'footer.html' %}
 
