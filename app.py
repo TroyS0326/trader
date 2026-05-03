@@ -296,40 +296,66 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
 def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
     inspector = inspect(db.engine)
-    if 'user' not in inspector.get_table_names():
-        return
-
-    existing_columns = {col['name'] for col in inspector.get_columns('user')}
+    table_names = inspector.get_table_names()
 
     with db.engine.connect() as conn:
-        if 'refresh_interval' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
-        if 'show_news' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
-        if 'esg_fossil_fuels' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
-            conn.execute(text("ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
-        if 'trading_mode' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
-        if 'alpaca_data_feed' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
-        if 'alpaca_paper_access_token' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_access_token TEXT"))
-        if 'alpaca_live_access_token' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_access_token TEXT"))
-        if 'alpaca_paper_account_id' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_account_id VARCHAR(100)"))
-        if 'alpaca_live_account_id' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_account_id VARCHAR(100)"))
-        if 'paper_bankroll' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll FLOAT NOT NULL DEFAULT 0.0"))
-        if 'live_bankroll' not in existing_columns:
-            conn.execute(text("ALTER TABLE user ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+        if 'user' in table_names:
+            existing_columns = {col['name'] for col in inspector.get_columns('user')}
+
+            if 'refresh_interval' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
+
+            if 'show_news' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
+
+            if 'esg_fossil_fuels' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'trading_mode' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
+
+            if 'alpaca_data_feed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
+
+            if 'alpaca_paper_access_token' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_access_token TEXT"))
+
+            if 'alpaca_live_access_token' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_access_token TEXT"))
+
+            if 'alpaca_paper_account_id' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_account_id VARCHAR(100)"))
+
+            if 'alpaca_live_account_id' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_account_id VARCHAR(100)"))
+
+            if 'paper_bankroll' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+
+            if 'live_bankroll' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+
+        if 'trades' in table_names:
+            trade_columns = {col['name'] for col in inspector.get_columns('trades')}
+
+            if 'exit_price' not in trade_columns:
+                conn.execute(text("ALTER TABLE trades ADD COLUMN exit_price FLOAT"))
+
+            if 'pnl' not in trade_columns:
+                conn.execute(text("ALTER TABLE trades ADD COLUMN pnl FLOAT"))
+
+            if 'pnl_source' not in trade_columns:
+                conn.execute(text("ALTER TABLE trades ADD COLUMN pnl_source VARCHAR(64)"))
+
+            if 'closed_at' not in trade_columns:
+                conn.execute(text("ALTER TABLE trades ADD COLUMN closed_at DATETIME"))
+
         conn.commit()
 
 
