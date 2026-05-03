@@ -341,6 +341,21 @@ def ensure_schema_migrations() -> None:
             if 'live_bankroll' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
 
+            if 'onboarding_completed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'paper_bankroll_set' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll_set BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'first_scan_completed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'playbook_reviewed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'broker_connection_started' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
+
         if 'trades' in table_names:
             trade_columns = {col['name'] for col in inspector.get_columns('trades')}
 
@@ -626,6 +641,9 @@ def features():
 @app.route('/playbook')
 def playbook():
     """Public strategy page explaining the 'Screen, Validate, Execute' workflow."""
+    if current_user.is_authenticated and not current_user.playbook_reviewed:
+        current_user.playbook_reviewed = True
+        db.session.commit()
     return render_template('playbook.html')
 
 
@@ -722,6 +740,13 @@ def transparency():
     return render_template('transparency.html', current_user=current_user)
 
 
+@app.route('/transparency/reviewed', methods=['POST'])
+@login_required
+def transparency_reviewed():
+    session[f"transparency_reviewed:{current_user.id}"] = True
+    return ok({'tracked': True})
+
+
 @app.route('/api/transparency/stats')
 def api_transparency_stats():
     """Serves the pre-calculated backtest performance metrics."""
@@ -747,10 +772,27 @@ def dashboard():
     # Clean, quiet entry into the command center
     latest_regime = trade_db.get_current_market_regime() or {}
     market_regime_status = (latest_regime.get('regime_status') or 'normal').lower()
+    checklist = {
+        'onboarding_completed': bool(current_user.onboarding_completed),
+        'paper_bankroll_set': bool(current_user.paper_bankroll_set or (current_user.paper_bankroll or 0) > 0),
+        'playbook_reviewed': bool(current_user.playbook_reviewed),
+        'first_scan_completed': bool(current_user.first_scan_completed),
+        'transparency_reviewed': bool(session.get(f"transparency_reviewed:{current_user.id}", False)),
+        'broker_connection_started': bool(current_user.broker_connection_started or current_user.alpaca_access_token),
+    }
+    setup_completed = all([
+        checklist['onboarding_completed'],
+        checklist['paper_bankroll_set'],
+        checklist['playbook_reviewed'],
+        checklist['first_scan_completed'],
+        checklist['transparency_reviewed'],
+    ])
     return render_template(
         'dashboard.html',
         current_user=current_user,
         market_regime_status=market_regime_status,
+        setup_checklist=checklist,
+        setup_completed=setup_completed,
     )
 
 
@@ -886,7 +928,8 @@ def onboarding():
         current_user.trading_mode = 'paper'
         current_user.paper_bankroll = starting_bankroll
         current_user.bankroll = starting_bankroll
-        # Optional: Add a 'risk_acknowledged' timestamp to your User model
+        current_user.onboarding_completed = True
+        current_user.paper_bankroll_set = starting_bankroll > 0
         db.session.commit()
 
         flash('Risk protocols accepted. Welcome to the Command Center.', 'success')
@@ -904,6 +947,7 @@ def settings():
             current_user.live_bankroll = new_bankroll
         else:
             current_user.paper_bankroll = new_bankroll
+            current_user.paper_bankroll_set = new_bankroll > 0
         current_user.sync_legacy_bankroll_from_active_mode()
         refresh_interval = int(request.form.get('refresh_interval', 30000))
         current_user.refresh_interval = (
@@ -927,6 +971,8 @@ def settings():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
+    current_user.broker_connection_started = True
+    db.session.commit()
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
 
@@ -1125,6 +1171,9 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
+        if not current_user.first_scan_completed:
+            current_user.first_scan_completed = True
+            db.session.commit()
 
         approved_plan = approve_scan_for_user(redis_client, current_user, result)
         result["approved_execution_plan"] = approved_plan

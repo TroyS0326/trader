@@ -241,7 +241,16 @@
                 font-size: 0.95rem;
             }
 
-            .header-actions {
+            .setup-card { margin: 1.25rem 2rem 0; background: rgba(15, 23, 42, 0.86); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.25rem; }
+        .setup-card-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+        .setup-card-head h2 { margin:0; font-size:1.1rem; }
+        .setup-card-head span { font-family: var(--font-mono); color: var(--accent-blue); font-size: 0.8rem; }
+        .setup-copy { color: var(--text-muted); margin: 0.5rem 0 0.75rem; font-size: 0.9rem; }
+        .setup-list { list-style:none; padding:0; margin:0; display:grid; gap:0.6rem; }
+        .setup-list li { display:flex; justify-content:space-between; gap:0.8rem; align-items:center; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:0.55rem 0.75rem; background: rgba(2, 6, 23, 0.7); }
+        .setup-list a, .setup-link-btn { color: var(--accent-blue); background:none; border:0; cursor:pointer; font-size:0.85rem; font-weight:700; text-decoration:none; }
+
+        .header-actions {
                 width: 100%;
             }
 
@@ -384,6 +393,26 @@
             </div>
         </div>
     </div>
+
+    </div>
+
+    {% if not setup_completed %}
+    <section class="setup-card" aria-label="XeanVI Setup Checklist">
+        <div class="setup-card-head">
+            <h2>XeanVI Setup Checklist</h2>
+            <span>{{ ([setup_checklist.onboarding_completed, setup_checklist.paper_bankroll_set, setup_checklist.playbook_reviewed, setup_checklist.first_scan_completed, setup_checklist.transparency_reviewed]|select('equalto', True)|list|length) }}/5 core steps complete</span>
+        </div>
+        <p class="setup-copy">Use paper-mode testing with user-defined rules before enabling broker-connected workflows. Keep risk controls active and review transparent reporting after enough completed trades exist.</p>
+        <ul class="setup-list">
+            <li><span>{{ '✅' if setup_checklist.onboarding_completed else '⬜' }} Risk acknowledgment completed</span><a href="{{ url_for('onboarding') }}">Go to Onboarding</a></li>
+            <li><span>{{ '✅' if setup_checklist.paper_bankroll_set else '⬜' }} Paper bankroll configured</span><a href="{{ url_for('settings') }}">Open Settings</a></li>
+            <li><span>{{ '✅' if setup_checklist.playbook_reviewed else '⬜' }} Trading Playbook reviewed</span><a href="{{ url_for('playbook') }}">Review Playbook</a></li>
+            <li><span>{{ '✅' if setup_checklist.first_scan_completed else '⬜' }} First paper scan completed</span><button type="button" class="setup-link-btn" onclick="startScanner()">Run Paper Scan</button></li>
+            <li><span>{{ '✅' if setup_checklist.transparency_reviewed else '⬜' }} Transparency rules reviewed</span><a href="{{ url_for('transparency') }}" onclick="markTransparencyReviewed()">View Transparency</a></li>
+            <li><span>{{ '✅' if setup_checklist.broker_connection_started else '⬜' }} Broker connection optional</span><a href="{{ url_for('settings') }}">Connect Broker</a></li>
+        </ul>
+    </section>
+    {% endif %}
 
     <div class="workspace">
 
@@ -823,6 +852,14 @@
         }
 
         // MAIN EXECUTION
+        async function markTransparencyReviewed() {
+            try {
+                await fetch('/transparency/reviewed', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } });
+            } catch (err) {
+                console.warn('Transparency review tracking failed', err);
+            }
+        }
+
         async function startScanner() {
             const btn = document.getElementById('scanButton');
             const statusHeader = document.getElementById('bot-status');

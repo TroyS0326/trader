@@ -133,6 +133,12 @@ class User(UserMixin, db.Model):
 
     alpaca_data_feed = db.Column(db.String(10), nullable=False, default='iex')
 
+    onboarding_completed = db.Column(db.Boolean, nullable=False, default=False)
+    paper_bankroll_set = db.Column(db.Boolean, nullable=False, default=False)
+    first_scan_completed = db.Column(db.Boolean, nullable=False, default=False)
+    playbook_reviewed = db.Column(db.Boolean, nullable=False, default=False)
+    broker_connection_started = db.Column(db.Boolean, nullable=False, default=False)
+
     def _decrypt_token_value(self, encrypted_value: Optional[str]) -> Optional[str]:
         if not encrypted_value:
             return None
