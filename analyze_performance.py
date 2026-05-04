@@ -8,6 +8,25 @@ from models import Trade, User
 # We output to a static JSON file so the web server doesn't have to recalculate this on every page load
 REPORT_PATH = "static/performance_report.json"
 
+def _is_win(outcome: str) -> bool:
+    normalized = (outcome or "").strip().lower()
+    return normalized in {"win", "winner", "won", "profit", "target_hit", "target1_hit", "target2_hit"}
+
+
+def _load_rows():
+    """
+    Lightweight loader used by update_weights.py.
+    Returns tuple: (trade_rows, scans_by_id).
+    """
+    trade_rows = []
+    for trade in Trade.query.all():
+        trade_rows.append({
+            "symbol": getattr(trade, "symbol", None),
+            "outcome": getattr(trade, "outcome", None),
+            "scan_id": getattr(trade, "scan_id", None),
+        })
+    return trade_rows, {}
+
 
 def calculate_metrics(trades_df):
     """Calculates institutional-grade backtest metrics."""
