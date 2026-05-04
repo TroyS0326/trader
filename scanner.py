@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import requests
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from decision import regime_trade_decision
+from decision import regime_trade_decision, momentum_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
 from models import ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
@@ -19,6 +19,7 @@ from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_
 from feature_store import store
 import dynamic_orb
 import market_state
+from asset_classifier import classify_asset
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -57,6 +58,7 @@ from config import (
     VIX_PENALTY_MULTIPLIER,
     VIX_SYMBOL,
     WATCHLIST_SIZE,
+    MOMENTUM_BREAKOUT_MODE_ENABLED, MOMENTUM_WATCHLIST_SIZE, MOMENTUM_MIN_DAY_CHANGE_PCT, MOMENTUM_MIN_RVOL, MOMENTUM_MAX_SPREAD_PCT, MOMENTUM_MAX_ENTRY_EXTENSION_PCT, MOMENTUM_SCAN_CANDIDATE_LIMIT, MOMENTUM_MIN_DOLLAR_VOLUME, MOMENTUM_EXTREME_DAY_CHANGE_PCT, MOMENTUM_MIN_PRICE, MOMENTUM_MAX_PRICE, MOMENTUM_ALLOW_PENNY_STOCKS, BIOTECH_TRADING_ENABLED, ETF_TRADING_ENABLED, LEVERAGED_ETF_TRADING_ENABLED, INVERSE_ETF_TRADING_ENABLED, CRYPTO_ETF_TRADING_ENABLED, OPTIONS_TRADING_ENABLED, MOMENTUM_DEBUG_REJECTIONS_LIMIT,
 )
 TIMEOUT = 20
 HIGH_GAP_THRESHOLD_PCT = 20.0
@@ -1432,7 +1434,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     except Exception as exc:
         logger.warning("Dynamic ORB pre-scan update failed (continuing): %s", exc)
     feed = resolve_data_feed(user)
-    symbols = get_refined_universe(user=user)
+    orb_symbols = get_refined_universe(user=user)
+    momentum_symbols, rejected_candidates = get_momentum_breakout_universe(user=user) if MOMENTUM_BREAKOUT_MODE_ENABLED else ([], [])
+    symbols = list(dict.fromkeys(orb_symbols + momentum_symbols))
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
@@ -1523,9 +1527,13 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         'market_bias_proxy': {'spy_change_pct': round(spy_change_pct, 2), 'market_internals': market_internals},
         'market_call': market_call,
         'best_pick': best,
-        'watchlist': ranked[:WATCHLIST_SIZE],
+        'watchlist': ranked[:(MOMENTUM_WATCHLIST_SIZE if MOMENTUM_BREAKOUT_MODE_ENABLED else WATCHLIST_SIZE)],
         'ranked': ranked[:10],
         'chart_pack': chart_pack,
+        'rejected_candidates': rejected_candidates,
+        'debug_summary': {'total_symbols_scanned': len(symbols), 'total_symbols_accepted': len(ranked), 'total_symbols_rejected': len(rejected_candidates)},
+        'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
+        'data_feed_used': feed,
         'rules_applied': {
             'min_catalyst_score': MIN_CATALYST_SCORE,
             'no_buy_before_et': NO_BUY_BEFORE_ET,
@@ -1542,3 +1550,35 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
     }
+
+
+def get_momentum_breakout_universe(limit: Optional[int] = None, user: Optional[Any] = None) -> Tuple[List[str], List[Dict[str, Any]]]:
+    limit = limit or MOMENTUM_SCAN_CANDIDATE_LIMIT
+    candidates = list(dict.fromkeys(get_alpaca_movers(limit) + get_premarket_leaders(limit) + get_unusual_relvol(limit)))
+    feed = resolve_data_feed(user)
+    snapshots = get_snapshots(candidates, feed=feed)
+    quotes = get_latest_quotes(candidates, feed=feed)
+    valid, rejected = [], []
+    user_allow_penny = bool(getattr(user, 'allow_penny_stocks', False)) or not bool(getattr(user, 'exclude_penny_stocks', True))
+    allow_penny = MOMENTUM_ALLOW_PENNY_STOCKS and user_allow_penny
+    for symbol in candidates:
+        snap = snapshots.get(symbol, {})
+        quote = quotes.get(symbol, {})
+        price = safe_num(quote.get('ap')) or safe_num(snap.get('minuteBar', {}).get('c'))
+        prev = safe_num(snap.get('prevDailyBar', {}).get('c'))
+        if price <= 0 or prev <= 0:
+            rejected.append({'symbol': symbol, 'rejection_reason': 'missing_prev_close'})
+            continue
+        if price < 5.0 and not allow_penny:
+            rejected.append({'symbol': symbol, 'rejection_reason': 'penny_stock_excluded'})
+            continue
+        change = ((price - prev) / prev) * 100.0
+        vol = safe_num(snap.get('dailyBar', {}).get('v')) * price
+        if not (MOMENTUM_MIN_PRICE <= price <= MOMENTUM_MAX_PRICE):
+            rejected.append({'symbol': symbol, 'rejection_reason': 'price_out_of_range'})
+            continue
+        if change >= MOMENTUM_MIN_DAY_CHANGE_PCT and vol >= MOMENTUM_MIN_DOLLAR_VOLUME or change >= MOMENTUM_EXTREME_DAY_CHANGE_PCT:
+            valid.append(symbol)
+        else:
+            rejected.append({'symbol': symbol, 'rejection_reason': 'not_enough_momentum'})
+    return valid, rejected[:MOMENTUM_DEBUG_REJECTIONS_LIMIT]

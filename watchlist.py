@@ -4,7 +4,7 @@ import time
 from typing import Any, Dict, List
 
 from config import WATCHLIST_PUSH_SECONDS
-from scanner import get_latest_quotes
+from scanner import get_latest_quotes, resolve_data_feed
 from utils import safe_num
 
 
@@ -22,12 +22,12 @@ class WatchlistManager:
         with self._lock:
             return [dict(item) for item in self._items]
 
-    def refresh(self) -> List[Dict[str, Any]]:
+    def refresh(self, user: Any = None) -> List[Dict[str, Any]]:
         items = self.get_items()
         symbols = [i['symbol'] for i in items if i.get('symbol')]
         if not symbols:
             return []
-        quotes = get_latest_quotes(symbols)
+        quotes = get_latest_quotes(symbols, feed=resolve_data_feed(user))
         refreshed = []
         for item in items:
             symbol = item['symbol']
@@ -37,16 +37,25 @@ class WatchlistManager:
             stop = safe_num(item.get('stop_price'))
             buy_upper = safe_num(item.get('buy_upper'))
             signal = 'WATCH'
-            if not item.get('buy_window_open', True):
-                signal = 'WAIT'
+            reason = 'Monitoring setup.'
+            if not q:
+                signal, reason = 'NO QUOTE', 'No quote returned by selected data feed.'
             elif stop is not None and current < stop:
-                signal = 'BROKEN'
+                signal, reason = 'SETUP BROKEN: BELOW STOP', 'Below calculated stop. Setup invalidated, not app failure.'
+            elif item.get('vwap') and current < safe_num(item.get('vwap')):
+                signal, reason = 'SETUP BROKEN: VWAP FAILURE', 'Price failed to hold VWAP.'
+            elif not item.get('buy_window_open', True):
+                signal, reason = 'WAIT: BUY WINDOW CLOSED', 'Buy window is closed by risk policy.'
+            elif buy_upper is not None and current > buy_upper:
+                signal, reason = 'EXTENDED / WAIT FOR PULLBACK', 'Price is extended beyond allowed buy range.'
             elif item.get('breakout_confirmed') and entry is not None and buy_upper is not None and current >= entry and current <= buy_upper:
-                signal = 'TRIGGERED'
+                signal, reason = 'TRIGGERED', 'Breakout confirmed inside buy zone.'
             elif entry is not None and current >= entry * 0.995:
-                signal = 'NEAR ENTRY'
+                signal, reason = 'NEAR ENTRY', 'Price is approaching planned entry.'
             item['current_price'] = round(float(current), 2)
             item['live_signal'] = signal
+            item['live_signal_reason'] = reason
+            item['live_signal_data'] = {'current': round(float(current),2), 'stop': stop, 'entry': entry, 'buy_upper': buy_upper, 'timestamp': q.get('t')}
             refreshed.append(item)
         self.set_items(refreshed)
         return refreshed
