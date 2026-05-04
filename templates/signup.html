@@ -260,6 +260,7 @@
     </style>
 </head>
 <body>
+    {% include 'partials/meta_pixel.html' %}
 
     {% include 'nav.html' %}
 
@@ -317,7 +318,7 @@
                     {% endif %}
                 {% endwith %}
 
-                <form method="POST" action="{{ url_for('signup', plan=request.args.get('plan')) if request.args.get('plan') else url_for('signup') }}">
+                <form method="POST" action="{{ url_for('signup', plan=request.args.get('plan')) if request.args.get('plan') else url_for('signup') }}" data-meta-pixel-event="CompleteRegistration" data-meta-pixel-params='{{ {"content_name":"XeanVI Account Signup","content_category":"Account"}|tojson }}'>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="input-group">

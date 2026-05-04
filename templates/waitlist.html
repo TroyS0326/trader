@@ -199,6 +199,7 @@
 </head>
 
 <body>
+    {% include 'partials/meta_pixel.html' %}
 
     <main class="page-wrap">
         <div class="container">
@@ -286,7 +287,7 @@
                             First 25 waitlist members receive 3 months of XeanVI PRO access free at launch.
                         </p>
 
-                        <form action="{{ url_for('join_waitlist') }}" method="POST">
+                        <form action="{{ url_for('join_waitlist') }}" method="POST" data-meta-pixel-event="Lead" data-meta-pixel-params='{{ {"content_name":"XeanVI PRO Waitlist","content_category":"Waitlist"}|tojson }}'>
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                             <div class="mb-3">
