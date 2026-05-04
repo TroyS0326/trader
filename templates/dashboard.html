@@ -389,9 +389,9 @@
         </div>
 
         <div class="workspace">
-        {% if setup_checklist and not setup_checklist.core_complete %}
+        {% if setup_checklist and setup_checklist['completed_required'] < setup_checklist['total_required'] %}
         <section class="setup-banner" aria-label="Setup checklist reminder">
-            <p>Setup incomplete: {{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}). Finish setup tasks before live workflow.</p>
+            <p>Setup incomplete: {{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}). Finish setup tasks before using the automated paper workflow.</p>
             <a href="{{ url_for('setup_checklist') }}">Open Setup Checklist →</a>
         </section>
         {% endif %}
