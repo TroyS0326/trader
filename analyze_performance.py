@@ -185,55 +185,61 @@ def extract_dynamic_orb_mode(trade) -> str:
 
     try:
         payload = json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, json.JSONDecodeError):
         return "unknown"
 
     if not isinstance(payload, dict):
         return "unknown"
 
-    dynamic_orb_state = payload.get("dynamic_orb_state")
-    if not isinstance(dynamic_orb_state, dict):
+    dynamic_state = payload.get("dynamic_orb_state") or {}
+
+    if not isinstance(dynamic_state, dict):
         return "unknown"
 
-    mode = dynamic_orb_state.get("mode")
-    return str(mode).strip() if mode else "unknown"
+    mode = str(dynamic_state.get("mode") or "").strip().lower()
+
+    return mode or "unknown"
 
 
 def summarize_dynamic_orb_outcomes() -> dict:
     """
     Groups completed trades with Trade.pnl by dynamic_orb_state.mode.
-    This is internal analysis only.
-    It does not affect trading.
+    Internal analysis only. Does not affect trading or public report output.
     """
-    trades = Trade.query.filter(Trade.pnl.isnot(None)).all()
+    trades = (
+        Trade.query
+        .filter(Trade.pnl.isnot(None))
+        .order_by(Trade.id.asc())
+        .all()
+    )
+
     summary = {}
 
     for trade in trades:
         mode = extract_dynamic_orb_mode(trade)
         pnl = float(trade.pnl or 0.0)
 
-        bucket = summary.setdefault(
-            mode,
-            {
-                "count": 0,
+        if mode not in summary:
+            summary[mode] = {
+                "trades": 0,
                 "wins": 0,
                 "losses": 0,
                 "net_pnl": 0.0,
                 "win_rate": 0.0,
-            },
-        )
+            }
 
-        bucket["count"] += 1
+        summary[mode]["trades"] += 1
+        summary[mode]["net_pnl"] += pnl
+
         if pnl > 0:
-            bucket["wins"] += 1
+            summary[mode]["wins"] += 1
         elif pnl < 0:
-            bucket["losses"] += 1
-        bucket["net_pnl"] += pnl
+            summary[mode]["losses"] += 1
 
-    for bucket in summary.values():
-        count = bucket["count"]
-        bucket["net_pnl"] = round(bucket["net_pnl"], 2)
-        bucket["win_rate"] = round((bucket["wins"] / count) * 100, 2) if count else 0.0
+    for mode, row in summary.items():
+        trades_count = row["trades"]
+        row["net_pnl"] = round(row["net_pnl"], 2)
+        row["win_rate"] = round((row["wins"] / trades_count) * 100, 2) if trades_count else 0.0
 
     return summary
 
