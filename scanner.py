@@ -247,7 +247,7 @@ def apply_user_symbol_filters(
         price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
         if price <= 0:
             continue
-        if bool(getattr(user, 'exclude_penny_stocks', True)) and price < 5.0:
+        if bool(getattr(user, 'exclude_penny_stocks', True)) and price > 0 and price < 5.0:
             continue
 
         profile = get_company_profile(symbol)

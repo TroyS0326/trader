@@ -4,7 +4,8 @@ import time
 from typing import Any, Dict, List
 
 from config import WATCHLIST_PUSH_SECONDS
-from scanner import get_latest_quotes, safe_num
+from scanner import get_latest_quotes
+from utils import safe_num
 
 
 class WatchlistManager:
