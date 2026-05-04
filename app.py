@@ -34,7 +34,7 @@ from execution import start_engine
 from models import db
 from models import User, UserEvent, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
-from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
+from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
@@ -609,6 +609,21 @@ def ensure_schema_migrations() -> None:
             if 'broker_connection_started' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
 
+            
+            if 'allow_penny_stocks' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT 0"))
+            if 'allow_biotech' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_biotech BOOLEAN NOT NULL DEFAULT 1"))
+            if 'allow_etf_trading' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_etf_trading BOOLEAN NOT NULL DEFAULT 1"))
+            if 'allow_leveraged_etfs' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_leveraged_etfs BOOLEAN NOT NULL DEFAULT 0"))
+            if 'allow_inverse_etfs' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_inverse_etfs BOOLEAN NOT NULL DEFAULT 0"))
+            if 'allow_crypto_etfs' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_crypto_etfs BOOLEAN NOT NULL DEFAULT 1"))
+            if 'allow_options_trading' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN allow_options_trading BOOLEAN NOT NULL DEFAULT 0"))
             if 'stripe_customer_id' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)"))
 
@@ -1975,6 +1990,35 @@ def api_scan():
     except Exception as exc:
         return fail(f'Scan failed: {exc}', 500)
 
+
+
+@app.route('/api/debug-symbol/<symbol>')
+@login_required
+def api_debug_symbol(symbol: str):
+    symbol = (symbol or '').upper().strip()
+    feed = request.args.get('feed', '').strip().lower() or resolve_data_feed(current_user)
+    snapshots = get_snapshots([symbol], feed=feed)
+    quotes = get_latest_quotes([symbol], feed=feed)
+    snap = snapshots.get(symbol, {})
+    q = quotes.get(symbol, {})
+    price = float((q.get('ap') or snap.get('minuteBar', {}).get('c') or 0) or 0)
+    prev = float((snap.get('prevDailyBar', {}).get('c') or 0) or 0)
+    day_change = ((price - prev) / prev * 100.0) if prev > 0 else 0.0
+    rejected = prev <= 0
+    reason = 'missing_prev_close' if rejected else None
+    return jsonify({
+        'symbol': symbol,
+        'current_price': price,
+        'prev_close': prev,
+        'day_change_pct': day_change,
+        'rejected': rejected,
+        'rejection_reasons': [reason] if reason else [],
+        'decision': 'NO TRADE' if rejected else 'WATCH',
+        'final_explanation': reason or 'Symbol analyzed; use scan debug summary for full context.',
+        'data_feed_used': feed,
+        'quote_timestamp': q.get('t'),
+        'scan_time_et': now_et().isoformat(),
+    })
 
 @app.route('/api/metrics')
 @login_required

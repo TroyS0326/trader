@@ -135,6 +135,13 @@ class User(UserMixin, db.Model):
     esg_tobacco = db.Column(db.Boolean, nullable=False, default=False)
     exclude_penny_stocks = db.Column(db.Boolean, nullable=False, default=True)
     exclude_biotech = db.Column(db.Boolean, nullable=False, default=False)
+    allow_penny_stocks = db.Column(db.Boolean, nullable=False, default=False)
+    allow_biotech = db.Column(db.Boolean, nullable=False, default=True)
+    allow_etf_trading = db.Column(db.Boolean, nullable=False, default=True)
+    allow_leveraged_etfs = db.Column(db.Boolean, nullable=False, default=False)
+    allow_inverse_etfs = db.Column(db.Boolean, nullable=False, default=False)
+    allow_crypto_etfs = db.Column(db.Boolean, nullable=False, default=True)
+    allow_options_trading = db.Column(db.Boolean, nullable=False, default=False)
     # Legacy fields kept for backward compatibility
     _alpaca_access_token = db.Column('alpaca_access_token', db.Text, nullable=True)
     alpaca_account_id = db.Column(db.String(100), nullable=True)

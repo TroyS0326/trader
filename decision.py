@@ -42,3 +42,22 @@ def regime_trade_decision(model_scores: Dict[str, int], time_et: datetime, relat
             return 'BUY NOW'
         return 'WATCH FOR BREAKOUT'
     return 'WATCH FOR BREAKOUT'
+
+
+def momentum_trade_decision(model_scores: Dict[str, int], time_et: datetime, relative_strength_vs_spy: float, momentum_meta: Dict[str, float]) -> str:
+    _ = model_scores, relative_strength_vs_spy
+    if momentum_meta.get('data_stale'):
+        return 'DATA STALE'
+    if momentum_meta.get('below_stop'):
+        return 'SETUP BROKEN: BELOW STOP'
+    if momentum_meta.get('vwap_failure'):
+        return 'SETUP BROKEN: VWAP FAILURE'
+    if momentum_meta.get('buy_window_closed'):
+        return 'NO TRADE'
+    if momentum_meta.get('too_extended') and not momentum_meta.get('pullback_reclaim'):
+        return 'WATCH FOR PULLBACK'
+    if momentum_meta.get('day_change_pct', 0) >= momentum_meta.get('min_day_change_pct', 40) and momentum_meta.get('rvol', 0) >= momentum_meta.get('min_rvol', 3) and momentum_meta.get('above_vwap') and momentum_meta.get('spread_ok'):
+        return 'BUY NOW'
+    if momentum_meta.get('breakout_ready'):
+        return 'WATCH FOR BREAKOUT'
+    return 'NO TRADE'
