@@ -886,15 +886,20 @@
             addLog("> Downloading and filtering live exchange tape...", "#a1a1aa");
 
             try {
-                const res = await fetch('/api/scan', { 
+                const res = await fetch('/api/scan', {
                     method: 'POST',
                     credentials: 'same-origin',
-                    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
                 });
                 if (!res.ok) {
                     const errorText = await res.text();
-                    console.error(`Scan request failed with status ${res.status}: ${errorText}`);
-                    throw new Error(`Scan request failed (${res.status}). Check console for response body.`);
+                    const errorDetails = `Scan request failed with status ${res.status}: ${errorText}`;
+                    console.error(errorDetails);
+                    addLog(`> SCAN API ERROR [${res.status}] ${errorText}`, "var(--danger)");
+                    throw new Error(`Scan request failed (${res.status}). Check terminal and console for response body.`);
                 }
                 const payload = await res.json();
 
