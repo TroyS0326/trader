@@ -1994,6 +1994,59 @@ def api_scan():
 
 
 
+
+
+def build_debug_rejection_reasons(payload: dict) -> list[str]:
+    reasons = list(payload.get('rejection_reasons') or [])
+
+    def add(reason: str):
+        if reason not in reasons:
+            reasons.append(reason)
+
+    decision = str(payload.get('decision') or '').upper()
+    setup_grade = str(payload.get('setup_grade') or '').upper()
+    if decision == 'SKIP':
+        add('decision_skip')
+    if setup_grade == 'NO TRADE':
+        add('setup_grade_no_trade')
+    if payload.get('tradable_by_xeanvi') is False:
+        add('not_tradeable_by_xeanvi')
+
+    current = float(payload.get('current_price') or 0)
+    stop = payload.get('stop_price')
+    if stop is not None and current < float(stop):
+        add('below_stop')
+
+    vwap = payload.get('vwap')
+    if vwap is not None and current < float(vwap):
+        add('below_vwap')
+
+    spread = payload.get('spread_pct')
+    if spread is not None and float(spread) > float(config.MOMENTUM_MAX_SPREAD_PCT):
+        add('spread_too_wide')
+
+    entry = payload.get('entry_price')
+    buy_lower = payload.get('buy_lower')
+    buy_upper = payload.get('buy_upper')
+    near_entry = False
+    if entry is not None:
+        e = float(entry)
+        near_entry = abs(current - e) / e <= 0.003 if e > 0 else False
+        if current < e and not near_entry:
+            add('price_below_entry')
+    in_controlled_range = False
+    if buy_lower is not None and buy_upper is not None:
+        lo, hi = float(buy_lower), float(buy_upper)
+        in_controlled_range = lo <= current <= hi
+    if entry is not None and not (in_controlled_range or near_entry):
+        add('no_controlled_entry')
+
+    qty = payload.get('qty')
+    if qty is not None and float(qty) <= 0:
+        add('qty_zero')
+
+    return reasons
+
 @app.route('/api/debug-symbol/<symbol>')
 @login_required
 def api_debug_symbol(symbol: str):
@@ -2067,6 +2120,15 @@ def api_debug_symbol(symbol: str):
         payload['rejected'] = True
         payload['final_explanation'] = (
             'Symbol could not be fully analyzed because market/quote/bar data was incomplete.'
+        )
+
+    payload['rejection_reasons'] = build_debug_rejection_reasons(payload)
+    payload['rejected'] = bool(payload['rejection_reasons'])
+    if payload.get('rejected') and not payload.get('final_explanation'):
+        payload['final_explanation'] = 'Symbol is not actionable under current setup constraints.'
+    if {'below_stop', 'below_vwap', 'spread_too_wide'} & set(payload['rejection_reasons']):
+        payload['final_explanation'] = (
+            f"{symbol} was found, but it is below the calculated stop/VWAP and the spread is too wide, so XeanVI should not chase it."
         )
     return jsonify(payload)
 

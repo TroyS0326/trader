@@ -82,3 +82,22 @@ def test_common_stock_has_empty_rejection_reasons():
     assert stk['asset_type'] == 'COMMON_STOCK'
     assert stk['rejection_reason'] is None
     assert stk['rejection_reasons'] == []
+
+
+def test_known_asset_classification_overrides_sparse_metadata():
+    flags = {'options': False, 'etf': True, 'biotech': True, 'crypto_etf': False, 'leveraged_etf': False, 'inverse_etf': False}
+    user_flags = {'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': False, 'inverse_etf': False}
+
+    bito = classify_asset('BITO', {'class': 'us_equity'}, {}, platform_flags=flags, user_flags=user_flags)
+    assert bito['asset_type'] == 'CRYPTO_ETF'
+    assert bito['tradable_by_xeanvi'] is False
+
+    tqqq = classify_asset('TQQQ', {'class': 'us_equity'}, {}, platform_flags=flags, user_flags=user_flags)
+    assert tqqq['asset_type'] == 'LEVERAGED_ETF'
+    assert tqqq['tradable_by_xeanvi'] is False
+
+    spy = classify_asset('SPY', {'class': 'us_equity'}, {}, platform_flags=flags, user_flags=user_flags)
+    assert spy['asset_type'] == 'BROAD_ETF'
+
+    abcd = classify_asset('ABCD', {}, {}, platform_flags=flags, user_flags=user_flags)
+    assert abcd['asset_type'] == 'COMMON_STOCK'
