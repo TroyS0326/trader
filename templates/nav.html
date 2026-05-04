@@ -180,7 +180,16 @@
                 <a href="/transparency" class="nav-link {% if request.path == '/transparency' %}active{% endif %}">AI Logic</a>
                 <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">Settings</a>
                 <a href="/billing" class="nav-link {% if request.path == '/billing' %}active{% endif %}">Billing</a>
-                <a href="/setup-checklist" class="nav-link {% if request.path == '/setup-checklist' %}active{% endif %}">Setup</a>
+                {% set setup_nav_incomplete =
+                    not current_user.onboarding_completed
+                    or not current_user.paper_bankroll_set
+                    or not current_user.playbook_reviewed
+                    or not current_user.first_scan_completed
+                    or not current_user.transparency_reviewed
+                %}
+                {% if setup_nav_incomplete %}
+                    <a href="/setup-checklist" class="nav-link {% if request.path == '/setup-checklist' %}active{% endif %}">Setup</a>
+                {% endif %}
             {% else %}
                 <a href="/features" class="nav-link {% if request.path == '/features' %}active{% endif %}">Features</a>
                 <a href="/pricing" class="nav-link {% if request.path == '/pricing' %}active{% endif %}">Monthly PRO</a>
