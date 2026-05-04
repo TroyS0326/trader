@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import logging
 from statistics import mean
 from typing import Any, Dict, List, Tuple, Optional
 from zoneinfo import ZoneInfo
@@ -16,6 +17,8 @@ from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
 from feature_store import store
+import dynamic_orb
+import market_state
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -58,6 +61,8 @@ from config import (
 TIMEOUT = 20
 HIGH_GAP_THRESHOLD_PCT = 20.0
 HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL = 5_000_000
+logger = logging.getLogger(__name__)
+
 VETERAN_BLACKLIST = {
     'NVD', 'NVDL', 'NVDX', 'NVDQ', 'TQQQ', 'SQQQ', 'QLD', 'QID', 'SOXL', 'SOXS',
     'UPRO', 'SPXU', 'SPXL', 'SPXS', 'UVXY', 'VIXY', 'SVIX', 'BOIL', 'KOLD', 'UCO',
@@ -1408,7 +1413,24 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     return analysis_result.to_dict()
 
 
+
+def update_dynamic_orb_state_from_market_data() -> Dict[str, Any]:
+    try:
+        rvol = 1.0
+        atr_expansion = 1.0
+        state = dynamic_orb.build_dynamic_orb_state(rvol, atr_expansion)
+        market_state.set_market_state(market_state.DYNAMIC_ORB_STATE_NAME, state, ttl_seconds=43200)
+        market_state.set_data_freshness("market_context")
+        return state
+    except Exception as exc:
+        logger.warning("Dynamic ORB state update failed in scan: %s", exc)
+        return dynamic_orb.build_dynamic_orb_state(1.0, 1.0)
+
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
+    try:
+        update_dynamic_orb_state_from_market_data()
+    except Exception as exc:
+        logger.warning("Dynamic ORB pre-scan update failed (continuing): %s", exc)
     feed = resolve_data_feed(user)
     symbols = get_refined_universe(user=user)
     if not symbols:

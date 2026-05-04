@@ -35,6 +35,7 @@ from models import db
 from models import User, UserEvent, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan
+from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
 from execution_guard import (
@@ -1922,6 +1923,16 @@ def api_scan():
         # Sync bankroll before scanning so risk sizing uses current account equity.
         fetch_and_sync_bankroll(current_user)
         result = run_scan(current_user)
+        try:
+            result["dynamic_orb_state"] = get_latest_dynamic_orb_state()
+        except Exception as exc:
+            logger.warning("Dynamic ORB state unavailable for scan response: %s", exc)
+            result["dynamic_orb_state"] = {
+                "mode": "unknown",
+                "start_time_et": config.NO_BUY_BEFORE_ET,
+                "preferred_setup": "unknown",
+                "reason": "Dynamic ORB state unavailable; existing static rules remain active.",
+            }
         risk_controls = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
