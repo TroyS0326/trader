@@ -143,15 +143,15 @@
         {% if upgrade_from == 'scan_preview' %}
         <section style="max-width: 900px; margin: 2rem auto 1rem; padding: 0 1.5rem;">
             <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 1rem 1.25rem;">
-                <h2 style="margin: 0 0 0.5rem; font-size: 1.2rem;">Unlock the full paper workflow</h2>
-                <p style="margin: 0; color: var(--text-muted);">You already saw the scan preview. PRO unlocks broker-connected paper order routing, monitored execution workflows, trade logging, and full dashboard controls.</p>
+                <h2 style="margin: 0 0 0.5rem; font-size: 1.2rem;">Unlock the full automated paper workflow</h2>
+                <p style="margin: 0; color: var(--text-muted);">You already saw the scan preview. PRO unlocks broker-connected paper order routing, order monitoring, trade logging, and full dashboard controls.</p>
             </div>
         </section>
-        {% elif upgrade_from == 'execution_locked' %}
+        {% elif upgrade_from == 'automation_locked' %}
         <section style="max-width: 900px; margin: 2rem auto 1rem; padding: 0 1.5rem;">
             <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 1rem 1.25rem;">
-                <h2 style="margin: 0 0 0.5rem; font-size: 1.2rem;">Execution workflow locked</h2>
-                <p style="margin: 0; color: var(--text-muted);">Your scan preview is available, but broker-connected order routing requires PRO.</p>
+                <h2 style="margin: 0 0 0.5rem; font-size: 1.2rem;">Automation workflow locked</h2>
+                <p style="margin: 0; color: var(--text-muted);">Scan previews are available on the free plan. The automated broker-connected paper workflow requires PRO.</p>
             </div>
         </section>
         {% endif %}

@@ -408,14 +408,14 @@
 
                 <div style="margin-top: auto;">
                     <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; font-family: var(--font-mono);">
-                        > Awaiting scan authorization...
+                        > Plan Mode: {{ plan_access.plan_label }} | {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}...
 
 
 
 
                     </p>
                     <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
-                        <i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan
+                        <i class="fas fa-radar" style="margin-right: 8px;"></i> {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}
                     </button>
                 </div>
 
@@ -444,14 +444,14 @@
 
             <div class="data-card" id="upgradePathCard" style="display: none; border-color: rgba(56, 189, 248, 0.45);">
                 <div class="card-header">
-                    Paper Scan Preview Complete
+                    Scan Preview Complete
                     <span class="sys-tag">PRO_PATH</span>
                 </div>
                 <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-                    XeanVI generated a limited paper-scan preview using your user-defined rules and risk controls. PRO unlocks broker-connected paper order routing, monitored execution workflows, trade logging, and full dashboard controls.
+                    XeanVI generated a limited scan preview using your current rules and risk settings. PRO unlocks the full automated broker-connected paper workflow, including paper order routing, order monitoring, trade logging, and full dashboard controls.
                 </p>
                 <a href="/upgrade?from=scan_preview" class="btn-run-scan" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
-                    Unlock PRO Workflow
+                    Unlock PRO Automation
                 </a>
             </div>
             <div class="data-card">
@@ -894,7 +894,8 @@
                 const best = payload.data.best_pick;
                 const watchPanel = best.watch_panel || {};
                 const scanMode = payload.data.scan_mode || 'pro';
-                const upgradeRequiredForExecution = !!payload.data.upgrade_required_for_execution;
+                const automationMode = payload.data.automation_mode || 'locked';
+                const upgradeRequiredForExecution = !!payload.data.upgrade_required_for_auto_workflow;
 
                 addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
 
@@ -911,9 +912,10 @@
                 const upgradePathCard = document.getElementById('upgradePathCard');
                 if (upgradeRequiredForExecution) {
                     upgradePathCard.style.display = 'block';
-                    addLog("> FREE_PREVIEW_MODE: Broker-connected order routing requires PRO.", "var(--warning)");
-                } else {
+                    addLog("FREE_PREVIEW_MODE: Scan preview complete. Automated paper workflow requires PRO.", "var(--warning)");
+                } else if (automationMode === 'full_automation') {
                     upgradePathCard.style.display = 'none';
+                    addLog("PRO_AUTOMATION_MODE: Rules validated. Automated workflow active.", "var(--success)");
                 }
 
                 document.getElementById('data-panels').style.display = 'grid';
@@ -976,7 +978,7 @@
                         addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
                     }
                 } else if (upgradeRequiredForExecution) {
-                    addLog(`> ${scanMode.toUpperCase()}: Execution controls are locked to protect paper-mode testing until PRO is enabled.`, "var(--warning)");
+                    addLog("FREE_PREVIEW_MODE: Scan preview complete. Automated paper workflow requires PRO.", "var(--warning)");
                     const pill = document.getElementById('decisionPill');
                     pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> PREVIEW_ONLY';
                     pill.className = 'table-pill watch';
@@ -989,7 +991,7 @@
             } catch (err) {
                 addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
             } finally {
-                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Execute Scan';
+                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}';
                 btn.disabled = false;
                 statusHeader.innerText = "> Awaiting command...";
             }
