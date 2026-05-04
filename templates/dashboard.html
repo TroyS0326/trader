@@ -36,10 +36,11 @@
             font-family: var(--font-sans); 
             background-color: var(--bg-main); 
             color: var(--text-main); 
-            height: 100vh; 
+            min-height: 100vh; 
             display: flex; 
             flex-direction: column; 
-            overflow: hidden; 
+            overflow-x: hidden;
+            overflow-y: auto; 
             background-image: radial-gradient(circle at top center, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
         }
 
@@ -73,7 +74,9 @@
         .h-divider { width: 1px; height: 35px; background: var(--border-color); }
 
         /* --- Workspace Layout --- */
-        .workspace { flex-grow: 1; overflow-y: auto; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .dashboard-shell { width: 100%; flex: 1 0 auto; display: flex; flex-direction: column; }
+        .dashboard-header-wrap { padding: 1.5rem 2rem 0 2rem; flex-shrink: 0; }
+        .workspace { width: 100%; flex: 1 0 auto; overflow: visible; padding: 1.5rem 2rem 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
         
         .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; height: 500px; flex-shrink: 0; }
         .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 2rem; }
@@ -290,8 +293,9 @@
 
     {% include 'nav.html' %}
 
-    <div style="padding: 1.5rem 2rem 0 2rem;">
-        <div class="command-header-bar">
+    <main class="dashboard-shell">
+        <div class="dashboard-header-wrap">
+            <div class="command-header-bar">
             <div class="header-profile">
                 <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
                     {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
@@ -384,7 +388,7 @@
             </div>
         </div>
 
-    <div class="workspace">
+        <div class="workspace">
         {% if setup_checklist and not setup_checklist.core_complete %}
         <section class="setup-banner" aria-label="Setup checklist reminder">
             <p>Setup incomplete: {{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}). Finish setup tasks before live workflow.</p>
@@ -1000,6 +1004,10 @@
         connectWatchlistSocket();
     </script>
     <div id="toast-container" aria-live="polite" aria-atomic="true" role="status"></div>
+
+    </main>
+
+    {% include 'footer.html' %}
 
 </body>
 </html>
