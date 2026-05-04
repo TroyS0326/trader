@@ -4,6 +4,9 @@ import re
 from typing import Any, Dict, Optional
 
 BROAD_ETF_SYMBOLS = {"SPY", "QQQ", "IWM", "DIA"}
+CRYPTO_ETF_SYMBOLS = {"BITO", "BTF", "BITX", "IBIT", "FBTC", "GBTC", "ETHE", "ETHA", "ARKB", "HODL", "BTCO", "BRRR", "EZBC", "BTCW", "DEFI"}
+LEVERAGED_ETF_SYMBOLS = {"TQQQ", "SOXL", "SPXL", "UPRO", "BOIL", "FAS", "TNA", "LABU", "NUGT", "YINN", "UCO", "BITX"}
+INVERSE_ETF_SYMBOLS = {"SQQQ", "SOXS", "SPXS", "UVXY", "KOLD", "FAZ", "TZA", "LABD", "DUST", "YANG", "SCO"}
 CRYPTO_KEYWORDS = ("bitcoin", "btc", "ether", "eth", "crypto", "blockchain")
 LEVERAGED_HINTS = ("2x", "3x", "ultra", "leveraged", "bull")
 INVERSE_HINTS = ("inverse", "short", "bear", "-1x", "-2x", "-3x")
@@ -27,9 +30,15 @@ def classify_asset(symbol: str, asset: Optional[Dict[str, Any]], profile: Option
     elif symbol in BROAD_ETF_SYMBOLS:
         asset_type = "BROAD_ETF"
         reason = "known_broad_etf"
-    elif any(k in text for k in CRYPTO_KEYWORDS):
-        asset_type = "CRYPTO_ETF" if asset.get("class") == "us_equity" else "UNKNOWN"
-        reason = "crypto_keyword_match"
+    elif symbol in CRYPTO_ETF_SYMBOLS:
+        asset_type = "CRYPTO_ETF"
+        reason = "known_crypto_etf"
+    elif symbol in LEVERAGED_ETF_SYMBOLS:
+        asset_type = "LEVERAGED_ETF"
+        reason = "known_leveraged_etf"
+    elif symbol in INVERSE_ETF_SYMBOLS:
+        asset_type = "INVERSE_ETF"
+        reason = "known_inverse_etf"
     elif asset.get("exchange") and ("etf" in text or asset.get("tradable") is True and symbol.endswith("Q")):
         if any(k in text for k in INVERSE_HINTS):
             asset_type = "INVERSE_ETF"
@@ -37,9 +46,15 @@ def classify_asset(symbol: str, asset: Optional[Dict[str, Any]], profile: Option
         elif any(k in text for k in LEVERAGED_HINTS):
             asset_type = "LEVERAGED_ETF"
             reason = "leveraged_keyword_match"
+        elif any(k in text for k in CRYPTO_KEYWORDS):
+            asset_type = "CRYPTO_ETF"
+            reason = "crypto_keyword_match"
         else:
             asset_type = "BROAD_ETF"
             reason = "etf_metadata_or_name"
+    elif any(k in text for k in CRYPTO_KEYWORDS):
+        asset_type = "CRYPTO_ETF" if asset.get("class") == "us_equity" else "UNKNOWN"
+        reason = "crypto_keyword_match"
     elif asset.get("class") == "us_equity" or (symbol.isalpha() and 1 <= len(symbol) <= 5):
         asset_type = "LOW_FLOAT_MOMENTUM_STOCK" if "biotech" in text else "COMMON_STOCK"
         reason = "equity_default" if asset.get("class") == "us_equity" else "symbol_equity_fallback"
