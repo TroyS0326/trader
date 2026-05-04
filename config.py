@@ -26,6 +26,9 @@ DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip() or 'redis://localhost:6379/0'
+RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', REDIS_URL).strip() or REDIS_URL
+
 
 SESSION_COOKIE_DOMAIN = os.getenv('SESSION_COOKIE_DOMAIN', '').strip() or None
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax').strip() or 'Lax'

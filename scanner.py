@@ -304,17 +304,16 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
         ask = safe_num(quote.get('ap'))
         spread_pct = calc_spread_pct(bid, ask, price)
 
-        # TEMPORARY: Bypassing hard gatekeeper so we don't get blocked by strict spreads
-        # if symbol != 'SPY':
-        #     market_stats = SymbolMarketStats(
-        #         symbol=symbol,
-        #         price=price,
-        #         daily_dollar_volume=dollar_volume,
-        #         spread_pct=spread_pct,
-        #     )
-        #     keep, _ = passes_hard_gatekeeper(market_stats)
-        #     if not keep:
-        #         continue
+        if symbol != 'SPY':
+            market_stats = SymbolMarketStats(
+                symbol=symbol,
+                price=price,
+                daily_dollar_volume=dollar_volume,
+                spread_pct=spread_pct,
+            )
+            keep, _ = passes_hard_gatekeeper(market_stats)
+            if not keep:
+                continue
         valid.append(symbol)
 
     if 'SPY' not in valid:
@@ -636,10 +635,6 @@ def classify_setup_grade(total: int, catalyst_score: int, liquidity_score: int, 
 def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
     return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
     
-
-def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
-    return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
-
 
 def choose_sector_etf(profile: Dict[str, Any], symbol: str) -> str:
     text = ' '.join(str(profile.get(k, '')).lower() for k in ('finnhubIndustry', 'industry', 'name'))
