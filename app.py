@@ -555,11 +555,16 @@ def dev_unlock(token):
     return "Unauthorized", 403
 
 
+@app.route('/waitlist/thank-you')
+def waitlist_thank_you():
+    return render_template('waitlist_thank_you.html')
+
+
 @app.route('/join-waitlist', methods=['POST'])
 def join_waitlist():
     email = request.form.get('email', '').strip().lower()
-    
-    if not email:
+
+    if not is_valid_email(email):
         flash("A valid email is required.", "error")
         return redirect(url_for('index'))
 
@@ -601,14 +606,15 @@ def join_waitlist():
         
         if response.status_code in [200, 201, 204]:
             flash("You've been successfully added to the priority waitlist.", "success")
-        else:
-            logger.error(f"Brevo API Rejected: {response.text}")
-            flash(f"Brevo Error: We could not secure your spot.", "error")
-            
+            return redirect(url_for('waitlist_thank_you'))
+
+        logger.error(f"Brevo API Rejected: {response.text}")
+        flash(f"Brevo Error: We could not secure your spot.", "error")
+
     except Exception as e:
         logger.error(f"Brevo Connection Failed: {e}")
         flash("System connection error. Please try again.", "error")
-        
+
     return redirect(url_for('index'))
 
 
