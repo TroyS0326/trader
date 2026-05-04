@@ -8,40 +8,76 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --text-soft: #94a3b8;
+            --bg-main: #060b14;
+            --bg-card: #0f172a;
+            --bg-card-2: #111827;
+            --accent-blue: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border-color: rgba(255, 255, 255, 0.10);
+        }
+        body { min-height:100vh; display:flex; flex-direction:column; background:var(--bg-main); color:var(--text-main); }
+        main { max-width:1100px; width:100%; margin:0 auto; padding:2rem 1rem 3rem; flex:1; }
+        .hero-card, .check-card { background: linear-gradient(180deg, var(--bg-card), var(--bg-card-2)); border:1px solid var(--border-color); border-radius:14px; }
+        .hero-card { padding:1.4rem; margin-bottom:1rem; }
+        .hero-head { display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; align-items:center; }
+        .hero-title { margin:0; font-size:1.5rem; color:var(--text-main); }
+        .hero-subtitle { margin:.55rem 0 0; color:var(--text-muted); }
+        .progress { text-align:right; color:var(--text-muted); font-family:var(--font-mono, monospace); font-size:.9rem; }
+        .progress strong { color:var(--accent-blue); font-size:1.05rem; }
+        .checklist-grid { display:grid; gap:.85rem; }
+        .check-card { padding:1rem; border-left:4px solid var(--accent-blue); }
+        .check-card.completed { border-left-color: var(--success); }
+        .check-card.optional:not(.completed) { border-left-color: var(--warning); }
+        .item-row { display:flex; justify-content:space-between; gap:.9rem; flex-wrap:wrap; align-items:flex-start; }
+        .item-title { display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem; }
+        .item-title strong { color:var(--text-main); }
+        .item-icon { color:var(--accent-blue); }
+        .check-card.completed .item-icon { color:var(--success); }
+        .optional-pill { font-size:.72rem; color:var(--warning); border:1px solid rgba(245,158,11,.45); border-radius:999px; padding:.1rem .45rem; }
+        .item-desc { margin:0; color:var(--text-muted); font-size:.92rem; line-height:1.5; }
+        .item-note { margin:.5rem 0 0; color:#bbf7d0; font-size:.85rem; }
+        .action-btn { text-decoration:none; border:1px solid rgba(56,189,248,.55); border-radius:9px; padding:.5rem .8rem; color:#d9f3ff; background:rgba(14,116,144,.25); font-weight:700; font-size:.82rem; display:inline-flex; }
+        .dashboard-link-wrap { margin-top:1.3rem; }
+    </style>
 </head>
-<body style="background:#040711; color:var(--text-main); min-height:100vh; display:flex; flex-direction:column;">
+<body>
 {% include 'nav.html' %}
-<main style="max-width:980px; margin:1.5rem auto 2.5rem; padding:0 1rem; flex:1;">
-    <section style="background:rgba(15,23,42,0.86); border:1px solid var(--border-color); border-radius:14px; padding:1.2rem 1.1rem; margin-bottom:1rem;">
-        <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:center;">
+<main>
+    <section class="hero-card">
+        <div class="hero-head">
             <div>
-                <h1 style="margin:0; font-size:1.3rem;">First-Run Setup Checklist</h1>
-                <p style="margin:0.45rem 0 0; color:var(--text-muted); font-size:0.92rem;">Complete core setup in paper mode before live routing.</p>
+                <h1 class="hero-title">XeanVI Setup Checklist</h1>
+                <p class="hero-subtitle">Complete the required setup path before using the automated paper workflow. You can reopen completed steps any time.</p>
             </div>
-            <div style="font-family:var(--font-mono); color:var(--accent-blue); font-size:0.86rem; text-align:right;">
-                <strong>{{ setup_checklist.percent_complete }}%</strong> core complete<br>
-                {{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }} required tasks
+            <div class="progress">
+                <strong>{{ setup_checklist.percent_complete }}% complete</strong><br>
+                {{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }} required steps
             </div>
         </div>
     </section>
 
-    <section style="display:grid; gap:0.8rem;">
+    <section class="checklist-grid">
         {% for item in setup_checklist['items'] %}
-        <article style="border:1px solid {{ 'rgba(16,185,129,0.55)' if item.completed else 'rgba(148,163,184,0.25)' }}; background:{{ 'rgba(4,120,87,0.2)' if item.completed else 'rgba(15,23,42,0.75)' }}; border-radius:12px; padding:0.95rem;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+        <article class="check-card{% if item.completed %} completed{% endif %}{% if item.optional %} optional{% endif %}">
+            <div class="item-row">
                 <div>
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-                        <i class="fa-solid {{ item.icon }}" style="color:{{ 'var(--success)' if item.completed else 'var(--accent-blue)' }};"></i>
+                    <div class="item-title">
+                        <i class="fa-solid {{ item.icon }} item-icon"></i>
                         <strong>{{ item.label }}</strong>
-                        {% if item.optional %}<span style="font-size:0.72rem; color:var(--text-muted);">OPTIONAL</span>{% endif %}
+                        {% if item.optional %}<span class="optional-pill">OPTIONAL</span>{% endif %}
                     </div>
-                    <p style="margin:0; color:var(--text-muted); font-size:0.86rem;">{{ item.description }}</p>
-                    {% if item.completed %}
-                    <p style="margin:0.45rem 0 0; color:var(--success); font-size:0.82rem;">{{ item.completed_note }}</p>
-                    {% endif %}
+                    <p class="item-desc">{{ item.description }}</p>
+                    {% if item.completed %}<p class="item-note">{{ item.completed_note }}</p>{% endif %}
                 </div>
                 {% if item.url %}
-                <a href="{{ item.url }}" {% if item.field in ['playbook_reviewed', 'transparency_reviewed'] %}onclick="markSetupChecklistStep('{{ item.field }}')"{% endif %} style="text-decoration:none; border:1px solid rgba(56,189,248,0.45); border-radius:8px; padding:0.45rem 0.75rem; color:var(--accent-blue); font-weight:700; font-size:0.8rem;">
+                <a href="{{ item.url }}" {% if item.field in ['playbook_reviewed', 'transparency_reviewed'] %}onclick="markSetupChecklistStep('{{ item.field }}')"{% endif %} class="action-btn">
                     {{ item.completed_action_label if item.completed else item.action_label }}
                 </a>
                 {% endif %}
@@ -50,7 +86,7 @@
         {% endfor %}
     </section>
 
-    <div style="margin-top:1.2rem;">
+    <div class="dashboard-link-wrap">
         <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:0.5rem;">
             <i class="fa-solid fa-terminal"></i> Open Trading Dashboard
         </a>

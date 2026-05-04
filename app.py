@@ -1059,6 +1059,20 @@ def get_user_setup_checklist(user: User) -> dict:
             'completed_note': 'Your Alpaca paper account is connected. Paper-mode order routing can now use Alpaca’s paper trading environment.',
             'icon': 'fa-plug',
         },
+        {
+            'field': 'alpaca_live_connected',
+            'label': 'Alpaca live account connected',
+            'short_label': 'Alpaca Live',
+            'description': 'Connect your Alpaca live account only after your paper setup and checklist are complete. Live broker-connected workflows use real capital and should be enabled carefully.',
+            'completed': bool(getattr(user, 'alpaca_live_account_id', None) or getattr(user, 'alpaca_live_access_token', None)),
+            'required': False,
+            'optional': True,
+            'url': url_for('onboarding'),
+            'action_label': 'Connect Alpaca Live',
+            'completed_action_label': 'Review Live Connection',
+            'completed_note': 'Your Alpaca live account is connected. Live broker-connected workflows can be managed carefully from your account settings.',
+            'icon': 'fa-plug',
+        },
     ]
     total_required = sum(1 for item in items if item['required'])
     completed_required = sum(1 for item in items if item['required'] and item['completed'])
