@@ -1488,7 +1488,21 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         try:
             profile = get_company_profile(symbol)
             asset = get_alpaca_asset(symbol)
-            ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals))
+            analysis = analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals)
+            classification = classify_asset(
+                symbol, asset, profile,
+                platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
+                user_flags={'biotech': bool(getattr(user, 'allow_biotech', True)), 'etf': bool(getattr(user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(user, 'allow_crypto_etfs', True)), 'options': bool(getattr(user, 'allow_options_trading', False))}
+            )
+            analysis.update({
+                'asset_type': classification.get('asset_type'),
+                'asset_type_reason': classification.get('asset_type_reason'),
+                'platform_allowed': classification.get('platform_allowed'),
+                'user_allowed': classification.get('user_allowed'),
+                'tradable_by_xeanvi': classification.get('tradable_by_xeanvi'),
+                'rejection_reasons': classification.get('rejection_reasons') or [],
+            })
+            ranked.append(analysis)
             print(f" -> SUCCESS: Analyzed {symbol}")
         except Exception as e:
             print(f" -> CRASH on {symbol}: {e}")
@@ -1566,19 +1580,36 @@ def get_momentum_breakout_universe(limit: Optional[int] = None, user: Optional[A
         quote = quotes.get(symbol, {})
         price = safe_num(quote.get('ap')) or safe_num(snap.get('minuteBar', {}).get('c'))
         prev = safe_num(snap.get('prevDailyBar', {}).get('c'))
+        try:
+            asset = get_alpaca_asset(symbol)
+        except Exception:
+            asset = {}
+        try:
+            profile = get_company_profile(symbol)
+        except Exception:
+            profile = {}
+        classification = classify_asset(
+            symbol, asset, profile,
+            platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
+            user_flags={'biotech': bool(getattr(user, 'allow_biotech', True)), 'etf': bool(getattr(user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(user, 'allow_crypto_etfs', True)), 'options': bool(getattr(user, 'allow_options_trading', False))}
+        )
+        base = {k: classification.get(k) for k in ('asset_type', 'asset_type_reason', 'platform_allowed', 'user_allowed', 'tradable_by_xeanvi')}
+        if not classification.get('tradable_by_xeanvi', False):
+            rejected.append({'symbol': symbol, **base, 'rejection_reason': classification.get('rejection_reason'), 'rejection_reasons': classification.get('rejection_reasons', [])})
+            continue
         if price <= 0 or prev <= 0:
-            rejected.append({'symbol': symbol, 'rejection_reason': 'missing_prev_close'})
+            rejected.append({'symbol': symbol, **base, 'rejection_reason': 'missing_prev_close', 'rejection_reasons': ['missing_prev_close']})
             continue
         if price < 5.0 and not allow_penny:
-            rejected.append({'symbol': symbol, 'rejection_reason': 'penny_stock_excluded'})
+            rejected.append({'symbol': symbol, **base, 'rejection_reason': 'penny_stock_excluded', 'rejection_reasons': ['penny_stock_excluded']})
             continue
         change = ((price - prev) / prev) * 100.0
         vol = safe_num(snap.get('dailyBar', {}).get('v')) * price
         if not (MOMENTUM_MIN_PRICE <= price <= MOMENTUM_MAX_PRICE):
-            rejected.append({'symbol': symbol, 'rejection_reason': 'price_out_of_range'})
+            rejected.append({'symbol': symbol, **base, 'rejection_reason': 'price_out_of_range', 'rejection_reasons': ['price_out_of_range']})
             continue
         if change >= MOMENTUM_MIN_DAY_CHANGE_PCT and vol >= MOMENTUM_MIN_DOLLAR_VOLUME or change >= MOMENTUM_EXTREME_DAY_CHANGE_PCT:
             valid.append(symbol)
         else:
-            rejected.append({'symbol': symbol, 'rejection_reason': 'not_enough_momentum'})
+            rejected.append({'symbol': symbol, **base, 'rejection_reason': 'not_enough_momentum', 'rejection_reasons': ['not_enough_momentum']})
     return valid, rejected[:MOMENTUM_DEBUG_REJECTIONS_LIMIT]
