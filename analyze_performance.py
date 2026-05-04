@@ -174,6 +174,70 @@ def _extract_trade_pnl(trade):
     return None
 
 
+def extract_dynamic_orb_mode(trade) -> str:
+    """
+    Extract Dynamic ORB mode from Trade.raw_json for later analysis.
+    Returns "unknown" if missing/unreadable.
+    """
+    raw_payload = getattr(trade, "raw_json", None)
+    if not raw_payload:
+        return "unknown"
+
+    try:
+        payload = json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
+    except (TypeError, ValueError):
+        return "unknown"
+
+    if not isinstance(payload, dict):
+        return "unknown"
+
+    dynamic_orb_state = payload.get("dynamic_orb_state")
+    if not isinstance(dynamic_orb_state, dict):
+        return "unknown"
+
+    mode = dynamic_orb_state.get("mode")
+    return str(mode).strip() if mode else "unknown"
+
+
+def summarize_dynamic_orb_outcomes() -> dict:
+    """
+    Groups completed trades with Trade.pnl by dynamic_orb_state.mode.
+    This is internal analysis only.
+    It does not affect trading.
+    """
+    trades = Trade.query.filter(Trade.pnl.isnot(None)).all()
+    summary = {}
+
+    for trade in trades:
+        mode = extract_dynamic_orb_mode(trade)
+        pnl = float(trade.pnl or 0.0)
+
+        bucket = summary.setdefault(
+            mode,
+            {
+                "count": 0,
+                "wins": 0,
+                "losses": 0,
+                "net_pnl": 0.0,
+                "win_rate": 0.0,
+            },
+        )
+
+        bucket["count"] += 1
+        if pnl > 0:
+            bucket["wins"] += 1
+        elif pnl < 0:
+            bucket["losses"] += 1
+        bucket["net_pnl"] += pnl
+
+    for bucket in summary.values():
+        count = bucket["count"]
+        bucket["net_pnl"] = round(bucket["net_pnl"], 2)
+        bucket["win_rate"] = round((bucket["wins"] / count) * 100, 2) if count else 0.0
+
+    return summary
+
+
 def calculate_user_kelly_fraction(user_id):
     """
     Calculate a user's Half-Kelly risk fraction from realized trade history.
