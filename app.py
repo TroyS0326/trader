@@ -2047,6 +2047,51 @@ def build_debug_rejection_reasons(payload: dict) -> list[str]:
 
     return reasons
 
+
+def build_debug_final_explanation(payload: dict) -> str:
+    symbol = str(payload.get('symbol') or '').upper()
+    reasons = set(payload.get('rejection_reasons') or [])
+    asset_type = str(payload.get('asset_type') or '').upper()
+
+    if 'not_tradeable_by_xeanvi' in reasons:
+        if asset_type == 'LEVERAGED_ETF':
+            return (
+                f"{symbol} is a leveraged ETF. Leveraged ETF trading is disabled by "
+                "platform/user settings, so XeanVI will not trade it."
+            )
+        if asset_type == 'INVERSE_ETF':
+            return (
+                f"{symbol} is an inverse ETF. Inverse ETF trading is disabled by "
+                "platform/user settings, so XeanVI will not trade it."
+            )
+        if asset_type == 'OPTION':
+            return f"{symbol} looks like an options contract. Options trading is not supported yet."
+        return f"{symbol} is blocked by asset-type/user/platform trading settings."
+
+    setup_phrases = [
+        ('below_stop', 'below the calculated stop'),
+        ('below_vwap', 'below VWAP'),
+        ('spread_too_wide', 'spread is too wide'),
+        ('price_below_entry', 'below the planned entry'),
+        ('no_controlled_entry', 'not inside a controlled entry zone'),
+        ('qty_zero', 'risk sizing produced zero shares'),
+        ('setup_grade_no_trade', 'setup grade is NO TRADE'),
+        ('decision_skip', 'decision is SKIP'),
+    ]
+    setup_reasons = [phrase for reason, phrase in setup_phrases if reason in reasons]
+    if {'diagnostic_data_unavailable', 'deep_analysis_failed'} & reasons:
+        return 'Symbol could not be fully analyzed because market/quote/bar data was incomplete.'
+    if setup_reasons:
+        if len(setup_reasons) == 1:
+            setup_text = setup_reasons[0]
+        elif len(setup_reasons) == 2:
+            setup_text = f"{setup_reasons[0]} and {setup_reasons[1]}"
+        else:
+            setup_text = f"{', '.join(setup_reasons[:-1])}, and {setup_reasons[-1]}"
+        return f"{symbol} was found, but XeanVI should not chase it because it is {setup_text}."
+
+    return str(payload.get('final_explanation') or 'Symbol analyzed.')
+
 @app.route('/api/debug-symbol/<symbol>')
 @login_required
 def api_debug_symbol(symbol: str):
@@ -2126,10 +2171,7 @@ def api_debug_symbol(symbol: str):
     payload['rejected'] = bool(payload['rejection_reasons'])
     if payload.get('rejected') and not payload.get('final_explanation'):
         payload['final_explanation'] = 'Symbol is not actionable under current setup constraints.'
-    if {'below_stop', 'below_vwap', 'spread_too_wide'} & set(payload['rejection_reasons']):
-        payload['final_explanation'] = (
-            f"{symbol} was found, but it is below the calculated stop/VWAP and the spread is too wide, so XeanVI should not chase it."
-        )
+    payload['final_explanation'] = build_debug_final_explanation(payload)
     return jsonify(payload)
 
 @app.route('/api/metrics')
