@@ -446,7 +446,19 @@
         </div>
 
         <div class="bottom-row" id="data-panels" style="display: none;">
-            
+
+            <div class="data-card" id="upgradePathCard" style="display: none; border-color: rgba(56, 189, 248, 0.45);">
+                <div class="card-header">
+                    Paper Scan Preview Complete
+                    <span class="sys-tag">PRO_PATH</span>
+                </div>
+                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
+                    XeanVI has generated a limited paper-scan preview using your current rules and risk settings. PRO unlocks broker-connected paper order routing, trade logging, monitored execution workflows, and full dashboard execution controls.
+                </p>
+                <a href="/upgrade?from=scan_preview" class="btn-run-scan" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
+                    Unlock PRO Workflow
+                </a>
+            </div>
             <div class="data-card">
                 <div class="card-header">
                     Logic Execution Plan
@@ -691,7 +703,7 @@
 
             decisionPill.textContent = best.decision || 'WATCH';
 
-            if (best.decision === 'CRITERIA MET') {
+            if (best.decision === 'CRITERIA MET' && !upgradeRequiredForExecution) {
                 decisionPill.className = 'table-pill buy-now';
                 actionContainer.className = 'action-box';
                 actionContainer.style.background = 'rgba(16, 185, 129, 0.1)';
@@ -874,6 +886,8 @@
                 const latestScanId = payload.data.scan_id;
                 const best = payload.data.best_pick;
                 const watchPanel = best.watch_panel || {};
+                const scanMode = payload.data.scan_mode || 'pro';
+                const upgradeRequiredForExecution = !!payload.data.upgrade_required_for_execution;
 
                 addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
 
@@ -887,11 +901,19 @@
                 renderBestPick(best);
                 renderWatchlist(payload.data.watchlist || []);
 
+                const upgradePathCard = document.getElementById('upgradePathCard');
+                if (upgradeRequiredForExecution) {
+                    upgradePathCard.style.display = 'block';
+                    addLog("> FREE_PREVIEW_MODE: Broker-connected order routing requires PRO.", "var(--warning)");
+                } else {
+                    upgradePathCard.style.display = 'none';
+                }
+
                 document.getElementById('data-panels').style.display = 'grid';
                 markSetupChecklistStep('first_scan_completed');
 
                 // EXECUTION TRIGGER
-                if (best.decision === 'CRITERIA MET') {
+                if (best.decision === 'CRITERIA MET' && !upgradeRequiredForExecution) {
                     addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
 
                     try {
@@ -946,6 +968,11 @@
                     } catch (err) {
                         addLog(`> [ERROR] Transmission failure: ${err.message}`, "var(--danger)");
                     }
+                } else if (upgradeRequiredForExecution) {
+                    addLog(`> ${scanMode.toUpperCase()}: Execution controls are locked to protect paper-mode testing until PRO is enabled.`, "var(--warning)");
+                    const pill = document.getElementById('decisionPill');
+                    pill.innerHTML = '<i class="fas fa-lock" style="margin-right: 4px;"></i> PREVIEW_ONLY';
+                    pill.className = 'table-pill watch';
                 } else {
                     addLog("> No current data arrays match execution parameters. System idling in watch mode.", "var(--warning)");
                 }

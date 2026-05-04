@@ -995,7 +995,8 @@ def dashboard():
 @app.route('/upgrade')
 @login_required
 def upgrade():
-    track_user_event('upgrade_page_viewed', user=current_user)
+    upgrade_from = (request.args.get('from') or '').strip()
+    track_user_event('upgrade_page_viewed', user=current_user, context={'from': upgrade_from})
     # If they are already PRO, don't let them buy it again!
     if current_user.subscription_status == 'pro':
         flash("You are already a PRO member. Your automation tools are unlocked.", "success")
@@ -1557,6 +1558,13 @@ def api_scan():
 
         approved_plan = approve_scan_for_user(redis_client, current_user, result)
         result["approved_execution_plan"] = approved_plan
+        is_pro = current_user.subscription_status == 'pro'
+        result['scan_mode'] = 'pro' if is_pro else 'free_preview'
+        result['upgrade_required_for_execution'] = not is_pro
+        result['upgrade_url'] = '' if is_pro else '/upgrade?from=scan_preview'
+        if not is_pro:
+            track_user_event('scan_preview_generated', user=current_user, context={'scan_id': scan_id})
+            track_user_event('upgrade_prompt_shown', user=current_user, context={'surface': 'scan_preview'})
         try:
             redis_client.setex(f'latest_scan:{current_user.id}', 60 * 60 * 8, json.dumps(result))
         except Exception as redis_exc:
@@ -1615,17 +1623,14 @@ def api_execute():
     symbol = str(data.get("symbol") or "").upper().strip()
     scan_id = data.get("scan_id") or data.get("scanId")
 
-    # --- FREEMIUM GATE ---
-    # Assuming you have a toggle for 'trading_mode' (paper vs live)
-    trading_mode = getattr(current_user, 'trading_mode', 'paper')
-
-    if trading_mode == 'live' and current_user.subscription_status == 'free':
+    if current_user.subscription_status != 'pro':
+        track_user_event('execution_blocked_free_user', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
         return fail(
-            'Live Execution is a PRO feature. Upgrade to unlock real-money automated trading.',
+            'Upgrade to PRO to unlock broker-connected paper order routing and monitored execution workflows.',
             403,
-            needs_upgrade=True,
+            upgrade_required=True,
+            upgrade_url=url_for('upgrade', **{'from': 'execution_locked'})
         )
-    # ---------------------
 
     required = ['symbol', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty', 'current_price', 'buy_upper', 'score_total', 'decision']
     missing = [k for k in required if k not in data]
