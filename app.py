@@ -408,6 +408,24 @@ def ensure_schema_migrations() -> None:
             if 'broker_connection_started' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
 
+            if 'stripe_customer_id' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)"))
+
+            if 'stripe_subscription_id' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_subscription_id VARCHAR(255)"))
+
+            if 'stripe_price_id' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_price_id VARCHAR(255)"))
+
+            if 'subscription_plan' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_plan VARCHAR(50)"))
+
+            if 'subscription_current_period_end' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_current_period_end DATETIME"))
+
+            if 'subscription_cancel_at_period_end' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT 0"))
+
         if 'trades' in table_names:
             trade_columns = {col['name'] for col in inspector.get_columns('trades')}
 
@@ -986,110 +1004,226 @@ def upgrade():
     return render_template('upgrade.html', current_user=current_user)
 
 
-@app.route('/api/create-checkout-session', methods=['GET', 'POST'])
+def get_stripe_price_for_plan(plan: str) -> str | None:
+    if plan == 'monthly':
+        return config.STRIPE_PRICE_ID_MONTHLY
+    if plan == 'annual':
+        return config.STRIPE_PRICE_ID_ANNUAL
+    return None
+
+
+def get_plan_from_price_id(price_id: str | None) -> str:
+    if not price_id:
+        return 'unknown'
+    if price_id == config.STRIPE_PRICE_ID_MONTHLY:
+        return 'monthly'
+    if price_id == config.STRIPE_PRICE_ID_ANNUAL:
+        return 'annual'
+    return 'unknown'
+
+
+def get_or_create_stripe_customer(user: User) -> str:
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+
+    customer = stripe.Customer.create(
+        email=user.email,
+        name=user.full_name or user.email,
+        metadata={'xeanvi_user_id': str(user.id)},
+    )
+    user.stripe_customer_id = customer.id
+    db.session.commit()
+    return customer.id
+
+
+def apply_subscription_to_user(user: User, subscription: dict, price_id: str | None = None) -> None:
+    status = (subscription.get('status') or '').lower()
+    status_map = {
+        'active': 'pro',
+        'trialing': 'pro',
+        'past_due': 'past_due',
+        'canceled': 'free',
+        'unpaid': 'free',
+        'incomplete_expired': 'free',
+    }
+    mapped_status = status_map.get(status)
+    if mapped_status:
+        user.subscription_status = mapped_status
+
+    user.stripe_subscription_id = subscription.get('id') or user.stripe_subscription_id
+    resolved_price_id = price_id
+    if not resolved_price_id:
+        items = (subscription.get('items') or {}).get('data') or []
+        if items and items[0].get('price'):
+            resolved_price_id = items[0]['price'].get('id')
+    user.stripe_price_id = resolved_price_id
+    user.subscription_plan = get_plan_from_price_id(resolved_price_id)
+
+    period_end = subscription.get('current_period_end')
+    user.subscription_current_period_end = datetime.utcfromtimestamp(period_end) if period_end else None
+    user.subscription_cancel_at_period_end = bool(subscription.get('cancel_at_period_end', False))
+
+
+@app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
-    # Check both form data (POST) and URL parameters (GET) for the plan
-    plan = request.form.get('plan') or request.args.get('plan') or 'monthly'
+    body = request.get_json(silent=True) or {}
+    plan = (request.form.get('plan') or body.get('plan') or '').strip().lower()
 
-    # Retrieve Price IDs from config.py
-    price_id = (
-        config.STRIPE_PRICE_ID_ANNUAL if plan == 'annual'
-        else config.STRIPE_PRICE_ID_MONTHLY
-    )
+    if plan not in {'monthly', 'annual'}:
+        flash('Invalid subscription plan selected.', 'error')
+        return redirect(url_for('upgrade'))
 
-    # CRITICAL: If Price IDs are missing in .env, redirect back with an error
+    price_id = get_stripe_price_for_plan(plan)
     if not price_id:
-        flash("Billing setup is incomplete (Missing Price IDs). Please check your .env file.", "error")
+        flash('Billing is temporarily unavailable. Please contact support.', 'error')
         return redirect(url_for('upgrade'))
 
     try:
+        stripe_customer_id = get_or_create_stripe_customer(current_user)
         track_user_event('checkout_started', user=current_user, context={'plan': plan})
         checkout_session = stripe.checkout.Session.create(
-            customer_email=current_user.email,
-            client_reference_id=str(current_user.id),
-            payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': 1}],
             mode='subscription',
-            success_url=url_for('onboarding', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('upgrade', _external=True),
+            customer=stripe_customer_id,
+            line_items=[{'price': price_id, 'quantity': 1}],
+            success_url=f"{config.APP_BASE_URL}/checkout-redirect?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{config.APP_BASE_URL}/upgrade?checkout=cancelled",
+            client_reference_id=str(current_user.id),
+            metadata={'user_id': str(current_user.id), 'plan': plan},
+            subscription_data={'metadata': {'user_id': str(current_user.id), 'plan': plan}},
+            allow_promotion_codes=True,
         )
         return redirect(checkout_session.url, code=303)
-    except Exception as e:
-        # Log the actual Stripe error to your console for debugging
-        logger.error(f"Stripe Session Error: {str(e)}")
-        flash(f"Stripe Error: {str(e)}", "error")
+    except Exception:
+        logger.exception('Stripe checkout session creation failed for user_id=%s', current_user.id)
+        flash('Unable to start checkout right now. Please try again shortly.', 'error')
         return redirect(url_for('upgrade'))
 
 
 @app.route('/checkout-redirect')
 @login_required
 def checkout_redirect():
-    plan = request.args.get('plan', 'monthly')
-    price_id = (
-        config.STRIPE_PRICE_ID_ANNUAL
-        if plan == 'annual'
-        else config.STRIPE_PRICE_ID_MONTHLY
-    )
-
-    if not price_id:
-        flash("Billing is temporarily unavailable. Please contact support.", "error")
+    session_id = (request.args.get('session_id') or '').strip()
+    if not session_id:
+        flash('Missing checkout session reference.', 'error')
         return redirect(url_for('upgrade'))
 
     try:
-        track_user_event('checkout_started', user=current_user, context={'plan': plan, 'source': 'checkout_redirect'})
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=current_user.email,
-            client_reference_id=str(current_user.id),
-            payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': 1}],
-            mode='subscription',
-            success_url=url_for('onboarding', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('upgrade', _external=True),
-        )
-        return redirect(checkout_session.url, code=303)
-    except Exception as exc:
-        logger.error("Stripe Error: %s", exc)
-        return redirect(url_for('dashboard'))
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+    except Exception:
+        logger.exception('Failed retrieving checkout session %s', session_id)
+        flash('Unable to verify checkout status. Please contact support if you were charged.', 'error')
+        return redirect(url_for('upgrade'))
+
+    session_user_id = (checkout_session.get('metadata') or {}).get('user_id') or checkout_session.get('client_reference_id')
+    if str(session_user_id) != str(current_user.id):
+        flash('Checkout verification failed for this account.', 'error')
+        return redirect(url_for('upgrade'))
+
+    subscription_id = checkout_session.get('subscription')
+    paid = checkout_session.get('payment_status') == 'paid'
+    if not (subscription_id and paid):
+        flash('Payment is not completed yet. Please try again shortly.', 'error')
+        return redirect(url_for('upgrade'))
+
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        price_id = None
+        line_items = checkout_session.get('line_items', {}).get('data', []) if checkout_session.get('line_items') else []
+        if line_items and line_items[0].get('price'):
+            price_id = line_items[0]['price'].get('id')
+        apply_subscription_to_user(current_user, subscription, price_id=price_id)
+        if checkout_session.get('customer'):
+            current_user.stripe_customer_id = checkout_session.get('customer')
+        db.session.commit()
+        flash('Your PRO subscription is active. Welcome to XeanVI PRO.', 'success')
+        return redirect(url_for('setup_checklist'))
+    except Exception:
+        db.session.rollback()
+        logger.exception('Checkout finalization failed for user_id=%s session_id=%s', current_user.id, session_id)
+        flash('We could not finalize your subscription yet. Support has been notified.', 'error')
+        return redirect(url_for('upgrade'))
 
 
 @app.route('/api/stripe-webhook', methods=['POST'])
 @csrf.exempt
 def stripe_webhook():
-    payload = request.get_data()
+    payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
     endpoint_secret = config.STRIPE_WEBHOOK_SECRET
 
+    if not endpoint_secret or not sig_header:
+        return jsonify({'error': 'invalid webhook configuration'}), 400
+
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
-        )
-    except (ValueError, stripe.error.SignatureVerificationError) as exc:
-        return jsonify({'error': str(exc)}), 400
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return jsonify({'error': 'invalid signature'}), 400
 
-    if event['type'] == 'checkout.session.completed':
-        checkout_session = event['data']['object']
-        client_ref_id = getattr(checkout_session, 'client_reference_id', None)
+    event_type = event.get('type')
+    obj = (event.get('data') or {}).get('object') or {}
 
-        if client_ref_id:
-            user = User.query.get(int(client_ref_id))
-        else:
-            customer_email = getattr(checkout_session, 'customer_email', None)
-            user = User.query.filter_by(email=customer_email).first()
+    def find_user(subscription_id=None, customer_id=None, metadata_user_id=None):
+        user = None
+        if subscription_id:
+            user = User.query.filter_by(stripe_subscription_id=subscription_id).first()
+        if not user and metadata_user_id:
+            user = User.query.get(int(metadata_user_id)) if str(metadata_user_id).isdigit() else None
+        if not user and customer_id:
+            user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        return user
 
-        if user:
-            user.subscription_status = 'pro'
-            db.session.commit()
-            logger.info("User %s upgraded to PRO via Stripe.", user.email)
+    try:
+        if event_type == 'checkout.session.completed':
+            user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
+            user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
+            subscription_id = obj.get('subscription')
+            if user and subscription_id:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                apply_subscription_to_user(user, subscription)
+                user.stripe_customer_id = obj.get('customer') or user.stripe_customer_id
+                db.session.commit()
+                track_user_event('checkout_completed', user=user, context={'subscription_id': subscription_id})
 
-    elif event['type'] == 'customer.subscription.deleted':
-        subscription = event['data']['object']
-        customer = stripe.Customer.retrieve(subscription['customer'])
-        user = User.query.filter_by(email=customer.email).first()
-        if user:
-            user.subscription_status = 'free'
-            db.session.commit()
-            logger.info("User %s downgraded to FREE (Subscription Ended).", customer.email)
+        elif event_type == 'customer.subscription.updated':
+            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
+            if user:
+                apply_subscription_to_user(user, obj)
+                db.session.commit()
+
+        elif event_type == 'customer.subscription.deleted':
+            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
+            if user:
+                user.subscription_status = 'free'
+                user.subscription_cancel_at_period_end = False
+                db.session.commit()
+
+        elif event_type == 'invoice.payment_failed':
+            sub_id = obj.get('subscription')
+            customer_id = obj.get('customer')
+            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
+            if user:
+                user.subscription_status = 'past_due'
+                db.session.commit()
+                track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
+
+        elif event_type == 'invoice.payment_succeeded':
+            sub_id = obj.get('subscription')
+            customer_id = obj.get('customer')
+            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
+            if user and sub_id:
+                subscription = stripe.Subscription.retrieve(sub_id)
+                if subscription.get('status') in {'active', 'trialing'}:
+                    apply_subscription_to_user(user, subscription)
+                    user.subscription_status = 'pro'
+                    db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception('Error handling Stripe webhook event type=%s', event_type)
 
     return jsonify({'status': 'success'}), 200
 
