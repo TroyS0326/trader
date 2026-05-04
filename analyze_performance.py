@@ -244,6 +244,16 @@ def summarize_dynamic_orb_outcomes() -> dict:
     return summary
 
 
+def summarize_dynamic_orb_outcomes_with_app_context() -> dict:
+    """
+    Command-line-safe wrapper for dynamic ORB outcome diagnostics.
+    Leaves summarize_dynamic_orb_outcomes() unchanged for app-context usage.
+    """
+    app = create_report_app()
+    with app.app_context():
+        return summarize_dynamic_orb_outcomes()
+
+
 def calculate_user_kelly_fraction(user_id):
     """
     Calculate a user's Half-Kelly risk fraction from realized trade history.
