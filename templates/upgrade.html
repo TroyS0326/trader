@@ -135,6 +135,7 @@
     </style>
 </head>
 <body class="dash-body">
+    {% include 'partials/meta_pixel.html' %}
 
 {% include 'nav.html' %}
     
@@ -185,7 +186,7 @@
                     </ul>
                 </div>
 
-                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;">
+                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Monthly PRO","content_category":"Subscription","value":19.99,"currency":"USD"}|tojson }}'>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="plan" value="monthly">
                     <button type="submit" class="checkout-btn primary">Start Monthly PRO</button>
@@ -210,7 +211,7 @@
                     </ul>
                 </div>
 
-                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;">
+                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Annual PRO","content_category":"Subscription","value":199.99,"currency":"USD"}|tojson }}'>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="plan" value="annual">
                     <button type="submit" class="checkout-btn secondary">Save With Annual PRO</button>

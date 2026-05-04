@@ -70,7 +70,18 @@ if os.getenv('FLASK_ENV') == 'production':
         'script-src': [
             "'self'",
             'https://js.stripe.com',  # Required for checkout
+            'https://connect.facebook.net',
             "'unsafe-inline'",  # Often needed for quick inline JS like Bootstrap/Alpine
+        ],
+        'connect-src': [
+            "'self'",
+            'https://www.facebook.com',
+            'https://connect.facebook.net',
+        ],
+        'img-src': [
+            "'self'",
+            'data:',
+            'https://www.facebook.com',
         ],
         'frame-src': [
             "'self'",
@@ -108,6 +119,11 @@ logger = logging.getLogger(__name__)
 stripe.api_key = config.STRIPE_SECRET_KEY
 redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'), decode_responses=True)
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '').strip().lower()
+
+
+@app.context_processor
+def inject_meta_pixel():
+    return {'meta_pixel_id': getattr(config, 'META_PIXEL_ID', '')}
 
 @login_manager.user_loader
 def load_user(user_id):

@@ -59,6 +59,7 @@ BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 BREVO_LIST_ID = int(os.getenv('BREVO_LIST_ID', '5'))
 BREVO_SIGNUP_LIST_ID = int(os.getenv('BREVO_SIGNUP_LIST_ID', '0'))
 BREVO_WELCOME_TEMPLATE_ENABLED = os.getenv('BREVO_WELCOME_TEMPLATE_ENABLED', '1') == '1'
+META_PIXEL_ID = os.getenv('META_PIXEL_ID', '').strip()
 
 # Password reset email settings
 APP_BASE_URL = os.getenv('APP_BASE_URL', 'https://xeanvi.com').rstrip('/')
