@@ -57,6 +57,19 @@
         </form>
     </section>
 
+    <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
+        <h2 style="margin: 0 0 0.5rem;">Optional: Connect Alpaca Live Account</h2>
+        <p style="margin: 0 0 0.85rem; color: var(--text-muted);">Connect a live broker only after paper-mode order routing has been tested with your user-defined rules and risk controls.</p>
+        <p style="margin: 0 0 1rem; color: var(--warning); font-size: 0.92rem;">Live broker-connected workflows involve real capital. Only connect a live account after testing your rules in paper mode and understanding the risks.</p>
+        {% if current_user.alpaca_live_access_token or current_user.alpaca_live_account_id %}
+            <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Live account connected.</p>
+            <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">You can manage live broker-connected workflows from account settings.</p>
+        {% else %}
+            <p style="margin:0; color: var(--text-muted); font-size: 0.9rem;">Live OAuth connection is coming next. For now, complete paper setup and use settings when live connection becomes available.</p>
+        {% endif %}
+    </section>
+
+
     <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
         <a href="{{ url_for('setup_checklist') }}" class="btn btn-secondary">Back to Setup Checklist</a>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Go to Dashboard</a>
