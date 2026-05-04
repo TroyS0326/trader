@@ -147,6 +147,25 @@ def fail(message: str, status: int = 400, **extras):
 PASSWORD_RESET_SALT = 'xeanvi-password-reset'
 
 
+
+def is_valid_email(email):
+    email = (email or '').strip().lower()
+    if not email:
+        return False
+    if ' ' in email:
+        return False
+    if '@' not in email:
+        return False
+    local, domain = email.rsplit('@', 1)
+    if not local or not domain:
+        return False
+    if '.' not in domain:
+        return False
+    if domain.startswith('.') or domain.endswith('.'):
+        return False
+    return True
+
+
 def get_password_reset_serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
@@ -594,8 +613,12 @@ def signup():
             flash('You must agree to the technical execution terms to continue.', 'error')
             return redirect(url_for('signup', plan=intended_plan))
 
-        email = request.form.get('email')
+        email = (request.form.get('email') or '').strip().lower()
         password = request.form.get('password')
+
+        if not is_valid_email(email):
+            flash('Please enter a valid email address.', 'error')
+            return redirect(url_for('signup', plan=intended_plan))
 
         # Check if user exists
         if User.query.filter_by(email=email).first():
@@ -1094,6 +1117,10 @@ def get_or_create_stripe_customer(user: User) -> str:
     if user.stripe_customer_id:
         return user.stripe_customer_id
 
+    if not is_valid_email(user.email):
+        logger.error('Stripe customer creation blocked: invalid email for user_id=%s email=%s', user.id, user.email)
+        raise ValueError('Invalid account email. Please update your email before checkout.')
+
     customer = stripe.Customer.create(
         email=user.email,
         name=user.full_name or user.email,
@@ -1162,10 +1189,14 @@ def create_checkout_session():
             allow_promotion_codes=True,
         )
         return redirect(checkout_session.url, code=303)
+    except ValueError as exc:
+        flash(str(exc), 'error')
+        return redirect(url_for('settings'))
     except Exception:
         logger.exception('Stripe checkout session creation failed for user_id=%s', current_user.id)
         flash('Unable to start checkout right now. Please try again shortly.', 'error')
         return redirect(url_for('upgrade'))
+
 
 
 @app.route('/api/create-billing-portal-session', methods=['POST'])
