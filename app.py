@@ -2033,6 +2033,23 @@ def api_execute():
             return fail('Execution blocked because the trade risks more than the max dollar loss.', 403)
 
         track_user_event('automation_started', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
+        guard = validate_execution_against_approved_scan(
+            redis_client=redis_client,
+            user=current_user,
+            symbol=symbol,
+            scan_id=scan_id,
+        )
+
+        if not guard.get("ok"):
+            logger.warning(
+                "LIVE_TRADE_BLOCKED user_id=%s email=%s symbol=%s scan_id=%s reason=%s",
+                current_user.id,
+                current_user.email,
+                symbol,
+                scan_id,
+                guard.get("error"),
+            )
+            return fail(guard.get("error", "Trade blocked."), guard.get("status", 400))
 
         order = place_managed_entry_order(
             symbol=data['symbol'],

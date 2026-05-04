@@ -1,31 +1,54 @@
 import json
 import math
+from pathlib import Path
+
 import pandas as pd
-import numpy as np
 
-from models import Trade, User
+from models import db, Trade, User, Scan
 
-# We output to a static JSON file so the web server doesn't have to recalculate this on every page load
-REPORT_PATH = "static/performance_report.json"
+REPORT_PATH = Path("static/performance_report.json")
 
 def _is_win(outcome: str) -> bool:
-    normalized = (outcome or "").strip().lower()
-    return normalized in {"win", "winner", "won", "profit", "target_hit", "target1_hit", "target2_hit"}
+    """
+    Shared helper used by update_weights.py.
+
+    This does not change trade logic. It only classifies already-recorded
+    outcomes for feedback reporting.
+    """
+    normalized = str(outcome or "").strip().lower()
+    return normalized in {
+        "win",
+        "target_hit",
+        "target1_hit",
+        "target2_hit",
+        "partial_win",
+        "breakeven_or_small_win",
+        "closed",
+    }
 
 
 def _load_rows():
     """
-    Lightweight loader used by update_weights.py.
-    Returns tuple: (trade_rows, scans_by_id).
+    Load trade and scan rows for catalyst feedback generation.
+
+    Returns:
+        trades: list of dicts with symbol/outcome/scan_id
+        scans: dict keyed by scan id with decoded scan payload
     """
-    trade_rows = []
+    trades = []
     for trade in Trade.query.all():
-        trade_rows.append({
-            "symbol": getattr(trade, "symbol", None),
-            "outcome": getattr(trade, "outcome", None),
-            "scan_id": getattr(trade, "scan_id", None),
+        trades.append({
+            "symbol": trade.symbol,
+            "outcome": trade.outcome or trade.status or "",
+            "scan_id": trade.scan_id or 0,
         })
-    return trade_rows, {}
+    scans = {}
+    for scan in Scan.query.all():
+        try:
+            scans[scan.id] = json.loads(scan.payload_json or "{}")
+        except json.JSONDecodeError:
+            scans[scan.id] = {}
+    return trades, scans
 
 
 def calculate_metrics(trades_df):
@@ -63,26 +86,62 @@ def calculate_metrics(trades_df):
 
 
 def generate_report():
-    # In production, this would pull from your SQLite DB or backtest CSVs.
-    # For now, we simulate a realistic dataset based on the AI's expected performance.
-    dates = pd.date_range(start="2026-01-01", periods=100, freq="B").strftime("%Y-%m-%d")
+    """
+    Generate performance report from real saved Trade.pnl values only.
 
-    # Simulate a strategy with a 62% win rate and a 1.5 profit factor
-    np.random.seed(42)
-    pnls = np.where(
-        np.random.rand(100) < 0.62,
-        np.random.normal(150, 50, 100),
-        np.random.normal(-100, 20, 100),
+    No simulated PnL.
+    No random performance.
+    No fake win rate.
+    """
+    trades = (
+        Trade.query
+        .filter(Trade.pnl.isnot(None))
+        .order_by(Trade.closed_at.asc(), Trade.updated_at.asc(), Trade.created_at.asc())
+        .all()
     )
+    rows = []
+    for trade in trades:
+        dt = trade.closed_at or trade.updated_at or trade.created_at
+        rows.append({
+            "date": dt.strftime("%Y-%m-%d") if dt else "",
+            "pnl": float(trade.pnl or 0.0),
+        })
 
-    df = pd.DataFrame({"date": dates, "pnl": pnls})
+    if not rows:
+        metrics = {
+            "total_trades": 0,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "max_drawdown_dollars": 0.0,
+            "net_profit": 0.0,
+            "equity_curve_labels": [],
+            "equity_curve_data": [],
+            "source": "real_database_pnl_column",
+            "message": "No completed trades with saved realized P&L were found.",
+        }
+    else:
+        df = pd.DataFrame(rows)
+        metrics = calculate_metrics(df)
+        metrics["source"] = "real_database_pnl_column"
+        metrics["message"] = "Performance report generated from saved realized P&L only."
 
-    metrics = calculate_metrics(df)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+    return metrics
 
-    with open(REPORT_PATH, "w") as f:
-        json.dump(metrics, f)
 
-    print(f"Performance report generated successfully at {REPORT_PATH}")
+def create_report_app():
+    import os
+    from flask import Flask
+    import config
+
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = config.SECRET_KEY
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(config.DB_PATH)}"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    db.init_app(app)
+    return app
 
 
 def _extract_trade_pnl(trade):
@@ -172,4 +231,12 @@ def calculate_user_kelly_fraction(user_id):
 
 
 if __name__ == "__main__":
-    generate_report()
+    app = create_report_app()
+
+    with app.app_context():
+        report = generate_report()
+
+    print(f"Performance report generated successfully at {REPORT_PATH}")
+    print(f"Total trades: {report.get('total_trades')}")
+    print(f"Net profit: {report.get('net_profit')}")
+    print(f"Win rate: {report.get('win_rate')}%")

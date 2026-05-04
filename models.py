@@ -13,7 +13,9 @@ db = SQLAlchemy()
 
 
 def _build_fernet() -> Fernet:
-    secret_seed = os.getenv('TOKEN_ENCRYPTION_KEY') or os.getenv('SECRET_KEY', 'change-me')
+    secret_seed = os.getenv('TOKEN_ENCRYPTION_KEY')
+    if not secret_seed:
+        raise RuntimeError("TOKEN_ENCRYPTION_KEY is required for Alpaca token encryption.")
     digest = hashlib.sha256(secret_seed.encode('utf-8')).digest()
     return Fernet(base64.urlsafe_b64encode(digest))
 

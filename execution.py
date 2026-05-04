@@ -63,7 +63,11 @@ def flatten_book():
 
     with app.app_context():
         # Query the database for all users possessing an Alpaca access token
-        users = User.query.filter(User._alpaca_access_token.isnot(None)).all()
+        users = User.query.filter(
+            (User._alpaca_access_token.isnot(None)) |
+            (User._alpaca_paper_access_token.isnot(None)) |
+            (User._alpaca_live_access_token.isnot(None))
+        ).all()
 
         for user in users:
             token = user.alpaca_access_token
@@ -108,6 +112,8 @@ class SaaSExecutionManager:
             return
 
         with app.app_context():
+            from models import User
+            user = User.query.get(user_id)
             trade = get_trade_by_target1_id(order_id, user_id=user_id)
             if not trade:
                 return
@@ -122,7 +128,12 @@ class SaaSExecutionManager:
 
             bundle = raw_json.get('order_bundle', {})
             entry_price = float(trade.get('entry_price') or 0.0)
-            updated_bundle = maybe_activate_runner_trailing(bundle, breakeven_price=entry_price)
+            updated_bundle = maybe_activate_runner_trailing(
+                bundle,
+                breakeven_price=entry_price,
+                token=getattr(user, "alpaca_access_token", None),
+                user=user,
+            )
 
             raw_json['order_bundle'] = updated_bundle
             update_trade_status(trade['order_id'], {'raw_json': raw_json})
@@ -158,27 +169,41 @@ class SaaSExecutionManager:
                 await asyncio.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 30)
 
-    async def get_connected_users(self):
-        """Fetches all users who have linked their Alpaca accounts."""
+    async def get_connected_users(self) -> list[dict]:
+        """
+        Fetch users with active Alpaca tokens using SQLAlchemy model properties.
+
+        IMPORTANT:
+        - Do not read encrypted token columns directly with raw SQLite.
+        - user.alpaca_access_token returns the correct decrypted paper/live token
+          based on the user's active trading_mode.
+        """
         from app import app
         from models import User
 
-        def _read_users():
+        def _load_users() -> list[dict]:
             with app.app_context():
                 rows = []
-                for user in User.query.all():
+                users = User.query.filter(
+                    (User._alpaca_access_token.isnot(None)) |
+                    (User._alpaca_paper_access_token.isnot(None)) |
+                    (User._alpaca_live_access_token.isnot(None))
+                ).all()
+
+                for user in users:
                     token = user.alpaca_access_token
+
                     if token and token.strip():
                         rows.append({
-                            'id': user.id,
-                            'alpaca_access_token': token,
-                            'trading_mode': user.trading_mode,
-                            'subscription_status': user.subscription_status,
+                            "id": user.id,
+                            "alpaca_access_token": token,
+                            "trading_mode": user.trading_mode,
+                            "subscription_status": user.subscription_status,
                         })
                 return rows
 
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, _read_users)
+        return await loop.run_in_executor(None, _load_users)
 
     async def run_discovery_loop(self):
         """Periodically checks for new users to start listening to."""
