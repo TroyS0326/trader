@@ -1914,36 +1914,13 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
-        user_was_scan_complete = bool(current_user.first_scan_completed and getattr(current_user, 'scan_preview_completed', False))
         if not current_user.first_scan_completed:
             current_user.first_scan_completed = True
-        if not getattr(current_user, 'scan_preview_completed', False):
-            current_user.scan_preview_completed = True
         db.session.commit()
 
         approved_plan = approve_scan_for_user(redis_client, current_user, result)
         result["approved_execution_plan"] = approved_plan
-        plan_access = get_plan_access(current_user)
-        is_pro = plan_access['is_pro']
-        result['scan_mode'] = 'pro' if is_pro else 'free_preview'
-        result['automation_mode'] = 'full_automation' if is_pro else 'locked'
-        result['upgrade_required_for_auto_workflow'] = not is_pro
-        result['upgrade_url'] = plan_access['upgrade_url']
-        result['lock_message'] = 'Upgrade to PRO to unlock the automated broker-connected paper workflow.' if not is_pro else None
-        if not user_was_scan_complete:
-            update_brevo_contact_attributes(current_user, {
-                'FIRST_SCAN_COMPLETED': True,
-                'SCAN_PREVIEW_COMPLETED': True,
-                'SETUP_CHECKLIST_COMPLETED': get_user_setup_checklist(current_user)['core_complete'],
-                'SUBSCRIPTION_STATUS': current_user.subscription_status or ('pro' if is_pro else 'free'),
-                'IS_PRO': bool(is_pro),
-            })
-
-        if not is_pro:
-            track_user_event('scan_preview_generated', user=current_user, context={'scan_id': scan_id})
-            track_user_event('upgrade_prompt_shown', user=current_user, context={'surface': 'scan_preview'})
-        else:
-            track_user_event('pro_scan_generated', user=current_user, context={'scan_id': scan_id})
+        track_user_event('scan_generated', user=current_user, context={'scan_id': scan_id})
         try:
             redis_client.setex(f'latest_scan:{current_user.id}', 60 * 60 * 8, json.dumps(result))
         except Exception as redis_exc:
@@ -2002,26 +1979,10 @@ def api_execute():
     symbol = str(data.get("symbol") or "").upper().strip()
     scan_id = data.get("scan_id") or data.get("scanId")
 
-    if not user_is_pro(current_user):
-        try:
-            track_user_event('auto_workflow_blocked_free_user', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
-        except Exception:
-            pass
-
-        return fail(
-            'Upgrade to PRO to unlock the automated broker-connected paper workflow.',
-            403,
-            upgrade_required=True,
-            upgrade_url=url_for('upgrade', **{'from': 'automation_locked'})
-        )
-
     required = ['symbol', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty', 'current_price', 'buy_upper', 'score_total', 'decision']
     missing = [k for k in required if k not in data]
     if missing:
         return fail(f'Missing fields: {", ".join(missing)}')
-
-    if not user_has_alpaca_paper_connection(current_user):
-        return fail('Connect your Alpaca paper account before routing paper orders.', 400)
 
     failed_today = get_failed_trades_today()
     if failed_today >= config.MAX_FAILED_TRADES_PER_DAY:
@@ -2071,24 +2032,7 @@ def api_execute():
         if (entry_price - stop_price) * qty > config.MAX_DOLLAR_LOSS_PER_TRADE + 0.01:
             return fail('Execution blocked because the trade risks more than the max dollar loss.', 403)
 
-        guard = validate_execution_against_approved_scan(
-            redis_client=redis_client,
-            user=current_user,
-            symbol=symbol,
-            scan_id=scan_id,
-        )
-        if not guard.get("ok"):
-            logger.warning(
-                "LIVE_TRADE_BLOCKED user_id=%s email=%s symbol=%s scan_id=%s reason=%s",
-                current_user.id,
-                current_user.email,
-                symbol,
-                scan_id,
-                guard.get("error"),
-            )
-            return fail(guard.get("error", "Trade blocked."), guard.get("status", 400))
-
-        track_user_event('pro_automation_started', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
+        track_user_event('automation_started', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
 
         order = place_managed_entry_order(
             symbol=data['symbol'],
