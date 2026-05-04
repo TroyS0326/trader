@@ -376,6 +376,141 @@ def add_signup_user_to_brevo(user):
         return False
 
 
+def update_brevo_contact_attributes(user, attributes: dict) -> bool:
+    """
+    Updates existing Brevo contact attributes for funnel automation.
+    This should never break the app if Brevo fails.
+    """
+    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
+
+    if not api_key:
+        logger.error('Brevo attribute sync skipped: missing BREVO_API_KEY for user_id=%s', getattr(user, 'id', None))
+        return False
+
+    if not user or not getattr(user, 'email', None):
+        logger.error('Brevo attribute sync skipped: missing user/email.')
+        return False
+
+    email = (user.email or '').strip().lower()
+
+    if not is_valid_email(email):
+        logger.error('Brevo attribute sync skipped: invalid email for user_id=%s email=%s', getattr(user, 'id', None), email)
+        return False
+
+    safe_attributes = {}
+    for key, value in (attributes or {}).items():
+        if not key:
+            continue
+        safe_attributes[str(key).strip().upper()] = value
+
+    if not safe_attributes:
+        return False
+
+    url = f"https://api.brevo.com/v3/contacts/{email}"
+
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": api_key,
+    }
+
+    payload = {
+        "attributes": safe_attributes,
+    }
+
+    try:
+        response = requests.put(url, json=payload, headers=headers, timeout=15)
+
+        if response.status_code in [200, 201, 202, 204]:
+            logger.info(
+                "Brevo attributes synced for user_id=%s attrs=%s",
+                getattr(user, 'id', None),
+                ",".join(sorted(safe_attributes.keys())),
+            )
+            return True
+
+        if response.status_code == 404:
+            create_payload = {
+                "email": email,
+                "attributes": safe_attributes,
+                "updateEnabled": True,
+            }
+
+            signup_list_id = getattr(config, 'BREVO_SIGNUP_LIST_ID', 0)
+            if signup_list_id:
+                create_payload["listIds"] = [signup_list_id]
+
+            create_response = requests.post(
+                "https://api.brevo.com/v3/contacts",
+                json=create_payload,
+                headers=headers,
+                timeout=15,
+            )
+
+            if create_response.status_code in [200, 201, 202, 204]:
+                logger.info(
+                    "Brevo contact created during attribute sync for user_id=%s attrs=%s",
+                    getattr(user, 'id', None),
+                    ",".join(sorted(safe_attributes.keys())),
+                )
+                return True
+
+            logger.error(
+                "Brevo contact create during sync failed for user_id=%s status=%s response=%s",
+                getattr(user, 'id', None),
+                create_response.status_code,
+                create_response.text,
+            )
+            return False
+
+        logger.error(
+            "Brevo attribute sync failed for user_id=%s status=%s response=%s",
+            getattr(user, 'id', None),
+            response.status_code,
+            response.text,
+        )
+        return False
+
+    except Exception as exc:
+        logger.error(
+            "Brevo attribute sync exception for user_id=%s: %s",
+            getattr(user, 'id', None),
+            exc,
+        )
+        return False
+
+
+def get_user_brevo_funnel_attributes(user) -> dict:
+    is_pro = (getattr(user, 'subscription_status', '') or '').lower() == 'pro'
+
+    alpaca_paper_connected = bool(
+        getattr(user, 'alpaca_paper_account_id', None)
+        or getattr(user, 'alpaca_paper_access_token', None)
+    )
+
+    setup_complete = bool(
+        getattr(user, 'onboarding_completed', False)
+        and getattr(user, 'paper_bankroll_set', False)
+        and getattr(user, 'playbook_reviewed', False)
+        and getattr(user, 'first_scan_completed', False)
+        and getattr(user, 'transparency_reviewed', False)
+    )
+
+    full_name = (getattr(user, 'full_name', '') or '').strip()
+    first_name = full_name.split(' ')[0] if full_name else ''
+
+    return {
+        "FIRSTNAME": first_name,
+        "FULLNAME": full_name,
+        "SUBSCRIPTION_STATUS": getattr(user, 'subscription_status', None) or "free",
+        "ALPACA_PAPER_CONNECTED": alpaca_paper_connected,
+        "FIRST_SCAN_COMPLETED": bool(getattr(user, 'first_scan_completed', False)),
+        "SCAN_PREVIEW_COMPLETED": bool(getattr(user, 'scan_preview_completed', False) or getattr(user, 'first_scan_completed', False)),
+        "SETUP_CHECKLIST_COMPLETED": setup_complete,
+        "IS_PRO": is_pro,
+        "SIGNUP_SOURCE": "xeanvi_signup",
+    }
+
 
 def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
@@ -433,6 +568,9 @@ def ensure_schema_migrations() -> None:
 
             if 'first_scan_completed' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT 0"))
+
+            if 'scan_preview_completed' not in existing_columns:
+                conn.execute(text("ALTER TABLE user ADD COLUMN scan_preview_completed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'playbook_reviewed' not in existing_columns:
                 conn.execute(text("ALTER TABLE user ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
@@ -658,6 +796,7 @@ def signup():
         db.session.commit()
         track_user_event('signup_completed', user=new_user, context={'plan': intended_plan or ''})
         add_signup_user_to_brevo(new_user)
+        update_brevo_contact_attributes(new_user, get_user_brevo_funnel_attributes(new_user))
         login_user(new_user)
 
         # REDIRECT LOGIC: If they chose a plan, send them to upgrade first
@@ -1197,6 +1336,16 @@ def apply_subscription_to_user(user: User, subscription: dict, price_id: str | N
     user.subscription_current_period_end = datetime.utcfromtimestamp(period_end) if period_end else None
     user.subscription_cancel_at_period_end = bool(subscription.get('cancel_at_period_end', False))
 
+    if (user.subscription_status or '').lower() == 'pro':
+        update_brevo_contact_attributes(
+            user,
+            {
+                'IS_PRO': True,
+                'SUBSCRIPTION_STATUS': 'pro',
+                'SETUP_CHECKLIST_COMPLETED': get_user_setup_checklist(user)['core_complete'],
+            },
+        )
+
 
 @app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
@@ -1302,6 +1451,7 @@ def checkout_redirect():
         if checkout_session.get('customer'):
             current_user.stripe_customer_id = checkout_session.get('customer')
         db.session.commit()
+        update_brevo_contact_attributes(current_user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro', 'SETUP_CHECKLIST_COMPLETED': get_user_setup_checklist(current_user)['core_complete']})
         flash('Your PRO subscription is active. Welcome to XeanVI PRO.', 'success')
         return redirect(url_for('setup_checklist'))
     except Exception:
@@ -1349,6 +1499,11 @@ def stripe_webhook():
                 apply_subscription_to_user(user, subscription)
                 user.stripe_customer_id = obj.get('customer') or user.stripe_customer_id
                 db.session.commit()
+                status = (user.subscription_status or '').lower()
+                if status in {'pro'}:
+                    update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+                elif status == 'past_due':
+                    update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('checkout_completed', user=user, context={'subscription_id': subscription_id})
 
         elif event_type == 'customer.subscription.updated':
@@ -1357,6 +1512,11 @@ def stripe_webhook():
             if user:
                 apply_subscription_to_user(user, obj)
                 db.session.commit()
+                status = (user.subscription_status or '').lower()
+                if status in {'pro', 'trialing'}:
+                    update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+                elif status == 'past_due':
+                    update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
 
         elif event_type == 'customer.subscription.deleted':
             metadata_user_id = (obj.get('metadata') or {}).get('user_id')
@@ -1365,6 +1525,7 @@ def stripe_webhook():
                 user.subscription_status = 'free'
                 user.subscription_cancel_at_period_end = False
                 db.session.commit()
+                update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'free'})
 
         elif event_type == 'invoice.payment_failed':
             sub_id = obj.get('subscription')
@@ -1374,6 +1535,7 @@ def stripe_webhook():
             if user:
                 user.subscription_status = 'past_due'
                 db.session.commit()
+                update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
 
         elif event_type == 'invoice.payment_succeeded':
@@ -1387,6 +1549,7 @@ def stripe_webhook():
                     apply_subscription_to_user(user, subscription)
                     user.subscription_status = 'pro'
                     db.session.commit()
+                    update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
     except Exception:
         db.session.rollback()
         logger.exception('Error handling Stripe webhook event type=%s', event_type)
@@ -1508,9 +1671,20 @@ def api_setup_checklist_mark():
     db.session.commit()
     if step == 'first_scan_completed':
         track_user_event('first_scan_completed', user=current_user)
+    update_brevo_contact_attributes(current_user, get_user_brevo_funnel_attributes(current_user))
     return ok({'step': step, 'setup_checklist': get_user_setup_checklist(current_user)})
 
 
+
+
+@app.route('/api/admin/sync-brevo-contact', methods=['POST'])
+@login_required
+def admin_sync_brevo_contact():
+    if not ADMIN_EMAIL or (current_user.email or '').lower() != ADMIN_EMAIL:
+        return fail('Forbidden', 403)
+
+    update_brevo_contact_attributes(current_user, get_user_brevo_funnel_attributes(current_user))
+    return ok({'synced': True})
 
 
 @app.route('/api/admin/conversion-summary')
@@ -1646,6 +1820,16 @@ def alpaca_callback():
             if connection_result.get("live_connected"):
                 connected_parts.append("Live")
 
+            if connection_result.get('paper_connected'):
+                update_brevo_contact_attributes(
+                    current_user,
+                    {
+                        'ALPACA_PAPER_CONNECTED': True,
+                        'SUBSCRIPTION_STATUS': current_user.subscription_status or 'free',
+                        'IS_PRO': user_is_pro(current_user) if 'user_is_pro' in globals() else ((current_user.subscription_status or '').lower() == 'pro'),
+                    }
+                )
+
             if connected_parts:
                 flash(
                     f"Broker connected: {', '.join(connected_parts)} account(s) authorized.",
@@ -1717,9 +1901,12 @@ def api_scan():
         result['risk_controls'] = risk_controls
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
+        user_was_scan_complete = bool(current_user.first_scan_completed and getattr(current_user, 'scan_preview_completed', False))
         if not current_user.first_scan_completed:
             current_user.first_scan_completed = True
-            db.session.commit()
+        if not getattr(current_user, 'scan_preview_completed', False):
+            current_user.scan_preview_completed = True
+        db.session.commit()
 
         approved_plan = approve_scan_for_user(redis_client, current_user, result)
         result["approved_execution_plan"] = approved_plan
@@ -1730,6 +1917,15 @@ def api_scan():
         result['upgrade_required_for_auto_workflow'] = not is_pro
         result['upgrade_url'] = plan_access['upgrade_url']
         result['lock_message'] = 'Upgrade to PRO to unlock the automated broker-connected paper workflow.' if not is_pro else None
+        if not user_was_scan_complete:
+            update_brevo_contact_attributes(current_user, {
+                'FIRST_SCAN_COMPLETED': True,
+                'SCAN_PREVIEW_COMPLETED': True,
+                'SETUP_CHECKLIST_COMPLETED': get_user_setup_checklist(current_user)['core_complete'],
+                'SUBSCRIPTION_STATUS': current_user.subscription_status or ('pro' if is_pro else 'free'),
+                'IS_PRO': bool(is_pro),
+            })
+
         if not is_pro:
             track_user_event('scan_preview_generated', user=current_user, context={'scan_id': scan_id})
             track_user_event('upgrade_prompt_shown', user=current_user, context={'surface': 'scan_preview'})
