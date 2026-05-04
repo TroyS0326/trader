@@ -189,6 +189,7 @@ def audit_trade_log(
     target_1: Any,
     target_2: Any,
     order_result: Optional[Dict[str, Any]] = None,
+    raw_json_metadata: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Stores every trade attempt in two places:
@@ -197,6 +198,7 @@ def audit_trade_log(
     2. SQLite table trade_audit_logs
     """
     order_result = order_result or {}
+    raw_json_metadata = raw_json_metadata or {}
 
     payload = {
         "created_at": _now_iso(),
@@ -215,6 +217,7 @@ def audit_trade_log(
         "order_status": order_result.get("status"),
         "raw_json": {
             "order_result": order_result,
+            **raw_json_metadata,
         },
     }
 

@@ -2068,6 +2068,17 @@ def api_execute():
             scan_id=scan_id,
         )
 
+        try:
+            dynamic_orb_state = get_latest_dynamic_orb_state()
+        except Exception as exc:
+            logger.warning("Dynamic ORB state unavailable for trade metadata: %s", exc)
+            dynamic_orb_state = {
+                "mode": "unknown",
+                "start_time_et": config.NO_BUY_BEFORE_ET,
+                "preferred_setup": "unknown",
+                "reason": "Dynamic ORB state unavailable; existing static rules remained active.",
+            }
+
         if not guard.get("ok"):
             logger.warning(
                 "LIVE_TRADE_BLOCKED user_id=%s email=%s symbol=%s scan_id=%s reason=%s",
@@ -2099,6 +2110,7 @@ def api_execute():
             target_1=data.get("target_1"),
             target_2=data.get("target_2"),
             order_result=order,
+            raw_json_metadata={"dynamic_orb_state": dynamic_orb_state},
         )
 
         risk_per_share = round(entry_price - stop_price, 2)
@@ -2161,7 +2173,8 @@ def api_execute():
             'raw_json': {
                 'order_bundle': order,
                 'execution_request': data,
-                'ai_explainability': thesis_result
+                'ai_explainability': thesis_result,
+                'dynamic_orb_state': dynamic_orb_state,
             },
         }
         trade_id = insert_trade(trade_payload)
