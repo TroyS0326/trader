@@ -870,7 +870,7 @@ def user_has_alpaca_paper_connection(user: User) -> bool:
 
 
 def user_is_pro(user: User) -> bool:
-    return bool(user and getattr(user, 'subscription_status', '') == 'pro')
+    return (getattr(user, 'subscription_status', '') or '').lower() == 'pro'
 
 
 def get_plan_access(user: User) -> dict:
@@ -883,6 +883,46 @@ def get_plan_access(user: User) -> dict:
         'can_save_trade_logs': is_pro,
         'can_monitor_orders': is_pro,
         'upgrade_url': '' if is_pro else url_for('upgrade', **{'from': 'scan_preview'}),
+    }
+
+
+def format_subscription_status(user: User) -> dict:
+    raw_status = (getattr(user, 'subscription_status', '') or '').lower()
+    subscription_plan = (getattr(user, 'subscription_plan', '') or '').lower()
+    period_end = getattr(user, 'subscription_current_period_end', None)
+    has_stripe_customer = bool(getattr(user, 'stripe_customer_id', None))
+    has_active_subscription = raw_status in {'pro', 'past_due'}
+    cancel_at_period_end = bool(getattr(user, 'subscription_cancel_at_period_end', False))
+
+    if raw_status == 'pro' and subscription_plan == 'annual':
+        plan_label = 'Annual PRO'
+    elif raw_status == 'pro' and subscription_plan == 'monthly':
+        plan_label = 'Monthly PRO'
+    elif raw_status == 'past_due':
+        plan_label = 'PRO Payment Past Due'
+    else:
+        plan_label = 'Free Preview'
+
+    if raw_status == 'pro':
+        status_label = 'Active'
+        status_class = 'success'
+    elif raw_status == 'past_due':
+        status_label = 'Payment Past Due'
+        status_class = 'warning'
+    else:
+        status_label = 'Free'
+        status_class = 'muted'
+
+    current_period_end_label = period_end.strftime('%b %d, %Y') if period_end else None
+
+    return {
+        'plan_label': plan_label,
+        'status_label': status_label,
+        'status_class': status_class,
+        'current_period_end_label': current_period_end_label,
+        'cancel_at_period_end': cancel_at_period_end,
+        'has_stripe_customer': has_stripe_customer,
+        'has_active_subscription': has_active_subscription,
     }
 
 def get_user_setup_checklist(user: User) -> dict:
@@ -1024,6 +1064,14 @@ def upgrade():
     return render_template('upgrade.html', current_user=current_user)
 
 
+@app.route('/billing')
+@login_required
+def billing():
+    billing_status = format_subscription_status(current_user)
+    track_user_event('billing_page_viewed', user=current_user)
+    return render_template('billing.html', current_user=current_user, billing_status=billing_status)
+
+
 def get_stripe_price_for_plan(plan: str) -> str | None:
     if plan == 'monthly':
         return config.STRIPE_PRICE_ID_MONTHLY
@@ -1118,6 +1166,34 @@ def create_checkout_session():
         logger.exception('Stripe checkout session creation failed for user_id=%s', current_user.id)
         flash('Unable to start checkout right now. Please try again shortly.', 'error')
         return redirect(url_for('upgrade'))
+
+
+@app.route('/api/create-billing-portal-session', methods=['POST'])
+@login_required
+def create_billing_portal_session():
+    if not config.STRIPE_SECRET_KEY:
+        flash('Billing is temporarily unavailable. Please contact support.', 'error')
+        return redirect(url_for('billing'))
+
+    if not current_user.stripe_customer_id:
+        flash('No Stripe billing profile exists yet. Upgrade to PRO to create one.', 'error')
+        return redirect(url_for('upgrade'))
+
+    return_path = getattr(config, 'STRIPE_CUSTOMER_PORTAL_RETURN_PATH', '/billing') or '/billing'
+    return_path = return_path if return_path.startswith('/') else '/billing'
+    return_url = f"{config.APP_BASE_URL}{return_path}"
+
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=current_user.stripe_customer_id,
+            return_url=return_url,
+        )
+        track_user_event('billing_portal_started', user=current_user)
+        return redirect(portal_session.url, code=303)
+    except Exception:
+        logger.exception('Stripe billing portal session failed for user_id=%s', current_user.id)
+        flash('Unable to open billing portal right now. Please try again shortly.', 'error')
+        return redirect(url_for('billing'))
 
 
 @app.route('/checkout-redirect')
