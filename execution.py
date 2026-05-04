@@ -2,9 +2,10 @@ import asyncio
 import json
 import logging
 from contextlib import suppress
-from typing import Dict, List
+from typing import Dict
 from zoneinfo import ZoneInfo
 
+import aiosqlite
 import requests
 import websockets
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -158,28 +159,20 @@ class SaaSExecutionManager:
                 await asyncio.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 30)
 
-    async def get_connected_users(self) -> List[dict]:
+    async def get_connected_users(self):
         """Fetches all users who have linked their Alpaca accounts."""
-        from app import app
-        from models import User
-
-        def _load_users() -> List[dict]:
-            with app.app_context():
-                users = User.query.all()
-                rows = []
-                for user in users:
-                    token = user.alpaca_access_token
-                    if token and token.strip():
-                        rows.append({
-                            'id': user.id,
-                            'alpaca_access_token': token,
-                            'trading_mode': user.trading_mode,
-                            'subscription_status': user.subscription_status,
-                        })
-                return rows
-
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, _load_users)
+        async with aiosqlite.connect(config.DB_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                """
+                SELECT id, alpaca_access_token, trading_mode, subscription_status
+                FROM user
+                WHERE alpaca_access_token IS NOT NULL
+                  AND trim(alpaca_access_token) != ''
+                """
+            )
+            rows = await cur.fetchall()
+        return rows
 
     async def run_discovery_loop(self):
         """Periodically checks for new users to start listening to."""
