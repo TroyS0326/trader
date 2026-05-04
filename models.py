@@ -3,13 +3,23 @@ from datetime import datetime
 import base64
 import hashlib
 import os
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 from cryptography.fernet import Fernet, InvalidToken
+from dotenv import load_dotenv
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+
+BASE_DIR = Path(__file__).resolve().parent
+PROD_ENV_PATH = '/etc/xeanvi/xeanvi.env'
+
+if os.path.exists(PROD_ENV_PATH):
+    load_dotenv(PROD_ENV_PATH)
+else:
+    load_dotenv(BASE_DIR / '.env')
 
 
 def _build_fernet() -> Fernet:
