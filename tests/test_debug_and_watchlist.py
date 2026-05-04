@@ -101,3 +101,65 @@ def test_debug_symbol_skip_includes_setup_rejection_reasons(monkeypatch):
     for reason in ['below_stop', 'below_vwap', 'spread_too_wide', 'price_below_entry', 'no_controlled_entry', 'setup_grade_no_trade', 'decision_skip', 'qty_zero']:
         assert reason in data['rejection_reasons']
     assert 'should not chase it' in data['final_explanation']
+
+
+def test_debug_symbol_spy_style_skip_does_not_mention_spread(monkeypatch):
+    monkeypatch.setattr(app_module, 'current_user', SimpleNamespace(
+        alpaca_data_feed='iex',
+        allow_biotech=True,
+        allow_etf_trading=True,
+        allow_leveraged_etfs=False,
+        allow_inverse_etfs=False,
+        allow_crypto_etfs=True,
+        allow_options_trading=False,
+    ))
+    monkeypatch.setattr(app_module, 'resolve_data_feed', lambda user: 'iex')
+    monkeypatch.setattr(app_module, 'get_snapshots', lambda symbols, feed='iex': {symbols[0]: {'minuteBar': {'c': 510.0}, 'prevDailyBar': {'c': 500.0}}})
+    monkeypatch.setattr(app_module, 'get_latest_quotes', lambda symbols, feed='iex': {symbols[0]: {'ap': 510.0}})
+    monkeypatch.setattr(app_module, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(app_module, 'get_alpaca_asset', lambda symbol: {'class': 'us_equity', 'name': 'SPDR S&P 500 ETF Trust', 'tradable': True, 'exchange': 'ARCA'})
+    monkeypatch.setattr(app_module, 'get_bars', lambda *args, **kwargs: {'SPY': []})
+    monkeypatch.setattr(app_module, 'analyze_symbol', lambda *args, **kwargs: {
+        'setup_grade': 'B', 'decision': 'SKIP', 'buy_lower': 511.0, 'buy_upper': 513.0,
+        'entry_price': 512.0, 'stop_price': 505.0, 'target_1': 520.0, 'target_2': 525.0, 'qty': 10,
+        'details': {'spread_pct': 0.01, 'vwap_hold_reclaim': {'vwap': 511.0, 'reclaimed_vwap': False}, 'quick_notes': []},
+        'scores': {}, 'score_total': 0
+    })
+
+    with app_module.app.test_request_context('/api/debug-symbol/SPY'):
+        resp = app_module.api_debug_symbol.__wrapped__('SPY')
+        data = resp.get_json()
+
+    assert 'spread_too_wide' not in data['rejection_reasons']
+    assert 'spread is too wide' not in data['final_explanation']
+    assert 'below VWAP' in data['final_explanation']
+    assert 'below the planned entry' in data['final_explanation']
+    assert 'not inside a controlled entry zone' in data['final_explanation']
+
+
+def test_debug_symbol_tqqq_prioritizes_leveraged_etf_block(monkeypatch):
+    monkeypatch.setattr(app_module, 'current_user', SimpleNamespace(
+        alpaca_data_feed='iex',
+        allow_biotech=True,
+        allow_etf_trading=True,
+        allow_leveraged_etfs=False,
+        allow_inverse_etfs=False,
+        allow_crypto_etfs=True,
+        allow_options_trading=False,
+    ))
+    monkeypatch.setattr(app_module, 'resolve_data_feed', lambda user: 'iex')
+    monkeypatch.setattr(app_module, 'get_snapshots', lambda symbols, feed='iex': {symbols[0]: {'minuteBar': {'c': 60.0}, 'prevDailyBar': {'c': 58.0}}})
+    monkeypatch.setattr(app_module, 'get_latest_quotes', lambda symbols, feed='iex': {symbols[0]: {'ap': 60.0}})
+    monkeypatch.setattr(app_module, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(app_module, 'get_alpaca_asset', lambda symbol: {'class': 'us_equity', 'name': 'ProShares UltraPro QQQ', 'tradable': True, 'exchange': 'NASDAQ'})
+    monkeypatch.setattr(app_module, 'get_bars', lambda *args, **kwargs: {'TQQQ': []})
+    monkeypatch.setattr(app_module, 'analyze_symbol', lambda *args, **kwargs: {'setup_grade': 'NO TRADE', 'decision': 'SKIP', 'details': {'quick_notes': []}})
+
+    with app_module.app.test_request_context('/api/debug-symbol/TQQQ'):
+        resp = app_module.api_debug_symbol.__wrapped__('TQQQ')
+        data = resp.get_json()
+
+    assert 'not_tradeable_by_xeanvi' in data['rejection_reasons']
+    assert data['asset_type'] == 'LEVERAGED_ETF'
+    assert 'leveraged ETF' in data['final_explanation']
+    assert 'disabled by platform/user settings' in data['final_explanation']
