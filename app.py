@@ -175,6 +175,21 @@ def fail(message: str, status: int = 400, **extras):
 
 PASSWORD_RESET_SALT = 'xeanvi-password-reset'
 
+def get_dynamic_orb_metadata_fallback(reason: str = "Dynamic ORB state unavailable; existing static rules remained active.") -> dict:
+    return {
+        "mode": "unknown",
+        "start_time_et": config.NO_BUY_BEFORE_ET,
+        "preferred_setup": "unknown",
+        "reason": reason,
+    }
+
+
+def get_dynamic_orb_metadata() -> dict:
+    try:
+        return get_latest_dynamic_orb_state()
+    except Exception as exc:
+        logger.warning("Dynamic ORB state unavailable for metadata: %s", exc)
+        return get_dynamic_orb_metadata_fallback()
 
 
 def is_valid_email(email):
@@ -1927,12 +1942,9 @@ def api_scan():
             result["dynamic_orb_state"] = get_latest_dynamic_orb_state()
         except Exception as exc:
             logger.warning("Dynamic ORB state unavailable for scan response: %s", exc)
-            result["dynamic_orb_state"] = {
-                "mode": "unknown",
-                "start_time_et": config.NO_BUY_BEFORE_ET,
-                "preferred_setup": "unknown",
-                "reason": "Dynamic ORB state unavailable; existing static rules remain active.",
-            }
+            result["dynamic_orb_state"] = get_dynamic_orb_metadata_fallback(
+                reason="Dynamic ORB state unavailable; existing static rules remain active.",
+            )
         risk_controls = {
             'failed_trades_today': get_failed_trades_today(),
             'max_failed_trades_per_day': config.MAX_FAILED_TRADES_PER_DAY,
@@ -2068,16 +2080,7 @@ def api_execute():
             scan_id=scan_id,
         )
 
-        try:
-            dynamic_orb_state = get_latest_dynamic_orb_state()
-        except Exception as exc:
-            logger.warning("Dynamic ORB state unavailable for trade metadata: %s", exc)
-            dynamic_orb_state = {
-                "mode": "unknown",
-                "start_time_et": config.NO_BUY_BEFORE_ET,
-                "preferred_setup": "unknown",
-                "reason": "Dynamic ORB state unavailable; existing static rules remained active.",
-            }
+        dynamic_orb_state = get_dynamic_orb_metadata()
 
         if not guard.get("ok"):
             logger.warning(
@@ -2099,6 +2102,9 @@ def api_execute():
             target_2_price=target_2,
             user=current_user,
         )
+        audit_order_result = dict(order) if isinstance(order, dict) else {"order_result": order}
+        audit_order_result["dynamic_orb_state"] = dynamic_orb_state
+
         audit_trade_log(
             logger=logger,
             user=current_user,
@@ -2109,7 +2115,7 @@ def api_execute():
             stop_price=data.get("stop_price"),
             target_1=data.get("target_1"),
             target_2=data.get("target_2"),
-            order_result=order,
+            order_result=audit_order_result,
             raw_json_metadata={"dynamic_orb_state": dynamic_orb_state},
         )
 
@@ -2177,6 +2183,12 @@ def api_execute():
                 'dynamic_orb_state': dynamic_orb_state,
             },
         }
+        raw_json = trade_payload.get('raw_json') or {}
+        if not isinstance(raw_json, dict):
+            raw_json = {'original_raw_json': raw_json}
+        raw_json['dynamic_orb_state'] = dynamic_orb_state
+        trade_payload['raw_json'] = raw_json
+
         trade_id = insert_trade(trade_payload)
         # --- NEW: Trigger Real-Time Notification ---
         alert_payload = {
