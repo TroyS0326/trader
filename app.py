@@ -69,14 +69,29 @@ if os.getenv('FLASK_ENV') == 'production':
         ],
         'script-src': [
             "'self'",
-            'https://js.stripe.com',  # Required for checkout
+            "'unsafe-inline'",
+            'https://js.stripe.com',
             'https://connect.facebook.net',
-            "'unsafe-inline'",  # Often needed for quick inline JS like Bootstrap/Alpine
+            'https://unpkg.com',
+            'https://cdnjs.cloudflare.com',
+        ],
+        'style-src': [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://cdnjs.cloudflare.com',
+        ],
+        'font-src': [
+            "'self'",
+            'data:',
+            'https://fonts.gstatic.com',
+            'https://cdnjs.cloudflare.com',
         ],
         'connect-src': [
             "'self'",
             'https://www.facebook.com',
             'https://connect.facebook.net',
+            'https://api.stripe.com',
         ],
         'img-src': [
             "'self'",
@@ -86,6 +101,7 @@ if os.getenv('FLASK_ENV') == 'production':
         'frame-src': [
             "'self'",
             'https://js.stripe.com',
+            'https://hooks.stripe.com',
         ],
     }
     Talisman(app, content_security_policy=csp)

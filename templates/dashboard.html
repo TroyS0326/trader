@@ -888,8 +888,14 @@
             try {
                 const res = await fetch('/api/scan', { 
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
                 });
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error(`Scan request failed with status ${res.status}: ${errorText}`);
+                    throw new Error(`Scan request failed (${res.status}). Check console for response body.`);
+                }
                 const payload = await res.json();
 
                 if (!payload.ok) throw new Error(payload.error);
