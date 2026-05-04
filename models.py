@@ -142,6 +142,7 @@ class User(UserMixin, db.Model):
     onboarding_completed = db.Column(db.Boolean, nullable=False, default=False)
     paper_bankroll_set = db.Column(db.Boolean, nullable=False, default=False)
     first_scan_completed = db.Column(db.Boolean, nullable=False, default=False)
+    scan_preview_completed = db.Column(db.Boolean, nullable=False, default=False)
     playbook_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     transparency_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     broker_connection_started = db.Column(db.Boolean, nullable=False, default=False)
