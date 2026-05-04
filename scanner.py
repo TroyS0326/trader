@@ -1465,9 +1465,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             ranked.append(analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals))
             print(f" -> SUCCESS: Analyzed {symbol}")
         except Exception as e:
-            import traceback
             print(f" -> CRASH on {symbol}: {e}")
-            traceback.print_exc()
             continue
 
     print("--- DEBUG: SCAN LOOP FINISHED ---\n")

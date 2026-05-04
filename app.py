@@ -626,6 +626,33 @@ def ensure_schema_migrations() -> None:
             if 'closed_at' not in trade_columns:
                 conn.execute(text("ALTER TABLE trades ADD COLUMN closed_at DATETIME"))
 
+
+        if 'waitlist' in table_names:
+            waitlist_columns = {col['name'] for col in inspector.get_columns('waitlist')}
+            if 'is_early_bird' not in waitlist_columns:
+                conn.execute(text("ALTER TABLE waitlist ADD COLUMN is_early_bird BOOLEAN DEFAULT 0"))
+
+        if 'user_events' in table_names:
+            user_event_columns = {col['name'] for col in inspector.get_columns('user_events')}
+            if 'event_context' not in user_event_columns:
+                conn.execute(text("ALTER TABLE user_events ADD COLUMN event_context TEXT"))
+
+        if 'scans' in table_names:
+            scan_columns = {col['name'] for col in inspector.get_columns('scans')}
+            if 'market_day' not in scan_columns:
+                conn.execute(text("ALTER TABLE scans ADD COLUMN market_day VARCHAR(20)"))
+            if 'best_symbol' not in scan_columns:
+                conn.execute(text("ALTER TABLE scans ADD COLUMN best_symbol VARCHAR(10)"))
+            if 'best_decision' not in scan_columns:
+                conn.execute(text("ALTER TABLE scans ADD COLUMN best_decision VARCHAR(20)"))
+            if 'best_score' not in scan_columns:
+                conn.execute(text("ALTER TABLE scans ADD COLUMN best_score INTEGER"))
+
+        if 'market_regimes' in table_names:
+            regime_columns = {col['name'] for col in inspector.get_columns('market_regimes')}
+            if 'updated_at' not in regime_columns:
+                conn.execute(text("ALTER TABLE market_regimes ADD COLUMN updated_at DATETIME"))
+
         conn.commit()
 
 
@@ -1801,17 +1828,7 @@ def alpaca_callback():
     }
 
     try:
-        # --- ADD THESE DEBUG PRINTS ---
-        print("\n--- INITIATING ALPACA TOKEN EXCHANGE ---")
-        print(f"TARGET URL: {token_url}")
-        print(f"PAYLOAD SENT: {payload}")
-
         response = requests.post(token_url, data=payload, timeout=15)
-
-        print(f"RESPONSE STATUS: {response.status_code}")
-        print(f"RAW ALPACA RESPONSE: {response.text}")
-        print("----------------------------------------\n")
-        # ------------------------------
 
         if response.status_code != 200:
             logger.error(f"Alpaca Rejection: {response.text}") #
@@ -2262,7 +2279,7 @@ def handle_csrf_error(e):
     reason = e.description or 'CSRF validation failed.'
     if request.path.startswith('/api/'):
         return jsonify({'ok': False, 'error': reason}), 400
-    return f"CRITICAL CSRF FAILURE: {reason}", 400
+    return "Request validation failed. Please refresh and try again.", 400
 
 
 if __name__ == '__main__':
