@@ -2298,7 +2298,10 @@ with app.app_context():
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    return f"CRITICAL CSRF FAILURE: {e.description}", 400
+    reason = e.description or 'CSRF validation failed.'
+    if request.path.startswith('/api/'):
+        return jsonify({'ok': False, 'error': reason}), 400
+    return f"CRITICAL CSRF FAILURE: {reason}", 400
 
 
 if __name__ == '__main__':
