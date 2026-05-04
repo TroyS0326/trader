@@ -299,12 +299,7 @@
                 <div class="profile-text">
                     <span class="profile-name">{{ current_user.full_name }}</span>
                     <span class="profile-tier">
-                        SYS_ADMIN // 
-                        {% if current_user.subscription_status == 'pro' %}
-                            <span style="color: var(--accent-blue);">PRO</span>
-                        {% else %}
-                            FREE
-                        {% endif %}
+                        PLAN STATUS // <span style="color: {{ 'var(--accent-blue)' if plan_access.is_pro else 'var(--warning)' }};">{{ plan_access.plan_label }}</span>
                     </span>
                 </div>
             </div>
@@ -355,7 +350,7 @@
             </div>
 
             <div class="header-actions">
-                {% if current_user.subscription_status != 'pro' %}
+                {% if not plan_access.is_pro %}
                 <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
                     <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
                 </a>
@@ -453,7 +448,7 @@
                     <span class="sys-tag">PRO_PATH</span>
                 </div>
                 <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-                    XeanVI has generated a limited paper-scan preview using your current rules and risk settings. PRO unlocks broker-connected paper order routing, trade logging, monitored execution workflows, and full dashboard execution controls.
+                    XeanVI generated a limited paper-scan preview using your user-defined rules and risk controls. PRO unlocks broker-connected paper order routing, monitored execution workflows, trade logging, and full dashboard controls.
                 </p>
                 <a href="/upgrade?from=scan_preview" class="btn-run-scan" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
                     Unlock PRO Workflow
@@ -477,7 +472,19 @@
             </div>
 
 
-            <div class="data-card" id="news-panel">
+            
+            {% if not plan_access.is_pro %}
+            <div class="data-card" style="border-color: rgba(245, 158, 11, 0.45);">
+                <div class="card-header">
+                    PRO Workflow Locked
+                    <span class="sys-tag">LOCKED</span>
+                </div>
+                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
+                    Scan preview is available in FREE PREVIEW. Broker-connected paper order routing, monitored execution workflows, and trade logging are locked until PRO is active.
+                </p>
+            </div>
+            {% endif %}
+<div class="data-card" id="news-panel">
                 <div class="card-header">
                     Data Model Inputs
                     <span class="sys-tag">SYS_ANALYTICS</span>

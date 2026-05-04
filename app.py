@@ -867,6 +867,24 @@ def user_has_alpaca_paper_connection(user: User) -> bool:
     )
 
 
+
+
+def user_is_pro(user: User) -> bool:
+    return bool(user and getattr(user, 'subscription_status', '') == 'pro')
+
+
+def get_plan_access(user: User) -> dict:
+    is_pro = user_is_pro(user)
+    return {
+        'is_pro': is_pro,
+        'plan_label': 'PRO ACTIVE' if is_pro else 'FREE PREVIEW',
+        'can_run_scan_preview': True,
+        'can_route_orders': is_pro,
+        'can_save_trade_logs': is_pro,
+        'can_monitor_orders': is_pro,
+        'upgrade_url': '' if is_pro else url_for('upgrade', **{'from': 'scan_preview'}),
+    }
+
 def get_user_setup_checklist(user: User) -> dict:
     items = [
         {
@@ -989,6 +1007,7 @@ def dashboard():
         current_user=current_user,
         market_regime_status=market_regime_status,
         setup_checklist=checklist,
+        plan_access=get_plan_access(current_user),
     )
 
 
@@ -998,7 +1017,7 @@ def upgrade():
     upgrade_from = (request.args.get('from') or '').strip()
     track_user_event('upgrade_page_viewed', user=current_user, context={'from': upgrade_from})
     # If they are already PRO, don't let them buy it again!
-    if current_user.subscription_status == 'pro':
+    if user_is_pro(current_user):
         flash("You are already a PRO member. Your automation tools are unlocked.", "success")
         return redirect(url_for('dashboard'))
 
@@ -1373,7 +1392,7 @@ def update_mode():
         }), 400
 
     # Block non-PRO users from going Live
-    if new_mode == 'live' and current_user.subscription_status != 'pro':
+    if new_mode == 'live' and not user_is_pro(current_user):
         return jsonify({
             'ok': False,
             'status': 'error',
@@ -1558,10 +1577,11 @@ def api_scan():
 
         approved_plan = approve_scan_for_user(redis_client, current_user, result)
         result["approved_execution_plan"] = approved_plan
-        is_pro = current_user.subscription_status == 'pro'
+        plan_access = get_plan_access(current_user)
+        is_pro = plan_access['is_pro']
         result['scan_mode'] = 'pro' if is_pro else 'free_preview'
         result['upgrade_required_for_execution'] = not is_pro
-        result['upgrade_url'] = '' if is_pro else '/upgrade?from=scan_preview'
+        result['upgrade_url'] = plan_access['upgrade_url']
         if not is_pro:
             track_user_event('scan_preview_generated', user=current_user, context={'scan_id': scan_id})
             track_user_event('upgrade_prompt_shown', user=current_user, context={'surface': 'scan_preview'})
@@ -1623,7 +1643,7 @@ def api_execute():
     symbol = str(data.get("symbol") or "").upper().strip()
     scan_id = data.get("scan_id") or data.get("scanId")
 
-    if current_user.subscription_status != 'pro':
+    if not user_is_pro(current_user):
         track_user_event('execution_blocked_free_user', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
         return fail(
             'Upgrade to PRO to unlock broker-connected paper order routing and monitored execution workflows.',
