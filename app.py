@@ -2015,6 +2015,7 @@ def api_debug_symbol(symbol: str):
     )
     rejected = prev <= 0 or not classification.get('tradable_by_xeanvi', False)
     reason = 'missing_prev_close' if prev <= 0 else classification.get('rejection_reason')
+    rejection_reasons = [reason] if reason else list(classification.get('rejection_reasons') or [])
     payload = {
         'symbol': symbol, 'asset_type': classification.get('asset_type'), 'asset_type_reason': classification.get('asset_type_reason'),
         'platform_allowed': classification.get('platform_allowed'), 'user_allowed': classification.get('user_allowed'),
@@ -2025,7 +2026,7 @@ def api_debug_symbol(symbol: str):
         'catalyst_score': None, 'catalyst_source': None, 'liquidity_score': None, 'momentum_score': None,
         'setup_grade': 'NO TRADE', 'decision': 'NO TRADE' if rejected else 'WATCH',
         'buy_lower': None, 'buy_upper': None, 'entry_price': None, 'stop_price': None, 'target_1': None, 'target_2': None, 'qty': 0,
-        'rejected': rejected, 'rejection_reasons': [reason] if reason else [], 'final_explanation': reason or 'Symbol analyzed.',
+        'rejected': rejected, 'rejection_reasons': rejection_reasons, 'final_explanation': reason or 'Symbol analyzed.',
         'data_feed_used': feed, 'scan_time_et': now_et().isoformat(),
     }
     try:
@@ -2059,7 +2060,14 @@ def api_debug_symbol(symbol: str):
             'final_explanation': '; '.join(analyzed.get('details', {}).get('quick_notes', [])[:2]) or payload['final_explanation'],
         })
     except Exception:
-        pass
+        if 'diagnostic_data_unavailable' not in payload['rejection_reasons']:
+            payload['rejection_reasons'].append('diagnostic_data_unavailable')
+        if 'deep_analysis_failed' not in payload['rejection_reasons']:
+            payload['rejection_reasons'].append('deep_analysis_failed')
+        payload['rejected'] = True
+        payload['final_explanation'] = (
+            'Symbol could not be fully analyzed because market/quote/bar data was incomplete.'
+        )
     return jsonify(payload)
 
 @app.route('/api/metrics')

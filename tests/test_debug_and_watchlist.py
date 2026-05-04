@@ -3,8 +3,12 @@ for k in ["SECRET_KEY","TOKEN_ENCRYPTION_KEY","ALPACA_CLIENT_ID","ALPACA_CLIENT_
     os.environ.setdefault(k, "test")
 
 from types import SimpleNamespace
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 import scanner
 from watchlist import WatchlistManager
+import app as app_module
 
 
 def test_momentum_rejections_include_asset_schema(monkeypatch):
@@ -30,3 +34,37 @@ def test_watchlist_reason_labels(monkeypatch):
     items = mgr.refresh(user=SimpleNamespace(alpaca_data_feed='iex'))
     assert items[0]['live_signal'] == 'SETUP BROKEN: BELOW STOP'
     assert 'invalidated' in items[0]['live_signal_reason'].lower()
+
+
+def test_dashboard_watchlist_empty_state_colspan():
+    html = Path('templates/dashboard.html').read_text()
+    assert 'renderWatchlist(items)' in html
+    assert 'colspan="6"' in html
+    assert 'colspan="4"' not in html
+
+
+def test_debug_symbol_degraded_analysis_has_clear_rejection(monkeypatch):
+    monkeypatch.setattr(app_module, 'current_user', SimpleNamespace(
+        alpaca_data_feed='iex',
+        allow_biotech=True,
+        allow_etf_trading=True,
+        allow_leveraged_etfs=False,
+        allow_inverse_etfs=False,
+        allow_crypto_etfs=True,
+        allow_options_trading=False,
+    ))
+    monkeypatch.setattr(app_module, 'resolve_data_feed', lambda user: 'iex')
+    monkeypatch.setattr(app_module, 'get_snapshots', lambda symbols, feed='iex': {symbols[0]: {'minuteBar': {'c': 0}, 'prevDailyBar': {'c': 0}}})
+    monkeypatch.setattr(app_module, 'get_latest_quotes', lambda symbols, feed='iex': {symbols[0]: {}})
+    monkeypatch.setattr(app_module, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(app_module, 'get_alpaca_asset', lambda symbol: {'class': 'us_equity', 'name': 'Acme Inc.', 'tradable': True, 'exchange': 'NYSE'})
+    monkeypatch.setattr(app_module, 'get_bars', lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('bars unavailable')))
+
+    with app_module.app.test_request_context('/api/debug-symbol/ACME'):
+        resp = app_module.api_debug_symbol.__wrapped__('ACME')
+        data = resp.get_json()
+
+    assert data['rejected'] is True
+    assert 'diagnostic_data_unavailable' in data['rejection_reasons']
+    assert 'deep_analysis_failed' in data['rejection_reasons']
+    assert 'incomplete' in data['final_explanation'].lower()

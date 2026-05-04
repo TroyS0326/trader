@@ -67,4 +67,18 @@ def test_options_and_leveraged_etf_blocked_by_default():
     opt = classify_asset('AAPL240621C00180000', {'class': 'us_equity', 'name': 'Option Contract'}, {}, platform_flags={'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': False, 'inverse_etf': False}, user_flags={'options': True, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': True, 'inverse_etf': True})
     lev = classify_asset('TQQQ', {'class': 'us_equity', 'name': 'ProShares UltraPro QQQ ETF', 'exchange': 'NASDAQ', 'tradable': True}, {}, platform_flags={'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': False, 'inverse_etf': False}, user_flags={'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': True, 'inverse_etf': True})
     assert opt['rejection_reason'] == 'options_not_supported_yet'
+    assert opt['rejection_reasons'] == ['options_not_supported_yet']
     assert lev['tradable_by_xeanvi'] is False
+
+
+def test_common_stock_has_empty_rejection_reasons():
+    stk = classify_asset(
+        'AAPL',
+        {'class': 'us_equity', 'name': 'Apple Inc.', 'tradable': True, 'exchange': 'NASDAQ'},
+        {'name': 'Apple Inc.'},
+        platform_flags={'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': False, 'inverse_etf': False},
+        user_flags={'options': False, 'etf': True, 'biotech': True, 'crypto_etf': True, 'leveraged_etf': False, 'inverse_etf': False},
+    )
+    assert stk['asset_type'] == 'COMMON_STOCK'
+    assert stk['rejection_reason'] is None
+    assert stk['rejection_reasons'] == []
