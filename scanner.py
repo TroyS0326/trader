@@ -245,6 +245,8 @@ def apply_user_symbol_filters(
         minute = snapshot.get('minuteBar', {})
         prev = snapshot.get('prevDailyBar', {})
         price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
+        if price <= 0:
+            continue
         if bool(getattr(user, 'exclude_penny_stocks', True)) and price < 5.0:
             continue
 
@@ -288,6 +290,8 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
         minute = snap.get('minuteBar', {})
         prev = snap.get('prevDailyBar', {})
         price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
+        if price <= 0:
+            continue
 
         # FIX 1: Allow stocks up to $500.00
         if symbol != 'SPY' and not (1.0 <= price <= 500.0):
@@ -633,10 +637,6 @@ def classify_setup_grade(total: int, catalyst_score: int, liquidity_score: int, 
         return 'WATCH'
     return 'NO TRADE'
     
-def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
-    return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
-    
-
 def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
     return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
 

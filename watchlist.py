@@ -38,13 +38,13 @@ class WatchlistManager:
             signal = 'WATCH'
             if not item.get('buy_window_open', True):
                 signal = 'WAIT'
-            elif current < stop:
+            elif stop is not None and current < stop:
                 signal = 'BROKEN'
-            elif item.get('breakout_confirmed') and current >= entry and current <= buy_upper:
+            elif item.get('breakout_confirmed') and entry is not None and buy_upper is not None and current >= entry and current <= buy_upper:
                 signal = 'TRIGGERED'
-            elif current >= entry * 0.995:
+            elif entry is not None and current >= entry * 0.995:
                 signal = 'NEAR ENTRY'
-            item['current_price'] = round(current, 2)
+            item['current_price'] = round(float(current), 2)
             item['live_signal'] = signal
             refreshed.append(item)
         self.set_items(refreshed)

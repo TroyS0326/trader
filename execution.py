@@ -5,7 +5,6 @@ from contextlib import suppress
 from typing import Dict
 from zoneinfo import ZoneInfo
 
-import aiosqlite
 import requests
 import websockets
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -161,18 +160,25 @@ class SaaSExecutionManager:
 
     async def get_connected_users(self):
         """Fetches all users who have linked their Alpaca accounts."""
-        async with aiosqlite.connect(config.DB_PATH) as conn:
-            conn.row_factory = aiosqlite.Row
-            cur = await conn.execute(
-                """
-                SELECT id, alpaca_access_token, trading_mode, subscription_status
-                FROM user
-                WHERE alpaca_access_token IS NOT NULL
-                  AND trim(alpaca_access_token) != ''
-                """
-            )
-            rows = await cur.fetchall()
-        return rows
+        from app import app
+        from models import User
+
+        def _read_users():
+            with app.app_context():
+                rows = []
+                for user in User.query.all():
+                    token = user.alpaca_access_token
+                    if token and token.strip():
+                        rows.append({
+                            'id': user.id,
+                            'alpaca_access_token': token,
+                            'trading_mode': user.trading_mode,
+                            'subscription_status': user.subscription_status,
+                        })
+                return rows
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, _read_users)
 
     async def run_discovery_loop(self):
         """Periodically checks for new users to start listening to."""
