@@ -14,8 +14,8 @@ from scanner import get_refined_universe
 from analyze_performance import calculate_user_kelly_fraction
 import config
 
-celery_app = Celery('veteran_engine', broker='redis://localhost:6379/0')
-redis_client = redis.Redis.from_url('redis://localhost:6379/0', decode_responses=True)
+celery_app = Celery('veteran_engine', broker=config.REDIS_URL, backend=config.REDIS_URL)
+redis_client = redis.Redis.from_url(config.REDIS_URL, decode_responses=True)
 celery_app.conf.timezone = 'UTC'
 celery_app.conf.beat_schedule = {
     'update-market-regime-every-5-minutes': {

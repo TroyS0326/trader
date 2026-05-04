@@ -180,6 +180,39 @@ def calculate_metrics(trades: List[Trade], total_db_trades: int) -> Dict[str, An
     }
 
 
+
+def calculate_user_kelly_fraction(user_id: int):
+    """Estimate a fractional Kelly risk allocation for a user from realized trade history."""
+    user_trades = (
+        Trade.query
+        .filter(Trade.user_id == user_id, Trade.pnl.isnot(None))
+        .order_by(Trade.id.asc())
+        .all()
+    )
+
+    if len(user_trades) < 10:
+        return None
+
+    pnls = [float(t.pnl) for t in user_trades if t.pnl is not None]
+    wins = [p for p in pnls if p > 0]
+    losses = [abs(p) for p in pnls if p < 0]
+
+    if not wins or not losses:
+        return 0.0
+
+    win_rate = len(wins) / len(pnls)
+    avg_win = sum(wins) / len(wins)
+    avg_loss = sum(losses) / len(losses)
+    if avg_loss <= 0:
+        return 0.0
+
+    b = avg_win / avg_loss
+    kelly_full = win_rate - ((1 - win_rate) / b)
+    if kelly_full <= 0:
+        return 0.0
+
+    return max(0.0, min(config.MAX_PORTFOLIO_HEAT, kelly_full * config.KELLY_FRACTION))
+
 def write_report(report: Dict[str, Any]) -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
 

@@ -1,8 +1,57 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
-*.db
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
 venv/
-# Security: never commit secrets.
+env/
+ENV/
+
+# Environment variables and secrets
 .env
 .env.*
+!.env.example
+
+# Flask
+instance/
+.webassets-cache/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis
+redis-data/
+dump.rdb
+appendonly.aof
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Logs
+*.log
+logs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

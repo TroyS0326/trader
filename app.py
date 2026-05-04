@@ -58,7 +58,7 @@ limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["500 per day", "100 per hour"],
-    storage_uri="memory://",
+    storage_uri=config.RATELIMIT_STORAGE_URI,
 )
 
 # Enforce HTTPS, HSTS, and strict Content Security Policies
@@ -94,14 +94,10 @@ if os.getenv('FLASK_ENV') == 'production':
 app.config['WTF_CSRF_SSL_STRICT'] = True
 
 # Ensure these remain bulletproof
-app.config['SESSION_COOKIE_DOMAIN'] = '.xeanvi.com'
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['WTF_CSRF_TRUSTED_ORIGINS'] = [
-    'xeanvi.com',
-    'www.xeanvi.com',
-    'https://xeanvi.com',
-    'https://www.xeanvi.com'
-]
+app.config['SESSION_COOKIE_DOMAIN'] = config.SESSION_COOKIE_DOMAIN
+app.config['SESSION_COOKIE_SECURE'] = config.SESSION_COOKIE_SECURE
+app.config['SESSION_COOKIE_SAMESITE'] = config.SESSION_COOKIE_SAMESITE
+app.config['WTF_CSRF_TRUSTED_ORIGINS'] = config.WTF_CSRF_TRUSTED_ORIGINS
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
@@ -117,7 +113,7 @@ login_manager.login_view = 'login'
 sock = Sock(app)
 logger = logging.getLogger(__name__)
 stripe.api_key = config.STRIPE_SECRET_KEY
-redis_client = redis.Redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'), decode_responses=True)
+redis_client = redis.Redis.from_url(config.REDIS_URL, decode_responses=True)
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '').strip().lower()
 
 
@@ -686,7 +682,8 @@ def index():
 @app.route('/dev-unlock/<token>')
 def dev_unlock(token):
     # Check if the token matches your .env setting
-    if token == os.getenv('DEV_BYPASS_TOKEN', 'fallback_secret'):
+    dev_bypass_token = os.getenv('DEV_BYPASS_TOKEN', '').strip()
+    if dev_bypass_token and token == dev_bypass_token:
         session['dev_access'] = True
         flash("Developer access granted. Waitlist bypassed.", "success")
         return redirect(url_for('index'))
@@ -722,7 +719,7 @@ def join_waitlist():
     
     if not api_key:
         logger.error("CRITICAL: BREVO_API_KEY is missing from environment variables!")
-        flash("System Configuration Error: Missing API Key.", "error")
+        flash("Waitlist is temporarily unavailable. Please try again later.", "error")
         return redirect(url_for('index'))
 
     # 3. Brevo API Execution
@@ -735,19 +732,19 @@ def join_waitlist():
     
     payload = {
         "email": email,
-        "listIds": [5], 
+        "listIds": [config.BREVO_LIST_ID], 
         "updateEnabled": True
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         
         if response.status_code in [200, 201, 204]:
             flash("You've been successfully added to the priority waitlist.", "success")
             return redirect(url_for('waitlist_thank_you'))
 
         logger.error(f"Brevo API Rejected: {response.text}")
-        flash(f"Brevo Error: We could not secure your spot.", "error")
+        flash("We could not secure your spot right now. Please try again.", "error")
 
     except Exception as e:
         logger.error(f"Brevo Connection Failed: {e}")

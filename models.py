@@ -153,7 +153,7 @@ class User(UserMixin, db.Model):
         try:
             return TOKEN_CIPHER.decrypt(encrypted_value.encode('utf-8')).decode('utf-8')
         except (InvalidToken, ValueError, TypeError):
-            return encrypted_value
+            return None
 
 
     def _encrypt_token_value(self, token: Optional[str]) -> Optional[str]:
