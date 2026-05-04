@@ -512,14 +512,16 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Sym</th>
+                                <th>Symbol</th>
+                                <th>Asset Type</th>
                                 <th>Logic Gate</th>
+                                <th>Reason</th>
                                 <th>Price</th>
                                 <th>Score</th>
                             </tr>
                         </thead>
                         <tbody id="watchlistBody">
-                            <tr><td colspan="4" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>
+                            <tr><td colspan="6" style="color: var(--text-muted); text-align: center; font-style: italic;">> Null data.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -777,12 +779,17 @@
                 return;
             }
             items.slice(0, 5).forEach(item => {
-                const signal = item.live_signal || item.decision || 'WATCH';
+                let signal = item.live_signal || item.decision || 'WATCH';
+                if (signal === 'WATCH FOR PULLBACK') signal = 'EXTENDED / WAIT FOR PULLBACK';
+                if (signal === 'WATCH FOR BREAKOUT') signal = 'WATCH';
                 const cssClass = signal === 'CRITERIA MET' ? 'buy-now' : 'watch';
+                const reason = item.live_signal_reason || item.details?.skip_reasons?.[0] || item.asset_type_reason || 'Monitoring setup.';
                 body.innerHTML += `
                     <tr>
                         <td style="color: var(--accent-blue);"><strong>${item.symbol}</strong></td>
+                        <td>${item.asset_type || '--'}</td>
                         <td><span class="table-pill ${cssClass}">${signal}</span></td>
+                        <td style="max-width: 320px;">${reason}</td>
                         <td>${money(item.current_price)}</td>
                         <td>${item.score_total || '--'}</td>
                     </tr>`;

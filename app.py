@@ -35,6 +35,8 @@ from models import db
 from models import User, UserEvent, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
+from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
+from asset_classifier import classify_asset
 from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
@@ -2004,21 +2006,61 @@ def api_debug_symbol(symbol: str):
     price = float((q.get('ap') or snap.get('minuteBar', {}).get('c') or 0) or 0)
     prev = float((snap.get('prevDailyBar', {}).get('c') or 0) or 0)
     day_change = ((price - prev) / prev * 100.0) if prev > 0 else 0.0
-    rejected = prev <= 0
-    reason = 'missing_prev_close' if rejected else None
-    return jsonify({
-        'symbol': symbol,
-        'current_price': price,
-        'prev_close': prev,
-        'day_change_pct': day_change,
-        'rejected': rejected,
-        'rejection_reasons': [reason] if reason else [],
-        'decision': 'NO TRADE' if rejected else 'WATCH',
-        'final_explanation': reason or 'Symbol analyzed; use scan debug summary for full context.',
-        'data_feed_used': feed,
-        'quote_timestamp': q.get('t'),
-        'scan_time_et': now_et().isoformat(),
-    })
+    profile = get_company_profile(symbol)
+    asset = get_alpaca_asset(symbol)
+    classification = classify_asset(
+        symbol, asset, profile,
+        platform_flags={'biotech': config.BIOTECH_TRADING_ENABLED, 'etf': config.ETF_TRADING_ENABLED, 'leveraged_etf': config.LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': config.INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': config.CRYPTO_ETF_TRADING_ENABLED, 'options': config.OPTIONS_TRADING_ENABLED},
+        user_flags={'biotech': bool(getattr(current_user, 'allow_biotech', True)), 'etf': bool(getattr(current_user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(current_user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(current_user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(current_user, 'allow_crypto_etfs', True)), 'options': bool(getattr(current_user, 'allow_options_trading', False))}
+    )
+    rejected = prev <= 0 or not classification.get('tradable_by_xeanvi', False)
+    reason = 'missing_prev_close' if prev <= 0 else classification.get('rejection_reason')
+    payload = {
+        'symbol': symbol, 'asset_type': classification.get('asset_type'), 'asset_type_reason': classification.get('asset_type_reason'),
+        'platform_allowed': classification.get('platform_allowed'), 'user_allowed': classification.get('user_allowed'),
+        'tradable_by_xeanvi': classification.get('tradable_by_xeanvi'),
+        'current_price': price, 'prev_close': prev, 'day_change_pct': day_change,
+        'rvol': None, 'intraday_dollar_volume': None, 'spread_pct': None, 'vwap': None, 'above_vwap': None,
+        'high_of_day': None, 'distance_from_hod_pct': None, 'extended_from_vwap_pct': None,
+        'catalyst_score': None, 'catalyst_source': None, 'liquidity_score': None, 'momentum_score': None,
+        'setup_grade': 'NO TRADE', 'decision': 'NO TRADE' if rejected else 'WATCH',
+        'buy_lower': None, 'buy_upper': None, 'entry_price': None, 'stop_price': None, 'target_1': None, 'target_2': None, 'qty': 0,
+        'rejected': rejected, 'rejection_reasons': [reason] if reason else [], 'final_explanation': reason or 'Symbol analyzed.',
+        'data_feed_used': feed, 'scan_time_et': now_et().isoformat(),
+    }
+    try:
+        end = scanner_module.now_utc()
+        bars_day = get_bars([symbol], '1Day', end - scanner_module.timedelta(days=400), end, 400, feed=feed).get(symbol, [])
+        bars_min = get_bars([symbol], '1Min', end - scanner_module.timedelta(days=3), end, 1000, feed=feed).get(symbol, [])
+        spy_min = get_bars(['SPY'], '1Min', end - scanner_module.timedelta(days=3), end, 1000, feed=feed).get('SPY', [])
+        analyzed = analyze_symbol(symbol, snap, q, bars_day, bars_min, 0.0, profile or {}, asset or {}, spy_min, {}, {'longs_blocked': False})
+        payload.update({
+            'rvol': analyzed.get('details', {}).get('rvol'),
+            'intraday_dollar_volume': analyzed.get('details', {}).get('liquidity', {}).get('dollar_volume'),
+            'spread_pct': analyzed.get('details', {}).get('spread_pct'),
+            'vwap': analyzed.get('details', {}).get('vwap_hold_reclaim', {}).get('vwap'),
+            'above_vwap': analyzed.get('details', {}).get('vwap_hold_reclaim', {}).get('reclaimed_vwap'),
+            'high_of_day': analyzed.get('details', {}).get('opening_range', {}).get('high_of_day'),
+            'distance_from_hod_pct': analyzed.get('details', {}).get('opening_range_confirmation', {}).get('distance_from_hod_pct'),
+            'extended_from_vwap_pct': analyzed.get('details', {}).get('entry_quality', {}).get('entry_extension_pct'),
+            'catalyst_score': analyzed.get('scores', {}).get('catalyst'),
+            'catalyst_source': analyzed.get('details', {}).get('catalyst', {}).get('model'),
+            'liquidity_score': analyzed.get('scores', {}).get('liquidity'),
+            'momentum_score': analyzed.get('score_total'),
+            'setup_grade': analyzed.get('setup_grade'),
+            'decision': analyzed.get('decision'),
+            'buy_lower': analyzed.get('buy_lower'),
+            'buy_upper': analyzed.get('buy_upper'),
+            'entry_price': analyzed.get('entry_price'),
+            'stop_price': analyzed.get('stop_price'),
+            'target_1': analyzed.get('target_1'),
+            'target_2': analyzed.get('target_2'),
+            'qty': analyzed.get('qty'),
+            'final_explanation': '; '.join(analyzed.get('details', {}).get('quick_notes', [])[:2]) or payload['final_explanation'],
+        })
+    except Exception:
+        pass
+    return jsonify(payload)
 
 @app.route('/api/metrics')
 @login_required
@@ -2067,6 +2109,8 @@ def api_execute():
     missing = [k for k in required if k not in data]
     if missing:
         return fail(f'Missing fields: {", ".join(missing)}')
+    if not config.MOMENTUM_AUTO_EXECUTE_ENABLED:
+        return fail('Execution blocked: MOMENTUM_AUTO_EXECUTE_ENABLED is false.', 403)
 
     failed_today = get_failed_trades_today()
     if failed_today >= config.MAX_FAILED_TRADES_PER_DAY:

@@ -40,9 +40,9 @@ def classify_asset(symbol: str, asset: Optional[Dict[str, Any]], profile: Option
         else:
             asset_type = "BROAD_ETF"
             reason = "etf_metadata_or_name"
-    elif asset.get("class") == "us_equity":
+    elif asset.get("class") == "us_equity" or (symbol.isalpha() and 1 <= len(symbol) <= 5):
         asset_type = "LOW_FLOAT_MOMENTUM_STOCK" if "biotech" in text else "COMMON_STOCK"
-        reason = "equity_default"
+        reason = "equity_default" if asset.get("class") == "us_equity" else "symbol_equity_fallback"
     else:
         asset_type = "UNKNOWN"
         reason = "insufficient_metadata"
@@ -81,4 +81,5 @@ def classify_asset(symbol: str, asset: Optional[Dict[str, Any]], profile: Option
         "user_allowed": user_allowed,
         "tradable_by_xeanvi": tradable,
         "rejection_reason": rejection_reason,
+        "rejection_reasons": [rejection_reason] if rejection_reason else [],
     }
