@@ -892,20 +892,23 @@ def user_has_alpaca_paper_connection(user: User) -> bool:
 
 
 
-def user_is_pro(user: User) -> bool:
+def user_is_pro(user):
     return (getattr(user, 'subscription_status', '') or '').lower() == 'pro'
 
 
-def get_plan_access(user: User) -> dict:
+def get_plan_access(user):
     is_pro = user_is_pro(user)
+
     return {
         'is_pro': is_pro,
         'plan_label': 'PRO ACTIVE' if is_pro else 'FREE PREVIEW',
+        'run_mode': 'full_automation' if is_pro else 'scan_preview',
         'can_run_scan_preview': True,
-        'can_route_orders': is_pro,
-        'can_save_trade_logs': is_pro,
+        'can_activate_auto_workflow': is_pro,
+        'can_route_paper_orders': is_pro,
         'can_monitor_orders': is_pro,
-        'upgrade_url': '' if is_pro else url_for('upgrade', **{'from': 'scan_preview'}),
+        'can_save_trade_logs': is_pro,
+        'upgrade_url': url_for('upgrade', **{'from': 'scan_preview'}) if not is_pro else None,
     }
 
 
@@ -1687,11 +1690,15 @@ def api_scan():
         plan_access = get_plan_access(current_user)
         is_pro = plan_access['is_pro']
         result['scan_mode'] = 'pro' if is_pro else 'free_preview'
-        result['upgrade_required_for_execution'] = not is_pro
+        result['automation_mode'] = 'full_automation' if is_pro else 'locked'
+        result['upgrade_required_for_auto_workflow'] = not is_pro
         result['upgrade_url'] = plan_access['upgrade_url']
+        result['lock_message'] = 'Upgrade to PRO to unlock the automated broker-connected paper workflow.' if not is_pro else None
         if not is_pro:
             track_user_event('scan_preview_generated', user=current_user, context={'scan_id': scan_id})
             track_user_event('upgrade_prompt_shown', user=current_user, context={'surface': 'scan_preview'})
+        else:
+            track_user_event('pro_scan_generated', user=current_user, context={'scan_id': scan_id})
         try:
             redis_client.setex(f'latest_scan:{current_user.id}', 60 * 60 * 8, json.dumps(result))
         except Exception as redis_exc:
@@ -1751,12 +1758,16 @@ def api_execute():
     scan_id = data.get("scan_id") or data.get("scanId")
 
     if not user_is_pro(current_user):
-        track_user_event('execution_blocked_free_user', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
+        try:
+            track_user_event('auto_workflow_blocked_free_user', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
+        except Exception:
+            pass
+
         return fail(
-            'Upgrade to PRO to unlock broker-connected paper order routing and monitored execution workflows.',
+            'Upgrade to PRO to unlock the automated broker-connected paper workflow.',
             403,
             upgrade_required=True,
-            upgrade_url=url_for('upgrade', **{'from': 'execution_locked'})
+            upgrade_url=url_for('upgrade', **{'from': 'automation_locked'})
         )
 
     required = ['symbol', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty', 'current_price', 'buy_upper', 'score_total', 'decision']
@@ -1831,6 +1842,8 @@ def api_execute():
                 guard.get("error"),
             )
             return fail(guard.get("error", "Trade blocked."), guard.get("status", 400))
+
+        track_user_event('pro_automation_started', user=current_user, context={'symbol': symbol, 'scan_id': scan_id})
 
         order = place_managed_entry_order(
             symbol=data['symbol'],
