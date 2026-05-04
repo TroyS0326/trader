@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Billing & Subscription | XeanVI</title>
+    <meta name="description" content="Manage your XeanVI subscription and billing securely through Stripe Customer Portal.">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #060b14; min-height: 100vh; }
+        .billing-wrap { max-width: 980px; margin: 3rem auto 5rem; padding: 0 1.5rem; }
+        .billing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+        .billing-card { background: #0f172a; border: 1px solid rgba(255,255,255,0.09); border-radius: 14px; padding: 1.35rem; }
+        .k { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .v { color: var(--text-main); font-size: 1.05rem; font-weight: 700; margin-top: 6px; }
+        .status-pill { display: inline-block; padding: 0.3rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .status-pill.success { background: rgba(16,185,129,0.18); color: #34d399; }
+        .status-pill.warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .status-pill.muted { background: rgba(148,163,184,0.16); color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    {% include 'nav.html' %}
+
+    <main class="billing-wrap">
+        <h1 style="font-size: 2rem; margin-bottom: 0.4rem;">Billing & Subscription</h1>
+        <p style="color: var(--text-muted); margin-bottom: 1.6rem;">View your current plan and manage payments, invoices, and subscription settings.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="margin-bottom: 1rem; padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(15,23,42,0.8); color: var(--text-main);">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="billing-grid">
+            <section class="billing-card">
+                <h2 style="margin-top: 0; font-size: 1.05rem;">Current Plan</h2>
+                <div class="k">Plan</div>
+                <div class="v">{{ billing_status.plan_label }}</div>
+                <div style="margin-top: 0.8rem;" class="k">Status</div>
+                <div class="v"><span class="status-pill {{ billing_status.status_class }}">{{ billing_status.status_label }}</span></div>
+                {% if billing_status.current_period_end_label %}
+                <div style="margin-top: 0.8rem;" class="k">Current Period End</div>
+                <div class="v">{{ billing_status.current_period_end_label }}</div>
+                {% endif %}
+                {% if billing_status.cancel_at_period_end %}
+                <p style="color: #fbbf24; font-size: 0.85rem; margin-top: 0.85rem;">Your subscription is set to cancel at period end.</p>
+                {% endif %}
+            </section>
+
+            <section class="billing-card">
+                <h2 style="margin-top: 0; font-size: 1.05rem;">Manage Billing</h2>
+                {% if billing_status.has_stripe_customer %}
+                    <p style="color: var(--text-muted); line-height: 1.5;">Update payment method, view invoices, cancel or manage your subscription securely through Stripe.</p>
+                    <form action="/api/create-billing-portal-session" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Manage Billing in Stripe</button>
+                    </form>
+                {% else %}
+                    <p style="color: var(--text-muted); line-height: 1.5;">Start PRO to create your Stripe billing profile.</p>
+                    <a href="/upgrade" class="btn btn-primary" style="width: 100%; display: inline-flex; justify-content: center;">Upgrade to PRO</a>
+                {% endif %}
+            </section>
+
+            <section class="billing-card">
+                <h2 style="margin-top: 0; font-size: 1.05rem;">What PRO Includes</h2>
+                <ul style="margin: 0; padding-left: 1rem; color: var(--text-main); line-height: 1.7;">
+                    <li>Broker-connected paper order routing</li>
+                    <li>Monitored execution workflows</li>
+                    <li>Trade logging</li>
+                    <li>Full dashboard controls</li>
+                    <li>User-defined risk controls</li>
+                </ul>
+            </section>
+        </div>
+
+        <p style="margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+            XeanVI provides trading automation software, not financial advice. Trading involves risk, including possible loss of capital.
+        </p>
+    </main>
+
+    {% include 'footer.html' %}
+</body>
+</html>
