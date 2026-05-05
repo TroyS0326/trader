@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}SEO Keyword Map | XeanVI{% endblock %}
+{% block content %}
+<main class="admin-shell">
+  <header class="admin-header">
+    <div>
+      <h1 class="admin-title">SEO Keyword Map</h1>
+      <p class="admin-subtitle">Plan content before generating posts.</p>
+    </div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+      <form method="POST" action="{{ url_for('admin_keyword_map_seed') }}"><button class="btn-secondary" type="submit">Seed Starter Map</button></form>
+      <a class="btn-primary" href="{{ url_for('admin_keyword_map_new') }}">New Keyword Plan</a>
+    </div>
+  </header>
+  <section class="admin-card" style="margin-bottom:1rem;">
+    <form method="GET" style="display:flex;gap:.6rem;flex-wrap:wrap;">
+      <input name="status" placeholder="status" value="{{ filters.status }}">
+      <select name="cluster"><option value="">All clusters</option>{% for c in clusters %}<option value="{{ c }}" {% if filters.cluster==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+      <input name="priority" type="number" min="1" max="5" placeholder="priority" value="{{ filters.priority }}">
+      <button class="btn-secondary" type="submit">Filter</button>
+    </form>
+  </section>
+  <section class="admin-card">
+    <div style="overflow:auto;">
+      <table class="admin-table">
+        <thead><tr><th>Priority</th><th>Cluster</th><th>Keyword</th><th>Title</th><th>Intent</th><th>Linked Page</th><th>Status</th><th>Planned Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for plan in plans %}
+          <tr>
+            <td><span class="status-pill">P{{ plan.priority }}</span></td>
+            <td>{{ plan.cluster or '—' }}</td><td>{{ plan.target_keyword }}</td><td>{{ plan.suggested_title }}</td><td>{{ plan.search_intent }}</td>
+            <td>{% if plan.linked_page %}<a href="{{ plan.linked_page }}" target="_blank">{{ plan.linked_page }}</a>{% else %}—{% endif %}</td>
+            <td><span class="status-pill">{{ plan.status }}</span></td>
+            <td>{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan.planned_publish_date else '—' }}</td>
+            <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
+              <a class="btn-secondary" href="{{ url_for('admin_keyword_map_edit', plan_id=plan.id) }}">Edit</a>
+              <form method="POST" action="{{ url_for('admin_keyword_map_create_draft', plan_id=plan.id) }}"><button class="btn-primary" type="submit">Create Draft From Plan</button></form>
+              <form method="POST" action="{{ url_for('admin_keyword_map_skip', plan_id=plan.id) }}"><button class="btn-secondary" type="submit">Skip</button></form>
+            </td>
+          </tr>
+          {% else %}<tr><td colspan="9">No plans found.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

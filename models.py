@@ -280,6 +280,23 @@ class BlogPost(db.Model):
     published_at = db.Column(db.DateTime, nullable=True)
 
 
+class BlogKeywordPlan(db.Model):
+    __tablename__ = "blog_keyword_plans"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cluster = db.Column(db.String(120), nullable=True, index=True)
+    target_keyword = db.Column(db.String(180), nullable=False, index=True)
+    search_intent = db.Column(db.String(80), nullable=False, default='educational')
+    suggested_title = db.Column(db.String(220), nullable=False)
+    priority = db.Column(db.Integer, nullable=False, default=3, index=True)
+    linked_page = db.Column(db.String(220), nullable=True)
+    status = db.Column(db.String(40), nullable=False, default='planned', index=True)
+    planned_publish_date = db.Column(db.Date, nullable=True)
+    blog_post_id = db.Column(db.Integer, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class Trade(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)
