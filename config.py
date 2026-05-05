@@ -23,8 +23,12 @@ APP_TITLE = 'XeanVI'
 SECRET_KEY = require_env('SECRET_KEY')
 TOKEN_ENCRYPTION_KEY = require_env('TOKEN_ENCRYPTION_KEY')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
+FLASK_ENV = os.getenv('FLASK_ENV', '').strip().lower()
+IS_PRODUCTION = FLASK_ENV == 'production' or not DEBUG
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
+LAUNCH_MODE = os.getenv('LAUNCH_MODE', 'waitlist').strip().lower() or 'waitlist'
+STRICT_PRODUCTION_SCANNER = os.getenv('STRICT_PRODUCTION_SCANNER', '1') == '1'
 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip() or 'redis://localhost:6379/0'
 RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', REDIS_URL).strip() or REDIS_URL
@@ -70,6 +74,40 @@ BREVO_RESET_PASSWORD_TEMPLATE_ID = os.getenv('BREVO_RESET_PASSWORD_TEMPLATE_ID')
 BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'support@xeanvi.com')
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'XeanVI Security')
 PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS = int(os.getenv('PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS', '3600'))
+
+
+def _missing_values(values: dict[str, object]) -> list[str]:
+    missing: list[str] = []
+    for key, value in values.items():
+        if value is None:
+            missing.append(key)
+            continue
+        if isinstance(value, str) and not value.strip():
+            missing.append(key)
+            continue
+        if isinstance(value, int) and value <= 0:
+            missing.append(key)
+    return missing
+
+
+def validate_stripe_config() -> list[str]:
+    return _missing_values({
+        'STRIPE_PUBLIC_KEY': STRIPE_PUBLIC_KEY,
+        'STRIPE_SECRET_KEY': STRIPE_SECRET_KEY,
+        'STRIPE_WEBHOOK_SECRET': STRIPE_WEBHOOK_SECRET,
+        'STRIPE_PRICE_ID_MONTHLY': STRIPE_PRICE_ID_MONTHLY,
+        'STRIPE_PRICE_ID_ANNUAL': STRIPE_PRICE_ID_ANNUAL,
+    })
+
+
+def validate_brevo_config() -> list[str]:
+    return _missing_values({
+        'BREVO_API_KEY': BREVO_API_KEY,
+        'BREVO_LIST_ID': BREVO_LIST_ID,
+        'BREVO_SIGNUP_LIST_ID': BREVO_SIGNUP_LIST_ID,
+        'BREVO_RESET_PASSWORD_TEMPLATE_ID': BREVO_RESET_PASSWORD_TEMPLATE_ID,
+        'BREVO_SENDER_EMAIL': BREVO_SENDER_EMAIL,
+    })
 
 DB_PATH = str(BASE_DIR / 'veteran_trades.db')
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))

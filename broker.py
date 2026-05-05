@@ -1,6 +1,7 @@
 import logging
 import time
 import threading
+import contextlib
 from typing import Any, Dict, List
 
 import requests
@@ -297,7 +298,7 @@ def _background_leg_placement(
         qty_target_1 = max(1, filled_qty // 2)
         qty_runner = max(0, filled_qty - qty_target_1)
 
-        submit_order(
+        target_1_order = submit_order(
             {
                 'symbol': symbol.upper(),
                 'qty': str(qty_target_1),
@@ -317,7 +318,7 @@ def _background_leg_placement(
         )
 
         if qty_runner > 0:
-            submit_order(
+            runner_stop_order = submit_order(
                 {
                     'symbol': symbol.upper(),
                     'qty': str(qty_runner),
@@ -329,6 +330,30 @@ def _background_leg_placement(
                 token=user_token,
                 user=user,
             )
+        else:
+            runner_stop_order = None
+
+        try:
+            from app import app
+            from db import get_trade_by_order_id, update_trade_status
+            with app.app_context():
+                trade = get_trade_by_order_id(entry_id) or {}
+                raw = trade.get('raw_json') or {}
+                if isinstance(raw, str):
+                    import json
+                    with contextlib.suppress(Exception):
+                        raw = json.loads(raw)
+                if not isinstance(raw, dict):
+                    raw = {}
+                bundle = raw.get('order_bundle') if isinstance(raw.get('order_bundle'), dict) else {}
+                bundle['target_1_order_id'] = target_1_order.get('id')
+                bundle['runner_stop_order_id'] = (runner_stop_order or {}).get('id')
+                bundle['target_1_order'] = target_1_order
+                bundle['runner_stop_order'] = runner_stop_order or {}
+                raw['order_bundle'] = bundle
+                update_trade_status(entry_id, {'raw_json': raw})
+        except Exception as exc:
+            logger.error('Failed persisting managed leg IDs for %s: %s', entry_id, exc)
     except BrokerError as exc:
         logger.error('Failed to execute background legs for %s: %s', entry_id, exc)
 

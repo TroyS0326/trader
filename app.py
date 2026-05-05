@@ -65,7 +65,7 @@ limiter = Limiter(
 )
 
 # Enforce HTTPS, HSTS, and strict Content Security Policies
-if os.getenv('FLASK_ENV') == 'production':
+if config.IS_PRODUCTION:
     csp = {
         'default-src': [
             "'self'",
@@ -107,7 +107,7 @@ if os.getenv('FLASK_ENV') == 'production':
             'https://hooks.stripe.com',
         ],
     }
-    Talisman(app, content_security_policy=csp)
+    Talisman(app, content_security_policy=csp, force_https=True, strict_transport_security=True)
 
 # THE FIX: Allow login even if the host/referrer strings have a proxy-induced mismatch
 app.config['WTF_CSRF_SSL_STRICT'] = True
@@ -134,6 +134,14 @@ logger = logging.getLogger(__name__)
 stripe.api_key = config.STRIPE_SECRET_KEY
 redis_client = redis.Redis.from_url(config.REDIS_URL, decode_responses=True)
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '').strip().lower()
+brevo_missing = config.validate_brevo_config()
+if brevo_missing:
+    logger.warning('Brevo configuration missing keys: %s', ",".join(brevo_missing))
+
+
+def _brief_error_text(text: str, max_len: int = 180) -> str:
+    cleaned = (text or '').replace('\n', ' ').replace('\r', ' ').strip()
+    return cleaned[:max_len]
 
 
 @app.context_processor
@@ -351,7 +359,7 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
             logger.info('Password reset email sent to user_id=%s', user.id)
             return True
 
-        logger.error('Brevo password reset email failed: %s %s', response.status_code, response.text)
+        logger.error('Brevo password reset email failed: %s %s', response.status_code, _brief_error_text(response.text))
         return False
 
     except Exception as exc:
@@ -399,7 +407,7 @@ def add_signup_user_to_brevo(user):
             logger.info('Brevo signup automation success for user_id=%s email=%s list_id=%s', user.id, user.email, list_id)
             return True
 
-        logger.error('Brevo signup automation failed for user_id=%s status=%s response=%s', user.id, response.status_code, response.text)
+        logger.error('Brevo signup automation failed for user_id=%s status=%s response=%s', user.id, response.status_code, _brief_error_text(response.text))
         return False
     except Exception as exc:
         logger.error('Brevo signup automation exception for user_id=%s: %s', user.id, exc)
@@ -489,7 +497,7 @@ def update_brevo_contact_attributes(user, attributes: dict) -> bool:
                 "Brevo contact create during sync failed for user_id=%s status=%s response=%s",
                 getattr(user, 'id', None),
                 create_response.status_code,
-                create_response.text,
+                _brief_error_text(create_response.text),
             )
             return False
 
@@ -747,16 +755,18 @@ def index():
             return redirect(url_for('dashboard'))
         return redirect(url_for('setup_checklist'))
 
-    # 2. Check for the secret session flag
     if session.get('dev_access'):
         return render_template('landing.html')
-
-    # 3. Default for the public: the Coming Soon/Waitlist page
+    launch_mode = (getattr(config, 'LAUNCH_MODE', 'waitlist') or 'waitlist').lower()
+    if launch_mode == 'live':
+        return render_template('landing.html')
     return render_template('waitlist.html')
 
 
 @app.route('/dev-unlock/<token>')
 def dev_unlock(token):
+    if config.IS_PRODUCTION:
+        return "Not Found", 404
     # Check if the token matches your .env setting
     dev_bypass_token = os.getenv('DEV_BYPASS_TOKEN', '').strip()
     if dev_bypass_token and token == dev_bypass_token:
@@ -1423,6 +1433,11 @@ def apply_subscription_to_user(user: User, subscription: dict, price_id: str | N
 @app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
+    stripe_missing = config.validate_stripe_config()
+    if stripe_missing:
+        logger.error('Stripe checkout blocked due to missing configuration keys: %s', ",".join(stripe_missing))
+        flash('Billing is temporarily unavailable. Please contact support.', 'error')
+        return redirect(url_for('upgrade'))
     body = request.get_json(silent=True) or {}
     plan = (request.form.get('plan') or body.get('plan') or '').strip().lower()
 
@@ -1537,7 +1552,7 @@ def checkout_redirect():
 @app.route('/api/stripe-webhook', methods=['POST'])
 @csrf.exempt
 def stripe_webhook():
-    payload = request.data
+    payload = request.get_data(cache=False, as_text=False)
     sig_header = request.headers.get('Stripe-Signature')
     endpoint_secret = config.STRIPE_WEBHOOK_SECRET
 
@@ -1569,9 +1584,11 @@ def stripe_webhook():
             subscription_id = obj.get('subscription')
             if user and subscription_id:
                 subscription = stripe.Subscription.retrieve(subscription_id)
+                prior_state = (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id)
                 apply_subscription_to_user(user, subscription)
                 user.stripe_customer_id = obj.get('customer') or user.stripe_customer_id
-                db.session.commit()
+                if prior_state != (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id):
+                    db.session.commit()
                 status = (user.subscription_status or '').lower()
                 if status in {'pro'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
@@ -1583,8 +1600,10 @@ def stripe_webhook():
             metadata_user_id = (obj.get('metadata') or {}).get('user_id')
             user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
             if user:
+                prior_state = (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id)
                 apply_subscription_to_user(user, obj)
-                db.session.commit()
+                if prior_state != (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id):
+                    db.session.commit()
                 status = (user.subscription_status or '').lower()
                 if status in {'pro', 'trialing'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
@@ -1597,7 +1616,8 @@ def stripe_webhook():
             if user:
                 user.subscription_status = 'free'
                 user.subscription_cancel_at_period_end = False
-                db.session.commit()
+                if user.subscription_status != 'free' or user.subscription_cancel_at_period_end:
+                    db.session.commit()
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'free'})
 
         elif event_type == 'invoice.payment_failed':
@@ -1607,7 +1627,8 @@ def stripe_webhook():
             user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
             if user:
                 user.subscription_status = 'past_due'
-                db.session.commit()
+                if user.subscription_status != 'past_due':
+                    db.session.commit()
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
 

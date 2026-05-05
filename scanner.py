@@ -20,6 +20,7 @@ from feature_store import store
 import dynamic_orb
 import market_state
 from asset_classifier import classify_asset
+import config
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -315,17 +316,17 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
         ask = safe_num(quote.get('ap'))
         spread_pct = calc_spread_pct(bid, ask, price)
 
-        # TEMPORARY: Bypassing hard gatekeeper so we don't get blocked by strict spreads
-        # if symbol != 'SPY':
-        #     market_stats = SymbolMarketStats(
-        #         symbol=symbol,
-        #         price=price,
-        #         daily_dollar_volume=dollar_volume,
-        #         spread_pct=spread_pct,
-        #     )
-        #     keep, _ = passes_hard_gatekeeper(market_stats)
-        #     if not keep:
-        #         continue
+        strict_scanner = config.STRICT_PRODUCTION_SCANNER or config.IS_PRODUCTION
+        if symbol != 'SPY' and strict_scanner:
+            market_stats = SymbolMarketStats(
+                symbol=symbol,
+                price=price,
+                daily_dollar_volume=dollar_volume,
+                spread_pct=spread_pct,
+            )
+            keep, _ = passes_hard_gatekeeper(market_stats)
+            if not keep:
+                continue
         valid.append(symbol)
 
     if 'SPY' not in valid:
