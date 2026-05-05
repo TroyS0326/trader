@@ -1024,33 +1024,27 @@ def faq():
 
 @app.route('/sitemap.xml')
 def sitemap_xml():
-    """Generates the XML sitemap for search engines."""
+    """Generates the XML sitemap for search engines using an explicit public allowlist."""
     links = []
-    # Using the same strict exclusion list to hide the dashboard and back-end
-    excluded_endpoints = [
-        'static', 'sitemap_xml', 'robots_txt', 'api_runtime_health', 'dev_unlock',
-        'stripe_webhook', 'create_checkout_session', 'checkout_redirect',
-        'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
-        'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
-        'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
-        'transparency', 'join_waitlist',
-        'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback',
-        'forgot_password', 'reset_password_with_token',
+    public_paths = [
+        '/',
+        '/features',
+        '/pricing',
+        '/playbook',
+        '/broker-integration',
+        '/transparency',
+        '/signup',
+        '/faq',
+        '/terms',
+        '/privacy',
     ]
 
-    # Use 'https' and your actual domain for the sitemap links
     base_url = "https://xeanvi.com"
 
-    for rule in app.url_map.iter_rules():
-        if "GET" in rule.methods and rule.endpoint not in excluded_endpoints and not rule.arguments:
-            try:
-                url = f"{base_url}{url_for(rule.endpoint)}"
-                # Defaulting to today's date for indexing freshness
-                lastmod = datetime.now().strftime('%Y-%m-%d')
-                links.append((url, lastmod))
-            except Exception as e:
-                logger.error(f"XML Sitemap Error for {rule.endpoint}: {e}")
-                continue
+    existing_rules = {rule.rule for rule in app.url_map.iter_rules() if "GET" in rule.methods}
+    for path in public_paths:
+        if path in existing_rules:
+            links.append((f"{base_url}{path}", datetime.now().strftime('%Y-%m-%d')))
 
     # Build the XML structure
     sitemap_xml_content = render_template('sitemap_xml.xml', links=links)
@@ -1082,6 +1076,16 @@ def learn_gone():
 
 @app.route('/learn/<path:slug>')
 def learn_topic_gone(slug):
+    return ("", 410)
+
+
+@app.route('/articles')
+def articles_gone():
+    return ("", 410)
+
+
+@app.route('/articles/<path:slug>')
+def article_topic_gone(slug):
     return ("", 410)
 
 @app.route('/transparency')
