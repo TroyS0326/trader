@@ -221,6 +221,22 @@
         {% endif %}
       </section>
 
+      <section class="admin-card">
+        <h2>Human Quality Score</h2>
+        <p class="form-help">This is a helpfulness/readability check, not an AI-detector score.</p>
+        {% if human_quality_report %}
+          <p class="form-help" style="font-size:.95rem; color:#c7d2fe;">Score: <strong>{{ human_quality_report.score }}</strong> · Status: <strong>{{ human_quality_report.status }}</strong></p>
+          {% if human_quality_report.strengths %}<p class="form-label" style="color:#86efac; margin-top:.75rem;">Strengths</p><ul>{% for item in human_quality_report.strengths %}<li class="form-help" style="color:#86efac;">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          {% if human_quality_report.warnings %}<p class="form-label" style="color:#fdba74; margin-top:.75rem;">Warnings</p><ul>{% for item in human_quality_report.warnings %}<li class="form-help" style="color:#fdba74;">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          {% if human_quality_report.suggestions %}<p class="form-label" style="margin-top:.75rem;">Suggestions</p><ul>{% for item in human_quality_report.suggestions %}<li class="form-help">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          <p class="form-help" style="margin-top:.7rem;">
+            Words: {{ human_quality_report.metrics.word_count }} · Sentences: {{ human_quality_report.metrics.sentence_count }} · Avg sentence: {{ human_quality_report.metrics.avg_sentence_length }} · H2: {{ human_quality_report.metrics.h2_count }} · Lists: {{ human_quality_report.metrics.list_count }} · Generic phrases: {{ human_quality_report.metrics.generic_phrase_count }}
+          </p>
+        {% else %}
+          <p class="form-help">Human Quality Score runs when you generate a draft, check SEO, apply safe fixes, save, or publish.</p>
+        {% endif %}
+      </section>
+
     {% if post %}
     <form method="post" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

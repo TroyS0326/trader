@@ -45,6 +45,7 @@ from blog_ai import generate_blog_draft
 from blog_seo import analyze_blog_post_seo
 from blog_seo_fixes import apply_safe_seo_fixes
 from blog_internal_links import suggest_internal_links
+from blog_human_quality import analyze_human_quality
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -1917,6 +1918,7 @@ def admin_blog_new():
             body_html=body_html, target_keyword=form_data['target_keyword'],
             canonical_url=form_data['canonical_url'], status=requested_status,
         )
+        human_quality_report = analyze_human_quality(title=title, excerpt=form_data['excerpt'], body_html=body_html, target_keyword=form_data['target_keyword'])
         if action == 'apply_safe_fixes':
             fixed = apply_safe_seo_fixes(
                 title=form_data['title'],
@@ -1958,6 +1960,7 @@ def admin_blog_new():
                 seo_fix_changes=fixed_changes,
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
+                human_quality_report=analyze_human_quality(title=fixed_fields.get('title') or '', excerpt=fixed_fields.get('excerpt') or '', body_html=fixed_fields.get('body_html') or '', target_keyword=fixed_fields.get('target_keyword') or ''),
             )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
@@ -1965,14 +1968,14 @@ def admin_blog_new():
                 title=form_data['title'], target_keyword=form_data['target_keyword'],
                 excerpt=form_data['excerpt'], body_html=form_data['body_html']
             )
-            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
             internal_link_suggestions = suggest_internal_links(
                 title=form_data['title'], target_keyword=form_data['target_keyword'],
                 excerpt=form_data['excerpt'], body_html=form_data['body_html']
             )
-            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         slug = unique_blog_slug(slug_input or title)
         post = BlogPost(
@@ -1991,9 +1994,14 @@ def admin_blog_new():
             post.published_at = datetime.utcnow()
         db.session.add(post)
         db.session.commit()
+        warned = False
         if requested_status == 'published' and seo_report['status'] == 'needs_work':
             flash('Published with SEO warnings. Review suggestions when possible.', 'error')
-        else:
+            warned = True
+        if requested_status == 'published' and human_quality_report['score'] < 60:
+            flash('Published with human-quality warnings. Consider improving the post for specificity and usefulness.', 'error')
+            warned = True
+        if not warned:
             flash('Blog post saved.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
     return render_template('admin_blog_form.html', post=None, internal_link_suggestions=[])
@@ -2066,6 +2074,7 @@ def admin_blog_generate_draft():
         excerpt=form_data.get('excerpt') or '', body_html=form_data.get('body_html') or '',
         target_keyword=form_data.get('target_keyword') or '', canonical_url=form_data.get('canonical_url') or '', status='draft'
     )
+    human_quality_report = analyze_human_quality(title=form_data.get('title') or '', excerpt=form_data.get('excerpt') or '', body_html=form_data.get('body_html') or '', target_keyword=form_data.get('target_keyword') or '')
     flash("AI draft generated. Review and edit it before publishing.", "success")
     internal_link_suggestions = suggest_internal_links(
         title=form_data.get('title') or '',
@@ -2073,7 +2082,7 @@ def admin_blog_generate_draft():
         excerpt=form_data.get('excerpt') or '',
         body_html=form_data.get('body_html') or '',
     )
-    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
+    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -2107,6 +2116,7 @@ def admin_blog_edit(post_id):
             body_html=body_html, target_keyword=form_data['target_keyword'],
             canonical_url=form_data['canonical_url'], status=requested_status,
         )
+        human_quality_report = analyze_human_quality(title=title, excerpt=form_data['excerpt'], body_html=body_html, target_keyword=form_data['target_keyword'])
         if action == 'apply_safe_fixes':
             fixed = apply_safe_seo_fixes(
                 title=form_data['title'],
@@ -2148,6 +2158,7 @@ def admin_blog_edit(post_id):
                 seo_fix_changes=fixed_changes,
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
+                human_quality_report=analyze_human_quality(title=fixed_fields.get('title') or '', excerpt=fixed_fields.get('excerpt') or '', body_html=fixed_fields.get('body_html') or '', target_keyword=fixed_fields.get('target_keyword') or ''),
             )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
@@ -2155,14 +2166,14 @@ def admin_blog_edit(post_id):
                 title=form_data['title'], target_keyword=form_data['target_keyword'],
                 excerpt=form_data['excerpt'], body_html=form_data['body_html']
             )
-            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
             internal_link_suggestions = suggest_internal_links(
                 title=form_data['title'], target_keyword=form_data['target_keyword'],
                 excerpt=form_data['excerpt'], body_html=form_data['body_html']
             )
-            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         prev_status = post.status
         post.title = title
@@ -2179,16 +2190,22 @@ def admin_blog_edit(post_id):
             post.published_at = datetime.utcnow()
         post.updated_at = datetime.utcnow()
         db.session.commit()
+        warned = False
         if requested_status == 'published' and seo_report['status'] == 'needs_work':
             flash('Published with SEO warnings. Review suggestions when possible.', 'error')
-        else:
+            warned = True
+        if requested_status == 'published' and human_quality_report['score'] < 60:
+            flash('Published with human-quality warnings. Consider improving the post for specificity and usefulness.', 'error')
+            warned = True
+        if not warned:
             flash('Blog post updated.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
     internal_link_suggestions = suggest_internal_links(
         title=post.title or '', target_keyword=post.target_keyword or '',
         excerpt=post.excerpt or '', body_html=post.body_html or ''
     )
-    return render_template('admin_blog_form.html', post=post, internal_link_suggestions=internal_link_suggestions)
+    human_quality_report = analyze_human_quality(title=post.title or '', excerpt=post.excerpt or '', body_html=post.body_html or '', target_keyword=post.target_keyword or '')
+    return render_template('admin_blog_form.html', post=post, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
 
 
