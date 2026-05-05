@@ -84,7 +84,7 @@
     {% endif %}
 
     <!-- BLOG_SAVE_FORM action=new_or_edit -->
-    <form method="POST" action="{% if post %}{{ url_for('admin_blog_edit', post_id=post.id) }}{% else %}{{ url_for('admin_blog_new') }}{% endif %}" class="blog-post-form">
+    <form method="POST" enctype="multipart/form-data" action="{% if post %}{{ url_for('admin_blog_edit', post_id=post.id) }}{% else %}{{ url_for('admin_blog_new') }}{% endif %}" class="blog-post-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <section class="admin-card">
@@ -133,9 +133,35 @@
             <input class="form-input" id="canonical_url" name="canonical_url" value="{{ post.canonical_url if post else (d.canonical_url or '') }}">
           </div>
           <div class="form-group full">
-            <label class="form-label" for="og_image">OG Image</label>
+            <label class="form-label" for="og_image">Featured / OG Image Path</label>
             <input class="form-input" id="og_image" name="og_image" value="{{ post.og_image if post else (d.og_image or '') }}">
           </div>
+        </div>
+      </section>
+      <section class="admin-card">
+        <h2>Featured Image</h2>
+        {% set og_image_value = post.og_image if post else (d.og_image or '') %}
+        {% set featured_image_alt_value = post.featured_image_alt if post else (d.featured_image_alt or '') %}
+        {% set featured_image_caption_value = post.featured_image_caption if post else (d.featured_image_caption or '') %}
+        <div class="admin-grid">
+          <div class="form-group full">
+            <label class="form-label" for="featured_image_file">Upload WebP image</label>
+            <input class="form-input" type="file" id="featured_image_file" name="featured_image_file" accept="image/webp">
+            <p class="form-help">Upload a compressed WebP image. Recommended: 1200x630 for OpenGraph/social sharing.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="featured_image_alt">Featured Image Alt Text</label>
+            <input class="form-input" id="featured_image_alt" name="featured_image_alt" value="{{ featured_image_alt_value }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="featured_image_caption">Featured Image Caption</label>
+            <textarea class="form-textarea" id="featured_image_caption" name="featured_image_caption">{{ featured_image_caption_value }}</textarea>
+          </div>
+          {% if og_image_value %}
+          <div class="form-group full">
+            <img src="{{ og_image_value }}" alt="{{ featured_image_alt_value or (post.title if post else (d.title or 'Featured image')) }}" style="max-width:100%;border-radius:10px;max-height:260px;object-fit:cover;">
+          </div>
+          {% endif %}
         </div>
       </section>
 

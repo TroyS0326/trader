@@ -96,7 +96,7 @@ def _is_internal(url: str) -> bool:
     return u.startswith("/") or u.startswith("https://xeanvi.com") or u.startswith("http://xeanvi.com")
 
 
-def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_description: str, excerpt: str, body_html: str, target_keyword: str = "", canonical_url: str = "", status: str = "draft") -> dict:
+def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_description: str, excerpt: str, body_html: str, target_keyword: str = "", canonical_url: str = "", status: str = "draft", og_image: str = "", featured_image_alt: str = "") -> dict:
     title = (title or "").strip()
     slug = (slug or "").strip()
     meta_title = (meta_title or "").strip()
@@ -105,6 +105,8 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
     body_html = body_html or ""
     canonical_url = (canonical_url or "").strip()
     target_keyword = (target_keyword or "").strip()
+    og_image = (og_image or "").strip()
+    featured_image_alt = (featured_image_alt or "").strip()
     status = (status or "draft").strip().lower()
     is_publish = status == "published"
 
@@ -245,6 +247,11 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
 
     if not any(term in body_lower for term in DISCLAIMER_TERMS):
         warnings.append("Add a cautionary disclaimer (not financial advice / risk management / paper trading).")
+
+    if not og_image:
+        suggestions.append("Add a featured WebP image with descriptive alt text for better sharing and image SEO.")
+    elif not featured_image_alt:
+        suggestions.append("Add descriptive alt text for the featured image.")
 
     if is_publish and _looks_trading_related(combined_lower) and not has_caution_language:
         warnings.append("Add a short educational/risk note explaining that the article is not financial advice and that trading involves risk.")

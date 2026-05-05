@@ -46,6 +46,7 @@ from blog_seo import analyze_blog_post_seo
 from blog_seo_fixes import apply_safe_seo_fixes
 from blog_internal_links import suggest_internal_links
 from blog_human_quality import analyze_human_quality
+from blog_images import save_blog_featured_image
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -760,6 +761,8 @@ def ensure_schema_migrations() -> None:
                 'author_name': "ALTER TABLE blog_posts ADD COLUMN author_name VARCHAR(120) NOT NULL DEFAULT 'XeanVI'",
                 'canonical_url': "ALTER TABLE blog_posts ADD COLUMN canonical_url VARCHAR(320)",
                 'og_image': "ALTER TABLE blog_posts ADD COLUMN og_image VARCHAR(320)",
+                'featured_image_alt': "ALTER TABLE blog_posts ADD COLUMN featured_image_alt VARCHAR(240)",
+                'featured_image_caption': "ALTER TABLE blog_posts ADD COLUMN featured_image_caption TEXT",
                 'created_at': "ALTER TABLE blog_posts ADD COLUMN created_at DATETIME",
                 'updated_at': "ALTER TABLE blog_posts ADD COLUMN updated_at DATETIME",
                 'published_at': "ALTER TABLE blog_posts ADD COLUMN published_at DATETIME",
@@ -1917,12 +1920,15 @@ def admin_blog_new():
             'target_keyword': (request.form.get('target_keyword') or '').strip(),
             'canonical_url': (request.form.get('canonical_url') or '').strip(),
             'og_image': (request.form.get('og_image') or '').strip(),
+            'featured_image_alt': (request.form.get('featured_image_alt') or '').strip(),
+            'featured_image_caption': (request.form.get('featured_image_caption') or '').strip(),
         }
         seo_report = analyze_blog_post_seo(
             title=title, slug=draft_slug, meta_title=form_data['meta_title'],
             meta_description=form_data['meta_description'], excerpt=form_data['excerpt'],
             body_html=body_html, target_keyword=form_data['target_keyword'],
-            canonical_url=form_data['canonical_url'], status=requested_status,
+            canonical_url=form_data['canonical_url'], status=requested_status, og_image=form_data['og_image'],
+            featured_image_alt=form_data['featured_image_alt'],
         )
         human_quality_report = analyze_human_quality(title=title, excerpt=form_data['excerpt'], body_html=body_html, target_keyword=form_data['target_keyword'])
         if action == 'apply_safe_fixes':
@@ -1951,7 +1957,8 @@ def admin_blog_new():
                 body_html=fixed_fields.get('body_html') or '',
                 target_keyword=fixed_fields.get('target_keyword') or '',
                 canonical_url=fixed_fields.get('canonical_url') or '',
-                status=requested_status,
+                status=requested_status, og_image=fixed_fields.get('og_image') or '',
+                featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
             internal_link_suggestions = suggest_internal_links(
@@ -1987,6 +1994,18 @@ def admin_blog_new():
             return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         slug = unique_blog_slug(slug_input or title)
+        upload_file = request.files.get('featured_image_file')
+        og_image_value = form_data['og_image']
+        if upload_file and (upload_file.filename or '').strip():
+            upload_result = save_blog_featured_image(upload_file, slug)
+            if not upload_result.get('ok'):
+                flash(upload_result.get('error') or 'Featured image upload failed.', 'error')
+                internal_link_suggestions = suggest_internal_links(
+                    title=form_data['title'], target_keyword=form_data['target_keyword'],
+                    excerpt=form_data['excerpt'], body_html=form_data['body_html']
+                )
+                return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
+            og_image_value = upload_result.get('url') or og_image_value
         canonical_url = (form_data['canonical_url'] or '').strip() or build_blog_canonical_url(slug)
         post = BlogPost(
             title=title,
@@ -1998,7 +2017,9 @@ def admin_blog_new():
             target_keyword=form_data['target_keyword'] or None,
             status=requested_status,
             canonical_url=canonical_url or None,
-            og_image=form_data['og_image'] or None,
+            og_image=og_image_value or None,
+            featured_image_alt=form_data['featured_image_alt'] or None,
+            featured_image_caption=form_data['featured_image_caption'] or None,
         )
         if requested_status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()
@@ -2042,6 +2063,8 @@ def admin_blog_generate_draft():
         'target_keyword': target_keyword,
         'canonical_url': (request.form.get('canonical_url') or '').strip(),
         'og_image': (request.form.get('og_image') or '').strip(),
+        'featured_image_alt': (request.form.get('featured_image_alt') or '').strip(),
+        'featured_image_caption': (request.form.get('featured_image_caption') or '').strip(),
         'internal_links': internal_links_raw,
         'notes': notes,
     }
@@ -2136,12 +2159,15 @@ def admin_blog_edit(post_id):
             'target_keyword': (request.form.get('target_keyword') or '').strip(),
             'canonical_url': (request.form.get('canonical_url') or '').strip(),
             'og_image': (request.form.get('og_image') or '').strip(),
+            'featured_image_alt': (request.form.get('featured_image_alt') or '').strip(),
+            'featured_image_caption': (request.form.get('featured_image_caption') or '').strip(),
         }
         seo_report = analyze_blog_post_seo(
             title=title, slug=draft_slug, meta_title=form_data['meta_title'],
             meta_description=form_data['meta_description'], excerpt=form_data['excerpt'],
             body_html=body_html, target_keyword=form_data['target_keyword'],
-            canonical_url=form_data['canonical_url'], status=requested_status,
+            canonical_url=form_data['canonical_url'], status=requested_status, og_image=form_data['og_image'],
+            featured_image_alt=form_data['featured_image_alt'],
         )
         human_quality_report = analyze_human_quality(title=title, excerpt=form_data['excerpt'], body_html=body_html, target_keyword=form_data['target_keyword'])
         if action == 'apply_safe_fixes':
@@ -2170,7 +2196,8 @@ def admin_blog_edit(post_id):
                 body_html=fixed_fields.get('body_html') or '',
                 target_keyword=fixed_fields.get('target_keyword') or '',
                 canonical_url=fixed_fields.get('canonical_url') or '',
-                status=requested_status,
+                status=requested_status, og_image=fixed_fields.get('og_image') or '',
+                featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
             internal_link_suggestions = suggest_internal_links(
@@ -2206,6 +2233,18 @@ def admin_blog_edit(post_id):
             return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         prev_status = post.status
+        upload_file = request.files.get('featured_image_file')
+        og_image_value = form_data['og_image']
+        if upload_file and (upload_file.filename or '').strip():
+            upload_result = save_blog_featured_image(upload_file, form_data['slug'] or title)
+            if not upload_result.get('ok'):
+                flash(upload_result.get('error') or 'Featured image upload failed.', 'error')
+                internal_link_suggestions = suggest_internal_links(
+                    title=form_data['title'], target_keyword=form_data['target_keyword'],
+                    excerpt=form_data['excerpt'], body_html=form_data['body_html']
+                )
+                return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
+            og_image_value = upload_result.get('url') or og_image_value
         post.title = title
         post.slug = unique_blog_slug(slug_input or title, existing_post_id=post.id)
         post.meta_title = form_data['meta_title'] or None
@@ -2215,7 +2254,9 @@ def admin_blog_edit(post_id):
         post.body_html = sanitize_blog_html(body_html)
         post.status = requested_status
         post.canonical_url = (form_data['canonical_url'] or '').strip() or build_blog_canonical_url(post.slug) or None
-        post.og_image = form_data['og_image'] or None
+        post.og_image = og_image_value or None
+        post.featured_image_alt = form_data['featured_image_alt'] or None
+        post.featured_image_caption = form_data['featured_image_caption'] or None
         if prev_status != 'published' and post.status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()
         post.updated_at = datetime.utcnow()
