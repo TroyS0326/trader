@@ -54,6 +54,7 @@
     {% if not post %}
     <section class="admin-card">
       <h2>AI Draft Assistant</h2>
+      <!-- AI_DRAFT_FORM action=/admin/blog/generate-draft -->
       <form method="POST" action="{{ url_for('admin_blog_generate_draft') }}" class="ai-draft-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="admin-grid">
@@ -75,14 +76,15 @@
           </div>
         </div>
         <div class="action-row" style="margin-top: .9rem;">
-          <button class="btn-secondary" type="submit">Generate AI Draft</button>
+          <button class="btn-secondary" type="submit" name="action" value="generate_ai_draft">Generate AI Draft</button>
         </div>
         <p class="form-help" style="margin-top:.7rem;">Generates draft content only. Nothing is auto-published.</p>
       </form>
     </section>
     {% endif %}
 
-    <form method="post">
+    <!-- BLOG_SAVE_FORM action=new_or_edit -->
+    <form method="POST" action="{% if post %}{{ url_for('admin_blog_edit', post_id=post.id) }}{% else %}{{ url_for('admin_blog_new') }}{% endif %}" class="blog-post-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <section class="admin-card">
@@ -156,8 +158,8 @@
       <section class="admin-card">
         <h2>Actions</h2>
         <div class="action-row">
-          <button class="btn-secondary" type="submit">Save Draft</button>
-          <button class="btn-primary" type="submit">{% if post %}Update{% else %}Publish{% endif %}</button>
+          <button class="btn-secondary" type="submit" name="status" value="draft">Save Draft</button>
+          <button class="btn-primary" type="submit" name="status" value="published">{% if post %}Update & Publish{% else %}Publish{% endif %}</button>
           <a class="btn-secondary" href="{{ url_for('admin_blog_list') }}">Back to Blog Admin</a>
         </div>
       </section>
