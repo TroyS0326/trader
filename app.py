@@ -42,6 +42,7 @@ from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
 from blog_ai import generate_blog_draft
+from blog_seo import analyze_blog_post_seo
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -1889,35 +1890,61 @@ def admin_blog_new():
     if not is_admin_user():
         return ("Forbidden", 403)
     if request.method == 'POST':
+        action = (request.form.get('action') or '').strip().lower()
+        requested_status = 'published' if action == 'publish' else 'draft'
         title = (request.form.get('title') or '').strip()
         body_html = request.form.get('body_html') or ''
-        if not title or not body_html.strip():
-            flash('Title and content are required.', 'error')
-            return render_template('admin_blog_form.html', post=None)
-        status = (request.form.get('status') or 'draft').strip().lower()
-        status = status if status in BLOG_ALLOWED_STATUSES else 'draft'
         slug_input = (request.form.get('slug') or '').strip()
+        draft_slug = slug_input or slugify(title)
+        form_data = {
+            'title': title,
+            'slug': slug_input,
+            'status': requested_status,
+            'author_name': (request.form.get('author_name') or '').strip(),
+            'meta_title': (request.form.get('meta_title') or '').strip(),
+            'meta_description': (request.form.get('meta_description') or '').strip(),
+            'excerpt': (request.form.get('excerpt') or '').strip(),
+            'body_html': body_html,
+            'target_keyword': (request.form.get('target_keyword') or '').strip(),
+            'canonical_url': (request.form.get('canonical_url') or '').strip(),
+            'og_image': (request.form.get('og_image') or '').strip(),
+        }
+        seo_report = analyze_blog_post_seo(
+            title=title, slug=draft_slug, meta_title=form_data['meta_title'],
+            meta_description=form_data['meta_description'], excerpt=form_data['excerpt'],
+            body_html=body_html, target_keyword=form_data['target_keyword'],
+            canonical_url=form_data['canonical_url'], status=requested_status,
+        )
+        if action == 'check_seo':
+            flash('SEO check complete. Review issues below.', 'success')
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
+        if action == 'publish' and seo_report['status'] == 'blocked':
+            flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
+
         slug = unique_blog_slug(slug_input or title)
         post = BlogPost(
             title=title,
             slug=slug,
-            meta_title=(request.form.get('meta_title') or '').strip() or None,
-            meta_description=(request.form.get('meta_description') or '').strip() or None,
-            excerpt=(request.form.get('excerpt') or '').strip() or None,
+            meta_title=form_data['meta_title'] or None,
+            meta_description=form_data['meta_description'] or None,
+            excerpt=form_data['excerpt'] or None,
             body_html=sanitize_blog_html(body_html),
-            target_keyword=(request.form.get('target_keyword') or '').strip() or None,
-            status=status,
-            canonical_url=(request.form.get('canonical_url') or '').strip() or None,
-            og_image=(request.form.get('og_image') or '').strip() or None,
+            target_keyword=form_data['target_keyword'] or None,
+            status=requested_status,
+            canonical_url=form_data['canonical_url'] or None,
+            og_image=form_data['og_image'] or None,
         )
-        if status == 'published' and not post.published_at:
+        if requested_status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()
         db.session.add(post)
         db.session.commit()
-        flash('Blog post saved.', 'success')
+        if requested_status == 'published' and seo_report['status'] == 'needs_work':
+            flash('Published with SEO warnings. Review suggestions when possible.', 'error')
+        else:
+            flash('Blog post saved.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
     return render_template('admin_blog_form.html', post=None)
-
 
 
 
@@ -1977,8 +2004,14 @@ def admin_blog_generate_draft():
         'target_keyword': draft.get('target_keyword') or target_keyword,
         'status': 'draft',
     })
+    seo_report = analyze_blog_post_seo(
+        title=form_data.get('title') or '', slug=form_data.get('slug') or slugify(form_data.get('title') or ''),
+        meta_title=form_data.get('meta_title') or '', meta_description=form_data.get('meta_description') or '',
+        excerpt=form_data.get('excerpt') or '', body_html=form_data.get('body_html') or '',
+        target_keyword=form_data.get('target_keyword') or '', canonical_url=form_data.get('canonical_url') or '', status='draft'
+    )
     flash("AI draft generated. Review and edit it before publishing.", "success")
-    return render_template('admin_blog_form.html', post=None, form_data=form_data)
+    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
 
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1987,29 +2020,57 @@ def admin_blog_edit(post_id):
         return ("Forbidden", 403)
     post = BlogPost.query.get_or_404(post_id)
     if request.method == 'POST':
+        action = (request.form.get('action') or '').strip().lower()
+        requested_status = 'published' if action == 'publish' else 'draft'
         title = (request.form.get('title') or '').strip()
         body_html = request.form.get('body_html') or ''
-        if not title or not body_html.strip():
-            flash('Title and content are required.', 'error')
-            return render_template('admin_blog_form.html', post=post)
+        slug_input = (request.form.get('slug') or '').strip()
+        draft_slug = slug_input or slugify(title)
+        form_data = {
+            'title': title,
+            'slug': slug_input,
+            'status': requested_status,
+            'author_name': (request.form.get('author_name') or '').strip(),
+            'meta_title': (request.form.get('meta_title') or '').strip(),
+            'meta_description': (request.form.get('meta_description') or '').strip(),
+            'excerpt': (request.form.get('excerpt') or '').strip(),
+            'body_html': body_html,
+            'target_keyword': (request.form.get('target_keyword') or '').strip(),
+            'canonical_url': (request.form.get('canonical_url') or '').strip(),
+            'og_image': (request.form.get('og_image') or '').strip(),
+        }
+        seo_report = analyze_blog_post_seo(
+            title=title, slug=draft_slug, meta_title=form_data['meta_title'],
+            meta_description=form_data['meta_description'], excerpt=form_data['excerpt'],
+            body_html=body_html, target_keyword=form_data['target_keyword'],
+            canonical_url=form_data['canonical_url'], status=requested_status,
+        )
+        if action == 'check_seo':
+            flash('SEO check complete. Review issues below.', 'success')
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report)
+        if action == 'publish' and seo_report['status'] == 'blocked':
+            flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report)
+
         prev_status = post.status
         post.title = title
-        slug_input = (request.form.get('slug') or '').strip()
         post.slug = unique_blog_slug(slug_input or title, existing_post_id=post.id)
-        post.meta_title = (request.form.get('meta_title') or '').strip() or None
-        post.meta_description = (request.form.get('meta_description') or '').strip() or None
-        post.excerpt = (request.form.get('excerpt') or '').strip() or None
-        post.target_keyword = (request.form.get('target_keyword') or '').strip() or None
+        post.meta_title = form_data['meta_title'] or None
+        post.meta_description = form_data['meta_description'] or None
+        post.excerpt = form_data['excerpt'] or None
+        post.target_keyword = form_data['target_keyword'] or None
         post.body_html = sanitize_blog_html(body_html)
-        status = (request.form.get('status') or 'draft').strip().lower()
-        post.status = status if status in BLOG_ALLOWED_STATUSES else 'draft'
-        post.canonical_url = (request.form.get('canonical_url') or '').strip() or None
-        post.og_image = (request.form.get('og_image') or '').strip() or None
+        post.status = requested_status
+        post.canonical_url = form_data['canonical_url'] or None
+        post.og_image = form_data['og_image'] or None
         if prev_status != 'published' and post.status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()
         post.updated_at = datetime.utcnow()
         db.session.commit()
-        flash('Blog post updated.', 'success')
+        if requested_status == 'published' and seo_report['status'] == 'needs_work':
+            flash('Published with SEO warnings. Review suggestions when possible.', 'error')
+        else:
+            flash('Blog post updated.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
     return render_template('admin_blog_form.html', post=post)
 
