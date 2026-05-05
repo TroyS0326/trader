@@ -1895,7 +1895,7 @@ def admin_blog_new():
         title = (request.form.get('title') or '').strip()
         body_html = request.form.get('body_html') or ''
         slug_input = (request.form.get('slug') or '').strip()
-        draft_slug = slug_input or slugify(title)
+        draft_slug = slug_input or slugify_blog_title(title)
         form_data = {
             'title': title,
             'slug': slug_input,
@@ -2004,8 +2004,9 @@ def admin_blog_generate_draft():
         'target_keyword': draft.get('target_keyword') or target_keyword,
         'status': 'draft',
     })
+    slug_value = form_data.get("slug") or slugify_blog_title(form_data.get("title") or "")
     seo_report = analyze_blog_post_seo(
-        title=form_data.get('title') or '', slug=form_data.get('slug') or slugify(form_data.get('title') or ''),
+        title=form_data.get('title') or '', slug=slug_value,
         meta_title=form_data.get('meta_title') or '', meta_description=form_data.get('meta_description') or '',
         excerpt=form_data.get('excerpt') or '', body_html=form_data.get('body_html') or '',
         target_keyword=form_data.get('target_keyword') or '', canonical_url=form_data.get('canonical_url') or '', status='draft'
@@ -2025,7 +2026,7 @@ def admin_blog_edit(post_id):
         title = (request.form.get('title') or '').strip()
         body_html = request.form.get('body_html') or ''
         slug_input = (request.form.get('slug') or '').strip()
-        draft_slug = slug_input or slugify(title)
+        draft_slug = slug_input or slugify_blog_title(title)
         form_data = {
             'title': title,
             'slug': slug_input,
