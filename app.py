@@ -41,6 +41,7 @@ from asset_classifier import classify_asset
 from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
+from blog_ai import generate_blog_draft
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -1917,6 +1918,62 @@ def admin_blog_new():
         return redirect(url_for('admin_blog_edit', post_id=post.id))
     return render_template('admin_blog_form.html', post=None)
 
+
+
+
+@app.route('/admin/blog/generate-draft', methods=['POST'])
+@login_required
+def admin_blog_generate_draft():
+    if not is_admin_user():
+        return ("Forbidden", 403)
+
+    title = (request.form.get('title') or '').strip()
+    target_keyword = (request.form.get('target_keyword') or '').strip()
+    notes = (request.form.get('notes') or '').strip()
+    internal_links_raw = (request.form.get('internal_links') or '').strip()
+    internal_links = [line.strip() for line in re.split(r'[\n,]+', internal_links_raw) if line.strip()]
+
+    form_data = {
+        'title': title,
+        'slug': (request.form.get('slug') or '').strip(),
+        'status': (request.form.get('status') or 'draft').strip().lower() or 'draft',
+        'author_name': (request.form.get('author_name') or '').strip(),
+        'meta_title': (request.form.get('meta_title') or '').strip(),
+        'meta_description': (request.form.get('meta_description') or '').strip(),
+        'excerpt': (request.form.get('excerpt') or '').strip(),
+        'body_html': request.form.get('body_html') or '',
+        'target_keyword': target_keyword,
+        'canonical_url': (request.form.get('canonical_url') or '').strip(),
+        'og_image': (request.form.get('og_image') or '').strip(),
+        'internal_links': internal_links_raw,
+        'notes': notes,
+    }
+
+    if not title:
+        flash('Title is required before generating an AI draft.', 'error')
+        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+
+    draft = generate_blog_draft(
+        title=title,
+        target_keyword=target_keyword,
+        internal_links=internal_links,
+        notes=notes,
+    )
+
+    if not draft.get('ok'):
+        flash(draft.get('error') or 'AI draft generation failed.', 'error')
+        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+
+    form_data.update({
+        'title': draft.get('title') or title,
+        'meta_title': draft.get('meta_title') or '',
+        'meta_description': draft.get('meta_description') or '',
+        'excerpt': draft.get('excerpt') or '',
+        'body_html': sanitize_blog_html(draft.get('body_html') or ''),
+        'target_keyword': draft.get('target_keyword') or target_keyword,
+    })
+    flash('AI draft generated. Review and save as Draft or Publish manually.', 'success')
+    return render_template('admin_blog_form.html', post=None, form_data=form_data)
 
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
