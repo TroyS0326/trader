@@ -168,6 +168,25 @@
 
 
       <section class="admin-card">
+        <h2>Suggested Internal Links</h2>
+        {% if internal_link_suggestions %}
+          <div style="display:grid; gap:.75rem;">
+            {% for item in internal_link_suggestions %}
+              <article style="border:1px solid #2f415c; border-radius:10px; padding:.75rem; background:#0b1220;">
+                <p class="form-label" style="margin:0 0 .35rem;">{{ item.page_title }} <span style="color:#93a7c3; font-weight:500;">({{ item.url }})</span></p>
+                <p class="form-help" style="margin:.2rem 0;"><strong>Recommended anchor text:</strong> {{ item.anchor_text }}</p>
+                <p class="form-help" style="margin:.2rem 0;"><strong>Reason:</strong> {{ item.reason }}</p>
+                <p class="form-help" style="margin:.2rem 0;"><strong>Priority:</strong> {{ item.priority }}</p>
+                <p class="form-help" style="margin:.35rem 0 0;"><strong>Snippet:</strong> <code>&lt;a href="{{ item.url }}"&gt;{{ item.anchor_text }}&lt;/a&gt;</code></p>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="form-help">No internal link suggestions yet. Generate a draft, write content, or run Check SEO.</p>
+        {% endif %}
+      </section>
+
+      <section class="admin-card">
         <h2>SEO & Compliance Checker</h2>
         {% if seo_report %}
           <p class="form-help" style="font-size:.95rem; color:#c7d2fe;">Score: <strong>{{ seo_report.score }}</strong> · Status: <strong>{{ seo_report.status }}</strong></p>
