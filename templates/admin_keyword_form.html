@@ -25,15 +25,17 @@
   <main class="admin-shell">
     <header class="admin-header">
       <h1 class="admin-title">{{ 'Edit' if plan else 'New' }} Keyword Plan</h1>
+      <p style="margin:.55rem 0 0;color:var(--text-secondary, #9ca3af);">Create a keyword plan first. After saving it, use Create Draft From Plan to turn it into a blog draft.</p>
     </header>
     <section class="admin-card">
       <form method="POST" class="form-wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input class="form-input" name="cluster" placeholder="Cluster" value="{{ plan.cluster if plan else '' }}">
-        <input class="form-input" name="target_keyword" placeholder="Target keyword" required value="{{ plan.target_keyword if plan else '' }}">
-        <input class="form-input" name="suggested_title" placeholder="Suggested title" required value="{{ plan.suggested_title if plan else '' }}">
-        <input class="form-input" name="search_intent" placeholder="Search intent" value="{{ plan.search_intent if plan else 'educational' }}">
+        <input class="form-input" name="target_keyword" placeholder="Target Keyword" required value="{{ plan.target_keyword if plan else '' }}">
+        <input class="form-input" name="suggested_title" placeholder="Suggested Title" required value="{{ plan.suggested_title if plan else '' }}">
+        <input class="form-input" name="search_intent" placeholder="Search Intent" value="{{ plan.search_intent if plan else 'educational' }}">
         <input class="form-input" name="priority" type="number" min="1" max="5" value="{{ plan.priority if plan else 3 }}">
-        <input class="form-input" name="linked_page" placeholder="Linked product page" value="{{ plan.linked_page if plan else '' }}">
+        <input class="form-input" name="linked_page" placeholder="Linked Page" value="{{ plan.linked_page if plan else '' }}">
         <input class="form-input" name="planned_publish_date" type="date" value="{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan and plan.planned_publish_date else '' }}">
         <select class="form-input" name="status">{% for st in ['planned','drafted','published','skipped'] %}<option value="{{ st }}" {% if plan and plan.status==st %}selected{% endif %}>{{ st }}</option>{% endfor %}</select>
         <textarea class="form-textarea" name="notes" rows="4" placeholder="Notes">{{ plan.notes if plan else '' }}</textarea>
