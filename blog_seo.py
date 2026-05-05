@@ -3,45 +3,84 @@ from collections import Counter
 from html import unescape
 from urllib.parse import urlparse
 
-BLOCKING_CLAIMS = [
-    "guaranteed profit",
-    "guaranteed wins",
-    "no risk",
-    "risk-free trading",
-    "make $ per day",
-    "get rich",
-    "guaranteed returns",
-    "this will make you profitable",
-    "always works",
-    "can't lose",
+HARD_BLOCK_PHRASES = [
+    "guaranteed profit", "guarantee profits", "guaranteed returns", "guaranteed wins", "guaranteed winner",
+    "guaranteed trading income", "guaranteed profitable", "guaranteed success", "always profitable", "always wins",
+    "can't lose", "cannot lose", "never lose", "no losing trades", "risk-free trading", "no risk trading", "zero risk",
+    "risk free profits", "make money fast", "get rich", "get rich quick", "easy money", "passive income from trading",
+    "make $100", "make $500", "make $1000", "make 1000 a day", "daily profits guaranteed", "earn daily profits",
+    "steady daily income", "trading paycheck", "replace your job with trading", "quit your job trading",
+    "profitable trading bot", "guaranteed trading bot", "bot that wins", "wins every trade",
+    "never loses", "beats the market guaranteed", "outperform the market guaranteed", "automatic profits",
+    "autopilot profits", "money printing bot", "set and forget trading bot", "you should buy", "you should sell",
+    "buy this stock", "sell this stock", "this stock will go up", "this stock will explode", "this stock is guaranteed",
+    "guaranteed breakout", "guaranteed squeeze", "safe trading", "no downside", "foolproof strategy", "can't fail",
+    "impossible to lose", "perfect strategy", "secret strategy that always works", "investment advice", "financial advisor",
+    "fiduciary", "registered investment advisor", "sec approved", "finra approved", "certified trading returns",
+    "audited returns", "verified profits",
 ]
 
-HYPE_CLAIMS = [
-    "guaranteed",
-    "guaranteed profit",
-    "always wins",
-    "risk-free",
-    "make money fast",
-    "beat the market guaranteed",
+WARNING_PHRASES = [
+    "best trading bot", "beat the market", "market-beating", "high win rate", "profitable setup", "elite trader",
+    "secret indicator", "hidden strategy", "institutional secret", "smart money secret", "easy trading",
+    "passive trading", "automated income", "side hustle trading", "hands-free trading", "algorithm that prints money",
+    "ai stock picker", "ai predicts the market", "predicts price movement", "next big stock", "hot stock",
+    "moonshot", "rocket stock",
 ]
 
-SOFT_RISKY_PHRASES = [
-    "best trading bot",
-    "beat the market",
-    "easy money",
-    "passive income from trading",
-    "sure thing",
+REQUIRED_CAUTION_CONCEPTS = [
+    "not financial advice", "educational purposes", "trading involves risk", "risk management", "paper trading",
+    "test rules", "no guarantee", "losses", "stop-loss", "stop loss", "risk controls",
 ]
 
 GENERIC_AI_PHRASES = ["in today's fast-paced world", "delve into"]
-TRADING_TERMS = ["trading", "day trade", "day trading", "market", "bot", "strategy"]
+TRADING_TERMS = ["trading", "trader", "day trading", "stock", "stocks", "market", "vwap", "orb", "breakout", "broker", "alpaca", "paper trading", "live trading", "bracket order", "stop loss", "risk", "automation", "scanner"]
 DISCLAIMER_TERMS = ["not financial advice", "risk management", "paper trading", "manage risk"]
 RISK_TERMS = ["risk", "discipline", "rules"]
+NEGATION_PREFIXES = [" not ", " never ", " avoid ", " does not ", " do not ", " without ", " no claim of ", " should not promise "]
 
 
-def _strip_html(html: str) -> str:
+def _normalize_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip()).lower()
+
+
+def _strip_html_tags(html: str) -> str:
     text = re.sub(r"<[^>]+>", " ", html or "")
     return re.sub(r"\s+", " ", unescape(text)).strip()
+
+
+def _find_phrase_matches(text: str, phrases: list[str]) -> list[tuple[str, int]]:
+    normalized = _normalize_text(text)
+    matches = []
+    for phrase in phrases:
+        needle = _normalize_text(phrase)
+        start = 0
+        while True:
+            idx = normalized.find(needle, start)
+            if idx < 0:
+                break
+            matches.append((needle, idx))
+            start = idx + 1
+    return matches
+
+
+def _is_negated_context(text: str, phrase: str, index: int) -> bool:
+    normalized = _normalize_text(text)
+    start = index if index >= 0 else normalized.find(_normalize_text(phrase))
+    if start < 0:
+        return False
+    lookback = f" {normalized[max(0, start - 40):start]} "
+    return any(token in lookback for token in NEGATION_PREFIXES)
+
+
+def _looks_trading_related(text: str) -> bool:
+    normalized = _normalize_text(text)
+    return any(term in normalized for term in TRADING_TERMS)
+
+
+def _has_caution_language(text: str) -> bool:
+    normalized = _normalize_text(text)
+    return any(term in normalized for term in REQUIRED_CAUTION_CONCEPTS)
 
 
 def _links(html: str):
@@ -72,9 +111,10 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
     blocking_issues, warnings, suggestions = [], [], []
     score = 100
 
-    body_text = _strip_html(body_html)
-    body_lower = body_text.lower()
-    combined = " ".join([title, meta_title, meta_description, excerpt, body_text]).lower()
+    body_text = _strip_html_tags(body_html)
+    body_lower = _normalize_text(body_text)
+    combined = " ".join([title, slug, meta_title, meta_description, excerpt, body_text])
+    combined_lower = _normalize_text(combined)
 
     words = re.findall(r"\b[\w'-]+\b", body_text)
     word_count = len(words)
@@ -95,7 +135,7 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
         score -= 2
         suggestions.append("Title is short; consider 25+ characters for clarity.")
 
-    if any(p in title.lower() for p in HYPE_CLAIMS):
+    if any(p in _normalize_text(title) for p in WARNING_PHRASES):
         score -= 12
         warnings.append("Title contains hype-style claims. Use neutral, educational wording.")
 
@@ -141,7 +181,7 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
     else:
         if word_count < 250:
             score -= 15
-            (blocking_issues if is_publish else warnings).append("Body content is under 300 words (severe thin content).")
+            warnings.append("Body content is under 300 words (severe thin content).")
         elif word_count < 600:
             score -= 7
             warnings.append("Body content is under 600 words.")
@@ -154,7 +194,7 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
         score -= 5
         warnings.append("Add at least one internal XeanVI link.")
 
-    if any(term in combined for term in TRADING_TERMS) and not any(term in body_lower for term in RISK_TERMS):
+    if _looks_trading_related(combined_lower) and not any(term in body_lower for term in RISK_TERMS):
         score -= 2
         suggestions.append("For trading topics, mention risk, discipline, or rules.")
 
@@ -170,21 +210,29 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
             score -= 2
             suggestions.append("Target keyword is missing from the first 300 body characters.")
 
-    if external_link_count == 0 and any(term in combined for term in ["how", "guide", "explained", "what is"]):
+    if external_link_count == 0 and any(term in combined_lower for term in ["how", "guide", "explained", "what is"]):
         suggestions.append("Consider citing an external educational source.")
 
-    for phrase in BLOCKING_CLAIMS:
-        if phrase in combined:
-            score -= 30
-            if is_publish:
-                blocking_issues.append(f"Dangerous claim detected: '{phrase}'.")
-            else:
-                warnings.append(f"Dangerous claim detected: '{phrase}'.")
+    hard_matches = _find_phrase_matches(combined_lower, HARD_BLOCK_PHRASES)
+    warning_matches = _find_phrase_matches(combined_lower, WARNING_PHRASES)
+    has_caution_language = _has_caution_language(combined_lower)
 
-    for phrase in SOFT_RISKY_PHRASES:
-        if phrase in combined:
-            score -= 8
-            warnings.append(f"Risky marketing phrase detected: '{phrase}'.")
+    for phrase, idx in hard_matches:
+        if _is_negated_context(combined_lower, phrase, idx):
+            warnings.append(f"Review risky phrase used in cautionary context: '{phrase}'.")
+            continue
+        score -= 30
+        message = f"Remove or rewrite risky claim: '{phrase}'. XeanVI content must not promise trading outcomes."
+        if is_publish:
+            blocking_issues.append(message)
+        else:
+            warnings.append(message)
+
+    for phrase, idx in warning_matches:
+        if _is_negated_context(combined_lower, phrase, idx):
+            continue
+        score -= 8
+        warnings.append(f"Review risky marketing phrase: '{phrase}'. Avoid hype and explain capabilities cautiously.")
 
     for phrase in GENERIC_AI_PHRASES:
         if phrase in body_lower:
@@ -196,6 +244,11 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
 
     if not any(term in body_lower for term in DISCLAIMER_TERMS):
         warnings.append("Add a cautionary disclaimer (not financial advice / risk management / paper trading).")
+
+    if is_publish and _looks_trading_related(combined_lower) and not has_caution_language:
+        warnings.append("Add a short educational/risk note explaining that the article is not financial advice and that trading involves risk.")
+    if is_publish and blocking_issues and not has_caution_language:
+        blocking_issues.append("Severe claims plus missing caution language. Add risk and educational context before publishing.")
 
     if words:
         ngrams = [" ".join(words[i:i+3]).lower() for i in range(len(words)-2)]
