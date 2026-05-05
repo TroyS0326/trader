@@ -1,47 +1,77 @@
-{% extends "base.html" %}
-{% block title %}SEO Keyword Map | XeanVI{% endblock %}
-{% block content %}
-<main class="admin-shell">
-  <header class="admin-header">
-    <div>
-      <h1 class="admin-title">SEO Keyword Map</h1>
-      <p class="admin-subtitle">Plan content before generating posts.</p>
-    </div>
-    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-      <form method="POST" action="{{ url_for('admin_keyword_map_seed') }}"><button class="btn-secondary" type="submit">Seed Starter Map</button></form>
-      <a class="btn-primary" href="{{ url_for('admin_keyword_map_new') }}">New Keyword Plan</a>
-    </div>
-  </header>
-  <section class="admin-card" style="margin-bottom:1rem;">
-    <form method="GET" style="display:flex;gap:.6rem;flex-wrap:wrap;">
-      <input name="status" placeholder="status" value="{{ filters.status }}">
-      <select name="cluster"><option value="">All clusters</option>{% for c in clusters %}<option value="{{ c }}" {% if filters.cluster==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
-      <input name="priority" type="number" min="1" max="5" placeholder="priority" value="{{ filters.priority }}">
-      <button class="btn-secondary" type="submit">Filter</button>
-    </form>
-  </section>
-  <section class="admin-card">
-    <div style="overflow:auto;">
-      <table class="admin-table">
-        <thead><tr><th>Priority</th><th>Cluster</th><th>Keyword</th><th>Title</th><th>Intent</th><th>Linked Page</th><th>Status</th><th>Planned Date</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for plan in plans %}
-          <tr>
-            <td><span class="status-pill">P{{ plan.priority }}</span></td>
-            <td>{{ plan.cluster or '—' }}</td><td>{{ plan.target_keyword }}</td><td>{{ plan.suggested_title }}</td><td>{{ plan.search_intent }}</td>
-            <td>{% if plan.linked_page %}<a href="{{ plan.linked_page }}" target="_blank">{{ plan.linked_page }}</a>{% else %}—{% endif %}</td>
-            <td><span class="status-pill">{{ plan.status }}</span></td>
-            <td>{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan.planned_publish_date else '—' }}</td>
-            <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
-              <a class="btn-secondary" href="{{ url_for('admin_keyword_map_edit', plan_id=plan.id) }}">Edit</a>
-              <form method="POST" action="{{ url_for('admin_keyword_map_create_draft', plan_id=plan.id) }}"><button class="btn-primary" type="submit">Create Draft From Plan</button></form>
-              <form method="POST" action="{{ url_for('admin_keyword_map_skip', plan_id=plan.id) }}"><button class="btn-secondary" type="submit">Skip</button></form>
-            </td>
-          </tr>
-          {% else %}<tr><td colspan="9">No plans found.</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-</main>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Keyword Map</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2.25rem 1rem 3rem; }
+    .admin-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .admin-title { margin: 0; font-size: clamp(1.7rem, 2.2vw, 2.2rem); }
+    .admin-subtitle { margin: .5rem 0 0; color: var(--text-secondary, #9ca3af); }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.1rem; box-shadow: 0 10px 26px rgba(0,0,0,.25); }
+    .admin-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    .admin-table th, .admin-table td { padding: .9rem .75rem; text-align: left; border-bottom: 1px solid #253247; vertical-align: middle; }
+    .admin-table th { color: #9fb0c7; font-size: .84rem; letter-spacing: .03em; text-transform: uppercase; }
+    .admin-table tr:last-child td { border-bottom: 0; }
+    .btn-primary, .btn-secondary { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; padding: .65rem 1rem; font-weight: 650; border: 1px solid transparent; }
+    .btn-primary { background: #2f6df6; color: #fff; border-color: #4c7ef6; }
+    .btn-primary:hover { background: #3d78f6; }
+    .btn-secondary { border-color: #355073; color: #d0deef; background: #182335; }
+    .status-pill { display: inline-block; padding: .28rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: rgba(59,130,246,.16); color: #93c5fd; border: 1px solid rgba(147,197,253,.35); }
+    .filter-input { width: 100%; background: #0b1220; color: #e6eef9; border: 1px solid #2f415c; border-radius: 10px; padding: .7rem .8rem; font-size: .95rem; }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
+
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <h1 class="admin-title">SEO Keyword Map</h1>
+        <p class="admin-subtitle">Plan content before generating posts.</p>
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <form method="POST" action="{{ url_for('admin_keyword_map_seed') }}"><button class="btn-secondary" type="submit">Seed Starter Map</button></form>
+        <a class="btn-primary" href="{{ url_for('admin_keyword_map_new') }}">New Keyword Plan</a>
+      </div>
+    </header>
+
+    <section class="admin-card" style="margin-bottom:1rem;">
+      <form method="GET" style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <input class="filter-input" name="status" placeholder="status" value="{{ filters.status }}">
+        <select class="filter-input" name="cluster"><option value="">All clusters</option>{% for c in clusters %}<option value="{{ c }}" {% if filters.cluster==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+        <input class="filter-input" name="priority" type="number" min="1" max="5" placeholder="priority" value="{{ filters.priority }}">
+        <button class="btn-secondary" type="submit">Filter</button>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <div style="overflow:auto;">
+        <table class="admin-table">
+          <thead><tr><th>Priority</th><th>Cluster</th><th>Keyword</th><th>Title</th><th>Intent</th><th>Linked Page</th><th>Status</th><th>Planned Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for plan in plans %}
+            <tr>
+              <td><span class="status-pill">P{{ plan.priority }}</span></td>
+              <td>{{ plan.cluster or '—' }}</td><td>{{ plan.target_keyword }}</td><td>{{ plan.suggested_title }}</td><td>{{ plan.search_intent }}</td>
+              <td>{% if plan.linked_page %}<a href="{{ plan.linked_page }}" target="_blank">{{ plan.linked_page }}</a>{% else %}—{% endif %}</td>
+              <td><span class="status-pill">{{ plan.status }}</span></td>
+              <td>{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan.planned_publish_date else '—' }}</td>
+              <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                <a class="btn-secondary" href="{{ url_for('admin_keyword_map_edit', plan_id=plan.id) }}">Edit</a>
+                <form method="POST" action="{{ url_for('admin_keyword_map_create_draft', plan_id=plan.id) }}"><button class="btn-primary" type="submit">Create Draft From Plan</button></form>
+                <form method="POST" action="{{ url_for('admin_keyword_map_skip', plan_id=plan.id) }}"><button class="btn-secondary" type="submit">Skip</button></form>
+              </td>
+            </tr>
+            {% else %}<tr><td colspan="9">No plans found.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>
