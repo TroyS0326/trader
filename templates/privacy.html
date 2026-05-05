@@ -65,9 +65,19 @@
             <li><strong>Personal Identification Data:</strong> Full legal name, email address, physical address, and phone number (collected during registration).</li>
             <li><strong>Brokerage &amp; Financial Data:</strong> OAuth access tokens and account IDs used to securely connect to your third‑party brokerage (e.g., Alpaca). <em>We do not directly collect or store your banking information or social security numbers.</em></li>
             <li><strong>Trading Data:</strong> Trading parameters (bankroll size, risk percentages), executed order history, and portfolio performance metrics necessary to run the algorithm.</li>
-            <li><strong>Device &amp; Usage Data:</strong> IP addresses, browser types, and interaction metrics with our platform.</li>
+            <li><strong>Device &amp; Usage Data:</strong> IP addresses, browser types, page interactions, cookie identifiers, and event telemetry.</li>
         </ul>
-        <h2>3. How We Use Your Information</h2>
+        <h2>3. Processors, Integrations, and Communications</h2>
+        <p>We use vetted third-party processors to operate the service:</p>
+        <ul>
+            <li><strong>Stripe:</strong> Subscription checkout, billing, and payment event processing.</li>
+            <li><strong>Brevo:</strong> Transactional email (password resets, onboarding, and account communications) and list/contact automation.</li>
+            <li><strong>Meta Pixel:</strong> Marketing attribution and campaign performance measurement on public pages.</li>
+            <li><strong>Alpaca:</strong> Supported broker connection and order-routing infrastructure when you authorize broker access.</li>
+            <li><strong>AI and market-data providers:</strong> Signal/explainability features and market data retrieval used by platform workflows.</li>
+        </ul>
+        <p>By creating an account, you agree to receive essential account emails (security, billing, onboarding, and operational notices). Marketing communications can be opted out where applicable.</p>
+        <h2>4. How We Use Your Information</h2>
         <p>We use your information exclusively to:</p>
         <ul>
             <li>Provide, maintain, and secure the execution engine.</li>
@@ -75,17 +85,21 @@
             <li>Calculate dynamic position sizing based on your defined risk parameters.</li>
             <li>Communicate critical system updates, margin warnings, or account notices.</li>
         </ul>
-        <h2>4. Information Sharing and Disclosure</h2>
+        <h2>5. Information Sharing and Disclosure</h2>
         <p>We do not sell, rent, or trade your personal data. We only share information in the following circumstances:</p>
         <ul>
-            <li><strong>Service Providers:</strong> With third‑party brokerages (like Alpaca) strictly to facilitate your requested trades.</li>
+            <li><strong>Service Providers:</strong> With providers such as Stripe, Brevo, supported broker APIs (including Alpaca), analytics/tracking vendors, and market-data/AI vendors strictly to provide requested platform functions.</li>
             <li><strong>Legal Compliance:</strong> If required to do so by law, subpoena, or regulatory authority (such as the SEC or FINRA).</li>
         </ul>
-        <h2>5. Data Security</h2>
+        <h2>6. Cookies and Tracking</h2>
+        <p>We use cookies and similar technologies for authentication, fraud prevention, platform performance, and campaign analytics. You can control cookies in your browser settings, but core features may be limited if strictly disabled.</p>
+        <h2>7. Data Security</h2>
         <p>We implement strict security measures to protect your data. Brokerage API tokens are encrypted at rest using enterprise‑grade cryptography. Passwords are cryptographically hashed, and all web traffic is secured via SSL/TLS encryption.</p>
-        <h2>6. Your Data Rights</h2>
+        <h2>8. Trading Risk and No-Advice Notice</h2>
+        <p>XeanVI provides software tooling and automation workflows only. We do not provide investment advice, recommendations, or guarantees. Trading involves substantial risk, including total loss of capital. Past performance is not indicative of future results.</p>
+        <h2>9. Your Data Rights</h2>
         <p>You have the right to access, correct, or delete your personal data. If you disconnect your brokerage account or delete your XeanVI profile, we will securely destroy your OAuth tokens and trading history, retaining only basic account records required for legal compliance.</p>
-        <h2>7. Contact Us</h2>
+        <h2>10. Contact Us</h2>
         <p>For questions or concerns regarding your privacy or data security, please contact our support team through your user dashboard.</p>
     </div>
         {% include 'footer.html' %}
