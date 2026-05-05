@@ -1,15 +1,11 @@
-import importlib
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
 
+import requests
 from dotenv import load_dotenv
-
-try:
-    import google.generativeai as genai
-except Exception:  # optional dependency/runtime safety
-    genai = None
 
 
 PROD_ENV_PATH = "/etc/xeanvi/xeanvi.env"
@@ -21,6 +17,7 @@ else:
 
 
 DEFAULT_MODEL = "gemini-2.5-flash"
+GEMINI_ENDPOINT_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
 ALLOWED_TAGS = "h2, h3, p, ul, ol, li, strong, em, blockquote, a"
 SUGGESTED_INTERNAL_LINKS = [
     "/playbook",
@@ -31,22 +28,55 @@ SUGGESTED_INTERNAL_LINKS = [
     "/transparency",
     "/blog",
 ]
+REQUIRED_DRAFT_KEYS = (
+    "title",
+    "meta_title",
+    "meta_description",
+    "excerpt",
+    "body_html",
+    "target_keyword",
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _clean_text(value: str, fallback: str = "") -> str:
     return (value or fallback).strip()
 
 
-def _get_config_value(name: str) -> str:
+def _strip_json_fences(text: str) -> str:
+    cleaned = (text or "").strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[len("```json"):].strip()
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[len("```"):].strip()
+
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-len("```")].strip()
+
+    return cleaned
+
+
+def _gemini_error_summary(response: requests.Response) -> str:
+    status_summary = f"HTTP {response.status_code}"
     try:
-        config = importlib.import_module("config")
-    except Exception:
-        return ""
-    return _clean_text(getattr(config, name, ""))
+        payload = response.json()
+    except ValueError:
+        return status_summary
 
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return status_summary
 
-def _get_gemini_api_key() -> str:
-    return _clean_text(os.getenv("GEMINI_API_KEY")) or _get_config_value("GEMINI_API_KEY")
+    message = _clean_text(error.get("message", ""))
+    status = _clean_text(error.get("status", ""))
+    if status and message:
+        return f"{status_summary} ({status}: {message[:200]})"
+    if message:
+        return f"{status_summary} ({message[:200]})"
+    if status:
+        return f"{status_summary} ({status})"
+    return status_summary
 
 
 def generate_blog_draft(
@@ -75,55 +105,94 @@ def generate_blog_draft(
         result["error"] = "A title is required to generate an AI draft."
         return result
 
-    api_key = _get_gemini_api_key()
-    if not api_key:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not _clean_text(api_key):
         result["error"] = "AI draft generation is not configured. Missing GEMINI_API_KEY."
         return result
-
-    if genai is None:
-        result["error"] = "AI draft generation is temporarily unavailable. Missing google-generativeai dependency."
-        return result
+    api_key = _clean_text(api_key)
 
     model_name = os.getenv("GEMINI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
 
-    system_instruction = (
-        "You are an SEO content strategist and cautious financial education writer for XeanVI, "
-        "an AI-powered trading automation and execution discipline platform. Write helpful educational content. "
-        "Do not promise profits, do not give personalized investment advice, and do not make unsupported performance claims."
-    )
-
     prompt = f"""
-Create a JSON object only, with keys: title, meta_title, meta_description, excerpt, body_html, target_keyword.
+You are an SEO content strategist and cautious financial education writer for XeanVI, an AI-powered trading automation and execution discipline platform.
+
+Return strict JSON only. Do not include markdown fences or commentary outside JSON.
+
+Return exactly this JSON object shape:
+{{
+  "title": "...",
+  "meta_title": "...",
+  "meta_description": "...",
+  "excerpt": "...",
+  "body_html": "...",
+  "target_keyword": "..."
+}}
 
 Article requirements:
 - Original, helpful, SEO-friendly educational content for retail day traders.
 - Accurate and cautious tone.
-- No guaranteed profit language, no get-rich-quick framing, no fake stats/citations.
+- No fake statistics.
+- No guaranteed profits.
+- No financial advice or personalized investment advice.
 - Do not claim XeanVI guarantees wins.
-- No personalized investment advice.
-- body_html must contain ONLY these tags: {ALLOWED_TAGS}.
-- Never include script, style, iframe, form, img, table tags.
-- No JavaScript links.
+- body_html must use only these tags: {ALLOWED_TAGS}.
+- body_html must not include script, style, iframe, form, img, table, or JavaScript links.
 - Include internal links naturally when relevant from this set: {', '.join(SUGGESTED_INTERNAL_LINKS)}.
 - Do not force all links into every draft.
-- Focus on topics like trading discipline, automation workflows, playbooks, paper trading,
-  risk management, ORB, VWAP, bracket orders, and day-trading workflow.
+- Focus on topics like trading discipline, automation workflows, playbooks, paper trading, risk management, ORB, VWAP, bracket orders, and day-trading workflow.
 
 Input:
 - Title: {title}
 - Target keyword: {keyword or 'None provided'}
 - Internal links requested by admin: {', '.join(requested_links) if requested_links else 'None'}
 - Notes/Angle: {notes or 'None'}
-
-Return valid JSON only.
 """.strip()
 
+    endpoint = GEMINI_ENDPOINT_TEMPLATE.format(model_name=model_name)
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt,
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.4,
+            "topP": 0.9,
+            "maxOutputTokens": 4096,
+        },
+    }
+    headers = {
+        "x-goog-api-key": api_key,
+        "Content-Type": "application/json",
+    }
+
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name=model_name, system_instruction=system_instruction)
-        response = model.generate_content(prompt)
-        raw_text = (getattr(response, "text", "") or "").strip()
-        data = json.loads(raw_text)
+        response = requests.post(endpoint, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        parsed = response.json()
+        try:
+            raw_text = parsed["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError, TypeError):
+            result["error"] = "AI draft generation returned no text."
+            return result
+
+        text = _strip_json_fences(raw_text)
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning("Gemini blog draft returned invalid JSON prefix: %s", text[:300])
+            result["error"] = "AI draft generation returned invalid JSON. Try again."
+            return result
+
+        missing_keys = [key for key in REQUIRED_DRAFT_KEYS if key not in data]
+        if missing_keys:
+            logger.warning("Gemini blog draft JSON missing keys: %s", ", ".join(missing_keys))
+            result["error"] = "AI draft generation returned incomplete JSON. Try again."
+            return result
 
         result.update({
             "ok": True,
@@ -136,6 +205,14 @@ Return valid JSON only.
             "error": None,
         })
         return result
-    except Exception:
-        result["error"] = "AI draft generation failed. Please try again or write manually."
+    except requests.HTTPError as exc:
+        response = exc.response
+        summary = _gemini_error_summary(response) if response is not None else str(exc)[:200]
+        result["error"] = f"AI draft generation failed: {summary}"
+        return result
+    except requests.RequestException as exc:
+        result["error"] = f"AI draft generation failed: {str(exc)[:200]}"
+        return result
+    except ValueError:
+        result["error"] = "AI draft generation failed: invalid API response."
         return result
