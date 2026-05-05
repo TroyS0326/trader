@@ -43,6 +43,7 @@ from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
 from blog_ai import generate_blog_draft
 from blog_seo import analyze_blog_post_seo
+from blog_internal_links import suggest_internal_links
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -1917,10 +1918,18 @@ def admin_blog_new():
         )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
-            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
-            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
 
         slug = unique_blog_slug(slug_input or title)
         post = BlogPost(
@@ -1944,7 +1953,7 @@ def admin_blog_new():
         else:
             flash('Blog post saved.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
-    return render_template('admin_blog_form.html', post=None)
+    return render_template('admin_blog_form.html', post=None, internal_link_suggestions=[])
 
 
 
@@ -1978,11 +1987,13 @@ def admin_blog_generate_draft():
 
     if not title:
         flash("Enter a blog title before generating an AI draft.", "error")
-        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+        suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
+        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
 
     if not (os.getenv('GEMINI_API_KEY') or '').strip():
         flash("AI draft generation is not configured. Missing GEMINI_API_KEY.", "error")
-        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+        suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
+        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
 
     draft = generate_blog_draft(
         title=title,
@@ -1993,7 +2004,8 @@ def admin_blog_generate_draft():
 
     if not draft.get('ok'):
         flash(draft.get('error') or 'AI draft generation failed.', 'error')
-        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+        suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
+        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
 
     form_data.update({
         'title': draft.get('title') or title,
@@ -2012,7 +2024,13 @@ def admin_blog_generate_draft():
         target_keyword=form_data.get('target_keyword') or '', canonical_url=form_data.get('canonical_url') or '', status='draft'
     )
     flash("AI draft generated. Review and edit it before publishing.", "success")
-    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report)
+    internal_link_suggestions = suggest_internal_links(
+        title=form_data.get('title') or '',
+        target_keyword=form_data.get('target_keyword') or '',
+        excerpt=form_data.get('excerpt') or '',
+        body_html=form_data.get('body_html') or '',
+    )
+    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
 
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -2048,10 +2066,18 @@ def admin_blog_edit(post_id):
         )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
-            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report)
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
-            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report)
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions)
 
         prev_status = post.status
         post.title = title
@@ -2073,8 +2099,36 @@ def admin_blog_edit(post_id):
         else:
             flash('Blog post updated.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
-    return render_template('admin_blog_form.html', post=post)
+    internal_link_suggestions = suggest_internal_links(
+        title=post.title or '', target_keyword=post.target_keyword or '',
+        excerpt=post.excerpt or '', body_html=post.body_html or ''
+    )
+    return render_template('admin_blog_form.html', post=post, internal_link_suggestions=internal_link_suggestions)
 
+
+
+
+@app.route('/admin/blog/internal-link-suggestions', methods=['POST'])
+@login_required
+def admin_blog_internal_link_suggestions():
+    if not is_admin_user():
+        return jsonify({'ok': False, 'error': 'Forbidden'}), 403
+
+    try:
+        title = (request.form.get('title') or '').strip()
+        target_keyword = (request.form.get('target_keyword') or '').strip()
+        excerpt = (request.form.get('excerpt') or '').strip()
+        body_html = request.form.get('body_html') or ''
+
+        suggestions = suggest_internal_links(
+            title=title,
+            target_keyword=target_keyword,
+            excerpt=excerpt,
+            body_html=body_html,
+        )
+        return jsonify({'ok': True, 'suggestions': suggestions})
+    except Exception:
+        return jsonify({'ok': False, 'error': 'Could not generate internal link suggestions.'}), 500
 
 @app.route('/admin/blog/<int:post_id>/unpublish', methods=['POST'])
 @login_required
