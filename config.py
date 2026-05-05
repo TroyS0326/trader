@@ -74,6 +74,15 @@ BREVO_RESET_PASSWORD_TEMPLATE_ID = os.getenv('BREVO_RESET_PASSWORD_TEMPLATE_ID')
 BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'support@xeanvi.com')
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'XeanVI Security')
 PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS = int(os.getenv('PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS', '3600'))
+BLOG_IMAGE_UPLOAD_DIR = os.getenv(
+    "BLOG_IMAGE_UPLOAD_DIR",
+    os.path.join(BASE_DIR, "static", "blog", "uploads")
+)
+BLOG_IMAGE_URL_PREFIX = os.getenv(
+    "BLOG_IMAGE_URL_PREFIX",
+    "/static/blog/uploads"
+)
+BLOG_IMAGE_MAX_BYTES = int(os.getenv("BLOG_IMAGE_MAX_BYTES", str(3 * 1024 * 1024)))
 
 
 def _missing_values(values: dict[str, object]) -> list[str]:

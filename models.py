@@ -273,6 +273,8 @@ class BlogPost(db.Model):
     author_name = db.Column(db.String(120), nullable=False, default='XeanVI')
     canonical_url = db.Column(db.String(320), nullable=True)
     og_image = db.Column(db.String(320), nullable=True)
+    featured_image_alt = db.Column(db.String(240), nullable=True)
+    featured_image_caption = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = db.Column(db.DateTime, nullable=True)
