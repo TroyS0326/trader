@@ -2,12 +2,13 @@ import hashlib
 import json
 import logging
 import os
+import re
 import redis
 import requests
 import secrets
 import sqlite3
 import stripe
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
@@ -32,7 +33,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import User, UserEvent, Waitlist
+from models import BlogPost, User, UserEvent, Waitlist
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -167,6 +168,45 @@ def ensure_db_initialized() -> None:
 
 
 VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
+
+BLOG_ALLOWED_TAGS = ['h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre']
+BLOG_ALLOWED_ATTRIBUTES = {'a': ['href', 'title', 'rel', 'target']}
+BLOG_ALLOWED_STATUSES = {'draft', 'published'}
+
+
+def is_admin_user() -> bool:
+    return bool(ADMIN_EMAIL) and current_user.is_authenticated and ((current_user.email or '').strip().lower() == ADMIN_EMAIL)
+
+
+def slugify_blog_title(title: str) -> str:
+    base = re.sub(r'[^a-z0-9\s-]', '', (title or '').strip().lower())
+    base = re.sub(r'[\s\-]+', '-', base).strip('-')
+    return base or 'post'
+
+
+def unique_blog_slug(title: str, existing_post_id: int = None) -> str:
+    base_slug = slugify_blog_title(title)
+    candidate = base_slug
+    counter = 2
+    while True:
+        query = BlogPost.query.filter_by(slug=candidate)
+        if existing_post_id is not None:
+            query = query.filter(BlogPost.id != existing_post_id)
+        if query.first() is None:
+            return candidate
+        candidate = f"{base_slug}-{counter}"
+        counter += 1
+
+
+def sanitize_blog_html(raw_html: str) -> str:
+    cleaned = raw_html or ''
+    cleaned = re.sub(r'(?is)<\s*(script|style|iframe).*?>.*?<\s*/\s*\1\s*>', '', cleaned)
+    cleaned = re.sub(r'(?i)\son\w+\s*=\s*(\"[^\"]*\"|\'[^\']*\'|[^\s>]+)', '', cleaned)
+    cleaned = re.sub(r'(?i)href\s*=\s*[\"\']\s*javascript:[^\"\']*[\"\']', 'href="#"', cleaned)
+    cleaned = re.sub(r'(?i)src\s*=\s*[\"\']\s*javascript:[^\"\']*[\"\']', '', cleaned)
+    cleaned = re.sub(r'(?i)<(?!/?(?:h2|h3|h4|p|br|strong|em|ul|ol|li|a|blockquote|code|pre)\b)[^>]*>', '', cleaned)
+    cleaned = re.sub(r'(?i)<a([^>]*)href=\"(https?://[^\"]+)\"([^>]*)>', r'<a\1href="\2" target="_blank" rel="noopener noreferrer"\3>', cleaned)
+    return cleaned
 
 
 def ok(data=None, **kwargs):
@@ -554,6 +594,7 @@ def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
+    BlogPost.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.connect() as conn:
         if 'user' in table_names:
@@ -693,6 +734,28 @@ def ensure_schema_migrations() -> None:
             regime_columns = {col['name'] for col in inspector.get_columns('market_regimes')}
             if 'updated_at' not in regime_columns:
                 conn.execute(text("ALTER TABLE market_regimes ADD COLUMN updated_at DATETIME"))
+
+        if 'blog_posts' in table_names:
+            blog_columns = {col['name'] for col in inspector.get_columns('blog_posts')}
+            blog_alters = {
+                'title': "ALTER TABLE blog_posts ADD COLUMN title VARCHAR(180) NOT NULL DEFAULT ''",
+                'slug': "ALTER TABLE blog_posts ADD COLUMN slug VARCHAR(220)",
+                'meta_title': "ALTER TABLE blog_posts ADD COLUMN meta_title VARCHAR(220)",
+                'meta_description': "ALTER TABLE blog_posts ADD COLUMN meta_description VARCHAR(320)",
+                'excerpt': "ALTER TABLE blog_posts ADD COLUMN excerpt TEXT",
+                'body_html': "ALTER TABLE blog_posts ADD COLUMN body_html TEXT NOT NULL DEFAULT ''",
+                'target_keyword': "ALTER TABLE blog_posts ADD COLUMN target_keyword VARCHAR(180)",
+                'status': "ALTER TABLE blog_posts ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'draft'",
+                'author_name': "ALTER TABLE blog_posts ADD COLUMN author_name VARCHAR(120) NOT NULL DEFAULT 'XeanVI'",
+                'canonical_url': "ALTER TABLE blog_posts ADD COLUMN canonical_url VARCHAR(320)",
+                'og_image': "ALTER TABLE blog_posts ADD COLUMN og_image VARCHAR(320)",
+                'created_at': "ALTER TABLE blog_posts ADD COLUMN created_at DATETIME",
+                'updated_at': "ALTER TABLE blog_posts ADD COLUMN updated_at DATETIME",
+                'published_at': "ALTER TABLE blog_posts ADD COLUMN published_at DATETIME",
+            }
+            for col_name, stmt in blog_alters.items():
+                if col_name not in blog_columns:
+                    conn.execute(text(stmt))
 
         conn.commit()
 
@@ -1022,6 +1085,19 @@ def faq():
     return render_template('faq.html')
 
 
+@app.route('/blog')
+def blog_index():
+    posts = BlogPost.query.filter_by(status='published').order_by(BlogPost.published_at.desc(), BlogPost.created_at.desc()).all()
+    return render_template('blog_index.html', posts=posts)
+
+
+@app.route('/blog/<slug>')
+def blog_post(slug):
+    post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
+    canonical_url = post.canonical_url or f"https://xeanvi.com/blog/{post.slug}"
+    return render_template('blog_post.html', post=post, canonical_url=canonical_url)
+
+
 @app.route('/sitemap.xml')
 def sitemap_xml():
     """Generates the XML sitemap for search engines using an explicit public allowlist."""
@@ -1037,6 +1113,7 @@ def sitemap_xml():
         '/faq',
         '/terms',
         '/privacy',
+        '/blog',
     ]
 
     base_url = "https://xeanvi.com"
@@ -1045,6 +1122,10 @@ def sitemap_xml():
     for path in public_paths:
         if path in existing_rules:
             links.append((f"{base_url}{path}", datetime.now().strftime('%Y-%m-%d')))
+    blog_posts = BlogPost.query.filter_by(status='published').order_by(BlogPost.updated_at.desc()).all()
+    for post in blog_posts:
+        lastmod_dt = post.updated_at or post.published_at or post.created_at or datetime.utcnow()
+        links.append((f"{base_url}/blog/{post.slug}", lastmod_dt.strftime('%Y-%m-%d')))
 
     # Build the XML structure
     sitemap_xml_content = render_template('sitemap_xml.xml', links=links)
@@ -1790,6 +1871,98 @@ def api_admin_conversion_summary():
     rows = db.session.query(UserEvent.event_name, db.func.count(UserEvent.id)).group_by(UserEvent.event_name).all()
     counts = {event_name: count for event_name, count in rows}
     return ok({'counts': counts})
+
+
+@app.route('/admin/blog')
+@login_required
+def admin_blog_list():
+    if not is_admin_user():
+        return ("Forbidden", 403)
+    posts = BlogPost.query.order_by(BlogPost.updated_at.desc()).all()
+    return render_template('admin_blog_list.html', posts=posts)
+
+
+@app.route('/admin/blog/new', methods=['GET', 'POST'])
+@login_required
+def admin_blog_new():
+    if not is_admin_user():
+        return ("Forbidden", 403)
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        body_html = request.form.get('body_html') or ''
+        if not title or not body_html.strip():
+            flash('Title and content are required.', 'error')
+            return render_template('admin_blog_form.html', post=None)
+        status = (request.form.get('status') or 'draft').strip().lower()
+        status = status if status in BLOG_ALLOWED_STATUSES else 'draft'
+        slug_input = (request.form.get('slug') or '').strip()
+        slug = unique_blog_slug(slug_input or title)
+        post = BlogPost(
+            title=title,
+            slug=slug,
+            meta_title=(request.form.get('meta_title') or '').strip() or None,
+            meta_description=(request.form.get('meta_description') or '').strip() or None,
+            excerpt=(request.form.get('excerpt') or '').strip() or None,
+            body_html=sanitize_blog_html(body_html),
+            target_keyword=(request.form.get('target_keyword') or '').strip() or None,
+            status=status,
+            canonical_url=(request.form.get('canonical_url') or '').strip() or None,
+            og_image=(request.form.get('og_image') or '').strip() or None,
+        )
+        if status == 'published' and not post.published_at:
+            post.published_at = datetime.utcnow()
+        db.session.add(post)
+        db.session.commit()
+        flash('Blog post saved.', 'success')
+        return redirect(url_for('admin_blog_edit', post_id=post.id))
+    return render_template('admin_blog_form.html', post=None)
+
+
+@app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_blog_edit(post_id):
+    if not is_admin_user():
+        return ("Forbidden", 403)
+    post = BlogPost.query.get_or_404(post_id)
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        body_html = request.form.get('body_html') or ''
+        if not title or not body_html.strip():
+            flash('Title and content are required.', 'error')
+            return render_template('admin_blog_form.html', post=post)
+        prev_status = post.status
+        post.title = title
+        slug_input = (request.form.get('slug') or '').strip()
+        post.slug = unique_blog_slug(slug_input or title, existing_post_id=post.id)
+        post.meta_title = (request.form.get('meta_title') or '').strip() or None
+        post.meta_description = (request.form.get('meta_description') or '').strip() or None
+        post.excerpt = (request.form.get('excerpt') or '').strip() or None
+        post.target_keyword = (request.form.get('target_keyword') or '').strip() or None
+        post.body_html = sanitize_blog_html(body_html)
+        status = (request.form.get('status') or 'draft').strip().lower()
+        post.status = status if status in BLOG_ALLOWED_STATUSES else 'draft'
+        post.canonical_url = (request.form.get('canonical_url') or '').strip() or None
+        post.og_image = (request.form.get('og_image') or '').strip() or None
+        if prev_status != 'published' and post.status == 'published' and not post.published_at:
+            post.published_at = datetime.utcnow()
+        post.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash('Blog post updated.', 'success')
+        return redirect(url_for('admin_blog_edit', post_id=post.id))
+    return render_template('admin_blog_form.html', post=post)
+
+
+@app.route('/admin/blog/<int:post_id>/unpublish', methods=['POST'])
+@login_required
+def admin_blog_unpublish(post_id):
+    if not is_admin_user():
+        return ("Forbidden", 403)
+    post = BlogPost.query.get_or_404(post_id)
+    post.status = 'draft'
+    post.updated_at = datetime.utcnow()
+    db.session.commit()
+    flash('Post moved to draft.', 'success')
+    return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
 @app.route('/api/update_mode', methods=['POST'])

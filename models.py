@@ -258,6 +258,26 @@ class Waitlist(db.Model):
     is_early_bird = db.Column(db.Boolean, default=False)
 
 
+class BlogPost(db.Model):
+    __tablename__ = "blog_posts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(180), nullable=False)
+    slug = db.Column(db.String(220), nullable=False, unique=True, index=True)
+    meta_title = db.Column(db.String(220), nullable=True)
+    meta_description = db.Column(db.String(320), nullable=True)
+    excerpt = db.Column(db.Text, nullable=True)
+    body_html = db.Column(db.Text, nullable=False)
+    target_keyword = db.Column(db.String(180), nullable=True)
+    status = db.Column(db.String(30), nullable=False, default='draft', index=True)
+    author_name = db.Column(db.String(120), nullable=False, default='XeanVI')
+    canonical_url = db.Column(db.String(320), nullable=True)
+    og_image = db.Column(db.String(320), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = db.Column(db.DateTime, nullable=True)
+
+
 class Trade(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)

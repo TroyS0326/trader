@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ post.meta_title or post.title }}</title>
+<meta name="description" content="{{ post.meta_description or post.excerpt or '' }}">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:type" content="article"><meta property="og:title" content="{{ post.meta_title or post.title }}"><meta property="og:description" content="{{ post.meta_description or post.excerpt or '' }}"><meta property="og:url" content="{{ canonical_url }}">{% if post.og_image %}<meta property="og:image" content="{{ post.og_image }}">{% endif %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":{{ (post.meta_title or post.title)|tojson }},"description":{{ (post.meta_description or post.excerpt or '')|tojson }},"author":{"@type":"Person","name":{{ (post.author_name or 'XeanVI')|tojson }}},"datePublished":{{ (post.published_at.isoformat() if post.published_at else '')|tojson }},"dateModified":{{ (post.updated_at.isoformat() if post.updated_at else '')|tojson }},"mainEntityOfPage":{{ canonical_url|tojson }}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://xeanvi.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://xeanvi.com/blog"},{"@type":"ListItem","position":3,"name":{{ post.title|tojson }},"item":{{ canonical_url|tojson }} }]}</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body class="auth-body">{% include 'nav.html' %}<main class="container" style="padding:3rem 1rem;max-width:900px;"><article>
+<h1>{{ post.title }}</h1>{% if post.excerpt %}<p style="color:var(--text-muted);">{{ post.excerpt }}</p>{% endif %}
+<div>{{ post.body_html|safe }}</div></article></main>{% include 'footer.html' %}</body></html>
