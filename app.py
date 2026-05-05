@@ -42,6 +42,7 @@ from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
 from blog_ai import generate_blog_draft
+from blog_ai_fixes import apply_ai_seo_cleanup
 from blog_seo import analyze_blog_post_seo
 from blog_seo_fixes import apply_safe_seo_fixes
 from blog_internal_links import suggest_internal_links
@@ -1960,6 +1961,46 @@ def admin_blog_new():
                 status=requested_status, og_image=fixed_fields.get('og_image') or '',
                 featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
+            needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
+                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'repeated phrase'
+            ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
+            ai_changes = []
+            if needs_ai_cleanup:
+                ai_cleanup = apply_ai_seo_cleanup(
+                    title=fixed_fields.get('title') or '',
+                    slug=draft_slug,
+                    meta_title=fixed_fields.get('meta_title') or '',
+                    meta_description=fixed_fields.get('meta_description') or '',
+                    excerpt=fixed_fields.get('excerpt') or '',
+                    body_html=fixed_fields.get('body_html') or '',
+                    target_keyword=fixed_fields.get('target_keyword') or '',
+                    seo_report=seo_report,
+                    internal_link_suggestions=suggest_internal_links(
+                        title=fixed_fields.get('title') or '',
+                        target_keyword=fixed_fields.get('target_keyword') or '',
+                        excerpt=fixed_fields.get('excerpt') or '',
+                        body_html=fixed_fields.get('body_html') or ''
+                    ),
+                )
+                if ai_cleanup.get('ok'):
+                    fixed_fields.update(ai_cleanup.get('fields', {}))
+                    fixed_fields['body_html'] = sanitize_blog_html(fixed_fields.get('body_html') or '')
+                    ai_changes = ai_cleanup.get('changes') or []
+                elif ai_cleanup.get('error'):
+                    fixed_changes.append(f"AI cleanup skipped: {ai_cleanup.get('error')}")
+            draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
+            seo_report = analyze_blog_post_seo(
+                title=fixed_fields.get('title') or '',
+                slug=draft_slug,
+                meta_title=fixed_fields.get('meta_title') or '',
+                meta_description=fixed_fields.get('meta_description') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                canonical_url=fixed_fields.get('canonical_url') or '',
+                status=requested_status, og_image=fixed_fields.get('og_image') or '',
+                featured_image_alt=fixed_fields.get('featured_image_alt') or '',
+            )
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
             internal_link_suggestions = suggest_internal_links(
                 title=fixed_fields.get('title') or '',
@@ -1972,7 +2013,7 @@ def admin_blog_new():
                 post=None,
                 form_data=fixed_fields,
                 seo_report=seo_report,
-                seo_fix_changes=fixed_changes,
+                seo_fix_changes=(fixed_changes + ai_changes),
                 unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
@@ -2199,6 +2240,46 @@ def admin_blog_edit(post_id):
                 status=requested_status, og_image=fixed_fields.get('og_image') or '',
                 featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
+            needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
+                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'repeated phrase'
+            ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
+            ai_changes = []
+            if needs_ai_cleanup:
+                ai_cleanup = apply_ai_seo_cleanup(
+                    title=fixed_fields.get('title') or '',
+                    slug=draft_slug,
+                    meta_title=fixed_fields.get('meta_title') or '',
+                    meta_description=fixed_fields.get('meta_description') or '',
+                    excerpt=fixed_fields.get('excerpt') or '',
+                    body_html=fixed_fields.get('body_html') or '',
+                    target_keyword=fixed_fields.get('target_keyword') or '',
+                    seo_report=seo_report,
+                    internal_link_suggestions=suggest_internal_links(
+                        title=fixed_fields.get('title') or '',
+                        target_keyword=fixed_fields.get('target_keyword') or '',
+                        excerpt=fixed_fields.get('excerpt') or '',
+                        body_html=fixed_fields.get('body_html') or ''
+                    ),
+                )
+                if ai_cleanup.get('ok'):
+                    fixed_fields.update(ai_cleanup.get('fields', {}))
+                    fixed_fields['body_html'] = sanitize_blog_html(fixed_fields.get('body_html') or '')
+                    ai_changes = ai_cleanup.get('changes') or []
+                elif ai_cleanup.get('error'):
+                    fixed_changes.append(f"AI cleanup skipped: {ai_cleanup.get('error')}")
+            draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
+            seo_report = analyze_blog_post_seo(
+                title=fixed_fields.get('title') or '',
+                slug=draft_slug,
+                meta_title=fixed_fields.get('meta_title') or '',
+                meta_description=fixed_fields.get('meta_description') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                canonical_url=fixed_fields.get('canonical_url') or '',
+                status=requested_status, og_image=fixed_fields.get('og_image') or '',
+                featured_image_alt=fixed_fields.get('featured_image_alt') or '',
+            )
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
             internal_link_suggestions = suggest_internal_links(
                 title=fixed_fields.get('title') or '',
@@ -2211,7 +2292,7 @@ def admin_blog_edit(post_id):
                 post=post,
                 form_data=fixed_fields,
                 seo_report=seo_report,
-                seo_fix_changes=fixed_changes,
+                seo_fix_changes=(fixed_changes + ai_changes),
                 unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,

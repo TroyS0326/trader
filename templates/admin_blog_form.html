@@ -132,10 +132,6 @@
             <label class="form-label" for="canonical_url">Canonical URL</label>
             <input class="form-input" id="canonical_url" name="canonical_url" value="{{ post.canonical_url if post else (d.canonical_url or '') }}">
           </div>
-          <div class="form-group full">
-            <label class="form-label" for="og_image">Featured / OG Image Path</label>
-            <input class="form-input" id="og_image" name="og_image" value="{{ post.og_image if post else (d.og_image or '') }}">
-          </div>
         </div>
       </section>
       <section class="admin-card">
@@ -148,6 +144,10 @@
             <label class="form-label" for="featured_image_file">Upload WebP image</label>
             <input class="form-input" type="file" id="featured_image_file" name="featured_image_file" accept="image/webp">
             <p class="form-help">Upload a compressed WebP image. Recommended: 1200x630 for OpenGraph/social sharing.</p>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="og_image">Featured / OG Image Path</label>
+            <input class="form-input" id="og_image" name="og_image" value="{{ og_image_value }}">
           </div>
           <div class="form-group">
             <label class="form-label" for="featured_image_alt">Featured Image Alt Text</label>
