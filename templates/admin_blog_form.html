@@ -1,7 +1,134 @@
-<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{% if post %}Edit{% else %}New{% endif %} Blog Post</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
-<body class="auth-body">{% include 'nav.html' %}<main class="container" style="padding:2rem 1rem;max-width:900px;"><h1>{% if post %}Edit{% else %}New{% endif %} Blog Post</h1>
-<form method="post"> <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<input name="title" placeholder="Title" value="{{ post.title if post else '' }}" required><input name="slug" placeholder="Slug" value="{{ post.slug if post else '' }}"><input name="meta_title" placeholder="Meta title" value="{{ post.meta_title if post else '' }}"><input name="meta_description" placeholder="Meta description" value="{{ post.meta_description if post else '' }}"><input name="excerpt" placeholder="Excerpt" value="{{ post.excerpt if post else '' }}"><input name="target_keyword" placeholder="Target keyword" value="{{ post.target_keyword if post else '' }}"><input name="canonical_url" placeholder="Canonical URL" value="{{ post.canonical_url if post else '' }}"><input name="og_image" placeholder="OG image" value="{{ post.og_image if post else '' }}"><select name="status"><option value="draft" {% if post and post.status=='draft' %}selected{% endif %}>Draft</option><option value="published" {% if post and post.status=='published' %}selected{% endif %}>Published</option></select>
-<textarea name="body_html" rows="16" required>{{ post.body_html if post else '' }}</textarea><button class="btn btn-primary" type="submit">Save</button></form>
-{% if post %}<form method="post" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}" style="margin-top:1rem;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Unpublish</button></form>{% endif %}
-</main>{% include 'footer.html' %}</body></html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if post %}Edit{% else %}New{% endif %} Blog Post</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .admin-shell { max-width: 1150px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
+    .admin-header { margin-bottom: 1.4rem; }
+    .admin-title { margin: 0; font-size: clamp(1.75rem, 2.2vw, 2.25rem); }
+    .admin-subtitle { margin-top: .5rem; color: var(--text-secondary, #9ca3af); }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.15rem; box-shadow: 0 10px 26px rgba(0,0,0,.24); margin-bottom: 1rem; }
+    .admin-card h2 { margin: 0 0 .95rem; font-size: 1.06rem; color: #dbeafe; }
+    .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: .5rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: .88rem; font-weight: 650; color: #c9d8eb; }
+    .form-input, .form-textarea, select.form-input { width: 100%; background: #0b1220; color: #e6eef9; border: 1px solid #2f415c; border-radius: 10px; padding: .8rem .85rem; font-size: .96rem; }
+    .form-input:focus, .form-textarea:focus, select.form-input:focus { outline: 2px solid rgba(59,130,246,.45); outline-offset: 1px; border-color: #4b7cf3; }
+    .form-textarea { resize: vertical; line-height: 1.55; }
+    textarea[name="meta_description"] { min-height: 90px; }
+    textarea[name="excerpt"] { min-height: 120px; }
+    textarea[name="body_html"] { min-height: 420px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.6; }
+    .form-help { margin: 0; color: #93a7c3; font-size: .8rem; }
+    .action-row { display: flex; flex-wrap: wrap; gap: .8rem; }
+    .btn-primary, .btn-secondary, .btn-danger-outline { border-radius: 10px; padding: .7rem 1.05rem; font-weight: 700; border: 1px solid transparent; text-decoration: none; cursor: pointer; font-size: .95rem; }
+    .btn-primary { background: #2f6df6; border-color: #4c7ef6; color: #fff; }
+    .btn-secondary { background: #1a2638; border-color: #355073; color: #d5e3f4; }
+    .btn-danger-outline { background: transparent; border-color: #7f1d1d; color: #fca5a5; }
+    @media (max-width: 860px) { .admin-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
+
+  <main class="admin-shell">
+    <header class="admin-header">
+      <h1 class="admin-title">{% if post %}Edit{% else %}New{% endif %} Blog Post</h1>
+      <p class="admin-subtitle">Use <strong>Draft</strong> while writing, then switch to <strong>Published</strong> when the post is ready to go live.</p>
+    </header>
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <section class="admin-card">
+        <h2>Post Basics</h2>
+        <div class="admin-grid">
+          <div class="form-group">
+            <label class="form-label" for="title">Title</label>
+            <input class="form-input" id="title" name="title" value="{{ post.title if post else '' }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="slug">Slug</label>
+            <input class="form-input" id="slug" name="slug" value="{{ post.slug if post else '' }}">
+            <p class="form-help">Leave blank to auto-generate from the title.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="status">Status</label>
+            <select class="form-input" id="status" name="status">
+              <option value="draft" {% if post and post.status=='draft' %}selected{% endif %}>Draft</option>
+              <option value="published" {% if post and post.status=='published' %}selected{% endif %}>Published</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="author_name">Author Name</label>
+            <input class="form-input" id="author_name" name="author_name" value="{{ post.author_name if post else '' }}">
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h2>SEO Metadata</h2>
+        <div class="admin-grid">
+          <div class="form-group">
+            <label class="form-label" for="meta_title">Meta Title</label>
+            <input class="form-input" id="meta_title" name="meta_title" value="{{ post.meta_title if post else '' }}">
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="meta_description">Meta Description</label>
+            <textarea class="form-textarea" id="meta_description" name="meta_description">{{ post.meta_description if post else '' }}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="target_keyword">Target Keyword</label>
+            <input class="form-input" id="target_keyword" name="target_keyword" value="{{ post.target_keyword if post else '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="canonical_url">Canonical URL</label>
+            <input class="form-input" id="canonical_url" name="canonical_url" value="{{ post.canonical_url if post else '' }}">
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="og_image">OG Image</label>
+            <input class="form-input" id="og_image" name="og_image" value="{{ post.og_image if post else '' }}">
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h2>Preview Content</h2>
+        <div class="admin-grid">
+          <div class="form-group full">
+            <label class="form-label" for="excerpt">Excerpt</label>
+            <textarea class="form-textarea" id="excerpt" name="excerpt">{{ post.excerpt if post else '' }}</textarea>
+            <p class="form-help">Short summary used in listing previews and SEO snippets.</p>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="body_html">Body HTML</label>
+            <textarea class="form-textarea" id="body_html" name="body_html" required>{{ post.body_html if post else '' }}</textarea>
+            <p class="form-help">HTML is sanitized server-side before saving.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <h2>Actions</h2>
+        <div class="action-row">
+          <button class="btn-secondary" type="submit">Save Draft</button>
+          <button class="btn-primary" type="submit">{% if post %}Update{% else %}Publish{% endif %}</button>
+          <a class="btn-secondary" href="{{ url_for('admin_blog_list') }}">Back to Blog Admin</a>
+        </div>
+      </section>
+    </form>
+
+    {% if post %}
+    <form method="post" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn-danger-outline" type="submit">Unpublish</button>
+    </form>
+    {% endif %}
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>
