@@ -1950,7 +1950,11 @@ def admin_blog_generate_draft():
     }
 
     if not title:
-        flash('Title is required before generating an AI draft.', 'error')
+        flash("Enter a blog title before generating an AI draft.", "error")
+        return render_template('admin_blog_form.html', post=None, form_data=form_data)
+
+    if not (os.getenv('GEMINI_API_KEY') or '').strip():
+        flash("AI draft generation is not configured. Missing GEMINI_API_KEY.", "error")
         return render_template('admin_blog_form.html', post=None, form_data=form_data)
 
     draft = generate_blog_draft(
@@ -1971,8 +1975,9 @@ def admin_blog_generate_draft():
         'excerpt': draft.get('excerpt') or '',
         'body_html': sanitize_blog_html(draft.get('body_html') or ''),
         'target_keyword': draft.get('target_keyword') or target_keyword,
+        'status': 'draft',
     })
-    flash('AI draft generated. Review and save as Draft or Publish manually.', 'success')
+    flash("AI draft generated. Review and edit it before publishing.", "success")
     return render_template('admin_blog_form.html', post=None, form_data=form_data)
 
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
