@@ -1,21 +1,47 @@
-{% extends "base.html" %}
-{% block title %}Keyword Plan | XeanVI{% endblock %}
-{% block content %}
-<main class="admin-shell" style="max-width:900px;">
-  <header class="admin-header"><div><h1 class="admin-title">{{ 'Edit' if plan else 'New' }} Keyword Plan</h1></div></header>
-  <section class="admin-card">
-    <form method="POST" style="display:grid;gap:.8rem;">
-      <input name="cluster" placeholder="Cluster" value="{{ plan.cluster if plan else '' }}">
-      <input name="target_keyword" placeholder="Target keyword" required value="{{ plan.target_keyword if plan else '' }}">
-      <input name="suggested_title" placeholder="Suggested title" required value="{{ plan.suggested_title if plan else '' }}">
-      <input name="search_intent" placeholder="Search intent" value="{{ plan.search_intent if plan else 'educational' }}">
-      <input name="priority" type="number" min="1" max="5" value="{{ plan.priority if plan else 3 }}">
-      <input name="linked_page" placeholder="Linked product page" value="{{ plan.linked_page if plan else '' }}">
-      <input name="planned_publish_date" type="date" value="{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan and plan.planned_publish_date else '' }}">
-      <select name="status">{% for st in ['planned','drafted','published','skipped'] %}<option value="{{ st }}" {% if plan and plan.status==st %}selected{% endif %}>{{ st }}</option>{% endfor %}</select>
-      <textarea name="notes" rows="4" placeholder="Notes">{{ plan.notes if plan else '' }}</textarea>
-      <div style="display:flex;gap:.6rem;"><button class="btn-primary" type="submit">Save Plan</button><a class="btn-secondary" href="{{ url_for('admin_keyword_map') }}">Back</a></div>
-    </form>
-  </section>
-</main>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ 'Edit' if plan else 'New' }} Keyword Plan</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .admin-shell { max-width: 900px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
+    .admin-header { margin-bottom: 1.4rem; }
+    .admin-title { margin: 0; font-size: clamp(1.75rem, 2.2vw, 2.25rem); }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.15rem; box-shadow: 0 10px 26px rgba(0,0,0,.24); }
+    .form-wrap { display: grid; gap: .8rem; }
+    .form-input, .form-textarea, select.form-input { width: 100%; background: #0b1220; color: #e6eef9; border: 1px solid #2f415c; border-radius: 10px; padding: .8rem .85rem; font-size: .96rem; }
+    .form-textarea { resize: vertical; }
+    .action-row { display: flex; flex-wrap: wrap; gap: .8rem; }
+    .btn-primary, .btn-secondary { border-radius: 10px; padding: .7rem 1.05rem; font-weight: 700; border: 1px solid transparent; text-decoration: none; cursor: pointer; font-size: .95rem; }
+    .btn-primary { background: #2f6df6; border-color: #4c7ef6; color: #fff; }
+    .btn-secondary { background: #1a2638; border-color: #355073; color: #d5e3f4; }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
+
+  <main class="admin-shell">
+    <header class="admin-header">
+      <h1 class="admin-title">{{ 'Edit' if plan else 'New' }} Keyword Plan</h1>
+    </header>
+    <section class="admin-card">
+      <form method="POST" class="form-wrap">
+        <input class="form-input" name="cluster" placeholder="Cluster" value="{{ plan.cluster if plan else '' }}">
+        <input class="form-input" name="target_keyword" placeholder="Target keyword" required value="{{ plan.target_keyword if plan else '' }}">
+        <input class="form-input" name="suggested_title" placeholder="Suggested title" required value="{{ plan.suggested_title if plan else '' }}">
+        <input class="form-input" name="search_intent" placeholder="Search intent" value="{{ plan.search_intent if plan else 'educational' }}">
+        <input class="form-input" name="priority" type="number" min="1" max="5" value="{{ plan.priority if plan else 3 }}">
+        <input class="form-input" name="linked_page" placeholder="Linked product page" value="{{ plan.linked_page if plan else '' }}">
+        <input class="form-input" name="planned_publish_date" type="date" value="{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan and plan.planned_publish_date else '' }}">
+        <select class="form-input" name="status">{% for st in ['planned','drafted','published','skipped'] %}<option value="{{ st }}" {% if plan and plan.status==st %}selected{% endif %}>{{ st }}</option>{% endfor %}</select>
+        <textarea class="form-textarea" name="notes" rows="4" placeholder="Notes">{{ plan.notes if plan else '' }}</textarea>
+        <div class="action-row"><button class="btn-primary" type="submit">Save Plan</button><a class="btn-secondary" href="{{ url_for('admin_keyword_map') }}">Back</a></div>
+      </form>
+    </section>
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>
