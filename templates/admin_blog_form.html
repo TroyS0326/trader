@@ -143,12 +143,10 @@
           <div class="form-group full">
             <label class="form-label" for="featured_image_file">Upload WebP image</label>
             <input class="form-input" type="file" id="featured_image_file" name="featured_image_file" accept="image/webp">
-            <p class="form-help">Upload a compressed WebP image. Recommended: 1200x630 for OpenGraph/social sharing.</p>
+            <p class="form-help">Upload a compressed WebP image. Recommended size: 1200x630. The uploaded image is used as the featured image, social preview image, and Article schema image.</p>
+            <p class="form-help">Image files upload when you click Save Draft or Publish.</p>
           </div>
-          <div class="form-group full">
-            <label class="form-label" for="og_image">Featured / OG Image Path</label>
-            <input class="form-input" id="og_image" name="og_image" value="{{ og_image_value }}">
-          </div>
+          <input type="hidden" name="og_image" value="{{ og_image_value }}">
           <div class="form-group">
             <label class="form-label" for="featured_image_alt">Featured Image Alt Text</label>
             <input class="form-input" id="featured_image_alt" name="featured_image_alt" value="{{ featured_image_alt_value }}">
@@ -159,7 +157,15 @@
           </div>
           {% if og_image_value %}
           <div class="form-group full">
+            <label class="form-label">Current image path</label>
+            <input class="form-input" value="{{ og_image_value }}" readonly>
+          </div>
+          <div class="form-group full">
             <img src="{{ og_image_value }}" alt="{{ featured_image_alt_value or (post.title if post else (d.title or 'Featured image')) }}" style="max-width:100%;border-radius:10px;max-height:260px;object-fit:cover;">
+          </div>
+          {% else %}
+          <div class="form-group full">
+            <p class="form-help">No featured image uploaded yet.</p>
           </div>
           {% endif %}
         </div>
@@ -217,7 +223,9 @@
 
 
       <section class="admin-card">
-        <h2>Suggested Internal Links</h2>
+        <details class="advanced-panel">
+        <summary>Advanced: Manual Internal Link Suggestions</summary>
+        <p class="form-help" style="margin:.75rem 0;">Apply Safe SEO Fixes can insert relevant internal links automatically. Use this section only if you want to manually add or adjust links.</p>
         {% if internal_link_suggestions %}
           <div style="display:grid; gap:.75rem;">
             {% for item in internal_link_suggestions %}
@@ -242,6 +250,7 @@
         {% else %}
           <p class="form-help">No internal link suggestions yet. Generate a draft, write content, or run Check SEO.</p>
         {% endif %}
+        </details>
       </section>
 
       <section class="admin-card">
