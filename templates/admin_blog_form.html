@@ -41,11 +41,20 @@
     </header>
 
     {% set d = form_data or {} %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <section class="admin-card" aria-live="polite">
+        {% for category, message in messages %}
+          <p class="form-help" style="margin:.25rem 0; color:{% if category == 'error' %}#fca5a5{% else %}#86efac{% endif %};">{{ message }}</p>
+        {% endfor %}
+      </section>
+      {% endif %}
+    {% endwith %}
 
     {% if not post %}
     <section class="admin-card">
       <h2>AI Draft Assistant</h2>
-      <form method="post" action="{{ url_for('admin_blog_generate_draft') }}">
+      <form method="POST" action="{{ url_for('admin_blog_generate_draft') }}" class="ai-draft-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="admin-grid">
           <div class="form-group">
