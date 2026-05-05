@@ -178,9 +178,18 @@
                 <p class="form-help" style="margin:.2rem 0;"><strong>Reason:</strong> {{ item.reason }}</p>
                 <p class="form-help" style="margin:.2rem 0;"><strong>Priority:</strong> {{ item.priority }}</p>
                 <p class="form-help" style="margin:.35rem 0 0;"><strong>Snippet:</strong> <code>&lt;a href="{{ item.url }}"&gt;{{ item.anchor_text }}&lt;/a&gt;</code></p>
+                <div style="margin-top:.6rem;">
+                  <button
+                    type="button"
+                    class="btn-secondary js-insert-internal-link"
+                    data-url="{{ item.url|e }}"
+                    data-anchor-text="{{ item.anchor_text|e }}"
+                  >Insert</button>
+                </div>
               </article>
             {% endfor %}
           </div>
+          <p class="form-help" style="margin-top:.75rem;">Inserted links are not saved until you click Save Draft or Publish.</p>
         {% else %}
           <p class="form-help">No internal link suggestions yet. Generate a draft, write content, or run Check SEO.</p>
         {% endif %}
@@ -208,5 +217,56 @@
   </main>
 
   {% include 'footer.html' %}
+
+  <script>
+    (function () {
+      var bodyHtmlTextarea = document.querySelector('textarea[name="body_html"]');
+      var insertButtons = document.querySelectorAll('.js-insert-internal-link');
+
+      if (!bodyHtmlTextarea || !insertButtons.length) {
+        return;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      insertButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          var rawUrl = button.getAttribute('data-url') || '';
+          var rawAnchorText = button.getAttribute('data-anchor-text') || '';
+          var url = rawUrl.trim();
+          var anchorText = rawAnchorText.trim();
+
+          if (!url || !anchorText || url.charAt(0) !== '/') {
+            return;
+          }
+
+          var linkHtml = '<a href="' + escapeHtml(url) + '">' + escapeHtml(anchorText) + '</a>';
+          var hasSelection = Number.isInteger(bodyHtmlTextarea.selectionStart) && Number.isInteger(bodyHtmlTextarea.selectionEnd);
+
+          if (hasSelection) {
+            var selectionStart = bodyHtmlTextarea.selectionStart;
+            var selectionEnd = bodyHtmlTextarea.selectionEnd;
+            var currentValue = bodyHtmlTextarea.value;
+            bodyHtmlTextarea.value = currentValue.slice(0, selectionStart) + linkHtml + currentValue.slice(selectionEnd);
+            var nextCursorPosition = selectionStart + linkHtml.length;
+            bodyHtmlTextarea.selectionStart = nextCursorPosition;
+            bodyHtmlTextarea.selectionEnd = nextCursorPosition;
+          } else {
+            bodyHtmlTextarea.value = bodyHtmlTextarea.value + linkHtml;
+          }
+
+          bodyHtmlTextarea.focus();
+          bodyHtmlTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
