@@ -158,12 +158,27 @@
       <section class="admin-card">
         <h2>Actions</h2>
         <div class="action-row">
-          <button class="btn-secondary" type="submit" name="status" value="draft">Save Draft</button>
-          <button class="btn-primary" type="submit" name="status" value="published">{% if post %}Update & Publish{% else %}Publish{% endif %}</button>
+          <button class="btn-secondary" type="submit" name="action" value="save_draft">Save Draft</button>
+          <button class="btn-primary" type="submit" name="action" value="publish">{% if post %}Update & Publish{% else %}Publish{% endif %}</button>
+          <button class="btn-secondary" type="submit" name="action" value="check_seo">Check SEO</button>
           <a class="btn-secondary" href="{{ url_for('admin_blog_list') }}">Back to Blog Admin</a>
         </div>
       </section>
     </form>
+
+
+      <section class="admin-card">
+        <h2>SEO & Compliance Checker</h2>
+        {% if seo_report %}
+          <p class="form-help" style="font-size:.95rem; color:#c7d2fe;">Score: <strong>{{ seo_report.score }}</strong> · Status: <strong>{{ seo_report.status }}</strong></p>
+          {% if seo_report.blocking_issues %}<p class="form-label" style="color:#fca5a5; margin-top:.75rem;">Blocking issues</p><ul>{% for item in seo_report.blocking_issues %}<li class="form-help" style="color:#fca5a5;">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          {% if seo_report.warnings %}<p class="form-label" style="color:#fdba74; margin-top:.75rem;">Warnings</p><ul>{% for item in seo_report.warnings %}<li class="form-help" style="color:#fdba74;">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          {% if seo_report.suggestions %}<p class="form-label" style="margin-top:.75rem;">Suggestions</p><ul>{% for item in seo_report.suggestions %}<li class="form-help">{{ item }}</li>{% endfor %}</ul>{% endif %}
+          <p class="form-help" style="margin-top:.7rem;">Words: {{ seo_report.metrics.word_count }} · Internal links: {{ seo_report.metrics.internal_link_count }} · External links: {{ seo_report.metrics.external_link_count }} · H2: {{ seo_report.metrics.h2_count }} · H3: {{ seo_report.metrics.h3_count }}</p>
+        {% else %}
+          <p class="form-help">SEO checker runs when you save, publish, or generate a draft.</p>
+        {% endif %}
+      </section>
 
     {% if post %}
     <form method="post" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}">
