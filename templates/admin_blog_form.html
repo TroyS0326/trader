@@ -248,6 +248,15 @@
       </section>
 
     {% if post %}
+    <section class="admin-card">
+      <h2>Danger Zone</h2>
+      <p class="form-help" style="margin-bottom:.75rem; color:#fca5a5;">Delete this blog post permanently.</p>
+      <form method="POST" action="{{ url_for('admin_blog_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this blog post permanently? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn-danger-outline" type="submit">Delete Post</button>
+      </form>
+    </section>
+
     <form method="post" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn-danger-outline" type="submit">Unpublish</button>
