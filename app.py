@@ -1113,8 +1113,20 @@ def blog_index():
 
 @app.route('/blog/<slug>')
 def blog_post(slug):
-    post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
-    canonical_url = post.canonical_url or build_blog_canonical_url(post.slug)
+    post = BlogPost.query.filter_by(slug=slug, status='published').first()
+    if post is None:
+        # Backward-compatible fallback for legacy links that may still match a stored canonical_url.
+        fallback_path = f"/blog/{slug}"
+        post = BlogPost.query.filter(
+            BlogPost.status == 'published',
+            BlogPost.canonical_url.isnot(None),
+            BlogPost.canonical_url.endswith(fallback_path)
+        ).first_or_404()
+
+    if slug != post.slug:
+        return redirect(url_for('blog_post', slug=post.slug), code=301)
+
+    canonical_url = build_blog_canonical_url(post.slug)
     base_url = get_public_base_url()
     og_image_absolute = ""
     if post.og_image:
