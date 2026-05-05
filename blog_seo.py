@@ -191,8 +191,9 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
         warnings.append("Use at least 2 H2 headings for structure.")
 
     if internal_link_count == 0:
-        score -= 5
-        warnings.append("Add at least one internal XeanVI link.")
+        score -= 3
+        warnings.append("Add 1–3 relevant internal links.")
+        suggestions.append("Use the Suggested Internal Links panel to insert links where they fit naturally.")
 
     if _looks_trading_related(combined_lower) and not any(term in body_lower for term in RISK_TERMS):
         score -= 2
@@ -262,6 +263,8 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
         parsed = urlparse(canonical_url)
         if parsed.scheme not in {"http", "https"}:
             suggestions.append("Canonical URL should be a full http/https URL.")
+    else:
+        warnings.append("Add a canonical URL for this blog post.")
 
     score = max(0, min(100, score))
     final_status = "blocked" if blocking_issues else ("needs_work" if warnings else "good")

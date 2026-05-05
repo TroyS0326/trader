@@ -189,6 +189,12 @@ def slugify_blog_title(title: str) -> str:
     return base or 'post'
 
 
+def build_blog_canonical_url(slug: str) -> str:
+    base_url = (getattr(config, 'APP_BASE_URL', '') or 'https://xeanvi.com').strip().rstrip('/')
+    clean_slug = (slug or '').strip().strip('/')
+    return f"{base_url}/blog/{clean_slug}" if clean_slug else ""
+
+
 def unique_blog_slug(title: str, existing_post_id: int = None) -> str:
     base_slug = slugify_blog_title(title)
     candidate = base_slug
@@ -1099,7 +1105,7 @@ def blog_index():
 @app.route('/blog/<slug>')
 def blog_post(slug):
     post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
-    canonical_url = post.canonical_url or f"https://xeanvi.com/blog/{post.slug}"
+    canonical_url = post.canonical_url or build_blog_canonical_url(post.slug)
     return render_template('blog_post.html', post=post, canonical_url=canonical_url)
 
 
@@ -1930,6 +1936,8 @@ def admin_blog_new():
                 target_keyword=form_data['target_keyword'],
                 canonical_url=form_data['canonical_url'],
                 og_image=form_data['og_image'],
+                seo_report=seo_report,
+                site_base_url=getattr(config, 'APP_BASE_URL', 'https://xeanvi.com'),
             )
             fixed_fields = fixed.get('fields', {})
             fixed_changes = fixed.get('changes', [])
@@ -1958,6 +1966,7 @@ def admin_blog_new():
                 form_data=fixed_fields,
                 seo_report=seo_report,
                 seo_fix_changes=fixed_changes,
+                unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
                 human_quality_report=analyze_human_quality(title=fixed_fields.get('title') or '', excerpt=fixed_fields.get('excerpt') or '', body_html=fixed_fields.get('body_html') or '', target_keyword=fixed_fields.get('target_keyword') or ''),
@@ -1978,6 +1987,7 @@ def admin_blog_new():
             return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         slug = unique_blog_slug(slug_input or title)
+        canonical_url = (form_data['canonical_url'] or '').strip() or build_blog_canonical_url(slug)
         post = BlogPost(
             title=title,
             slug=slug,
@@ -1987,7 +1997,7 @@ def admin_blog_new():
             body_html=sanitize_blog_html(body_html),
             target_keyword=form_data['target_keyword'] or None,
             status=requested_status,
-            canonical_url=form_data['canonical_url'] or None,
+            canonical_url=canonical_url or None,
             og_image=form_data['og_image'] or None,
         )
         if requested_status == 'published' and not post.published_at:
@@ -2067,6 +2077,8 @@ def admin_blog_generate_draft():
         'target_keyword': draft.get('target_keyword') or target_keyword,
         'status': 'draft',
     })
+    if not (form_data.get('canonical_url') or '').strip():
+        form_data['canonical_url'] = build_blog_canonical_url(form_data.get("slug") or slugify_blog_title(form_data.get("title") or ""))
     slug_value = form_data.get("slug") or slugify_blog_title(form_data.get("title") or "")
     seo_report = analyze_blog_post_seo(
         title=form_data.get('title') or '', slug=slug_value,
@@ -2128,6 +2140,8 @@ def admin_blog_edit(post_id):
                 target_keyword=form_data['target_keyword'],
                 canonical_url=form_data['canonical_url'],
                 og_image=form_data['og_image'],
+                seo_report=seo_report,
+                site_base_url=getattr(config, 'APP_BASE_URL', 'https://xeanvi.com'),
             )
             fixed_fields = fixed.get('fields', {})
             fixed_changes = fixed.get('changes', [])
@@ -2156,6 +2170,7 @@ def admin_blog_edit(post_id):
                 form_data=fixed_fields,
                 seo_report=seo_report,
                 seo_fix_changes=fixed_changes,
+                unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
                 human_quality_report=analyze_human_quality(title=fixed_fields.get('title') or '', excerpt=fixed_fields.get('excerpt') or '', body_html=fixed_fields.get('body_html') or '', target_keyword=fixed_fields.get('target_keyword') or ''),
@@ -2184,7 +2199,7 @@ def admin_blog_edit(post_id):
         post.target_keyword = form_data['target_keyword'] or None
         post.body_html = sanitize_blog_html(body_html)
         post.status = requested_status
-        post.canonical_url = form_data['canonical_url'] or None
+        post.canonical_url = (form_data['canonical_url'] or '').strip() or build_blog_canonical_url(post.slug) or None
         post.og_image = form_data['og_image'] or None
         if prev_status != 'published' and post.status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()

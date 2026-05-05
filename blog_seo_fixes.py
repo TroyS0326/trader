@@ -79,6 +79,15 @@ def _infer_keyword(title, body_text):
     return ""
 
 
+def _normalize_base_url(site_base_url: str) -> str:
+    base = (site_base_url or "").strip() or "https://xeanvi.com"
+    return re.sub(r"/+$", "", base)
+
+
+def _build_canonical(base_url: str, slug: str) -> str:
+    return f"{_normalize_base_url(base_url)}/blog/{(slug or '').strip('/')}"
+
+
 def apply_safe_seo_fixes(
     title: str,
     slug: str,
@@ -89,8 +98,11 @@ def apply_safe_seo_fixes(
     target_keyword: str = "",
     canonical_url: str = "",
     og_image: str = "",
+    seo_report: dict | None = None,
+    site_base_url: str = "https://xeanvi.com",
 ) -> dict:
     changes = []
+    unapplied_suggestions = []
 
     safe_title = (title or "").strip()
     safe_body_html = body_html or ""
@@ -143,6 +155,22 @@ def apply_safe_seo_fixes(
             safe_target_keyword = inferred
             changes.append("Inferred target keyword from title/body.")
 
+    safe_canonical_url = (canonical_url or "").strip()
+    if not safe_canonical_url and safe_slug:
+        safe_canonical_url = _build_canonical(site_base_url, safe_slug)
+        changes.append("Generated missing canonical URL from slug.")
+
+    if seo_report:
+        for suggestion in (seo_report.get("suggestions") or []) + (seo_report.get("warnings") or []):
+            lowered = (suggestion or "").lower()
+            if "canonical url" in lowered and safe_slug and not safe_canonical_url:
+                safe_canonical_url = _build_canonical(site_base_url, safe_slug)
+                changes.append("Applied canonical URL suggestion.")
+            elif "internal link" in lowered or "external" in lowered:
+                unapplied_suggestions.append(suggestion)
+            elif "h2" in lowered or "heading" in lowered or "rewrite" in lowered:
+                unapplied_suggestions.append(suggestion)
+
     if _looks_trading_related(f"{safe_title} {body_text}") and not _contains_risk_language(body_text):
         safe_body_html = safe_body_html.rstrip() + "\n\n" + RISK_NOTE_HTML
         changes.append("Appended educational risk note to body HTML.")
@@ -155,7 +183,7 @@ def apply_safe_seo_fixes(
         "excerpt": safe_excerpt,
         "body_html": safe_body_html,
         "target_keyword": safe_target_keyword,
-        "canonical_url": canonical_url or "",
+        "canonical_url": safe_canonical_url,
         "og_image": og_image or "",
     }
-    return {"fields": fields, "changes": changes}
+    return {"fields": fields, "changes": list(dict.fromkeys(changes)), "unapplied_suggestions": list(dict.fromkeys(unapplied_suggestions))}

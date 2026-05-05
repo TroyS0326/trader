@@ -178,6 +178,16 @@
         <p class="form-help" style="margin-top:.75rem;">These changes are not saved until you click Save Draft or Publish.</p>
       </section>
       {% endif %}
+      {% if unapplied_suggestions %}
+      <section class="admin-card">
+        <h2>Unapplied Suggestions (Manual Review)</h2>
+        <ul>
+          {% for item in unapplied_suggestions %}
+            <li class="form-help">{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
 
 
       <section class="admin-card">
@@ -195,8 +205,8 @@
                   <button
                     type="button"
                     class="btn-secondary js-insert-internal-link"
-                    data-url="{{ item.url|e }}"
-                    data-anchor-text="{{ item.anchor_text|e }}"
+                    data-url='{{ item.url|tojson }}'
+                    data-anchor='{{ item.anchor_text|tojson }}'
                   >Insert</button>
                 </div>
               </article>
@@ -267,12 +277,19 @@
 
       insertButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-          var rawUrl = button.getAttribute('data-url') || '';
-          var rawAnchorText = button.getAttribute('data-anchor-text') || '';
-          var url = rawUrl.trim();
-          var anchorText = rawAnchorText.trim();
+          var rawUrl = button.dataset.url ? JSON.parse(button.dataset.url) : '';
+          var rawAnchorText = button.dataset.anchor ? JSON.parse(button.dataset.anchor) : '';
+          var url = String(rawUrl || '').trim();
+          var anchorText = String(rawAnchorText || '').trim();
 
           if (!url || !anchorText || url.charAt(0) !== '/') {
+            return;
+          }
+
+          var currentValue = bodyHtmlTextarea.value || '';
+          var dupRe = new RegExp('href=[\"\\\']' + url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\"\\\']', 'i');
+          if (dupRe.test(currentValue)) {
+            alert('This link already appears in the article.');
             return;
           }
 
@@ -282,17 +299,45 @@
           if (hasSelection) {
             var selectionStart = bodyHtmlTextarea.selectionStart;
             var selectionEnd = bodyHtmlTextarea.selectionEnd;
-            var currentValue = bodyHtmlTextarea.value;
-            bodyHtmlTextarea.value = currentValue.slice(0, selectionStart) + linkHtml + currentValue.slice(selectionEnd);
-            var nextCursorPosition = selectionStart + linkHtml.length;
+            var selectedText = currentValue.slice(selectionStart, selectionEnd);
+            if (selectedText && selectedText.trim()) {
+              var selectedLinkHtml = '<a href="' + escapeHtml(url) + '">' + escapeHtml(selectedText) + '</a>';
+              bodyHtmlTextarea.value = currentValue.slice(0, selectionStart) + selectedLinkHtml + currentValue.slice(selectionEnd);
+              var nextCursorPosition = selectionStart + selectedLinkHtml.length;
+              bodyHtmlTextarea.selectionStart = nextCursorPosition;
+              bodyHtmlTextarea.selectionEnd = nextCursorPosition;
+            } else {
+              var escapedAnchor = anchorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              var anchorRegex = new RegExp(escapedAnchor, 'i');
+              var match = currentValue.match(anchorRegex);
+              if (match && match.index >= 0) {
+                var idx = match.index;
+                var before = currentValue.slice(0, idx);
+                var openIdx = before.lastIndexOf('<a ');
+                var closeIdx = before.lastIndexOf('</a>');
+                if (!(openIdx > closeIdx)) {
+                  var matched = currentValue.substr(idx, match[0].length);
+                  var replaced = '<a href="' + escapeHtml(url) + '">' + escapeHtml(matched) + '</a>';
+                  bodyHtmlTextarea.value = currentValue.slice(0, idx) + replaced + currentValue.slice(idx + match[0].length);
+                  bodyHtmlTextarea.selectionStart = idx + replaced.length;
+                  bodyHtmlTextarea.selectionEnd = idx + replaced.length;
+                } else {
+                  bodyHtmlTextarea.value = currentValue.slice(0, selectionStart) + linkHtml + currentValue.slice(selectionEnd);
+                }
+              } else {
+                bodyHtmlTextarea.value = currentValue.slice(0, selectionStart) + linkHtml + currentValue.slice(selectionEnd);
+              }
+            }
+          } else {
+            bodyHtmlTextarea.value = (currentValue ? currentValue + '\n\n' : '') + linkHtml;
+            var nextCursorPosition = bodyHtmlTextarea.value.length;
             bodyHtmlTextarea.selectionStart = nextCursorPosition;
             bodyHtmlTextarea.selectionEnd = nextCursorPosition;
-          } else {
-            bodyHtmlTextarea.value = bodyHtmlTextarea.value + linkHtml;
           }
 
           bodyHtmlTextarea.focus();
           bodyHtmlTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+          alert('Inserted link. Save Draft or Publish to keep this change.');
         });
       });
     })();
