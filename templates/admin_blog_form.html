@@ -161,10 +161,23 @@
           <button class="btn-secondary" type="submit" name="action" value="save_draft">Save Draft</button>
           <button class="btn-primary" type="submit" name="action" value="publish">{% if post %}Update & Publish{% else %}Publish{% endif %}</button>
           <button class="btn-secondary" type="submit" name="action" value="check_seo">Check SEO</button>
+          <button class="btn-secondary" type="submit" name="action" value="apply_safe_fixes">Apply Safe SEO Fixes</button>
           <a class="btn-secondary" href="{{ url_for('admin_blog_list') }}">Back to Blog Admin</a>
         </div>
       </section>
     </form>
+
+      {% if seo_fix_changes %}
+      <section class="admin-card">
+        <h2>Safe SEO Fixes Applied</h2>
+        <ul>
+          {% for item in seo_fix_changes %}
+            <li class="form-help">{{ item }}</li>
+          {% endfor %}
+        </ul>
+        <p class="form-help" style="margin-top:.75rem;">These changes are not saved until you click Save Draft or Publish.</p>
+      </section>
+      {% endif %}
 
 
       <section class="admin-card">

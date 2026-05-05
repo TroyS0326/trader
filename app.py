@@ -43,6 +43,7 @@ from watchlist import watchlist_manager
 from explainability import generate_trade_thesis
 from blog_ai import generate_blog_draft
 from blog_seo import analyze_blog_post_seo
+from blog_seo_fixes import apply_safe_seo_fixes
 from blog_internal_links import suggest_internal_links
 from execution_guard import (
     approve_scan_for_user,
@@ -1916,6 +1917,48 @@ def admin_blog_new():
             body_html=body_html, target_keyword=form_data['target_keyword'],
             canonical_url=form_data['canonical_url'], status=requested_status,
         )
+        if action == 'apply_safe_fixes':
+            fixed = apply_safe_seo_fixes(
+                title=form_data['title'],
+                slug=form_data['slug'],
+                meta_title=form_data['meta_title'],
+                meta_description=form_data['meta_description'],
+                excerpt=form_data['excerpt'],
+                body_html=form_data['body_html'],
+                target_keyword=form_data['target_keyword'],
+                canonical_url=form_data['canonical_url'],
+                og_image=form_data['og_image'],
+            )
+            fixed_fields = fixed.get('fields', {})
+            fixed_changes = fixed.get('changes', [])
+            draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
+            seo_report = analyze_blog_post_seo(
+                title=fixed_fields.get('title') or '',
+                slug=draft_slug,
+                meta_title=fixed_fields.get('meta_title') or '',
+                meta_description=fixed_fields.get('meta_description') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                canonical_url=fixed_fields.get('canonical_url') or '',
+                status=requested_status,
+            )
+            flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
+            internal_link_suggestions = suggest_internal_links(
+                title=fixed_fields.get('title') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or ''
+            )
+            return render_template(
+                'admin_blog_form.html',
+                post=None,
+                form_data=fixed_fields,
+                seo_report=seo_report,
+                seo_fix_changes=fixed_changes,
+                draft_generated=False,
+                internal_link_suggestions=internal_link_suggestions,
+            )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
             internal_link_suggestions = suggest_internal_links(
@@ -2064,6 +2107,48 @@ def admin_blog_edit(post_id):
             body_html=body_html, target_keyword=form_data['target_keyword'],
             canonical_url=form_data['canonical_url'], status=requested_status,
         )
+        if action == 'apply_safe_fixes':
+            fixed = apply_safe_seo_fixes(
+                title=form_data['title'],
+                slug=form_data['slug'],
+                meta_title=form_data['meta_title'],
+                meta_description=form_data['meta_description'],
+                excerpt=form_data['excerpt'],
+                body_html=form_data['body_html'],
+                target_keyword=form_data['target_keyword'],
+                canonical_url=form_data['canonical_url'],
+                og_image=form_data['og_image'],
+            )
+            fixed_fields = fixed.get('fields', {})
+            fixed_changes = fixed.get('changes', [])
+            draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
+            seo_report = analyze_blog_post_seo(
+                title=fixed_fields.get('title') or '',
+                slug=draft_slug,
+                meta_title=fixed_fields.get('meta_title') or '',
+                meta_description=fixed_fields.get('meta_description') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                canonical_url=fixed_fields.get('canonical_url') or '',
+                status=requested_status,
+            )
+            flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
+            internal_link_suggestions = suggest_internal_links(
+                title=fixed_fields.get('title') or '',
+                target_keyword=fixed_fields.get('target_keyword') or '',
+                excerpt=fixed_fields.get('excerpt') or '',
+                body_html=fixed_fields.get('body_html') or ''
+            )
+            return render_template(
+                'admin_blog_form.html',
+                post=post,
+                form_data=fixed_fields,
+                seo_report=seo_report,
+                seo_fix_changes=fixed_changes,
+                draft_generated=False,
+                internal_link_suggestions=internal_link_suggestions,
+            )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
             internal_link_suggestions = suggest_internal_links(
