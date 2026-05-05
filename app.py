@@ -33,7 +33,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogKeywordPlan, BlogPost, User, UserEvent, Waitlist
+from models import BlogKeywordPlan, BlogPost, User, UserEvent
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -728,11 +728,6 @@ def ensure_schema_migrations() -> None:
                 conn.execute(text("ALTER TABLE trades ADD COLUMN closed_at DATETIME"))
 
 
-        if 'waitlist' in table_names:
-            waitlist_columns = {col['name'] for col in inspector.get_columns('waitlist')}
-            if 'is_early_bird' not in waitlist_columns:
-                conn.execute(text("ALTER TABLE waitlist ADD COLUMN is_early_bird BOOLEAN DEFAULT 0"))
-
         if 'user_events' in table_names:
             user_event_columns = {col['name'] for col in inspector.get_columns('user_events')}
             if 'event_context' not in user_event_columns:
@@ -859,12 +854,7 @@ def index():
             return redirect(url_for('dashboard'))
         return redirect(url_for('setup_checklist'))
 
-    if session.get('dev_access'):
-        return render_template('landing.html')
-    launch_mode = (getattr(config, 'LAUNCH_MODE', 'waitlist') or 'waitlist').lower()
-    if launch_mode == 'live':
-        return render_template('landing.html')
-    return render_template('waitlist.html')
+    return render_template('landing.html')
 
 
 @app.route('/dev-unlock/<token>')
@@ -875,73 +865,16 @@ def dev_unlock(token):
     dev_bypass_token = os.getenv('DEV_BYPASS_TOKEN', '').strip()
     if dev_bypass_token and token == dev_bypass_token:
         session['dev_access'] = True
-        flash("Developer access granted. Waitlist bypassed.", "success")
+        flash("Developer access granted.", "success")
         return redirect(url_for('index'))
     return "Unauthorized", 403
 
-
+@app.route('/waitlist')
+@app.route('/waitlist/')
 @app.route('/waitlist/thank-you')
-def waitlist_thank_you():
-    return render_template('waitlist_thank_you.html')
-
-
-@app.route('/join-waitlist', methods=['POST'])
-def join_waitlist():
-    email = request.form.get('email', '').strip().lower()
-
-    if not is_valid_email(email):
-        flash("A valid email is required.", "error")
-        return redirect(url_for('index'))
-
-    # 1. Local Tracking (Wrapped in safety net)
-    try:
-        existing = Waitlist.query.filter_by(email=email).first()
-        if not existing:
-            is_early = Waitlist.query.count() < 25
-            db.session.add(Waitlist(email=email, is_early_bird=is_early))
-            db.session.commit()
-    except Exception as e:
-        logger.error(f"Database Waitlist Error: {e}")
-        db.session.rollback()
-
-    # 2. PULL FROM CONFIG MODULE
-    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
-    
-    if not api_key:
-        logger.error("CRITICAL: BREVO_API_KEY is missing from environment variables!")
-        flash("Waitlist is temporarily unavailable. Please try again later.", "error")
-        return redirect(url_for('index'))
-
-    # 3. Brevo API Execution
-    url = "https://api.brevo.com/v3/contacts"
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "api-key": api_key
-    }
-    
-    payload = {
-        "email": email,
-        "listIds": [config.BREVO_LIST_ID], 
-        "updateEnabled": True
-    }
-    
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
-        
-        if response.status_code in [200, 201, 204]:
-            flash("You've been successfully added to the priority waitlist.", "success")
-            return redirect(url_for('waitlist_thank_you'))
-
-        logger.error(f"Brevo API Rejected: {response.text}")
-        flash("We could not secure your spot right now. Please try again.", "error")
-
-    except Exception as e:
-        logger.error(f"Brevo Connection Failed: {e}")
-        flash("System connection error. Please try again.", "error")
-
-    return redirect(url_for('index'))
-
+@app.route('/join-waitlist', methods=['GET', 'POST'])
+def legacy_waitlist_redirect():
+    return redirect(url_for('signup', plan='monthly'), code=301)
 
 @app.route('/pricing')
 def pricing():
@@ -1570,6 +1503,17 @@ def apply_subscription_to_user(user: User, subscription: dict, price_id: str | N
         )
 
 
+
+
+def get_launch_promo_discounts(plan: str) -> list[dict[str, str]]:
+    if plan != 'monthly':
+        return []
+    if not config.LAUNCH_PROMO_ENABLED:
+        return []
+    if not config.LAUNCH_PROMO_STRIPE_COUPON_ID:
+        return []
+    return [{'coupon': config.LAUNCH_PROMO_STRIPE_COUPON_ID}]
+
 @app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
@@ -1593,6 +1537,8 @@ def create_checkout_session():
     try:
         stripe_customer_id = get_or_create_stripe_customer(current_user)
         track_user_event('checkout_started', user=current_user, context={'plan': plan})
+        promo_discounts = get_launch_promo_discounts(plan)
+        launch_promo_value = 'two_months_for_one' if promo_discounts else 'none'
         checkout_session = stripe.checkout.Session.create(
             mode='subscription',
             customer=stripe_customer_id,
@@ -1600,9 +1546,10 @@ def create_checkout_session():
             success_url=f"{config.APP_BASE_URL}/checkout-redirect?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{config.APP_BASE_URL}/upgrade?checkout=cancelled",
             client_reference_id=str(current_user.id),
-            metadata={'user_id': str(current_user.id), 'plan': plan},
-            subscription_data={'metadata': {'user_id': str(current_user.id), 'plan': plan}},
+            metadata={'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value},
+            subscription_data={'metadata': {'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value}},
             allow_promotion_codes=True,
+            discounts=promo_discounts,
         )
         return redirect(checkout_session.url, code=303)
     except ValueError as exc:

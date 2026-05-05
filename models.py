@@ -251,12 +251,6 @@ class User(UserMixin, db.Model):
         self.bankroll = self.active_bankroll
 
 
-class Waitlist(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_early_bird = db.Column(db.Boolean, default=False)
-
 
 class BlogPost(db.Model):
     __tablename__ = "blog_posts"
