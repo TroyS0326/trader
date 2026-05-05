@@ -1,11 +1,23 @@
+import importlib
 import json
 import os
+from pathlib import Path
 from typing import Any
+
+from dotenv import load_dotenv
 
 try:
     import google.generativeai as genai
 except Exception:  # optional dependency/runtime safety
     genai = None
+
+
+PROD_ENV_PATH = "/etc/xeanvi/xeanvi.env"
+BASE_DIR = Path(__file__).resolve().parent
+if os.path.exists(PROD_ENV_PATH):
+    load_dotenv(PROD_ENV_PATH)
+else:
+    load_dotenv(BASE_DIR / ".env")
 
 
 DEFAULT_MODEL = "gemini-2.5-flash"
@@ -23,6 +35,18 @@ SUGGESTED_INTERNAL_LINKS = [
 
 def _clean_text(value: str, fallback: str = "") -> str:
     return (value or fallback).strip()
+
+
+def _get_config_value(name: str) -> str:
+    try:
+        config = importlib.import_module("config")
+    except Exception:
+        return ""
+    return _clean_text(getattr(config, name, ""))
+
+
+def _get_gemini_api_key() -> str:
+    return _clean_text(os.getenv("GEMINI_API_KEY")) or _get_config_value("GEMINI_API_KEY")
 
 
 def generate_blog_draft(
@@ -51,7 +75,7 @@ def generate_blog_draft(
         result["error"] = "A title is required to generate an AI draft."
         return result
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = _get_gemini_api_key()
     if not api_key:
         result["error"] = "AI draft generation is not configured. Missing GEMINI_API_KEY."
         return result
