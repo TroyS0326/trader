@@ -2029,25 +2029,37 @@ def admin_keyword_map_skip(plan_id):
 def admin_keyword_map_create_draft(plan_id):
     if not is_admin_user():
         return ("Forbidden", 403)
-    plan = BlogKeywordPlan.query.get_or_404(plan_id)
+    plan = BlogKeywordPlan.query.get(plan_id)
+    if not plan:
+        flash('Keyword plan not found.', 'error')
+        return redirect(url_for('admin_keyword_map'))
+
+    linked_post = BlogPost.query.get(plan.blog_post_id) if plan.blog_post_id else None
+    if linked_post:
+        return redirect(url_for('admin_blog_edit', post_id=linked_post.id))
+
+    slug = unique_blog_slug(plan.suggested_title)
     post = BlogPost(
         title=plan.suggested_title,
-        slug=unique_blog_slug(plan.suggested_title),
-        meta_title='',
-        meta_description='',
-        excerpt='',
-        body_html='<p></p>',
+        slug=slug,
         target_keyword=plan.target_keyword,
         status='draft',
-        canonical_url=None,
+        author_name='XeanVI',
+        meta_title=plan.suggested_title,
+        meta_description='',
+        excerpt='',
+        body_html='<p>Draft created from keyword plan. Use Generate AI Draft to create the article.</p>',
+        canonical_url=build_blog_canonical_url(slug),
     )
     db.session.add(post)
     db.session.flush()
+
     plan.blog_post_id = post.id
     plan.status = 'drafted'
     plan.updated_at = datetime.utcnow()
+
     db.session.commit()
-    flash('Draft created from keyword plan. Review and edit before publishing.', 'success')
+    flash('Blog draft created from keyword plan.', 'success')
     return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
