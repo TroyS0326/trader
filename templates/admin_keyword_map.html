@@ -30,8 +30,8 @@
     <header class="admin-header">
       <div>
         <h1 class="admin-title">SEO Keyword Map</h1>
-        <p class="admin-subtitle">Use this page to plan SEO blog topics before creating posts. Seed Starter Map loads the starter keyword plan. Create Draft From Plan creates a draft blog post, but it does not generate AI content or publish automatically.</p>
-        <p class="admin-subtitle" style="margin-top:.35rem;">Planned = idea only · Drafted = blog draft created · Published = live post exists · Skipped = not using this idea</p>
+        <p class="admin-subtitle">Keyword plans are SEO article ideas. Click Create Draft From Plan to turn a keyword into a draft blog post. This does not generate AI content and does not publish. After the draft opens, use Generate AI Draft inside the blog editor.</p>
+        <p class="admin-subtitle" style="margin-top:.35rem;">planned = idea only · drafted = blog draft created · published = live post exists · skipped = not using</p>
       </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
         <form method="POST" action="{{ url_for('admin_keyword_map_seed') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-secondary" type="submit">Seed Starter Map</button></form>
@@ -62,7 +62,11 @@
               <td>{{ plan.planned_publish_date.strftime('%Y-%m-%d') if plan.planned_publish_date else '—' }}</td>
               <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
                 <a class="btn-secondary" href="{{ url_for('admin_keyword_map_edit', plan_id=plan.id) }}">Edit</a>
+                {% if plan.blog_post_id %}
+                <a class="btn-primary" href="{{ url_for('admin_blog_edit', post_id=plan.blog_post_id) }}">Open Draft</a>
+                {% else %}
                 <form method="POST" action="{{ url_for('admin_keyword_map_create_draft', plan_id=plan.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-primary" type="submit">Create Draft From Plan</button></form>
+                {% endif %}
                 <form method="POST" action="{{ url_for('admin_keyword_map_skip', plan_id=plan.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-secondary" type="submit">Skip</button></form>
               </td>
             </tr>
