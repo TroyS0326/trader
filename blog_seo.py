@@ -212,7 +212,7 @@ def analyze_blog_post_seo(title: str, slug: str, meta_title: str, meta_descripti
             suggestions.append("Target keyword is missing from the first 300 body characters.")
 
     if external_link_count == 0 and any(term in combined_lower for term in ["how", "guide", "explained", "what is"]):
-        suggestions.append("Consider citing an external educational source.")
+        suggestions.append("Consider adding one curated external educational source, such as FINRA, Investor.gov, or SEC investor education, when relevant.")
 
     hard_matches = _find_phrase_matches(combined_lower, HARD_BLOCK_PHRASES)
     warning_matches = _find_phrase_matches(combined_lower, WARNING_PHRASES)
