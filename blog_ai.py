@@ -29,16 +29,6 @@ SUGGESTED_INTERNAL_LINKS = [
     "/transparency",
     "/blog",
 ]
-REQUIRED_DRAFT_KEYS = (
-    "body_html",
-)
-OPTIONAL_DRAFT_KEYS = (
-    "meta_title",
-    "meta_description",
-    "excerpt",
-    "target_keyword",
-)
-
 logger = logging.getLogger(__name__)
 
 
@@ -131,9 +121,9 @@ def generate_blog_draft(
 You are an SEO content strategist and cautious financial education writer for XeanVI, an AI-powered trading automation and execution discipline platform.
 
 Return strict JSON only. Do not include markdown fences or commentary outside JSON.
-The JSON object MUST include all keys: title, meta_title, meta_description, excerpt, body_html, target_keyword. If no target keyword is provided, use an empty string.
+The JSON object should include title, body_html, meta_title, meta_description, excerpt, and target_keyword when available. If no target keyword is provided, use an empty string.
 
-Return exactly this JSON object shape:
+Return this JSON object shape:
 {{
   "title": "...",
   "meta_title": "...",
@@ -207,37 +197,38 @@ Input:
             result["error"] = "AI draft generation returned invalid JSON. Try again."
             return result
 
-        missing_required_keys = [key for key in REQUIRED_DRAFT_KEYS if key not in data]
-        if missing_required_keys:
-            logger.warning("Gemini blog draft JSON missing required keys: %s", ", ".join(missing_required_keys))
-            result["error"] = "AI draft generation returned incomplete JSON. Try again."
-            return result
+        parsed_title = str(data.get("title") or title or "").strip()
+        body_html = str(data.get("body_html") or "").strip()
 
-        missing_optional_keys = [key for key in OPTIONAL_DRAFT_KEYS if key not in data]
-        if missing_optional_keys:
-            logger.info("Gemini blog draft JSON missing optional keys defaulted: %s", ", ".join(missing_optional_keys))
-
-        draft_title = _clean_text(data.get("title") or title, fallback=title)
-        body_html = _clean_text(data.get("body_html", ""))
         if not body_html:
-            result["error"] = "AI draft generation returned incomplete JSON. Try again."
-            return result
+            return {
+                "ok": False,
+                "title": parsed_title or title,
+                "meta_title": "",
+                "meta_description": "",
+                "excerpt": "",
+                "body_html": "",
+                "target_keyword": keyword or "",
+                "error": "AI draft generation returned no usable article body. Try again.",
+            }
 
-        body_text = _strip_html_tags(body_html)
-        excerpt = _clean_text(data.get("excerpt", "")) or _truncate_text(body_text, 220)
-        meta_description = _clean_text(data.get("meta_description", "")) or _truncate_text(excerpt, 160)
+        plain_body = _strip_html_tags(body_html)
 
-        result.update({
+        excerpt = str(data.get("excerpt") or plain_body[:220]).strip()
+        meta_title = str(data.get("meta_title") or parsed_title or title).strip()
+        meta_description = str(data.get("meta_description") or excerpt[:158]).strip()
+        final_target_keyword = str(data.get("target_keyword") or keyword or "").strip()
+
+        return {
             "ok": True,
-            "title": draft_title,
-            "meta_title": _clean_text(data.get("meta_title", "")) or draft_title,
+            "title": parsed_title or title,
+            "meta_title": meta_title,
             "meta_description": meta_description,
             "excerpt": excerpt,
             "body_html": body_html,
-            "target_keyword": _clean_text(data.get("target_keyword") or keyword, fallback=keyword),
+            "target_keyword": final_target_keyword,
             "error": None,
-        })
-        return result
+        }
     except requests.HTTPError as exc:
         response = exc.response
         summary = _gemini_error_summary(response) if response is not None else str(exc)[:200]
