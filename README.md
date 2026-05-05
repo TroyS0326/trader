@@ -530,7 +530,6 @@ The `/v1/oauth/callback` route exists as an alias for compatibility.
 /onboarding               User onboarding
 /settings                 User settings and risk controls
 /upgrade                  Subscription upgrade page
-/learn                    Learning area
 /transparency             Transparency/performance area
 ```
 

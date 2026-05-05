@@ -1033,7 +1033,7 @@ def sitemap_xml():
         'ws_watchlist', 'api_scan', 'api_metrics', 'api_history',
         'api_chart', 'api_execute', 'api_order_status', 'api_transparency_stats',
         'dashboard', 'onboarding', 'settings', 'logout', 'upgrade',
-        'learn', 'learn_topic', 'transparency', 'join_waitlist',
+        'transparency', 'join_waitlist',
         'alpaca_login', 'alpaca_logout', 'alpaca_callback', 'sandbox_callback',
         'forgot_password', 'reset_password_with_token',
     ]
@@ -1076,17 +1076,13 @@ def robots_txt():
 
 
 @app.route('/learn')
-@login_required
-def learn():
-    # In the future, you can track 'completed_lessons' in the DB
-    return render_template('learn.html', current_user=current_user)
+def learn_gone():
+    return ("", 410)
 
 
-@app.route('/learn/<topic>')
-@login_required
-def learn_topic(topic):
-    # This dynamic route allows lesson pages like /learn/rvol or /learn/risk-management
-    return render_template(f'lessons/{topic}.html', current_user=current_user)
+@app.route('/learn/<path:slug>')
+def learn_topic_gone(slug):
+    return ("", 410)
 
 @app.route('/transparency')
 def transparency():
