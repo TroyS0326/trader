@@ -146,12 +146,31 @@ def suggest_internal_links(
                 score += 10
                 matched_keyword = matched_keyword or keyword
 
-        trading_risk_terms = ("trading", "risk", "setup", "execution", "rules", "discipline")
-        if link["strong_topic_match"] and any(term in f"{title_text} {keyword_text} {excerpt_text} {body_text}" for term in trading_risk_terms):
-            score += 10
+        combined_text = f"{title_text} {keyword_text} {excerpt_text} {body_text}"
+        if url == "/playbook":
+            if not any(term in combined_text for term in ("rules", "playbook", "setup criteria", "entry", "exit", "stop-loss", "risk rules", "discipline")):
+                continue
+        if url == "/features":
+            if not any(term in combined_text for term in ("automation", "scanner", "dashboard", "features", "workflow", "alerts", "risk controls")):
+                continue
+        if url == "/broker-integration":
+            if not any(term in combined_text for term in ("alpaca", "broker", "api", "paper trading", "live trading", "bracket orders", "execution")):
+                continue
+        if url == "/pricing":
+            if not any(term in combined_text for term in ("pricing", "subscription", "cost", "plan", "upgrade", "pro", "monthly", "annual")):
+                continue
+        if url == "/signup":
+            if not any(term in combined_text for term in ("onboarding", "start", "join", "begin", "create account", "sign up", "signup")):
+                continue
+        if url == "/transparency":
+            if not any(term in combined_text for term in ("ai", "logic", "explainability", "safety", "transparency", "decision process")):
+                continue
+        if url == "/blog":
+            if not any(term in combined_text for term in ("guide", "education", "learn", "beginner", "what is", "how to")):
+                continue
 
         score = min(score, 100)
-        if score < 20:
+        if score < 30:
             continue
 
         suggestions.append({
