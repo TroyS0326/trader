@@ -198,6 +198,10 @@ def build_blog_canonical_url(slug: str) -> str:
     return f"{base_url}/blog/{clean_slug}" if clean_slug else ""
 
 
+def get_public_base_url() -> str:
+    return (getattr(config, 'APP_BASE_URL', '') or 'https://xeanvi.com').strip().rstrip('/')
+
+
 def unique_blog_slug(title: str, existing_post_id: int = None) -> str:
     base_slug = slugify_blog_title(title)
     candidate = base_slug
@@ -1111,7 +1115,11 @@ def blog_index():
 def blog_post(slug):
     post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
     canonical_url = post.canonical_url or build_blog_canonical_url(post.slug)
-    return render_template('blog_post.html', post=post, canonical_url=canonical_url)
+    base_url = get_public_base_url()
+    og_image_absolute = ""
+    if post.og_image:
+        og_image_absolute = post.og_image if post.og_image.startswith(('http://', 'https://')) else f"{base_url}{post.og_image}"
+    return render_template('blog_post.html', post=post, canonical_url=canonical_url, base_url=base_url, og_image_absolute=og_image_absolute)
 
 
 @app.route('/sitemap.xml')
@@ -1132,7 +1140,7 @@ def sitemap_xml():
         '/blog',
     ]
 
-    base_url = "https://xeanvi.com"
+    base_url = get_public_base_url()
 
     existing_rules = {rule.rule for rule in app.url_map.iter_rules() if "GET" in rule.methods}
     for path in public_paths:
@@ -1153,14 +1161,16 @@ def sitemap_xml():
 @app.route('/robots.txt')
 def robots_txt():
     """Updated to point to the new XML sitemap."""
+    base_url = get_public_base_url()
     lines = [
         "User-agent: *",
         "Disallow: /dashboard",
+        "Disallow: /admin/",
         "Disallow: /api/",
         "Disallow: /settings",
         "Disallow: /logout",
         "Disallow: /alpaca/",
-        "Sitemap: https://xeanvi.com/sitemap.xml",  # Pointing to the XML file
+        f"Sitemap: {base_url}/sitemap.xml",
     ]
     return "\n".join(lines), 200, {'Content-Type': 'text/plain'}
 
