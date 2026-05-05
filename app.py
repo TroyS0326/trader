@@ -48,6 +48,7 @@ from blog_seo_fixes import apply_safe_seo_fixes
 from blog_internal_links import suggest_internal_links
 from blog_human_quality import analyze_human_quality
 from blog_images import save_blog_featured_image
+from blog_image_seo import generate_image_alt_caption
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -1962,7 +1963,7 @@ def admin_blog_new():
                 featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
             needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
-                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'repeated phrase'
+                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'no internal links', 'repeated phrase'
             ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
             ai_changes = []
             if needs_ai_cleanup:
@@ -2047,6 +2048,18 @@ def admin_blog_new():
                 )
                 return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
             og_image_value = upload_result.get('url') or og_image_value
+            flash('Featured image uploaded.', 'success')
+        if not form_data['featured_image_alt'] or not form_data['featured_image_caption']:
+            generated_image_meta = generate_image_alt_caption(
+                title=title,
+                target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'],
+                body_html=body_html,
+            )
+            if not form_data['featured_image_alt']:
+                form_data['featured_image_alt'] = generated_image_meta.get('alt_text') or ''
+            if not form_data['featured_image_caption']:
+                form_data['featured_image_caption'] = generated_image_meta.get('caption') or ''
         canonical_url = (form_data['canonical_url'] or '').strip() or build_blog_canonical_url(slug)
         post = BlogPost(
             title=title,
@@ -2241,7 +2254,7 @@ def admin_blog_edit(post_id):
                 featured_image_alt=fixed_fields.get('featured_image_alt') or '',
             )
             needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
-                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'repeated phrase'
+                'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'no internal links', 'repeated phrase'
             ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
             ai_changes = []
             if needs_ai_cleanup:
@@ -2326,6 +2339,18 @@ def admin_blog_edit(post_id):
                 )
                 return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
             og_image_value = upload_result.get('url') or og_image_value
+            flash('Featured image uploaded.', 'success')
+        if not form_data['featured_image_alt'] or not form_data['featured_image_caption']:
+            generated_image_meta = generate_image_alt_caption(
+                title=title,
+                target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'],
+                body_html=body_html,
+            )
+            if not form_data['featured_image_alt']:
+                form_data['featured_image_alt'] = generated_image_meta.get('alt_text') or ''
+            if not form_data['featured_image_caption']:
+                form_data['featured_image_caption'] = generated_image_meta.get('caption') or ''
         post.title = title
         post.slug = unique_blog_slug(slug_input or title, existing_post_id=post.id)
         post.meta_title = form_data['meta_title'] or None
