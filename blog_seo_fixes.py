@@ -4,6 +4,118 @@ from html import unescape
 RISK_NOTE_HTML = "<p><em>This article is for educational purposes only and is not financial advice. Traders should test rules carefully, use risk controls, and understand that all trading involves risk.</em></p>"
 
 
+REPEATED_PHRASE_SYNONYMS = {
+    "the market open": [
+        "the opening session",
+        "early trading",
+        "the first part of the trading day",
+        "the open",
+    ],
+    "trading discipline": [
+        "rules-based discipline",
+        "execution discipline",
+        "a structured trading process",
+    ],
+    "risk management": [
+        "risk controls",
+        "defined risk rules",
+        "risk planning",
+    ],
+    "paper trading": [
+        "simulated trading",
+        "a paper environment",
+        "practice trading",
+    ],
+    "trading playbook": [
+        "rules-based playbook",
+        "trade plan",
+        "structured trading plan",
+    ],
+}
+
+CURATED_EXTERNAL_SOURCES = {
+    "finra": "<p><strong>Educational source:</strong> For broader context on day trading rules and risks, review <a href=\"https://www.finra.org/investors/investing/investment-products/stocks/day-trading\" target=\"_blank\" rel=\"noopener noreferrer\">FINRA's day trading investor education resource</a>.</p>",
+    "investor_gov": "<p><strong>Educational source:</strong> For a general risk overview, see <a href=\"https://www.investor.gov/additional-resources/general-resources/glossary/day-trading\" target=\"_blank\" rel=\"noopener noreferrer\">Investor.gov's day trading overview</a>.</p>",
+    "sec": '<p><strong>Educational source:</strong> For broader investor education, review the <a href="https://www.sec.gov/education/investor-education" target="_blank" rel="noopener noreferrer">SEC investor education resources</a>.</p>',
+}
+
+def _extract_repeated_phrases_from_warnings(warnings: list[str] | None) -> list[str]:
+    phrases = []
+    for warning in warnings or []:
+        match = re.search(r"Repeated phrase pattern detected \('([^']+)'\)", warning or "", flags=re.IGNORECASE)
+        if match:
+            phrases.append(match.group(1).strip().lower())
+    return list(dict.fromkeys(phrases))
+
+
+def _split_html_segments(body_html: str) -> list[tuple[str, bool]]:
+    parts = re.split(r"(<[^>]+>)", body_html or "")
+    return [(part, bool(part.startswith("<") and part.endswith(">"))) for part in parts if part is not None]
+
+
+def _reduce_repeated_phrases(body_html: str, repeated_phrases: list[str] | None = None) -> tuple[str, list[str]]:
+    phrases = [p.strip().lower() for p in (repeated_phrases or []) if p and p.strip().lower() in REPEATED_PHRASE_SYNONYMS]
+    if not phrases:
+        return body_html, []
+
+    updated = body_html or ""
+    changes = []
+    segments = _split_html_segments(updated)
+
+    for phrase in phrases:
+        pattern = re.compile(rf"\b{re.escape(phrase)}\b", flags=re.IGNORECASE)
+        text_only = " ".join(seg for seg, is_tag in segments if not is_tag)
+        total_count = len(pattern.findall(text_only))
+        if total_count <= 4:
+            continue
+
+        replacements = REPEATED_PHRASE_SYNONYMS[phrase]
+        seen = 0
+        replace_idx = 0
+        new_segments = []
+        for segment, is_tag in segments:
+            if is_tag:
+                new_segments.append((segment, is_tag))
+                continue
+
+            def _repl(match):
+                nonlocal seen, replace_idx
+                seen += 1
+                if seen <= 2:
+                    return match.group(0)
+                replacement = replacements[replace_idx % len(replacements)]
+                replace_idx += 1
+                return replacement
+
+            new_segments.append((pattern.sub(_repl, segment), is_tag))
+
+        if seen > 2:
+            segments = new_segments
+            changes.append(f"Reduced repeated phrase '{phrase}' by replacing later occurrences with natural alternatives.")
+
+    return "".join(seg for seg, _ in segments), changes
+
+
+def _has_external_http_link(body_html: str) -> bool:
+    return bool(re.search(r'href=["\']https?://', body_html or "", flags=re.IGNORECASE))
+
+
+def _add_curated_external_source_if_missing(body_html: str, title: str, target_keyword: str = "") -> tuple[str, list[str]]:
+    safe_body = body_html or ""
+    combined = f"{title or ''} {target_keyword or ''} {_strip_html_tags(safe_body)}".lower()
+    if len(_strip_html_tags(safe_body)) < 80 or _has_external_http_link(safe_body):
+        return safe_body, []
+
+    if any(token in combined for token in ["day trading", "market open", "pattern day trader", "pdt"]):
+        snippet = CURATED_EXTERNAL_SOURCES["finra"]
+    elif any(token in combined for token in ["risk", "trading", "stock", "market"]):
+        snippet = CURATED_EXTERNAL_SOURCES["investor_gov"]
+    else:
+        snippet = CURATED_EXTERNAL_SOURCES["sec"]
+
+    return safe_body.rstrip() + "\n\n" + snippet, ["Added one curated external educational source."]
+
+
 def _strip_html_tags(value):
     text = unescape(value or "")
     text = re.sub(r"<script\b[^>]*>.*?</script>", " ", text, flags=re.IGNORECASE | re.DOTALL)
@@ -171,7 +283,22 @@ def apply_safe_seo_fixes(
             elif "h2" in lowered or "heading" in lowered or "rewrite" in lowered:
                 unapplied_suggestions.append(suggestion)
 
-    if _looks_trading_related(f"{safe_title} {body_text}") and not _contains_risk_language(body_text):
+    repeated_phrases = _extract_repeated_phrases_from_warnings((seo_report or {}).get("warnings"))
+    safe_body_html, phrase_changes = _reduce_repeated_phrases(safe_body_html, repeated_phrases)
+    changes.extend(phrase_changes)
+
+    should_add_source = False
+    if seo_report:
+        suggestion_text = " ".join((seo_report.get("suggestions") or []) + (seo_report.get("warnings") or [])).lower()
+        should_add_source = "external" in suggestion_text and "source" in suggestion_text
+    elif _looks_trading_related(f"{safe_title} {body_text}"):
+        should_add_source = True
+
+    if should_add_source:
+        safe_body_html, source_changes = _add_curated_external_source_if_missing(safe_body_html, safe_title, safe_target_keyword)
+        changes.extend(source_changes)
+
+    if _looks_trading_related(f"{safe_title} {body_text}") and not _contains_risk_language(_strip_html_tags(safe_body_html)):
         safe_body_html = safe_body_html.rstrip() + "\n\n" + RISK_NOTE_HTML
         changes.append("Appended educational risk note to body HTML.")
 
