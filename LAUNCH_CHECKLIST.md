@@ -132,7 +132,6 @@ Populate all required values from `.env.example` before launch.
 ## 3) Browser Smoke Test Checklist
 
 - [ ] Home page loads
-- [ ] Waitlist page and submit flow works
 - [ ] Signup page and submit flow works
 - [ ] Login page and login flow works
 - [ ] Forgot password request flow works
@@ -160,7 +159,8 @@ Populate all required values from `.env.example` before launch.
 
 - [ ] Stripe checkout session is created successfully
 - [ ] Stripe webhook is received and processed successfully
-- [ ] Brevo waitlist subscription flow succeeds
+- [ ] Signup flow succeeds
+- [ ] Monthly PRO launch promo checkout applies coupon metadata
 - [ ] Brevo password reset email flow succeeds
 - [ ] Alpaca OAuth paper connection succeeds
 - [ ] Alpaca tokens are stored encrypted at rest

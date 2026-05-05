@@ -27,7 +27,7 @@ FLASK_ENV = os.getenv('FLASK_ENV', '').strip().lower()
 IS_PRODUCTION = FLASK_ENV == 'production' or not DEBUG
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
-LAUNCH_MODE = os.getenv('LAUNCH_MODE', 'waitlist').strip().lower() or 'waitlist'
+LAUNCH_MODE = os.getenv('LAUNCH_MODE', 'live').strip().lower() or 'live'
 STRICT_PRODUCTION_SCANNER = os.getenv('STRICT_PRODUCTION_SCANNER', '1') == '1'
 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip() or 'redis://localhost:6379/0'
@@ -62,6 +62,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 STRIPE_PRICE_ID_MONTHLY = os.getenv('STRIPE_PRICE_ID_MONTHLY')
 STRIPE_PRICE_ID_ANNUAL = os.getenv('STRIPE_PRICE_ID_ANNUAL')
 STRIPE_CUSTOMER_PORTAL_RETURN_PATH = os.getenv('STRIPE_CUSTOMER_PORTAL_RETURN_PATH', '/billing')
+LAUNCH_PROMO_ENABLED = os.getenv('LAUNCH_PROMO_ENABLED', '0') == '1'
+LAUNCH_PROMO_STRIPE_COUPON_ID = os.getenv('LAUNCH_PROMO_STRIPE_COUPON_ID', '').strip()
+
 BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 BREVO_LIST_ID = int(os.getenv('BREVO_LIST_ID', '5'))
 BREVO_SIGNUP_LIST_ID = int(os.getenv('BREVO_SIGNUP_LIST_ID', '0'))

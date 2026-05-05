@@ -13,7 +13,7 @@ The platform acts as a trading command center. Users define their own Trading Pl
 - User account signup and login
 - Secure forgot-password and reset-password flow
 - Brevo transactional password reset emails
-- Waitlist capture with Brevo contact sync
+- Direct signup and Monthly PRO checkout flow
 - Trading dashboard for authenticated users
 - Trading Playbook page and strategy workflow
 - Alpaca broker OAuth connection
@@ -506,7 +506,7 @@ The `/v1/oauth/callback` route exists as an alias for compatibility.
 ## Important Public Pages
 
 ```txt
-/                         Home or waitlist depending on access/session
+/                         Home landing page
 /features                 Features page
 /playbook                 Trading Playbook page
 /broker-integration       Broker integration page
