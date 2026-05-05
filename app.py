@@ -2096,6 +2096,21 @@ def admin_blog_generate_draft():
     )
     return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
+@app.route('/admin/blog/<int:post_id>/delete', methods=['POST'])
+@login_required
+def admin_blog_delete(post_id):
+    if not is_admin_user():
+        return ("Forbidden", 403)
+    post = BlogPost.query.get(post_id)
+    if not post:
+        flash('Blog post not found.', 'error')
+        return redirect(url_for('admin_blog_list'))
+
+    db.session.delete(post)
+    db.session.commit()
+    flash('Blog post deleted.', 'success')
+    return redirect(url_for('admin_blog_list'))
+
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_blog_edit(post_id):

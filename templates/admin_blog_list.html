@@ -63,7 +63,15 @@
                 </td>
                 <td>{{ post.updated_at }}</td>
                 <td>{{ post.published_at or '—' }}</td>
-                <td><a class="btn-secondary" href="{{ url_for('admin_blog_edit', post_id=post.id) }}">Edit</a></td>
+                <td>
+                  <div class="action-row">
+                    <a class="btn-secondary" href="{{ url_for('admin_blog_edit', post_id=post.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('admin_blog_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this blog post permanently? This cannot be undone.');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn-danger-outline">Delete</button>
+                    </form>
+                  </div>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
