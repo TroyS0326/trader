@@ -1,4 +1,5 @@
 import datetime as dt
+import os
 from pathlib import Path
 
 import importlib.util
@@ -175,6 +176,14 @@ def test_run_backup_uses_pgpassword_and_sanitized_pg_dump_target(monkeypatch, tm
     assert oct(backup_file.stat().st_mode & 0o777) == '0o600'
 
 
+def test_open_secure_backup_file_sets_0600_immediately(tmp_path):
+    backup_file = tmp_path / 'backup.sql.gz'
+    with bp.open_secure_backup_file(backup_file) as handle:
+        mode = backup_file.stat().st_mode & 0o777
+        assert mode == 0o600
+        handle.write(b'data')
+
+
 def test_run_backup_decodes_urlencoded_password_for_pgpassword(monkeypatch, tmp_path):
     captured = {}
 
@@ -210,3 +219,50 @@ def test_run_backup_scrubs_pg_dump_failure(monkeypatch, tmp_path):
     assert 'secret' not in msg
     assert db_url not in msg
     assert 'postgresql://u@localhost:5432/app' not in msg
+
+
+def test_run_backup_pg_dump_failure_removes_partial_file(monkeypatch, tmp_path):
+    class _FakeWriteProc(_FakeProc):
+        def __init__(self, output_file, rc: int = 0, stderr: bytes = b'', stdout: bytes | None = b''):
+            super().__init__(rc=rc, stderr=stderr, stdout=stdout)
+            self._output_file = output_file
+
+        def wait(self) -> int:
+            if self._output_file:
+                self._output_file.write(b'partial')
+                self._output_file.flush()
+            return self._rc
+
+    def fake_popen(cmd, **kwargs):
+        if cmd[0] == 'pg_dump':
+            return _FakeProc(rc=1, stderr=b'failed secret', stdout=b'dump')
+        if cmd[0] == 'gzip':
+            return _FakeWriteProc(kwargs.get('stdout'), rc=0, stderr=b'', stdout=None)
+        raise AssertionError('unexpected command')
+
+    monkeypatch.setattr(bp.subprocess, 'Popen', fake_popen)
+    backup_file = tmp_path / 'backup.sql.gz'
+    with __import__('pytest').raises(RuntimeError):
+        bp.run_backup('postgresql://u:secret@localhost:5432/app', backup_file)
+    assert not backup_file.exists()
+
+
+def test_main_attempts_backup_dir_chmod(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', 'postgres://user:secret@localhost/db')
+    monkeypatch.setenv('BACKUP_DIR', str(tmp_path / 'backups'))
+    called = {'mode': None}
+
+    real_chmod = Path.chmod
+
+    def fake_chmod(self, mode):
+        if self == Path(os.environ['BACKUP_DIR']).resolve():
+            called['mode'] = mode
+        return real_chmod(self, mode)
+
+    def fake_run_backup(_db_url, backup_file):
+        backup_file.write_bytes(b'abc')
+
+    monkeypatch.setattr(Path, 'chmod', fake_chmod)
+    monkeypatch.setattr(bp, 'run_backup', fake_run_backup)
+    assert bp.main([]) == 0
+    assert called['mode'] == 0o700
