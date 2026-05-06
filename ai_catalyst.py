@@ -11,14 +11,9 @@ import yfinance as yf
 
 from feature_store import store
 from scanner import get_company_news
+import gemini_client
 
 logger = logging.getLogger(__name__)
-
-try:
-    import google.generativeai as genai
-    HAS_GEMINI = True
-except Exception:
-    HAS_GEMINI = False
 
 try:
     with open('catalyst_feedback.json', 'r', encoding='utf-8') as f:
@@ -290,13 +285,19 @@ def generate_catalyst_score(symbol: str) -> Dict[str, Any]:
     )
 
     api_key = os.getenv("GEMINI_API_KEY")
-    if not (HAS_GEMINI and api_key):
+    if not api_key:
         return _fallback_catalyst_payload(symbol, comprehensive_dossier)
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
+        prompt = (
+            "Analyze this comprehensive_dossier and return strict JSON only.\n\n"
+            f"comprehensive_dossier:\n{comprehensive_dossier}"
+        )
+        response_text = gemini_client.generate_text(
+            prompt,
+            model="gemini-2.0-flash",
+            temperature=0.1,
+            response_mime_type="application/json",
             system_instruction=(
                 "You are an institutional forensic auditor. Cross-reference the provided News, "
                 "SEC Financials, and Social Sentiment. Your primary goal is to detect Pump and "
@@ -311,18 +312,9 @@ def generate_catalyst_score(symbol: str) -> Dict[str, Any]:
                 "Return STRICT JSON only with keys: symbol (string), catalyst_score (integer 0-100), "
                 "risk_flag (string: PUMP_AND_DUMP_RISK or CLEAR), forensic_note (string)."
             ),
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json",
-                temperature=0.1,
-            ),
+            timeout=12.0,
         )
-
-        prompt = (
-            "Analyze this comprehensive_dossier and return strict JSON only.\n\n"
-            f"comprehensive_dossier:\n{comprehensive_dossier}"
-        )
-        response = model.generate_content(prompt, request_options={"timeout": 12.0})
-        parsed = json.loads(response.text)
+        parsed = json.loads(response_text)
 
         required_keys = {"symbol", "catalyst_score", "risk_flag", "forensic_note"}
         if set(parsed.keys()) != required_keys:
