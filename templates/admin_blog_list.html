@@ -7,24 +7,86 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2.25rem 1rem 3rem; }
-    .admin-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .admin-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding: .9rem 0;
+      background: linear-gradient(180deg, rgba(6, 11, 17, .96), rgba(6, 11, 17, .85));
+      backdrop-filter: blur(6px);
+    }
     .admin-title { margin: 0; font-size: clamp(1.7rem, 2.2vw, 2.2rem); }
     .admin-subtitle { margin: .5rem 0 0; color: var(--text-secondary, #9ca3af); }
-    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.1rem; box-shadow: 0 10px 26px rgba(0,0,0,.25); }
-    .table-wrap { overflow-x: auto; }
-    .admin-table { width: 100%; border-collapse: collapse; min-width: 780px; }
-    .admin-table th, .admin-table td { padding: .9rem .75rem; text-align: left; border-bottom: 1px solid #253247; vertical-align: middle; }
-    .admin-table th { color: #9fb0c7; font-size: .84rem; letter-spacing: .03em; text-transform: uppercase; }
-    .admin-table tr:last-child td { border-bottom: 0; }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.1rem; box-shadow: 0 10px 26px rgba(0,0,0,.25); overflow: hidden; }
+
+    .post-grid { display: grid; gap: .9rem; }
+    .post-item {
+      background: #0f1622;
+      border: 1px solid #253247;
+      border-radius: 12px;
+      padding: .9rem;
+      display: flex;
+      flex-direction: column;
+      gap: .85rem;
+    }
+    .post-main { display: grid; gap: .65rem; }
+    .post-title { margin: 0; font-size: 1.05rem; line-height: 1.35; }
+    .post-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .45rem .8rem; }
+    .post-meta-item { min-width: 0; }
+    .post-meta-label { display: block; font-size: .73rem; letter-spacing: .03em; text-transform: uppercase; color: #8ba0bc; margin-bottom: .12rem; }
+    .post-meta-value { color: #d9e5f5; font-size: .9rem; line-height: 1.35; word-break: break-word; overflow-wrap: anywhere; }
+    .post-slug { font-size: .84rem; color: #9fb0c7; word-break: break-word; overflow-wrap: anywhere; }
+
     .status-badge { display: inline-block; padding: .28rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
     .status-badge.published { background: rgba(16, 185, 129, .16); color: #34d399; border: 1px solid rgba(52, 211, 153, .45); }
     .status-badge.draft { background: rgba(251, 191, 36, .14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, .42); }
-    .btn-primary, .btn-secondary { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; padding: .65rem 1rem; font-weight: 650; }
-    .btn-primary { background: #2f6df6; color: #fff; border: 1px solid #4c7ef6; }
-    .btn-primary:hover { background: #3d78f6; }
-    .btn-secondary { border: 1px solid #355073; color: #d0deef; background: #182335; }
+
+    .admin-action-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .admin-action-row form { display: inline-flex; margin: 0; }
+    .admin-btn {
+      appearance: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      padding: 0 .85rem;
+      font-size: .86rem;
+      font-weight: 650;
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .admin-btn-primary { background: #2f6df6; color: #fff; border-color: #4c7ef6; }
+    .admin-btn-primary:hover { background: #3d78f6; }
+    .admin-btn-secondary { background: #233247; border-color: #355073; color: #d0deef; }
+    .admin-btn-secondary:hover { background: #2b3d56; }
+    .admin-btn-danger { background: #371b21; border-color: #6b2735; color: #fda4af; }
+    .admin-btn-danger:hover { background: #4a212a; }
+    .admin-btn-muted { background: #1d2432; border-color: #36445a; color: #b7c6dc; }
+    .admin-btn-muted:hover { background: #263249; }
+
     .empty-state { padding: 2rem 1rem; text-align: center; color: #9fb0c7; }
-    @media (max-width: 700px) { .admin-shell { padding-top: 1.5rem; } .admin-card { padding: .9rem; } }
+    @media (min-width: 860px) {
+      .post-item { flex-direction: row; justify-content: space-between; align-items: flex-start; }
+      .post-main { flex: 1; }
+      .admin-action-row { justify-content: flex-end; max-width: 340px; }
+    }
+    @media (max-width: 700px) {
+      .admin-shell { padding-top: 1.5rem; }
+      .admin-card { padding: .9rem; }
+      .admin-header { position: static; padding: 0; background: none; backdrop-filter: none; }
+      .admin-action-row { width: 100%; }
+      .admin-action-row .admin-btn { flex: 1 1 auto; }
+    }
   </style>
 </head>
 <body class="auth-body">
@@ -37,47 +99,53 @@
         <p class="admin-subtitle">Create, edit, publish, or unpublish SEO blog posts.</p>
       </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-        <a class="btn-primary" href="{{ url_for('admin_blog_new') }}">New Blog Post</a>
+        <a class="admin-btn admin-btn-primary" href="{{ url_for('admin_blog_new') }}">New Blog Post</a>
       </div>
     </header>
 
     <section class="admin-card" aria-label="Blog post list">
       {% if posts %}
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Slug</th>
-                <th>Status</th>
-                <th>Updated Date</th>
-                <th>Published Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for post in posts %}
-              <tr>
-                <td>{{ post.title }}</td>
-                <td>{{ post.slug }}</td>
-                <td>
+        <div class="post-grid">
+          {% for post in posts %}
+          <article class="post-item">
+            <div class="post-main">
+              <h2 class="post-title">{{ post.title }}</h2>
+              <div class="post-meta">
+                <div class="post-meta-item">
+                  <span class="post-meta-label">Slug</span>
+                  <div class="post-meta-value post-slug">{{ post.slug }}</div>
+                </div>
+                <div class="post-meta-item">
+                  <span class="post-meta-label">Status</span>
                   <span class="status-badge {{ post.status }}">{{ post.status }}</span>
-                </td>
-                <td>{{ post.updated_at }}</td>
-                <td>{{ post.published_at or '—' }}</td>
-                <td>
-                  <div class="action-row">
-                    <a class="btn-secondary" href="{{ url_for('admin_blog_edit', post_id=post.id) }}">Edit</a>
-                    <form method="POST" action="{{ url_for('admin_blog_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this blog post permanently? This cannot be undone.');">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn-danger-outline">Delete</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                </div>
+                <div class="post-meta-item">
+                  <span class="post-meta-label">Updated Date</span>
+                  <div class="post-meta-value">{{ post.updated_at }}</div>
+                </div>
+                <div class="post-meta-item">
+                  <span class="post-meta-label">Published Date</span>
+                  <div class="post-meta-value">{{ post.published_at or '—' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-action-row">
+              <a class="admin-btn admin-btn-primary" href="{{ url_for('admin_blog_edit', post_id=post.id) }}">Edit</a>
+              {% if post.status == 'published' %}
+              <a class="admin-btn admin-btn-muted" href="{{ url_for('blog_post', slug=post.slug) }}" target="_blank" rel="noopener">View</a>
+              <form method="POST" action="{{ url_for('admin_blog_unpublish', post_id=post.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="admin-btn admin-btn-secondary" type="submit">Unpublish</button>
+              </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('admin_blog_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this blog post permanently? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="admin-btn admin-btn-danger">Delete</button>
+              </form>
+            </div>
+          </article>
+          {% endfor %}
         </div>
       {% else %}
         <div class="empty-state">
