@@ -57,6 +57,8 @@ def _run_scan_for_user(user: Any) -> Dict[str, Any]:
 
 
 def _onboarding_complete(user: Any) -> bool:
+    # first_scan_completed and scan_preview_completed are intentionally not required
+    # because those flags can depend on scanner-driven workflows.
     required_flags = (
         "onboarding_completed",
         "paper_bankroll_set",
@@ -72,17 +74,28 @@ def _extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]
     if any(best_pick.get(k) in (None, "") for k in required):
         return None
     try:
-        return {
-            "symbol": str(best_pick.get("symbol", "")).upper().strip(),
-            "qty": int(float(best_pick.get("qty"))),
-            "entry_price": float(best_pick.get("entry_price")),
-            "stop_price": float(best_pick.get("stop_price")),
-            "target_1": float(best_pick.get("target_1")),
-            "target_2": float(best_pick.get("target_2")),
-        }
+        symbol = str(best_pick.get("symbol", "")).upper().strip()
+        qty = int(float(best_pick.get("qty")))
+        entry_price = float(best_pick.get("entry_price"))
+        stop_price = float(best_pick.get("stop_price"))
+        target_1 = float(best_pick.get("target_1"))
+        target_2 = float(best_pick.get("target_2"))
     except (TypeError, ValueError):
         logger.warning("Execution skipped: invalid numeric order field payload=%r", best_pick)
         return None
+
+    if qty < 1:
+        logger.info("Execution skipped: qty below 1 for symbol=%s qty=%s", symbol, qty)
+        return None
+
+    return {
+        "symbol": symbol,
+        "qty": qty,
+        "entry_price": entry_price,
+        "stop_price": stop_price,
+        "target_1": target_1,
+        "target_2": target_2,
+    }
 
 
 def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> None:
