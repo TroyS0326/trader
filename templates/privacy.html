@@ -56,51 +56,65 @@
     </nav>
     <div class="legal-wrap">
         <h1>Privacy Policy</h1>
-        <div class="last-updated">Last Updated: April&nbsp;2026</div>
+        <div class="last-updated">Last Updated: May&nbsp;2026</div>
+
+        <p><strong>Important:</strong> This Privacy Policy is provided for general informational purposes and is not legal advice. XeanVI recommends attorney review before production launch.</p>
+
         <h2>1. Introduction</h2>
-        <p>XeanVI ("we," "our," or "us") respects your privacy. This Privacy Policy explains how we collect, use, and protect your personal and financial information when you use our algorithmic trading software and website.</p>
+        <p>This Privacy Policy explains how XeanVI collects, uses, stores, and shares information in connection with our website, SaaS platform, trading automation tools, broker integrations, billing systems, analytics, and email communications.</p>
+
         <h2>2. Information We Collect</h2>
-        <p>To provide our algorithmic trading services, we collect the following types of information:</p>
         <ul>
-            <li><strong>Personal Identification Data:</strong> Full legal name, email address, physical address, and phone number (collected during registration).</li>
-            <li><strong>Brokerage &amp; Financial Data:</strong> OAuth access tokens and account IDs used to securely connect to your third‑party brokerage (e.g., Alpaca). <em>We do not directly collect or store your banking information or social security numbers.</em></li>
-            <li><strong>Trading Data:</strong> Trading parameters (bankroll size, risk percentages), executed order history, and portfolio performance metrics necessary to run the algorithm.</li>
-            <li><strong>Device &amp; Usage Data:</strong> IP addresses, browser types, page interactions, cookie identifiers, and event telemetry.</li>
+            <li><strong>Account information:</strong> name, email address, password hash, phone number (if provided), and account profile settings.</li>
+            <li><strong>Billing and subscription information:</strong> Stripe customer ID, subscription status, plan, invoice/payment metadata, and billing events. Stripe processes payments; XeanVI does not store full payment card numbers.</li>
+            <li><strong>Broker connection information:</strong> encrypted broker tokens, account IDs, connection status, paper/live mode, synced account values (such as buying power or bankroll), and broker-related settings.</li>
+            <li><strong>Trading and platform data:</strong> playbooks, automation rules, risk settings, scans, watchlists, order and trade history, journal entries, and automation status.</li>
+            <li><strong>Technical data:</strong> IP address, browser/device details, session and cookie data, application logs, and security events.</li>
+            <li><strong>Communications:</strong> support requests and transactional emails related to onboarding, billing, security, and operations.</li>
+            <li><strong>Marketing/analytics data:</strong> campaign attribution, page events, and referral metadata, including Meta Pixel events where enabled.</li>
         </ul>
-        <h2>3. Processors, Integrations, and Communications</h2>
-        <p>We use vetted third-party processors to operate the service:</p>
-        <ul>
-            <li><strong>Stripe:</strong> Subscription checkout, billing, and payment event processing.</li>
-            <li><strong>Brevo:</strong> Transactional email (password resets, onboarding, and account communications) and list/contact automation.</li>
-            <li><strong>Meta Pixel:</strong> Marketing attribution and campaign performance measurement on public pages.</li>
-            <li><strong>Alpaca:</strong> Supported broker connection and order-routing infrastructure when you authorize broker access.</li>
-            <li><strong>AI and market-data providers:</strong> Signal/explainability features and market data retrieval used by platform workflows.</li>
-        </ul>
-        <p>By creating an account, you agree to receive essential account emails (security, billing, onboarding, and operational notices). Marketing communications can be opted out where applicable.</p>
-        <h2>4. How We Use Your Information</h2>
-        <p>We use your information exclusively to:</p>
-        <ul>
-            <li>Provide, maintain, and secure the execution engine.</li>
-            <li>Route your selected trades securely to your linked brokerage API.</li>
-            <li>Calculate dynamic position sizing based on your defined risk parameters.</li>
-            <li>Communicate critical system updates, margin warnings, or account notices.</li>
-        </ul>
-        <h2>5. Information Sharing and Disclosure</h2>
-        <p>We do not sell, rent, or trade your personal data. We only share information in the following circumstances:</p>
-        <ul>
-            <li><strong>Service Providers:</strong> With providers such as Stripe, Brevo, supported broker APIs (including Alpaca), analytics/tracking vendors, and market-data/AI vendors strictly to provide requested platform functions.</li>
-            <li><strong>Legal Compliance:</strong> If required to do so by law, subpoena, or regulatory authority (such as the SEC or FINRA).</li>
-        </ul>
-        <h2>6. Cookies and Tracking</h2>
-        <p>We use cookies and similar technologies for authentication, fraud prevention, platform performance, and campaign analytics. You can control cookies in your browser settings, but core features may be limited if strictly disabled.</p>
-        <h2>7. Data Security</h2>
-        <p>We implement strict security measures to protect your data. Brokerage API tokens are encrypted at rest using enterprise‑grade cryptography. Passwords are cryptographically hashed, and all web traffic is secured via SSL/TLS encryption.</p>
-        <h2>8. Trading Risk and No-Advice Notice</h2>
-        <p>XeanVI provides software tooling and automation workflows only. We do not provide investment advice, recommendations, or guarantees. Trading involves substantial risk, including total loss of capital. Past performance is not indicative of future results.</p>
-        <h2>9. Your Data Rights</h2>
-        <p>You have the right to access, correct, or delete your personal data. If you disconnect your brokerage account or delete your XeanVI profile, we will securely destroy your OAuth tokens and trading history, retaining only basic account records required for legal compliance.</p>
-        <h2>10. Contact Us</h2>
-        <p>For questions or concerns regarding your privacy or data security, please contact our support team through your user dashboard.</p>
+
+        <h2>3. How We Use Information</h2>
+        <p>We use information to provide and secure accounts; process subscriptions via Stripe; connect to brokers you authorize; operate scans, alerts, automation, execution workflows, journaling, and support; send transactional, billing, security, legal, and product notices; detect abuse; debug issues; monitor performance; and comply with law.</p>
+
+        <h2>4. Legal Bases and Consent</h2>
+        <p>Where applicable, we process data to perform our contract with you, pursue legitimate business interests, maintain platform security, comply with legal obligations, and rely on consent where required (including certain marketing and cookie uses).</p>
+
+        <h2>5. Third-Party Processors and Integrations</h2>
+        <p>We use third parties such as Stripe (billing), Alpaca and other supported brokers (broker connectivity/order routing), Brevo (email), Meta Pixel (marketing attribution where active), hosting/cloud/database providers, and AI/market-data providers. Each third party has independent terms and privacy practices that govern its services.</p>
+
+        <h2>6. Broker Tokens and Financial Data</h2>
+        <p>XeanVI may store encrypted broker access tokens and account identifiers to maintain broker connectivity features. XeanVI does not store bank login credentials or full payment card numbers. You may disconnect broker access where supported, and revocation may also require action in your broker account. Certain connection and audit records may be retained as needed for legal, security, backup, and compliance purposes.</p>
+
+        <h2>7. Cookies and Tracking</h2>
+        <p>We use cookies and similar tools for authentication, session management, security, preferences, analytics, and marketing attribution. Blocking cookies in browser settings may limit platform functionality. Meta Pixel may be used on applicable pages for campaign performance measurement.</p>
+
+        <h2>8. How We Share Information</h2>
+        <p>We may share information with service providers, broker/payment/email/analytics partners, for legal or regulatory requests, for fraud/security prevention, in business transfers, and through aggregated or de-identified reporting. XeanVI does not sell personal data in the ordinary sense and does not sell broker credentials or trading data.</p>
+
+        <h2>9. Data Retention</h2>
+        <p>We retain account, subscription, broker connection, log, trading, and support data for as long as needed to provide services, comply with law, resolve disputes, enforce agreements, and support security/audit and backup operations. After account deletion, we remove or de-identify data where reasonably possible, subject to legal, billing, security, and backup retention needs.</p>
+
+        <h2>10. Data Security</h2>
+        <p>We use administrative, technical, and organizational safeguards, including TLS in transit, hashed passwords, encrypted sensitive tokens, and access controls with monitoring. No system is perfectly secure. You are responsible for safeguarding account credentials, broker account access, and device security.</p>
+
+        <h2>11. Privacy Rights and Choices</h2>
+        <p>Depending on your location and applicable law, you may have rights to request access, correction, deletion, export, or marketing opt-out. You may also control cookies in browser settings. Rights for California/other U.S. states and EU/UK users vary by jurisdiction and are subject to legal exceptions.</p>
+
+        <h2>12. Children</h2>
+        <p>XeanVI is not intended for individuals under 18 years old, and we do not knowingly provide services to minors.</p>
+
+        <h2>13. International Users</h2>
+        <p>If you access XeanVI from outside the United States, your data may be processed in the United States and other countries where our providers operate.</p>
+
+        <h2>14. Do Not Track and Global Privacy Controls</h2>
+        <p>Browser “Do Not Track” and similar signals may not be uniformly recognized across systems. You can manage cookie settings in your browser and contact support regarding available privacy choices.</p>
+
+        <h2>15. Changes to This Privacy Policy</h2>
+        <p>We may update this Privacy Policy periodically. Changes are reflected by updating the “Last Updated” date. Continued use of the Service after updates become effective means you accept the revised policy.</p>
+
+        <h2>16. Contact</h2>
+        <p>For privacy questions or requests, contact XeanVI through your account dashboard or the contact method provided on the website.</p>
     </div>
         {% include 'footer.html' %}
 
