@@ -10,5 +10,5 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt pytest
       - run: pip check
-      - run: python -m py_compile app.py config.py broker.py execution_guard.py scanner_service.py
+      - run: python -m py_compile app.py config.py broker.py execution_guard.py scanner_service.py config_check.py models.py tasks.py
       - run: pytest -q

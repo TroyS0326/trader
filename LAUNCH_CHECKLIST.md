@@ -184,3 +184,10 @@ journalctl -u xeanvi -n 100 --no-pager
 - Run `python config_check.py --strict` before deploy.
 - Run `pytest -q` before deploy.
 - Stripe webhook URL: `https://xeanvi.com/api/stripe-webhook` and events: checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.paid, invoice.payment_failed.
+
+- [ ] Run `python config_check.py --strict`
+- [ ] Run `pytest -q`
+- [ ] Confirm `/pricing`, `/healthz`, `/readyz`, `/sitemap.xml`, `/robots.txt`
+- [ ] Confirm `stripe_events` table exists before live webhook traffic
+- [ ] Stripe webhook endpoint set to `https://xeanvi.com/api/stripe-webhook` with required events
+- [ ] `/pricing` is canonical; `/upgrade` only redirects
