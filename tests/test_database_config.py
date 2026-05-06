@@ -1,24 +1,63 @@
 import importlib
-import os
+import sys
+import pytest
+
+REQUIRED_ENV = {
+    'SECRET_KEY': 'test-secret',
+    'TOKEN_ENCRYPTION_KEY': 'test-token',
+    'ALPACA_CLIENT_ID': 'alpaca-client',
+    'ALPACA_CLIENT_SECRET': 'alpaca-secret',
+    'ALPACA_REDIRECT_URI': 'https://example.com/callback',
+    'FINNHUB_API_KEY': 'finnhub-key',
+    'GEMINI_API_KEY': 'gemini-key',
+}
 
 
-def _reload_config():
+def _load_config(monkeypatch, **env):
+    for k, v in REQUIRED_ENV.items():
+        monkeypatch.setenv(k, v)
+    for k, v in env.items():
+        if v is None:
+            monkeypatch.delenv(k, raising=False)
+        else:
+            monkeypatch.setenv(k, v)
+    sys.modules.pop('config', None)
     import config
     return importlib.reload(config)
 
 
-def test_build_database_uri_converts_postgres(monkeypatch):
-    monkeypatch.setenv('DATABASE_URL', 'postgres://u:p@localhost:5432/db')
-    monkeypatch.setenv('FLASK_ENV', 'testing')
-    monkeypatch.setenv('FLASK_DEBUG', '1')
-    cfg = _reload_config()
-    assert cfg.build_database_uri().startswith('postgresql+psycopg://')
+def test_normalize_postgres_url(monkeypatch):
+    cfg = _load_config(monkeypatch, FLASK_ENV='testing', FLASK_DEBUG='1', DATABASE_URL='postgres://u:p@localhost/db')
+    assert cfg.normalize_database_url('postgres://u:p@localhost/db').startswith('postgresql+psycopg://')
 
 
-def test_build_database_uri_local_sqlite_fallback(monkeypatch, tmp_path):
-    monkeypatch.delenv('DATABASE_URL', raising=False)
-    monkeypatch.setenv('DB_PATH', str(tmp_path / 'local.db'))
-    monkeypatch.setenv('FLASK_ENV', 'testing')
-    monkeypatch.setenv('FLASK_DEBUG', '1')
-    cfg = _reload_config()
+def test_normalize_postgresql_url(monkeypatch):
+    cfg = _load_config(monkeypatch, FLASK_ENV='testing', FLASK_DEBUG='1', DATABASE_URL='postgresql://u:p@localhost/db')
+    assert cfg.normalize_database_url('postgresql://u:p@localhost/db').startswith('postgresql+psycopg://')
+
+
+def test_normalize_postgresql_psycopg_unchanged(monkeypatch):
+    cfg = _load_config(monkeypatch, FLASK_ENV='testing', FLASK_DEBUG='1', DATABASE_URL='postgresql+psycopg://u:p@localhost/db')
+    assert cfg.normalize_database_url('postgresql+psycopg://u:p@localhost/db') == 'postgresql+psycopg://u:p@localhost/db'
+
+
+def test_production_missing_database_url_raises(monkeypatch):
+    with pytest.raises(ValueError):
+        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL=None)
+
+
+def test_production_sqlite_database_url_raises(monkeypatch):
+    with pytest.raises(ValueError):
+        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='sqlite:////tmp/test.db')
+
+
+def test_production_non_postgres_database_url_raises(monkeypatch):
+    with pytest.raises(ValueError):
+        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='mysql://u:p@localhost/db')
+    with pytest.raises(ValueError):
+        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='oracle://u:p@localhost/db')
+
+
+def test_non_production_empty_database_url_falls_back_to_sqlite(monkeypatch, tmp_path):
+    cfg = _load_config(monkeypatch, FLASK_ENV='testing', FLASK_DEBUG='1', DATABASE_URL=None, DB_PATH=str(tmp_path / 't.db'))
     assert cfg.SQLALCHEMY_DATABASE_URI.startswith('sqlite:///')

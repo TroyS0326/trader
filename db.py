@@ -405,7 +405,7 @@ def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> 
     query = Trade.query
     if user_id is not None:
         query = query.filter(Trade.user_id == user_id)
-    for trade in query.order_by(Trade.id.desc()).limit(500).all():
+    for trade in query.order_by(Trade.id.desc()).yield_per(500):
         payload = _load_json_payload(getattr(trade, "raw_json", None))
         bundle = payload.get("order_bundle") if isinstance(payload, dict) else None
         if isinstance(bundle, dict) and str(bundle.get("target_1_order_id")) == str(target_1_id):
@@ -480,8 +480,8 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
             'raw_json': raw_json_str,
         },
     )
-    db.session.commit()
     inserted_id = result.scalar_one() if dialect == "postgresql" else result.lastrowid
+    db.session.commit()
     return int(inserted_id)
 
 
