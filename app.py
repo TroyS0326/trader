@@ -1819,26 +1819,33 @@ def settings():
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
-    setup_checklist = get_user_setup_checklist(current_user)
-    if not current_user.onboarding_completed:
-        flash('Complete onboarding before connecting your Alpaca paper account.', 'error')
+    oauth_env = (request.args.get('env') or 'paper').strip().lower()
+    if oauth_env != 'paper':
+        oauth_env = 'paper'
+
+    client_id = app.config.get('ALPACA_CLIENT_ID')
+    redirect_uri = app.config.get('ALPACA_REDIRECT_URI')
+    if not client_id or not redirect_uri:
+        logger.error('Alpaca OAuth start failed: missing required OAuth configuration.')
+        flash('Alpaca OAuth is not configured yet. Please contact support.', 'error')
         return redirect(url_for('onboarding'))
 
     current_user.broker_connection_started = True
     db.session.commit()
     track_user_event('broker_connection_started', user=current_user)
+
     oauth_state = secrets.token_urlsafe(32)
     session['oauth_state'] = oauth_state
     session['alpaca_oauth_user_id'] = current_user.id
-    session['alpaca_oauth_env'] = 'paper'
+    session['alpaca_oauth_env'] = oauth_env
 
     params = {
         'response_type': 'code',
-        'client_id': app.config['ALPACA_CLIENT_ID'],
-        'redirect_uri': app.config['ALPACA_REDIRECT_URI'],
+        'client_id': client_id,
+        'redirect_uri': redirect_uri,
         'scope': 'trading',
         'state': oauth_state,
-        'env': 'paper',
+        'env': oauth_env,
     }
 
     alpaca_auth_url = f"https://app.alpaca.markets/oauth/authorize?{urlencode(params)}"
