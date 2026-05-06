@@ -767,9 +767,19 @@ WantedBy=multi-user.target
 
 ## Production validation
 - Run `python config_check.py --strict` before deploy.
-- Run `pytest -q` before deploy.
+- Run safe tests with `FLASK_ENV=testing DB_PATH=/tmp/xeanvi-test.db pytest -q` before deploy. Do **not** run `pytest -q` directly with production environment variables.
 - Stripe webhook URL: `https://xeanvi.com/api/stripe-webhook` and events: checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.paid, invoice.payment_failed.
 
 - Canonical upgrade route is `/pricing`; `/upgrade` redirects and is not canonical.
 - Verify `/pricing`, `/healthz`, `/readyz`, `/sitemap.xml`, and `/robots.txt` before launch.
 - Ensure `stripe_events` table exists before enabling live Stripe webhooks.
+
+### Safe production smoke test (non-mutating)
+Use this in production instead of running pytest with production env:
+
+```bash
+python config_check.py --strict
+python -m py_compile app.py config.py broker.py execution_guard.py scanner_service.py config_check.py models.py tasks.py
+curl /healthz
+curl /readyz
+```

@@ -121,7 +121,7 @@ def validate_brevo_config() -> list[str]:
         'BREVO_SENDER_EMAIL': BREVO_SENDER_EMAIL,
     })
 
-DB_PATH = str(BASE_DIR / 'veteran_trades.db')
+DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'veteran_trades.db')
 ALLOW_DB_FALLBACK = os.getenv('ALLOW_DB_FALLBACK', '0') == '1'
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
 WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
