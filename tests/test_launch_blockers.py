@@ -111,7 +111,15 @@ def test_config_check_strict_failure_and_success(monkeypatch):
         'STRIPE_PRICE_ID_MONTHLY': 'price_123', 'STRIPE_PRICE_ID_ANNUAL': 'price_456', 'BREVO_API_KEY': 'brevo',
         'BREVO_RESET_PASSWORD_TEMPLATE_ID': '12', 'BREVO_SENDER_EMAIL': 'support@xeanvi.com', 'BREVO_SIGNUP_LIST_ID': '5',
         'ALPACA_CLIENT_ID': 'id', 'ALPACA_CLIENT_SECRET': 'sec', 'ALPACA_REDIRECT_URI': 'https://alpaca/cb',
-        'FINNHUB_API_KEY': 'f', 'GEMINI_API_KEY': 'g'
+        'FINNHUB_API_KEY': 'f', 'GEMINI_API_KEY': 'g', 'DATABASE_URL': 'postgresql+psycopg://u:p@localhost:5432/db'
     }.items():
         monkeypatch.setenv(key, value)
     assert config_check.validate_required_production_config(strict=True) == []
+
+
+def test_config_check_rejects_sqlite_database_url(monkeypatch):
+    monkeypatch.setenv('FLASK_ENV', 'production')
+    monkeypatch.setenv('FLASK_DEBUG', '0')
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:////tmp/test.db')
+    errs = config_check.validate_required_production_config(strict=True)
+    assert any('sqlite' in err.lower() for err in errs)

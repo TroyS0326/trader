@@ -4,7 +4,7 @@ from datetime import datetime, time, timezone
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, text
+from sqlalchemy import func, text, inspect, Table, Column, Integer, String, Float, Text, MetaData
 
 import config
 from models import db, Trade, Scan, MarketRegime
@@ -392,41 +392,52 @@ def get_failed_trades_today() -> int:
 
 
 def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
-    # Use SQLAlchemy's func.json_extract to query inside the JSON column natively
-    query = Trade.query.filter(
-        func.json_extract(Trade.raw_json, '$.order_bundle.target_1_order_id') == target_1_id
-    )
+    dialect = db.session.bind.dialect.name if db.session.bind is not None else ""
+    if dialect == "sqlite":
+        query = Trade.query.filter(
+            func.json_extract(Trade.raw_json, '$.order_bundle.target_1_order_id') == target_1_id
+        )
+        if user_id is not None:
+            query = query.filter(Trade.user_id == user_id)
+        trade = query.order_by(Trade.id.desc()).first()
+        return _model_to_dict(trade) if trade else None
+
+    query = Trade.query
     if user_id is not None:
         query = query.filter(Trade.user_id == user_id)
-
-    trade = query.order_by(Trade.id.desc()).first()
-    return _model_to_dict(trade) if trade else None
+    for trade in query.order_by(Trade.id.desc()).limit(500).all():
+        payload = _load_json_payload(getattr(trade, "raw_json", None))
+        bundle = payload.get("order_bundle") if isinstance(payload, dict) else None
+        if isinstance(bundle, dict) and str(bundle.get("target_1_order_id")) == str(target_1_id):
+            return _model_to_dict(trade)
+    return None
 
 
 
 
 def ensure_trade_audit_table() -> None:
-    db.session.execute(text("""
-        CREATE TABLE IF NOT EXISTS trade_audit_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
-            user_id INTEGER,
-            email TEXT,
-            trading_mode TEXT,
-            subscription_status TEXT,
-            symbol TEXT,
-            scan_id INTEGER,
-            qty REAL,
-            entry_price REAL,
-            stop_price REAL,
-            target_1 REAL,
-            target_2 REAL,
-            order_id TEXT,
-            order_status TEXT,
-            raw_json TEXT
-        )
-    """))
-    db.session.commit()
+    metadata = MetaData()
+    table = Table(
+        "trade_audit_logs",
+        metadata,
+        Column("id", Integer, primary_key=True, autoincrement=True),
+        Column("created_at", String, nullable=False),
+        Column("user_id", Integer),
+        Column("email", Text),
+        Column("trading_mode", String(20)),
+        Column("subscription_status", String(30)),
+        Column("symbol", String(20)),
+        Column("scan_id", Integer),
+        Column("qty", Float),
+        Column("entry_price", Float),
+        Column("stop_price", Float),
+        Column("target_1", Float),
+        Column("target_2", Float),
+        Column("order_id", Text),
+        Column("order_status", Text),
+        Column("raw_json", Text),
+    )
+    metadata.create_all(db.engine, tables=[table], checkfirst=True)
 
 
 def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
@@ -434,8 +445,8 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
     raw_json = payload.get('raw_json', {})
     raw_json_str = raw_json if isinstance(raw_json, str) else json.dumps(raw_json)
 
-    result = db.session.execute(
-        text("""
+    dialect = db.session.bind.dialect.name if db.session.bind is not None else ""
+    insert_sql = """
             INSERT INTO trade_audit_logs (
                 created_at, user_id, email, trading_mode, subscription_status,
                 symbol, scan_id, qty, entry_price, stop_price, target_1, target_2,
@@ -446,7 +457,11 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
                 :symbol, :scan_id, :qty, :entry_price, :stop_price, :target_1, :target_2,
                 :order_id, :order_status, :raw_json
             )
-        """),
+        """
+    if dialect == "postgresql":
+        insert_sql += " RETURNING id"
+    result = db.session.execute(
+        text(insert_sql),
         {
             'created_at': payload.get('created_at') or utc_now().isoformat(),
             'user_id': payload.get('user_id'),
@@ -466,7 +481,8 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
         },
     )
     db.session.commit()
-    return int(result.lastrowid)
+    inserted_id = result.scalar_one() if dialect == "postgresql" else result.lastrowid
+    return int(inserted_id)
 
 
 def get_recent_trade_audit_logs(limit: int = 50) -> Iterable[Dict[str, Any]]:

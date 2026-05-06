@@ -25,7 +25,7 @@ The platform acts as a trading command center. Users define their own Trading Pl
 - Stripe webhook handling for PRO subscriptions
 - Gemini-powered catalyst analysis
 - Finnhub-powered market/news data
-- SQLite database storage through SQLAlchemy
+- PostgreSQL in production (via SQLAlchemy) with SQLite fallback for local/testing only
 - CSRF protection through Flask-WTF
 - Rate limiting through Flask-Limiter
 - Secure password hashing through Werkzeug
@@ -41,7 +41,7 @@ The platform acts as a trading command center. Users define their own Trading Pl
 - Flask-WTF / CSRFProtect
 - Flask-Limiter
 - Flask-Sock
-- SQLite
+- PostgreSQL (production) / SQLite (local fallback)
 - Redis
 - Stripe API
 - Brevo API
@@ -686,7 +686,7 @@ The user exists in the same database being used by the app
 The app is not falling back to /tmp/veteran_trades.db unexpectedly
 ```
 
-### SQLite permission issues
+### SQLite (local-only) permission issues
 
 Check file ownership and write permissions for the app directory.
 
@@ -783,3 +783,9 @@ python -m py_compile app.py config.py broker.py execution_guard.py scanner_servi
 curl /healthz
 curl /readyz
 ```
+
+
+Production database env (required):
+`DATABASE_URL=postgresql+psycopg://xeanvi_user:strong_password@127.0.0.1:5432/xeanvi`
+
+Local development can fall back to SQLite only when `DATABASE_URL` is not set and `FLASK_ENV` is not `production`.

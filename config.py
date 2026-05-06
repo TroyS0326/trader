@@ -24,7 +24,7 @@ SECRET_KEY = require_env('SECRET_KEY')
 TOKEN_ENCRYPTION_KEY = require_env('TOKEN_ENCRYPTION_KEY')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
 FLASK_ENV = os.getenv('FLASK_ENV', '').strip().lower()
-IS_PRODUCTION = FLASK_ENV == 'production' or not DEBUG
+IS_PRODUCTION = FLASK_ENV == 'production'
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 STRICT_PRODUCTION_SCANNER = os.getenv('STRICT_PRODUCTION_SCANNER', '1') == '1'
@@ -122,6 +122,32 @@ def validate_brevo_config() -> list[str]:
     })
 
 DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'veteran_trades.db')
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+
+def build_database_uri() -> str:
+    uri = DATABASE_URL
+    if uri.startswith("postgres://"):
+        uri = "postgresql+psycopg://" + uri[len("postgres://"):]
+    elif uri.startswith("postgresql://"):
+        uri = "postgresql+psycopg://" + uri[len("postgresql://"):]
+
+    if not uri:
+        if IS_PRODUCTION:
+            raise ValueError("DATABASE_URL is required in production and must point to PostgreSQL.")
+        return f"sqlite:///{os.path.abspath(DB_PATH)}"
+
+    if IS_PRODUCTION and uri.startswith("sqlite://"):
+        raise ValueError("SQLite is not allowed in production. Set DATABASE_URL to a PostgreSQL URL.")
+
+    return uri
+
+
+SQLALCHEMY_DATABASE_URI = build_database_uri()
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 ALLOW_DB_FALLBACK = os.getenv('ALLOW_DB_FALLBACK', '0') == '1'
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
 WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
