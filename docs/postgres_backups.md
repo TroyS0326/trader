@@ -44,3 +44,5 @@ gunzip -c /var/backups/xeanvi/postgres/backup-file.sql.gz | psql "$DATABASE_URL"
 
 ## Security note
 Backups contain user, account, subscription, and trading data. Treat backup files as highly sensitive and protect access to storage and transport.
+The backup script passes the database password via `PGPASSWORD` (not command-line args) to reduce exposure in process listings.
+Keep backup permissions locked down: backup directories should be `chmod 700`, and backup files should be `chmod 600`.

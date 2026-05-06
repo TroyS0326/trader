@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
@@ -55,9 +55,40 @@ def redact_db_url(db_url: str) -> str:
     return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
 
 
+def build_pg_dump_target(db_url: str) -> tuple[str, str]:
+    parsed = urlsplit(db_url)
+    password = unquote(parsed.password or '') if parsed.password is not None else ''
+
+    host = parsed.hostname or ''
+    if parsed.port:
+        host += f':{parsed.port}'
+
+    userinfo = parsed.username or ''
+    netloc = f'{userinfo}@{host}' if userinfo else host
+    target = urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+    return target, password
+
+
+def scrub_sensitive_text(text: str, secrets: list[str]) -> str:
+    cleaned = text or ''
+    for secret in secrets:
+        if not secret:
+            continue
+        cleaned = cleaned.replace(secret, '***')
+    return cleaned
+
+
 def run_backup(db_url: str, backup_file: Path) -> None:
+    pg_dump_target, db_password = build_pg_dump_target(db_url)
+    encoded_password = quote(db_password, safe='') if db_password else ''
+    secrets = [db_password, encoded_password, db_url, pg_dump_target]
+
+    env = os.environ.copy()
+    if db_password:
+        env['PGPASSWORD'] = db_password
+
     with backup_file.open('wb') as output:
-        dump_proc = subprocess.Popen(['pg_dump', db_url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        dump_proc = subprocess.Popen(['pg_dump', pg_dump_target], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         gzip_proc = subprocess.Popen(['gzip'], stdin=dump_proc.stdout, stdout=output, stderr=subprocess.PIPE)
         assert dump_proc.stdout is not None
         dump_proc.stdout.close()
@@ -69,9 +100,13 @@ def run_backup(db_url: str, backup_file: Path) -> None:
         gzip_rc = gzip_proc.wait()
 
     if dump_rc != 0:
-        raise RuntimeError(f'pg_dump failed with exit code {dump_rc}: {dump_stderr.strip()}')
+        safe_err = scrub_sensitive_text(dump_stderr.strip(), secrets)
+        raise RuntimeError(f'pg_dump failed with exit code {dump_rc}: {safe_err}')
     if gzip_rc != 0:
-        raise RuntimeError(f'gzip failed with exit code {gzip_rc}: {gzip_stderr.strip()}')
+        safe_err = scrub_sensitive_text(gzip_stderr.strip(), secrets)
+        raise RuntimeError(f'gzip failed with exit code {gzip_rc}: {safe_err}')
+
+    backup_file.chmod(0o600)
 
 
 def cleanup_old_backups(backup_dir: Path, retention_days: int) -> list[Path]:
