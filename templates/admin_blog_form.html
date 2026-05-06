@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% if post %}Edit{% else %}New{% endif %} Blog Post</title>
+  {% set d = form_data or {} %}
+  {% set show_ai_draft_assistant = (not post) or (post and post.status == 'draft') %}
+  <title>{% if post and post.status == 'draft' %}Edit Blog Draft{% elif post %}Edit Blog Post{% else %}New Blog Post{% endif %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     .admin-shell { max-width: 1150px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
@@ -36,11 +38,10 @@
 
   <main class="admin-shell">
     <header class="admin-header">
-      <h1 class="admin-title">{% if post %}Edit{% else %}New{% endif %} Blog Post</h1>
+      <h1 class="admin-title">{% if post and post.status == 'draft' %}Edit Blog Draft{% elif post %}Edit Blog Post{% else %}New Blog Post{% endif %}</h1>
       <p class="admin-subtitle">Use <strong>Draft</strong> while writing, then switch to <strong>Published</strong> when the post is ready to go live.</p>
     </header>
 
-    {% set d = form_data or {} %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
       <section class="admin-card" aria-live="polite">
@@ -51,12 +52,15 @@
       {% endif %}
     {% endwith %}
 
-    {% if not post %}
+    {% if show_ai_draft_assistant %}
     <section class="admin-card">
       <h2>AI Draft Assistant</h2>
       <!-- AI_DRAFT_FORM action=/admin/blog/generate-draft -->
       <form method="POST" action="{{ url_for('admin_blog_generate_draft') }}" class="ai-draft-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if post %}
+        <input type="hidden" name="post_id" value="{{ post.id }}">
+        {% endif %}
         <div class="admin-grid">
           <div class="form-group">
             <label class="form-label" for="ai_title">Title</label>
@@ -78,7 +82,7 @@
         <div class="action-row" style="margin-top: .9rem;">
           <button class="btn-secondary" type="submit" name="action" value="generate_ai_draft">Generate AI Draft</button>
         </div>
-        <p class="form-help" style="margin-top:.7rem;">Generates draft content only. Nothing is auto-published.</p>
+        <p class="form-help" style="margin-top:.7rem;">Generate AI content for this draft. This will fill the form only and will not save or publish until you click Save Draft or Publish.</p>
       </form>
     </section>
     {% endif %}
@@ -92,23 +96,23 @@
         <div class="admin-grid">
           <div class="form-group">
             <label class="form-label" for="title">Title</label>
-            <input class="form-input" id="title" name="title" value="{{ post.title if post else (d.title or '') }}" required>
+            <input class="form-input" id="title" name="title" value="{{ d.title if d.title is defined else (post.title if post else '') }}" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="slug">Slug</label>
-            <input class="form-input" id="slug" name="slug" value="{{ post.slug if post else (d.slug or '') }}">
+            <input class="form-input" id="slug" name="slug" value="{{ d.slug if d.slug is defined else (post.slug if post else '') }}">
             <p class="form-help">Leave blank to auto-generate from the title.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="status">Status</label>
             <select class="form-input" id="status" name="status">
-              <option value="draft" {% if (post and post.status=='draft') or (not post and (d.status or 'draft')=='draft') %}selected{% endif %}>Draft</option>
-              <option value="published" {% if (post and post.status=='published') or (not post and (d.status or '')=='published') %}selected{% endif %}>Published</option>
+              <option value="draft" {% if (d.status is defined and d.status=='draft') or (d.status is not defined and post and post.status=='draft') or (not post and (d.status or 'draft')=='draft') %}selected{% endif %}>Draft</option>
+              <option value="published" {% if (d.status is defined and d.status=='published') or (d.status is not defined and post and post.status=='published') or (not post and (d.status or '')=='published') %}selected{% endif %}>Published</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label" for="author_name">Author Name</label>
-            <input class="form-input" id="author_name" name="author_name" value="{{ post.author_name if post else (d.author_name or '') }}">
+            <input class="form-input" id="author_name" name="author_name" value="{{ d.author_name if d.author_name is defined else (post.author_name if post else '') }}">
           </div>
         </div>
       </section>
@@ -118,27 +122,27 @@
         <div class="admin-grid">
           <div class="form-group">
             <label class="form-label" for="meta_title">Meta Title</label>
-            <input class="form-input" id="meta_title" name="meta_title" value="{{ post.meta_title if post else (d.meta_title or '') }}">
+            <input class="form-input" id="meta_title" name="meta_title" value="{{ d.meta_title if d.meta_title is defined else (post.meta_title if post else '') }}">
           </div>
           <div class="form-group full">
             <label class="form-label" for="meta_description">Meta Description</label>
-            <textarea class="form-textarea" id="meta_description" name="meta_description">{{ post.meta_description if post else (d.meta_description or '') }}</textarea>
+            <textarea class="form-textarea" id="meta_description" name="meta_description">{{ d.meta_description if d.meta_description is defined else (post.meta_description if post else '') }}</textarea>
           </div>
           <div class="form-group">
             <label class="form-label" for="target_keyword">Target Keyword</label>
-            <input class="form-input" id="target_keyword" name="target_keyword" value="{{ post.target_keyword if post else (d.target_keyword or '') }}">
+            <input class="form-input" id="target_keyword" name="target_keyword" value="{{ d.target_keyword if d.target_keyword is defined else (post.target_keyword if post else '') }}">
           </div>
           <div class="form-group">
             <label class="form-label" for="canonical_url">Canonical URL</label>
-            <input class="form-input" id="canonical_url" name="canonical_url" value="{{ post.canonical_url if post else (d.canonical_url or '') }}">
+            <input class="form-input" id="canonical_url" name="canonical_url" value="{{ d.canonical_url if d.canonical_url is defined else (post.canonical_url if post else '') }}">
           </div>
         </div>
       </section>
       <section class="admin-card">
         <h2>Featured Image</h2>
-        {% set og_image_value = post.og_image if post else (d.og_image or '') %}
-        {% set featured_image_alt_value = post.featured_image_alt if post else (d.featured_image_alt or '') %}
-        {% set featured_image_caption_value = post.featured_image_caption if post else (d.featured_image_caption or '') %}
+        {% set og_image_value = d.og_image if d.og_image is defined else (post.og_image if post else '') %}
+        {% set featured_image_alt_value = d.featured_image_alt if d.featured_image_alt is defined else (post.featured_image_alt if post else '') %}
+        {% set featured_image_caption_value = d.featured_image_caption if d.featured_image_caption is defined else (post.featured_image_caption if post else '') %}
         <div class="admin-grid">
           <div class="form-group full">
             <label class="form-label" for="featured_image_file">Upload WebP image</label>
@@ -176,12 +180,12 @@
         <div class="admin-grid">
           <div class="form-group full">
             <label class="form-label" for="excerpt">Excerpt</label>
-            <textarea class="form-textarea" id="excerpt" name="excerpt">{{ post.excerpt if post else (d.excerpt or '') }}</textarea>
+            <textarea class="form-textarea" id="excerpt" name="excerpt">{{ d.excerpt if d.excerpt is defined else (post.excerpt if post else '') }}</textarea>
             <p class="form-help">Short summary used in listing previews and SEO snippets.</p>
           </div>
           <div class="form-group full">
             <label class="form-label" for="body_html">Body HTML</label>
-            <textarea class="form-textarea" id="body_html" name="body_html" required>{{ post.body_html if post else (d.body_html or '') }}</textarea>
+            <textarea class="form-textarea" id="body_html" name="body_html" required>{{ d.body_html if d.body_html is defined else (post.body_html if post else '') }}</textarea>
             <p class="form-help">HTML is sanitized server-side before saving.</p>
           </div>
         </div>
