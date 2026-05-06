@@ -21,6 +21,10 @@
   --text-muted: #64748b;
   --accent-blue: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.4);
+  --btn-primary-bg: #2563eb;
+  --btn-primary-bg-hover: #1d4ed8;
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: rgba(37, 99, 235, 0.35);
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
@@ -419,8 +423,8 @@ button.primary {
   font-size: 1.1rem;
   padding: 12px 24px;
   border-radius: 6px;
-  background: var(--accent);
-  color: #ffffff;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   font-weight: 700;
 }
 
@@ -614,15 +618,25 @@ button.btn {
   transition: all 0.2s ease;
 }
 a.btn.primary,
-button.btn.primary {
-  background-color: var(--accent);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.5);
+button.btn.primary,
+a.btn-primary,
+button.btn-primary,
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 4px 14px var(--btn-primary-shadow);
+  text-decoration: none;
 }
 a.btn.primary:hover,
-button.btn.primary:hover {
+button.btn.primary:hover,
+a.btn-primary:hover,
+button.btn-primary:hover,
+.btn-primary:hover {
+  background-color: var(--btn-primary-bg-hover);
+  color: var(--btn-primary-text);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 20px var(--btn-primary-shadow);
 }
 a.btn.secondary,
 button.btn.secondary {
@@ -701,22 +715,23 @@ button.btn.secondary:hover {
 .btn-auth {
   width: 100%;
   padding: 1rem;
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 8px;
   font-weight: 800;
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 14px var(--btn-primary-shadow);
   display: block;
   text-align: center;
 }
 .btn-auth:hover {
-  background: #2563eb;
+  background: var(--btn-primary-bg-hover);
+  color: var(--btn-primary-text);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 20px var(--btn-primary-shadow);
 }
 .auth-footer {
   margin-top: 2rem;
@@ -1655,8 +1670,8 @@ input:checked + .slider:before {
    }
 
 .btn-primary {
-  background: var(--accent-blue);
-  color: #fff;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
    }
 
 .btn-secondary {
