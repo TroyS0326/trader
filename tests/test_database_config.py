@@ -41,21 +41,19 @@ def test_normalize_postgresql_psycopg_unchanged(monkeypatch):
     assert cfg.normalize_database_url('postgresql+psycopg://u:p@localhost/db') == 'postgresql+psycopg://u:p@localhost/db'
 
 
-def test_production_missing_database_url_raises(monkeypatch):
-    with pytest.raises(ValueError):
-        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL=None)
+def test_production_missing_database_url_falls_back_to_sqlite(monkeypatch, tmp_path):
+    cfg = _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL=None, DB_PATH=str(tmp_path / 'prod.db'))
+    assert cfg.SQLALCHEMY_DATABASE_URI.startswith('sqlite:///')
 
 
-def test_production_sqlite_database_url_raises(monkeypatch):
-    with pytest.raises(ValueError):
-        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='sqlite:////tmp/test.db')
+def test_production_sqlite_database_url_allowed(monkeypatch):
+    cfg = _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='sqlite:////tmp/test.db')
+    assert cfg.SQLALCHEMY_DATABASE_URI == 'sqlite:////tmp/test.db'
 
 
-def test_production_non_postgres_database_url_raises(monkeypatch):
-    with pytest.raises(ValueError):
-        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='mysql://u:p@localhost/db')
-    with pytest.raises(ValueError):
-        _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='oracle://u:p@localhost/db')
+def test_production_non_postgres_database_url_passthrough(monkeypatch):
+    cfg = _load_config(monkeypatch, FLASK_ENV='production', FLASK_DEBUG='0', DATABASE_URL='mysql://u:p@localhost/db')
+    assert cfg.SQLALCHEMY_DATABASE_URI == 'mysql://u:p@localhost/db'
 
 
 def test_non_production_empty_database_url_falls_back_to_sqlite(monkeypatch, tmp_path):
