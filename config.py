@@ -24,7 +24,9 @@ SECRET_KEY = require_env('SECRET_KEY')
 TOKEN_ENCRYPTION_KEY = require_env('TOKEN_ENCRYPTION_KEY')
 DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
 FLASK_ENV = os.getenv('FLASK_ENV', '').strip().lower()
-IS_PRODUCTION = FLASK_ENV == 'production'
+IS_TESTING = FLASK_ENV == 'testing' or os.getenv('TESTING', '0') == '1' or bool(os.getenv('PYTEST_CURRENT_TEST'))
+IS_DEVELOPMENT = FLASK_ENV in {'development', 'local'} or DEBUG
+IS_PRODUCTION = FLASK_ENV == 'production' or (not DEBUG and not IS_TESTING and not IS_DEVELOPMENT)
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
 STRICT_PRODUCTION_SCANNER = os.getenv('STRICT_PRODUCTION_SCANNER', '1') == '1'
@@ -125,20 +127,25 @@ DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'veteran_trades.db')
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 
+def normalize_database_url(raw_url: str) -> str:
+    url = (raw_url or '').strip()
+    if url.startswith('postgres://'):
+        return 'postgresql+psycopg://' + url[len('postgres://'):]
+    if url.startswith('postgresql://'):
+        return 'postgresql+psycopg://' + url[len('postgresql://'):]
+    return url
+
+
 def build_database_uri() -> str:
-    uri = DATABASE_URL
-    if uri.startswith("postgres://"):
-        uri = "postgresql+psycopg://" + uri[len("postgres://"):]
-    elif uri.startswith("postgresql://"):
-        uri = "postgresql+psycopg://" + uri[len("postgresql://"):]
+    uri = normalize_database_url(DATABASE_URL)
 
     if not uri:
         if IS_PRODUCTION:
             raise ValueError("DATABASE_URL is required in production and must point to PostgreSQL.")
         return f"sqlite:///{os.path.abspath(DB_PATH)}"
 
-    if IS_PRODUCTION and uri.startswith("sqlite://"):
-        raise ValueError("SQLite is not allowed in production. Set DATABASE_URL to a PostgreSQL URL.")
+    if IS_PRODUCTION and not uri.startswith("postgresql+psycopg://"):
+        raise ValueError("Production DATABASE_URL must use postgres://, postgresql://, or postgresql+psycopg://.")
 
     return uri
 
@@ -275,6 +282,11 @@ def validate_required_production_config(strict: bool = False) -> list[str]:
     for k, v in checks.items():
         if _is_placeholder(str(v) if v is not None else None):
             errors.append(f'{k} is missing or placeholder.')
+    normalized_db_url = normalize_database_url(DATABASE_URL)
+    if _is_placeholder(normalized_db_url):
+        errors.append('DATABASE_URL is missing or placeholder.')
+    elif not normalized_db_url.startswith('postgresql+psycopg://'):
+        errors.append('DATABASE_URL must be a PostgreSQL connection URL.')
     if os.getenv('FLASK_DEBUG', '0') != '0':
         errors.append('FLASK_DEBUG must be 0 in production.')
     if FLASK_ENV != 'production':

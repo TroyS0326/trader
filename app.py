@@ -128,7 +128,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = config.SESSION_COOKIE_SAMESITE
 app.config['WTF_CSRF_TRUSTED_ORIGINS'] = config.WTF_CSRF_TRUSTED_ORIGINS
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
-# Force SQLAlchemy to use the exact same database file as your raw SQLite connections
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = config.SQLALCHEMY_ENGINE_OPTIONS
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -613,29 +612,44 @@ def get_user_brevo_funnel_attributes(user) -> dict:
 
 def ensure_schema_migrations() -> None:
     """Safely backfill schema missing from older SQLite DBs using the existing SQLAlchemy pool."""
+    def current_db_dialect() -> str:
+        return db.engine.dialect.name
+
+    def bool_default(value: bool) -> str:
+        if current_db_dialect() == 'postgresql':
+            return 'TRUE' if value else 'FALSE'
+        return '1' if value else '0'
+
+    def datetime_type() -> str:
+        return 'TIMESTAMP' if current_db_dialect() == 'postgresql' else 'DATETIME'
+
+    def quote_table_name(name: str) -> str:
+        return db.engine.dialect.identifier_preparer.quote(name)
+
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
     BlogPost.__table__.create(bind=db.engine, checkfirst=True)
     StripeEvent.__table__.create(bind=db.engine, checkfirst=True)
 
-    with db.engine.connect() as conn:
+    with db.engine.begin() as conn:
         if 'user' in table_names:
+            user_table = quote_table_name('user')
             existing_columns = {col['name'] for col in inspector.get_columns('user')}
 
             if 'refresh_interval' not in existing_columns:
                 conn.execute(text("ALTER TABLE \"user\" ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
 
             if 'show_news' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
 
             if 'esg_fossil_fuels' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'trading_mode' not in existing_columns:
                 conn.execute(text("ALTER TABLE \"user\" ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
@@ -710,10 +724,10 @@ def ensure_schema_migrations() -> None:
                 conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_plan VARCHAR(50)"))
 
             if 'subscription_current_period_end' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_current_period_end DATETIME"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN subscription_current_period_end {datetime_type()}"))
 
             if 'subscription_cancel_at_period_end' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
         if 'trades' in table_names:
             trade_columns = {col['name'] for col in inspector.get_columns('trades')}
@@ -728,7 +742,7 @@ def ensure_schema_migrations() -> None:
                 conn.execute(text("ALTER TABLE trades ADD COLUMN pnl_source VARCHAR(64)"))
 
             if 'closed_at' not in trade_columns:
-                conn.execute(text("ALTER TABLE trades ADD COLUMN closed_at DATETIME"))
+                conn.execute(text(f"ALTER TABLE trades ADD COLUMN closed_at {datetime_type()}"))
 
 
         if 'user_events' in table_names:
@@ -750,7 +764,7 @@ def ensure_schema_migrations() -> None:
         if 'market_regimes' in table_names:
             regime_columns = {col['name'] for col in inspector.get_columns('market_regimes')}
             if 'updated_at' not in regime_columns:
-                conn.execute(text("ALTER TABLE market_regimes ADD COLUMN updated_at DATETIME"))
+                conn.execute(text(f"ALTER TABLE market_regimes ADD COLUMN updated_at {datetime_type()}"))
 
         if 'blog_posts' in table_names:
             blog_columns = {col['name'] for col in inspector.get_columns('blog_posts')}
