@@ -411,15 +411,14 @@
                 </div>
 
                 <div style="margin-top: auto;">
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; font-family: var(--font-mono);">
-                        > Plan Mode: {{ plan_access.plan_label }} | {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}...
-
-
-
-
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-align: center; font-family: var(--font-mono);">
+                        > Plan Mode: {{ plan_access.plan_label }} | Automatic scans active during market hours.
+                    </p>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; line-height: 1.5;">
+                        XeanVI scans automatically during market hours. Use this button anytime you want an immediate refresh.
                     </p>
                     <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
-                        <i class="fas fa-radar" style="margin-right: 8px;"></i> {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}
+                        <i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now
                     </button>
                 </div>
 
@@ -1013,7 +1012,7 @@
             } catch (err) {
                 addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
             } finally {
-                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> {{ "Run Automation" if plan_access.is_pro else "Run Scan Preview" }}';
+                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now';
                 btn.disabled = false;
                 statusHeader.innerText = "> Awaiting command...";
             }
