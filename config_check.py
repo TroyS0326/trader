@@ -66,6 +66,17 @@ def validate_required_production_config(strict: bool = False) -> list[str]:
     if not signup_optional:
         if not signup_list.isdigit() or int(signup_list) <= 0:
             errors.append('BREVO_SIGNUP_LIST_ID must be a positive integer unless BREVO_SIGNUP_SYNC_OPTIONAL=1.')
+    database_url = _value('DATABASE_URL')
+    if _is_placeholder(database_url):
+        errors.append('DATABASE_URL is required in production and cannot be placeholder.')
+    elif database_url.startswith('sqlite://'):
+        errors.append('DATABASE_URL must point to PostgreSQL in production; sqlite is not allowed.')
+    elif not (
+        database_url.startswith('postgres://')
+        or database_url.startswith('postgresql://')
+        or database_url.startswith('postgresql+psycopg://')
+    ):
+        errors.append('DATABASE_URL must be a PostgreSQL connection URL.')
 
     return errors
 

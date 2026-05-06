@@ -29,8 +29,9 @@ celery_app.conf.beat_schedule = {
 }
 
 _db_app = Flask(__name__)
-_db_app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{config.DB_PATH}"
+_db_app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 _db_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+_db_app.config['SQLALCHEMY_ENGINE_OPTIONS'] = config.SQLALCHEMY_ENGINE_OPTIONS
 db.init_app(_db_app)
 
 ALPACA_HEADERS = {

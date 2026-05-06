@@ -6,7 +6,6 @@ import re
 import redis
 import requests
 import secrets
-import sqlite3
 import stripe
 from urllib.parse import urlencode, urlparse
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -130,7 +129,8 @@ app.config['WTF_CSRF_TRUSTED_ORIGINS'] = config.WTF_CSRF_TRUSTED_ORIGINS
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
 # Force SQLAlchemy to use the exact same database file as your raw SQLite connections
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath(config.DB_PATH)}"
+app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = config.SQLALCHEMY_ENGINE_OPTIONS
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['ALPACA_CLIENT_ID'] = config.ALPACA_CLIENT_ID
 app.config['ALPACA_CLIENT_SECRET'] = config.ALPACA_CLIENT_SECRET
@@ -169,16 +169,9 @@ def load_user(user_id):
 def ensure_db_initialized() -> None:
     try:
         init_db()
-        return
-    except (sqlite3.OperationalError, PermissionError) as exc:
-        fallback_dir = os.getenv('DB_FALLBACK_DIR', '/tmp')
-        if not getattr(config, 'ALLOW_DB_FALLBACK', False):
-            raise RuntimeError(f'Primary DB path failed and ALLOW_DB_FALLBACK is disabled: {exc}')
-        fallback_path = os.path.join(fallback_dir, 'veteran_trades.db')
-        logger.warning('Primary DB path failed (%s). Falling back to %s. Error: %s', config.DB_PATH, fallback_path, exc)
-        config.DB_PATH = fallback_path
-        trade_db.config.DB_PATH = fallback_path
-        init_db()
+    except Exception as exc:
+        logger.exception('Database initialization failed for URI %s', config.SQLALCHEMY_DATABASE_URI)
+        raise RuntimeError(f'Database initialization failed: {exc}') from exc
 
 
 VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
@@ -630,97 +623,97 @@ def ensure_schema_migrations() -> None:
             existing_columns = {col['name'] for col in inspector.get_columns('user')}
 
             if 'refresh_interval' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN refresh_interval INTEGER NOT NULL DEFAULT 30000"))
 
             if 'show_news' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_news BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_watchlist BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN show_terminal BOOLEAN NOT NULL DEFAULT 1"))
 
             if 'esg_fossil_fuels' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
-                conn.execute(text("ALTER TABLE user ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_fossil_fuels BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_weapons BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN esg_tobacco BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN exclude_penny_stocks BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN exclude_biotech BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'trading_mode' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN trading_mode VARCHAR(20) NOT NULL DEFAULT 'paper'"))
 
             if 'alpaca_data_feed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN alpaca_data_feed VARCHAR(10) NOT NULL DEFAULT 'iex'"))
 
             if 'alpaca_paper_access_token' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_access_token TEXT"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN alpaca_paper_access_token TEXT"))
 
             if 'alpaca_live_access_token' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_access_token TEXT"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN alpaca_live_access_token TEXT"))
 
             if 'alpaca_paper_account_id' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_paper_account_id VARCHAR(100)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN alpaca_paper_account_id VARCHAR(100)"))
 
             if 'alpaca_live_account_id' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN alpaca_live_account_id VARCHAR(100)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN alpaca_live_account_id VARCHAR(100)"))
 
             if 'paper_bankroll' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN paper_bankroll FLOAT NOT NULL DEFAULT 0.0"))
 
             if 'live_bankroll' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
 
             if 'onboarding_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'paper_bankroll_set' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN paper_bankroll_set BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN paper_bankroll_set BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'first_scan_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'scan_preview_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN scan_preview_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN scan_preview_completed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'playbook_reviewed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'transparency_reviewed' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN transparency_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN transparency_reviewed BOOLEAN NOT NULL DEFAULT 0"))
 
             if 'broker_connection_started' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
 
             
             if 'allow_penny_stocks' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT 0"))
             if 'allow_biotech' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_biotech BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_biotech BOOLEAN NOT NULL DEFAULT 1"))
             if 'allow_etf_trading' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_etf_trading BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_etf_trading BOOLEAN NOT NULL DEFAULT 1"))
             if 'allow_leveraged_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_leveraged_etfs BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_leveraged_etfs BOOLEAN NOT NULL DEFAULT 0"))
             if 'allow_inverse_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_inverse_etfs BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_inverse_etfs BOOLEAN NOT NULL DEFAULT 0"))
             if 'allow_crypto_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_crypto_etfs BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_crypto_etfs BOOLEAN NOT NULL DEFAULT 1"))
             if 'allow_options_trading' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN allow_options_trading BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_options_trading BOOLEAN NOT NULL DEFAULT 0"))
             if 'stripe_customer_id' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN stripe_customer_id VARCHAR(255)"))
 
             if 'stripe_subscription_id' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_subscription_id VARCHAR(255)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN stripe_subscription_id VARCHAR(255)"))
 
             if 'stripe_price_id' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN stripe_price_id VARCHAR(255)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN stripe_price_id VARCHAR(255)"))
 
             if 'subscription_plan' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_plan VARCHAR(50)"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_plan VARCHAR(50)"))
 
             if 'subscription_current_period_end' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_current_period_end DATETIME"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_current_period_end DATETIME"))
 
             if 'subscription_cancel_at_period_end' not in existing_columns:
-                conn.execute(text("ALTER TABLE user ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT 0"))
 
         if 'trades' in table_names:
             trade_columns = {col['name'] for col in inspector.get_columns('trades')}
