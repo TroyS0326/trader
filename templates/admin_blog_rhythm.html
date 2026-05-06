@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Blog Rhythm</title>{% include 'partials/async_app_css.html' %}</head><body class="auth-body">{% include 'nav.html' %}
+<main class="container" style="max-width:1200px;padding:2rem 1rem;">
+<h1>SEO Blog Publishing Rhythm</h1>
+<div class="alert alert-warning">Admin only. Educational content only. No financial advice, no guaranteed outcomes, and all AI drafts require admin review before publishing.</div>
+<form method="post" action="{{ url_for('admin_blog_rhythm_add') }}"> <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input name="title" placeholder="Topic title" required>
+<input name="target_keyword" placeholder="Target keyword">
+<input name="search_intent" placeholder="Search intent">
+<input name="funnel_stage" placeholder="Funnel stage">
+<input name="content_type" placeholder="Content type">
+<input type="number" name="priority" min="1" max="5" value="3">
+<input type="date" name="planned_publish_date">
+<textarea name="notes" placeholder="Notes"></textarea>
+<button type="submit">Add Topic</button></form>
+<table><thead><tr><th>Title</th><th>Status</th><th>Keyword</th><th>Planned Date</th><th>Funnel</th><th>Priority</th><th>Checklist</th><th>Actions</th></tr></thead><tbody>
+{% for p in plans %}<tr><td>{{ p.title }}</td><td>{{ p.status }}</td><td>{{ p.target_keyword or '—' }}</td><td>{{ p.planned_publish_date or '—' }}</td><td>{{ p.funnel_stage or '—' }}</td><td>{{ p.priority }}</td>
+<td>draft: {{ 'yes' if p.related_blog_post_id else 'no' }} · keyword: {{ 'yes' if p.target_keyword else 'no' }} · planned: {{ 'yes' if p.planned_publish_date else 'no' }}</td>
+<td>
+{% if p.related_blog_post_id %}<a href="{{ url_for('admin_blog_edit', post_id=p.related_blog_post_id) }}">Edit Draft</a>{% endif %}
+<form method="post" action="{{ url_for('admin_blog_rhythm_update', plan_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="status">{% for s in allowed_statuses %}<option value="{{ s }}" {% if p.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><input type="date" name="planned_publish_date" value="{{ p.planned_publish_date.isoformat() if p.planned_publish_date else '' }}"><input name="assigned_author" value="{{ p.assigned_author or '' }}" placeholder="Author"><input type="number" name="priority" value="{{ p.priority }}"><input name="notes" value="{{ p.notes or '' }}" placeholder="Notes"><button type="submit">Update</button></form>
+<form method="post" action="{{ url_for('admin_blog_rhythm_create_draft', plan_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Create Draft</button></form>
+</td></tr>{% endfor %}
+</tbody></table></main>{% include 'footer.html' %}</body></html>

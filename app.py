@@ -37,7 +37,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogPost, User, UserEvent, StripeEvent, Trade
+from models import BlogPost, BlogPublishingPlan, User, UserEvent, StripeEvent, Trade
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -182,6 +182,7 @@ VALID_REFRESH_INTERVALS = {10000, 30000, 60000}
 BLOG_ALLOWED_TAGS = ['h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre']
 BLOG_ALLOWED_ATTRIBUTES = {'a': ['href', 'title', 'rel', 'target']}
 BLOG_ALLOWED_STATUSES = {'draft', 'published'}
+BLOG_PLAN_ALLOWED_STATUSES = {'idea', 'queued', 'drafting', 'drafted', 'needs_review', 'ready_to_publish', 'published', 'archived'}
 
 
 def is_admin_user() -> bool:
@@ -677,6 +678,7 @@ def ensure_schema_migrations() -> None:
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
     BlogPost.__table__.create(bind=db.engine, checkfirst=True)
+    BlogPublishingPlan.__table__.create(bind=db.engine, checkfirst=True)
     StripeEvent.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.begin() as conn:
@@ -856,6 +858,26 @@ def ensure_schema_migrations() -> None:
             }
             for col_name, stmt in keyword_plan_alters.items():
                 if col_name not in keyword_plan_columns:
+                    conn.execute(text(stmt))
+        if 'blog_publishing_plans' in table_names:
+            plan_columns = {col['name'] for col in inspector.get_columns('blog_publishing_plans')}
+            plan_alters = {
+                'title': "ALTER TABLE blog_publishing_plans ADD COLUMN title VARCHAR(220) NOT NULL DEFAULT ''",
+                'target_keyword': "ALTER TABLE blog_publishing_plans ADD COLUMN target_keyword VARCHAR(180)",
+                'search_intent': "ALTER TABLE blog_publishing_plans ADD COLUMN search_intent VARCHAR(80)",
+                'funnel_stage': "ALTER TABLE blog_publishing_plans ADD COLUMN funnel_stage VARCHAR(80)",
+                'content_type': "ALTER TABLE blog_publishing_plans ADD COLUMN content_type VARCHAR(80)",
+                'priority': "ALTER TABLE blog_publishing_plans ADD COLUMN priority INTEGER NOT NULL DEFAULT 3",
+                'status': "ALTER TABLE blog_publishing_plans ADD COLUMN status VARCHAR(40) NOT NULL DEFAULT 'idea'",
+                'planned_publish_date': "ALTER TABLE blog_publishing_plans ADD COLUMN planned_publish_date DATE",
+                'assigned_author': "ALTER TABLE blog_publishing_plans ADD COLUMN assigned_author VARCHAR(120)",
+                'notes': "ALTER TABLE blog_publishing_plans ADD COLUMN notes TEXT",
+                'related_blog_post_id': "ALTER TABLE blog_publishing_plans ADD COLUMN related_blog_post_id INTEGER",
+                'created_at': f"ALTER TABLE blog_publishing_plans ADD COLUMN created_at {datetime_type()}",
+                'updated_at': f"ALTER TABLE blog_publishing_plans ADD COLUMN updated_at {datetime_type()}",
+            }
+            for col_name, stmt in plan_alters.items():
+                if col_name not in plan_columns:
                     conn.execute(text(stmt))
 
         conn.commit()
@@ -2069,6 +2091,87 @@ def admin_blog_list():
         return ("Forbidden", 403)
     posts = BlogPost.query.order_by(BlogPost.updated_at.desc()).all()
     return render_template('admin_blog_list.html', posts=posts)
+
+@app.route('/admin/blog-rhythm')
+@login_required
+def admin_blog_rhythm():
+    if not is_admin_user():
+        abort(403)
+    plans = BlogPublishingPlan.query.order_by(BlogPublishingPlan.planned_publish_date.asc().nullslast(), BlogPublishingPlan.created_at.desc()).all()
+    return render_template('admin_blog_rhythm.html', plans=plans, allowed_statuses=sorted(BLOG_PLAN_ALLOWED_STATUSES))
+
+@app.route('/admin/blog-rhythm/add', methods=['POST'])
+@login_required
+def admin_blog_rhythm_add():
+    if not is_admin_user():
+        abort(403)
+    title = (request.form.get('title') or '').strip()
+    if not title:
+        flash('Title is required.', 'error')
+        return redirect(url_for('admin_blog_rhythm'))
+    plan = BlogPublishingPlan(
+        title=title,
+        target_keyword=(request.form.get('target_keyword') or '').strip() or None,
+        search_intent=(request.form.get('search_intent') or '').strip() or None,
+        funnel_stage=(request.form.get('funnel_stage') or '').strip() or None,
+        content_type=(request.form.get('content_type') or '').strip() or None,
+        priority=int(request.form.get('priority') or 3),
+        status='idea',
+        notes=(request.form.get('notes') or '').strip() or None,
+        planned_publish_date=datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if request.form.get('planned_publish_date') else None,
+    )
+    db.session.add(plan); db.session.commit()
+    flash('Blog rhythm topic added.', 'success')
+    return redirect(url_for('admin_blog_rhythm'))
+
+@app.route('/admin/blog-rhythm/<int:plan_id>/update', methods=['POST'])
+@login_required
+def admin_blog_rhythm_update(plan_id):
+    if not is_admin_user():
+        abort(403)
+    plan = BlogPublishingPlan.query.get_or_404(plan_id)
+    status = (request.form.get('status') or '').strip()
+    if status and status not in BLOG_PLAN_ALLOWED_STATUSES:
+        flash('Invalid status.', 'error')
+        return redirect(url_for('admin_blog_rhythm'))
+    if status:
+        plan.status = status
+    plan.assigned_author = (request.form.get('assigned_author') or '').strip() or None
+    plan.notes = (request.form.get('notes') or '').strip() or None
+    if request.form.get('priority'):
+        plan.priority = int(request.form.get('priority'))
+    plan.planned_publish_date = datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if request.form.get('planned_publish_date') else None
+    db.session.commit()
+    flash('Blog rhythm topic updated.', 'success')
+    return redirect(url_for('admin_blog_rhythm'))
+
+@app.route('/admin/blog-rhythm/<int:plan_id>/create-draft', methods=['POST'])
+@login_required
+def admin_blog_rhythm_create_draft(plan_id):
+    if not is_admin_user():
+        abort(403)
+    plan = BlogPublishingPlan.query.get_or_404(plan_id)
+    if plan.related_blog_post_id:
+        return redirect(url_for('admin_blog_edit', post_id=plan.related_blog_post_id))
+    title = (plan.title or 'Blog Draft').strip()
+    slug = unique_blog_slug(title)
+    body_html = "<p>Draft placeholder. Admin review required before publishing.</p>"
+    if os.getenv('GEMINI_API_KEY'):
+        try:
+            draft = generate_blog_draft(title=title, target_keyword=plan.target_keyword or '', search_intent=plan.search_intent or 'educational')
+            if draft and draft.get('body_html'):
+                body_html = sanitize_blog_html(draft.get('body_html') or body_html)
+        except Exception:
+            pass
+    post = BlogPost(title=title, slug=slug, body_html=body_html, target_keyword=plan.target_keyword, status='draft', excerpt=plan.notes)
+    db.session.add(post)
+    db.session.flush()
+    plan.related_blog_post_id = post.id
+    if plan.status in {'idea', 'queued'}:
+        plan.status = 'drafted'
+    db.session.commit()
+    flash('Draft created. Admin review is required before publishing.', 'success')
+    return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
 
