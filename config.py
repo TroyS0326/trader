@@ -67,6 +67,7 @@ LAUNCH_PROMO_STRIPE_COUPON_ID = os.getenv('LAUNCH_PROMO_STRIPE_COUPON_ID', '').s
 BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 BREVO_LIST_ID = int(os.getenv('BREVO_LIST_ID', '5'))
 BREVO_SIGNUP_LIST_ID = int(os.getenv('BREVO_SIGNUP_LIST_ID', '0'))
+BREVO_SIGNUP_SYNC_OPTIONAL = os.getenv('BREVO_SIGNUP_SYNC_OPTIONAL', '0') == '1'
 BREVO_WELCOME_TEMPLATE_ENABLED = os.getenv('BREVO_WELCOME_TEMPLATE_ENABLED', '1') == '1'
 META_PIXEL_ID = os.getenv('META_PIXEL_ID', '').strip()
 
@@ -121,6 +122,7 @@ def validate_brevo_config() -> list[str]:
     })
 
 DB_PATH = str(BASE_DIR / 'veteran_trades.db')
+ALLOW_DB_FALLBACK = os.getenv('ALLOW_DB_FALLBACK', '0') == '1'
 SCAN_CANDIDATE_LIMIT = int(os.getenv('SCAN_CANDIDATE_LIMIT', '20'))
 WATCHLIST_SIZE = int(os.getenv('WATCHLIST_SIZE', '3'))
 MAX_BUY_SHARES = int(os.getenv('MAX_BUY_SHARES', '999'))
@@ -212,3 +214,59 @@ LEVERAGED_ETF_TRADING_ENABLED = os.getenv('LEVERAGED_ETF_TRADING_ENABLED', '0') 
 INVERSE_ETF_TRADING_ENABLED = os.getenv('INVERSE_ETF_TRADING_ENABLED', '0') == '1'
 CRYPTO_ETF_TRADING_ENABLED = os.getenv('CRYPTO_ETF_TRADING_ENABLED', '1') == '1'
 OPTIONS_TRADING_ENABLED = os.getenv('OPTIONS_TRADING_ENABLED', '0') == '1'
+
+PLACEHOLDER_VALUES = {'change-me', 'placeholder', 'replace-me', 'your_value_here', 'test', 'example'}
+
+
+def _is_placeholder(value: str | None) -> bool:
+    if value is None:
+        return True
+    return value.strip().lower() in PLACEHOLDER_VALUES or not value.strip()
+
+
+def validate_required_production_config(strict: bool = False) -> list[str]:
+    errors: list[str] = []
+    if not strict:
+        return errors
+    checks = {
+        'SECRET_KEY': SECRET_KEY,
+        'TOKEN_ENCRYPTION_KEY': TOKEN_ENCRYPTION_KEY,
+        'REDIS_URL': REDIS_URL,
+        'RATELIMIT_STORAGE_URI': RATELIMIT_STORAGE_URI,
+        'STRIPE_PUBLIC_KEY': STRIPE_PUBLIC_KEY,
+        'STRIPE_SECRET_KEY': STRIPE_SECRET_KEY,
+        'STRIPE_WEBHOOK_SECRET': STRIPE_WEBHOOK_SECRET,
+        'STRIPE_PRICE_ID_MONTHLY': STRIPE_PRICE_ID_MONTHLY,
+        'STRIPE_PRICE_ID_ANNUAL': STRIPE_PRICE_ID_ANNUAL,
+        'BREVO_API_KEY': BREVO_API_KEY,
+        'BREVO_SENDER_EMAIL': BREVO_SENDER_EMAIL,
+        'ALPACA_CLIENT_ID': ALPACA_CLIENT_ID,
+        'ALPACA_CLIENT_SECRET': ALPACA_CLIENT_SECRET,
+        'ALPACA_REDIRECT_URI': ALPACA_REDIRECT_URI,
+        'FINNHUB_API_KEY': FINNHUB_API_KEY,
+        'GEMINI_API_KEY': GEMINI_API_KEY,
+    }
+    for k, v in checks.items():
+        if _is_placeholder(str(v) if v is not None else None):
+            errors.append(f'{k} is missing or placeholder.')
+    if os.getenv('FLASK_DEBUG', '0') != '0':
+        errors.append('FLASK_DEBUG must be 0 in production.')
+    if FLASK_ENV != 'production':
+        errors.append('FLASK_ENV must be production.')
+    if not APP_BASE_URL.startswith('https://'):
+        errors.append('APP_BASE_URL must start with https://.')
+    if not SESSION_COOKIE_SECURE:
+        errors.append('SESSION_COOKIE_SECURE must be 1.')
+    if not SESSION_COOKIE_SAMESITE:
+        errors.append('SESSION_COOKIE_SAMESITE must be set.')
+    if not ALPACA_REDIRECT_URI.startswith('https://'):
+        errors.append('ALPACA_REDIRECT_URI must use https.')
+    if 'https://xeanvi.com' not in WTF_CSRF_TRUSTED_ORIGINS or 'https://www.xeanvi.com' not in WTF_CSRF_TRUSTED_ORIGINS:
+        errors.append('WTF_CSRF_TRUSTED_ORIGINS must include https://xeanvi.com and https://www.xeanvi.com.')
+    if BREVO_RESET_PASSWORD_TEMPLATE_ID and not str(BREVO_RESET_PASSWORD_TEMPLATE_ID).isdigit():
+        errors.append('BREVO_RESET_PASSWORD_TEMPLATE_ID must be numeric.')
+    if not BREVO_SIGNUP_SYNC_OPTIONAL and BREVO_SIGNUP_LIST_ID <= 0:
+        errors.append('BREVO_SIGNUP_LIST_ID must be a positive integer unless BREVO_SIGNUP_SYNC_OPTIONAL=1.')
+    if STRIPE_PRICE_ID_MONTHLY and STRIPE_PRICE_ID_MONTHLY == STRIPE_PRICE_ID_ANNUAL:
+        errors.append('STRIPE_PRICE_ID_MONTHLY and STRIPE_PRICE_ID_ANNUAL must be different.')
+    return errors

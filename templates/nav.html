@@ -202,9 +202,12 @@
 
         <div class="xean-nav-actions">
             {% if current_user.is_authenticated %}
-                <a href="/logout" style="color: var(--text-muted); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">
-                    <i class="fas fa-power-off" style="margin-right: 6px;"></i> Terminate Session
-                </a>
+                <form method="post" action="/logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" style="color: var(--text-muted); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 600; text-decoration: none; transition: color 0.2s; background:none; border:none; cursor:pointer;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">
+                        <i class="fas fa-power-off" style="margin-right: 6px;"></i> Terminate Session
+                    </button>
+                </form>
             {% else %}
                 <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-main)'">Log In</a>
                 <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-weight: 800; border-radius: 8px; border: none; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);">Start Monthly PRO</a>

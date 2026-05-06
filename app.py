@@ -33,7 +33,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogPost, User, UserEvent
+from models import BlogPost, User, UserEvent, StripeEvent
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -171,6 +171,8 @@ def ensure_db_initialized() -> None:
         return
     except (sqlite3.OperationalError, PermissionError) as exc:
         fallback_dir = os.getenv('DB_FALLBACK_DIR', '/tmp')
+        if not getattr(config, 'ALLOW_DB_FALLBACK', False):
+            raise RuntimeError(f'Primary DB path failed and ALLOW_DB_FALLBACK is disabled: {exc}')
         fallback_path = os.path.join(fallback_dir, 'veteran_trades.db')
         logger.warning('Primary DB path failed (%s). Falling back to %s. Error: %s', config.DB_PATH, fallback_path, exc)
         config.DB_PATH = fallback_path
@@ -1145,6 +1147,22 @@ def robots_txt():
     return "\n".join(lines), 200, {'Content-Type': 'text/plain'}
 
 
+@app.route('/healthz')
+def healthz():
+    return jsonify({'ok': True}), 200
+
+
+@app.route('/readyz')
+def readyz():
+    try:
+        db.session.execute(text('SELECT 1'))
+        redis_client.ping()
+    except Exception:
+        logger.exception('Readiness check failed')
+        return jsonify({'ok': False}), 503
+    return jsonify({'ok': True}), 200
+
+
 
 @app.route('/learn')
 def learn_gone():
@@ -1195,7 +1213,7 @@ def api_transparency_stats():
         return fail("Performance report is currently generating. Please check back shortly.", 404)
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
@@ -1415,6 +1433,8 @@ def dashboard():
 @app.route('/upgrade')
 @login_required
 def upgrade():
+    return redirect(url_for('pricing'), code=302)
+    upgrade_from = (request.args.get('from') or '').strip()
     upgrade_from = (request.args.get('from') or '').strip()
     track_user_event('upgrade_page_viewed', user=current_user, context={'from': upgrade_from})
     # If they are already PRO, don't let them buy it again!
@@ -1659,6 +1679,7 @@ def stripe_webhook():
         return jsonify({'error': 'invalid signature'}), 400
 
     event_type = event.get('type')
+    event_id = event.get('id')
     obj = (event.get('data') or {}).get('object') or {}
 
     def find_user(subscription_id=None, customer_id=None, metadata_user_id=None):
@@ -1672,6 +1693,8 @@ def stripe_webhook():
         return user
 
     try:
+        if event_id and StripeEvent.query.filter_by(event_id=event_id).first():
+            return jsonify({'status': 'duplicate'}), 200
         if event_type == 'checkout.session.completed':
             user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
             user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
@@ -1726,7 +1749,7 @@ def stripe_webhook():
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
 
-        elif event_type == 'invoice.payment_succeeded':
+        elif event_type == 'invoice.paid':
             sub_id = obj.get('subscription')
             customer_id = obj.get('customer')
             metadata_user_id = (obj.get('metadata') or {}).get('user_id')
@@ -1741,6 +1764,13 @@ def stripe_webhook():
     except Exception:
         db.session.rollback()
         logger.exception('Error handling Stripe webhook event type=%s', event_type)
+    finally:
+        if event_id:
+            try:
+                db.session.add(StripeEvent(event_id=event_id, event_type=event_type or 'unknown'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
     return jsonify({'status': 'success'}), 200
 

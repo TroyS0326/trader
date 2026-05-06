@@ -274,6 +274,15 @@ class BlogPost(db.Model):
     published_at = db.Column(db.DateTime, nullable=True)
 
 
+class StripeEvent(db.Model):
+    __tablename__ = 'stripe_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    event_type = db.Column(db.String(120), nullable=False)
+    processed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
 class Trade(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)

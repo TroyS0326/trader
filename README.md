@@ -763,3 +763,9 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
+
+
+## Production validation
+- Run `python config_check.py --strict` before deploy.
+- Run `pytest -q` before deploy.
+- Stripe webhook URL: `https://xeanvi.com/api/stripe-webhook` and events: checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.paid, invoice.payment_failed.
