@@ -6,10 +6,12 @@ This module intentionally performs no network calls during import.
 from __future__ import annotations
 
 import os
+import inspect
 from typing import Any
 
 _DEFAULT_MODEL = "gemini-2.5-flash"
 _client: Any | None = None
+_generate_content_supports_timeout: bool | None = None
 
 
 def _get_client() -> Any:
@@ -47,15 +49,26 @@ def generate_text(
     """
     client = _get_client()
 
-    config: dict[str, Any] = {}
+    config_dict: dict[str, Any] = {}
     if temperature is not None:
-        config["temperature"] = temperature
+        config_dict["temperature"] = temperature
     if max_output_tokens is not None:
-        config["max_output_tokens"] = max_output_tokens
+        config_dict["max_output_tokens"] = max_output_tokens
     if response_mime_type is not None:
-        config["response_mime_type"] = response_mime_type
+        config_dict["response_mime_type"] = response_mime_type
     if system_instruction is not None:
-        config["system_instruction"] = system_instruction
+        config_dict["system_instruction"] = system_instruction
+
+    config: Any = config_dict or None
+    if config_dict:
+        try:
+            from google.genai import types as genai_types  # type: ignore
+
+            config_cls = getattr(genai_types, "GenerateContentConfig", None)
+            if config_cls is not None:
+                config = config_cls(**config_dict)
+        except Exception:
+            config = config_dict
 
     kwargs: dict[str, Any] = {
         "model": get_model_name(model),
@@ -63,7 +76,18 @@ def generate_text(
         "config": config or None,
     }
     if timeout is not None:
-        kwargs["timeout"] = timeout
+        global _generate_content_supports_timeout
+        if _generate_content_supports_timeout is None:
+            try:
+                params = inspect.signature(client.models.generate_content).parameters
+                _generate_content_supports_timeout = "timeout" in params
+            except Exception:
+                _generate_content_supports_timeout = False
+
+        if _generate_content_supports_timeout:
+            kwargs["timeout"] = timeout
+        # Keep `timeout` in this wrapper's signature for compatibility,
+        # but only forward it when the installed google.genai SDK supports it.
 
     response = client.models.generate_content(**kwargs)
 
