@@ -33,7 +33,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogKeywordPlan, BlogPost, User, UserEvent
+from models import BlogPost, User, UserEvent
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -616,7 +616,6 @@ def ensure_schema_migrations() -> None:
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
     BlogPost.__table__.create(bind=db.engine, checkfirst=True)
-    BlogKeywordPlan.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.connect() as conn:
         if 'user' in table_names:
@@ -1889,39 +1888,6 @@ def api_admin_conversion_summary():
 
 
 
-BLOG_KEYWORD_PLAN_SEEDS = [
-    {"cluster": "Trading Playbook / Rules-Based Trading", "target_keyword": "trading playbook", "suggested_title": "What Is a Trading Playbook and Why Day Traders Need One?", "search_intent": "educational", "priority": 1, "linked_page": "/playbook"},
-    {"cluster": "Paper Trading / Safe Testing", "target_keyword": "paper trading vs live trading", "suggested_title": "Paper Trading vs Live Trading: Why Automation Should Start in Sim Mode", "search_intent": "educational", "priority": 1, "linked_page": "/broker-integration"},
-    {"cluster": "Broker Integration / Orders", "target_keyword": "bracket orders day trading", "suggested_title": "How Bracket Orders Help Remove Emotion From Day Trading", "search_intent": "educational", "priority": 1, "linked_page": "/broker-integration"},
-    {"cluster": "Trading Setups", "target_keyword": "VWAP reclaim", "suggested_title": "What Is VWAP Reclaim in Day Trading?", "search_intent": "educational", "priority": 1, "linked_page": "/playbook"},
-    {"cluster": "Trading Psychology", "target_keyword": "overtrading market open", "suggested_title": "Why Most Retail Traders Overtrade the Market Open", "search_intent": "educational", "priority": 1, "linked_page": "/playbook"},
-    {"cluster": "Trading Setups", "target_keyword": "opening range breakout", "suggested_title": "Opening Range Breakout Explained for Beginner Day Traders", "search_intent": "educational", "priority": 2, "linked_page": "/playbook"},
-    {"cluster": "Risk Management", "target_keyword": "stop loss rules day trading", "suggested_title": "Stop-Loss Rules Every Day Trader Should Define Before Entry", "search_intent": "educational", "priority": 2, "linked_page": "/playbook"},
-    {"cluster": "Risk Management", "target_keyword": "trading risk controls", "suggested_title": "Why Day Traders Need Risk Controls Before Automation", "search_intent": "educational", "priority": 2, "linked_page": "/features"},
-    {"cluster": "Rules-Based Trading", "target_keyword": "rules-based trading system", "suggested_title": "What Is a Rules-Based Trading System?", "search_intent": "educational", "priority": 2, "linked_page": "/features"},
-    {"cluster": "Paper Trading / Safe Testing", "target_keyword": "paper trading playbook", "suggested_title": "How Paper Trading Helps Validate a Trading Playbook", "search_intent": "educational", "priority": 2, "linked_page": "/playbook"},
-    {"cluster": "Broker Integration / Orders", "target_keyword": "broker API trading software", "suggested_title": "What Is Broker API Integration in Trading Software?", "search_intent": "educational", "priority": 2, "linked_page": "/broker-integration"},
-    {"cluster": "Broker Integration / Orders", "target_keyword": "Alpaca paper trading", "suggested_title": "Alpaca Paper Trading: Why Simulated Execution Matters", "search_intent": "educational", "priority": 2, "linked_page": "/broker-integration"},
-    {"cluster": "AI Trading Automation", "target_keyword": "AI trading automation", "suggested_title": "AI Trading Automation vs Trading Signals: What’s the Difference?", "search_intent": "commercial_educational", "priority": 2, "linked_page": "/features"},
-    {"cluster": "AI Trading Automation", "target_keyword": "trading automation risk", "suggested_title": "Trading Automation Without Discipline Is Still Risky", "search_intent": "educational", "priority": 2, "linked_page": "/transparency"},
-    {"cluster": "Execution Workflow", "target_keyword": "trading execution engine", "suggested_title": "What Is an Execution Engine in Day Trading?", "search_intent": "educational", "priority": 2, "linked_page": "/features"},
-    {"cluster": "Trading Workflow", "target_keyword": "day trading checklist", "suggested_title": "How to Build a Day Trading Checklist Before the Market Opens", "search_intent": "educational", "priority": 3, "linked_page": "/playbook"},
-    {"cluster": "Trading Psychology", "target_keyword": "no trade trading discipline", "suggested_title": "Why “No Trade” Is Sometimes the Best Trading Decision", "search_intent": "educational", "priority": 3, "linked_page": "/playbook"},
-    {"cluster": "Risk Management", "target_keyword": "position sizing day trading", "suggested_title": "What Is Position Sizing and Why Does It Matter?", "search_intent": "educational", "priority": 3, "linked_page": "/playbook"},
-    {"cluster": "Trading Psychology", "target_keyword": "chasing breakouts", "suggested_title": "Why Chasing Breakouts Can Hurt Retail Traders", "search_intent": "educational", "priority": 3, "linked_page": "/blog"},
-    {"cluster": "Trading Review", "target_keyword": "trade review process", "suggested_title": "How to Review Trades Without Emotional Bias", "search_intent": "educational", "priority": 3, "linked_page": "/features"},
-    {"cluster": "Broker Integration / Orders", "target_keyword": "managed bracket order", "suggested_title": "What Is a Managed Bracket Order?", "search_intent": "educational", "priority": 3, "linked_page": "/broker-integration"},
-    {"cluster": "Trading Psychology", "target_keyword": "revenge trading rules", "suggested_title": "How Day Traders Can Use Rules to Reduce Revenge Trading", "search_intent": "educational", "priority": 3, "linked_page": "/playbook"},
-    {"cluster": "Market Screening", "target_keyword": "relative volume trading", "suggested_title": "What Is Relative Volume and Why Do Traders Watch It?", "search_intent": "educational", "priority": 3, "linked_page": "/features"},
-    {"cluster": "Market Screening", "target_keyword": "float day trading", "suggested_title": "What Is Float in Day Trading?", "search_intent": "educational", "priority": 3, "linked_page": "/features"},
-    {"cluster": "AI Trading Automation", "target_keyword": "AI trading rules", "suggested_title": "Why AI Should Assist Trading Rules, Not Replace Judgment", "search_intent": "trust_educational", "priority": 3, "linked_page": "/transparency"},
-    {"cluster": "Product / Commercial", "target_keyword": "trading automation software features", "suggested_title": "Best Trading Automation Software Features to Look For", "search_intent": "commercial", "priority": 4, "linked_page": "/features"},
-    {"cluster": "Product / Commercial", "target_keyword": "trading bot vs automation platform", "suggested_title": "Trading Bot vs Trading Automation Platform: What’s the Difference?", "search_intent": "commercial", "priority": 4, "linked_page": "/features"},
-    {"cluster": "Product / Commercial", "target_keyword": "trading automation software cost", "suggested_title": "How Much Should Trading Automation Software Cost?", "search_intent": "commercial", "priority": 4, "linked_page": "/pricing"},
-    {"cluster": "Product / Commercial", "target_keyword": "connect broker trading software", "suggested_title": "What to Look for Before Connecting a Broker to Trading Software", "search_intent": "commercial", "priority": 4, "linked_page": "/broker-integration"},
-    {"cluster": "Branded / XeanVI", "target_keyword": "XeanVI trading playbook", "suggested_title": "How XeanVI Helps Traders Follow Their Own Playbook", "search_intent": "branded", "priority": 4, "linked_page": "/signup"},
-]
-
 @app.route('/admin/blog')
 @login_required
 def admin_blog_list():
@@ -1930,145 +1896,6 @@ def admin_blog_list():
     posts = BlogPost.query.order_by(BlogPost.updated_at.desc()).all()
     return render_template('admin_blog_list.html', posts=posts)
 
-@app.route('/admin/blog/keyword-map')
-@login_required
-def admin_keyword_map():
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    status = (request.args.get('status') or '').strip()
-    cluster = (request.args.get('cluster') or '').strip()
-    priority = (request.args.get('priority') or '').strip()
-    query = BlogKeywordPlan.query
-    if status:
-        query = query.filter(BlogKeywordPlan.status == status)
-    if cluster:
-        query = query.filter(BlogKeywordPlan.cluster == cluster)
-    if priority.isdigit():
-        query = query.filter(BlogKeywordPlan.priority == int(priority))
-    plans = query.order_by(BlogKeywordPlan.priority.asc(), BlogKeywordPlan.planned_publish_date.asc(), BlogKeywordPlan.updated_at.desc()).all()
-    clusters = [r[0] for r in db.session.query(BlogKeywordPlan.cluster).filter(BlogKeywordPlan.cluster.isnot(None)).distinct().order_by(BlogKeywordPlan.cluster.asc()).all() if r[0]]
-    return render_template('admin_keyword_map.html', plans=plans, clusters=clusters, filters={'status': status, 'cluster': cluster, 'priority': priority})
-
-@app.route('/admin/blog/keyword-map/seed', methods=['POST'])
-@login_required
-def admin_keyword_map_seed():
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    created = 0
-    for item in BLOG_KEYWORD_PLAN_SEEDS:
-        exists = BlogKeywordPlan.query.filter_by(target_keyword=item['target_keyword'], suggested_title=item['suggested_title']).first()
-        if exists:
-            continue
-        db.session.add(BlogKeywordPlan(**item))
-        created += 1
-    db.session.commit()
-    flash(f'Seeded keyword map. {created} plan(s) created.', 'success')
-    return redirect(url_for('admin_keyword_map'))
-
-@app.route('/admin/blog/keyword-map/new', methods=['GET', 'POST'])
-@login_required
-def admin_keyword_map_new():
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    if request.method == 'POST':
-        plan = BlogKeywordPlan(
-            cluster=(request.form.get('cluster') or '').strip() or None,
-            target_keyword=(request.form.get('target_keyword') or '').strip(),
-            search_intent=(request.form.get('search_intent') or 'educational').strip() or 'educational',
-            suggested_title=(request.form.get('suggested_title') or '').strip(),
-            priority=int((request.form.get('priority') or '3').strip() or '3'),
-            linked_page=(request.form.get('linked_page') or '').strip() or None,
-            status=(request.form.get('status') or 'planned').strip() or 'planned',
-            planned_publish_date=datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if (request.form.get('planned_publish_date') or '').strip() else None,
-            notes=(request.form.get('notes') or '').strip() or None,
-        )
-        if not plan.target_keyword or not plan.suggested_title:
-            flash('Target keyword and suggested title are required.', 'error')
-            return render_template('admin_keyword_form.html', plan=None)
-        if plan.status not in {'planned', 'drafted', 'published', 'skipped'}:
-            plan.status = 'planned'
-        db.session.add(plan)
-        db.session.commit()
-        flash('Keyword plan created.', 'success')
-        return redirect(url_for('admin_keyword_map'))
-    return render_template('admin_keyword_form.html', plan=None)
-
-@app.route('/admin/blog/keyword-map/<int:plan_id>/edit', methods=['GET', 'POST'])
-@login_required
-def admin_keyword_map_edit(plan_id):
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    plan = BlogKeywordPlan.query.get_or_404(plan_id)
-    if request.method == 'POST':
-        plan.cluster = (request.form.get('cluster') or '').strip() or None
-        plan.target_keyword = (request.form.get('target_keyword') or '').strip()
-        plan.search_intent = (request.form.get('search_intent') or 'educational').strip() or 'educational'
-        plan.suggested_title = (request.form.get('suggested_title') or '').strip()
-        plan.priority = int((request.form.get('priority') or '3').strip() or '3')
-        plan.linked_page = (request.form.get('linked_page') or '').strip() or None
-        plan.status = (request.form.get('status') or 'planned').strip() or 'planned'
-        if plan.status not in {'planned', 'drafted', 'published', 'skipped'}:
-            plan.status = 'planned'
-        plan.planned_publish_date = datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if (request.form.get('planned_publish_date') or '').strip() else None
-        plan.notes = (request.form.get('notes') or '').strip() or None
-        if not plan.target_keyword or not plan.suggested_title:
-            flash('Target keyword and suggested title are required.', 'error')
-            return render_template('admin_keyword_form.html', plan=plan)
-        plan.updated_at = datetime.utcnow()
-        db.session.commit()
-        flash('Keyword plan updated.', 'success')
-        return redirect(url_for('admin_keyword_map'))
-    return render_template('admin_keyword_form.html', plan=plan)
-
-@app.route('/admin/blog/keyword-map/<int:plan_id>/skip', methods=['POST'])
-@login_required
-def admin_keyword_map_skip(plan_id):
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    plan = BlogKeywordPlan.query.get_or_404(plan_id)
-    plan.status = 'skipped'
-    plan.updated_at = datetime.utcnow()
-    db.session.commit()
-    flash('Keyword plan marked as skipped.', 'success')
-    return redirect(url_for('admin_keyword_map'))
-
-@app.route('/admin/blog/keyword-map/<int:plan_id>/create-draft', methods=['POST'])
-@login_required
-def admin_keyword_map_create_draft(plan_id):
-    if not is_admin_user():
-        return ("Forbidden", 403)
-    plan = BlogKeywordPlan.query.get(plan_id)
-    if not plan:
-        flash('Keyword plan not found.', 'error')
-        return redirect(url_for('admin_keyword_map'))
-
-    linked_post = BlogPost.query.get(plan.blog_post_id) if plan.blog_post_id else None
-    if linked_post:
-        return redirect(url_for('admin_blog_edit', post_id=linked_post.id))
-
-    slug = unique_blog_slug(plan.suggested_title)
-    post = BlogPost(
-        title=plan.suggested_title,
-        slug=slug,
-        target_keyword=plan.target_keyword,
-        status='draft',
-        author_name='XeanVI',
-        meta_title=plan.suggested_title,
-        meta_description='',
-        excerpt='',
-        body_html='<p>Draft created from keyword plan. Use Generate AI Draft to create the article.</p>',
-        canonical_url=build_blog_canonical_url(slug),
-    )
-    db.session.add(post)
-    db.session.flush()
-
-    plan.blog_post_id = post.id
-    plan.status = 'drafted'
-    plan.updated_at = datetime.utcnow()
-
-    db.session.commit()
-    flash('Blog draft created from keyword plan. Use Generate AI Draft to create the article.', 'success')
-    return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
 @app.route('/admin/blog/new', methods=['GET', 'POST'])
