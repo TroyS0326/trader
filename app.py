@@ -13,6 +13,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import IntegrityError
 from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, make_response, render_template, request, redirect, session, url_for, flash
@@ -433,13 +434,17 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
 def add_signup_user_to_brevo(user):
     api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
     list_id = getattr(config, 'BREVO_SIGNUP_LIST_ID', 0)
+    signup_sync_optional = bool(getattr(config, 'BREVO_SIGNUP_SYNC_OPTIONAL', False))
 
     if not api_key:
         logger.error('Brevo signup automation skipped: missing BREVO_API_KEY for user_id=%s', user.id)
         return False
 
     if not list_id:
-        logger.error('Brevo signup automation skipped: missing BREVO_SIGNUP_LIST_ID for user_id=%s', user.id)
+        if signup_sync_optional:
+            logger.info('Brevo signup automation skipped (optional): missing BREVO_SIGNUP_LIST_ID for user_id=%s', user.id)
+        else:
+            logger.error('Brevo signup automation skipped: missing BREVO_SIGNUP_LIST_ID for user_id=%s', user.id)
         return False
 
     full_name = (user.full_name or '').strip()
@@ -618,6 +623,7 @@ def ensure_schema_migrations() -> None:
     inspector = inspect(db.engine)
     table_names = inspector.get_table_names()
     BlogPost.__table__.create(bind=db.engine, checkfirst=True)
+    StripeEvent.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.connect() as conn:
         if 'user' in table_names:
@@ -1434,15 +1440,6 @@ def dashboard():
 @login_required
 def upgrade():
     return redirect(url_for('pricing'), code=302)
-    upgrade_from = (request.args.get('from') or '').strip()
-    upgrade_from = (request.args.get('from') or '').strip()
-    track_user_event('upgrade_page_viewed', user=current_user, context={'from': upgrade_from})
-    # If they are already PRO, don't let them buy it again!
-    if user_is_pro(current_user):
-        flash("You are already a PRO member. Your automation tools are unlocked.", "success")
-        return redirect(url_for('dashboard'))
-
-    return render_template('upgrade.html', current_user=current_user)
 
 
 @app.route('/billing')
@@ -1692,9 +1689,10 @@ def stripe_webhook():
             user = User.query.filter_by(stripe_customer_id=customer_id).first()
         return user
 
+    if event_id and StripeEvent.query.filter_by(event_id=event_id).first():
+        return jsonify({'status': 'duplicate'}), 200
+
     try:
-        if event_id and StripeEvent.query.filter_by(event_id=event_id).first():
-            return jsonify({'status': 'duplicate'}), 200
         if event_type == 'checkout.session.completed':
             user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
             user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
@@ -1704,8 +1702,7 @@ def stripe_webhook():
                 prior_state = (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id)
                 apply_subscription_to_user(user, subscription)
                 user.stripe_customer_id = obj.get('customer') or user.stripe_customer_id
-                if prior_state != (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id):
-                    db.session.commit()
+                _ = prior_state
                 status = (user.subscription_status or '').lower()
                 if status in {'pro'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
@@ -1719,8 +1716,7 @@ def stripe_webhook():
             if user:
                 prior_state = (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id)
                 apply_subscription_to_user(user, obj)
-                if prior_state != (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id):
-                    db.session.commit()
+                _ = prior_state
                 status = (user.subscription_status or '').lower()
                 if status in {'pro', 'trialing'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
@@ -1733,8 +1729,6 @@ def stripe_webhook():
             if user:
                 user.subscription_status = 'free'
                 user.subscription_cancel_at_period_end = False
-                if user.subscription_status != 'free' or user.subscription_cancel_at_period_end:
-                    db.session.commit()
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'free'})
 
         elif event_type == 'invoice.payment_failed':
@@ -1744,8 +1738,6 @@ def stripe_webhook():
             user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
             if user:
                 user.subscription_status = 'past_due'
-                if user.subscription_status != 'past_due':
-                    db.session.commit()
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
 
@@ -1759,18 +1751,17 @@ def stripe_webhook():
                 if subscription.get('status') in {'active', 'trialing'}:
                     apply_subscription_to_user(user, subscription)
                     user.subscription_status = 'pro'
-                    db.session.commit()
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+        if event_id:
+            db.session.add(StripeEvent(event_id=event_id, event_type=event_type or 'unknown'))
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'duplicate'}), 200
     except Exception:
         db.session.rollback()
         logger.exception('Error handling Stripe webhook event type=%s', event_type)
-    finally:
-        if event_id:
-            try:
-                db.session.add(StripeEvent(event_id=event_id, event_type=event_type or 'unknown'))
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
+        return jsonify({'error': 'processing_failed'}), 500
 
     return jsonify({'status': 'success'}), 200
 

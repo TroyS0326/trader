@@ -769,3 +769,7 @@ WantedBy=multi-user.target
 - Run `python config_check.py --strict` before deploy.
 - Run `pytest -q` before deploy.
 - Stripe webhook URL: `https://xeanvi.com/api/stripe-webhook` and events: checkout.session.completed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.paid, invoice.payment_failed.
+
+- Canonical upgrade route is `/pricing`; `/upgrade` redirects and is not canonical.
+- Verify `/pricing`, `/healthz`, `/readyz`, `/sitemap.xml`, and `/robots.txt` before launch.
+- Ensure `stripe_events` table exists before enabling live Stripe webhooks.
