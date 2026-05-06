@@ -1,3 +1,46 @@
+<style>
+.xean-footer-link-row {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.xean-footer-social-row {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.xean-footer-link {
+    color: var(--accent-blue);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1.4px;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    line-height: 1.2;
+}
+
+.xean-footer-link:hover,
+.xean-footer-link:focus-visible {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.04);
+}
+</style>
+
 <footer class="footer" style="padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; background: var(--bg-main);">
     <div class="container">
         <p>&copy; 2026 XeanVI. Systematic Execution Tools.</p>
@@ -6,20 +49,20 @@
             Disclaimer: Trading involves significant risk. This software is a tool that executes trades based strictly on parameters you provide. Past performance does not guarantee future results. Test in Sandbox mode before using real capital.
         </p>
         
-        <div style="margin-top: 1.5rem; font-size: 0.85rem; font-weight: 600;">
-            <a href="/pricing" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Monthly PRO</a>
-            <a href="/features" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Features</a>
-            <a href="/playbook" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Playbook</a>
-            <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Broker Workflow</a>
-            <a href="/transparency" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Transparency</a>
-            <a href="/terms" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Terms</a>
-            <a href="/privacy" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Privacy</a>
-            <a href="/sitemap.xml" style="color: var(--accent-blue); text-decoration: none;">Site Map</a>
+        <div class="xean-footer-link-row">
+            <a href="/pricing" class="xean-footer-link">Monthly PRO</a>
+            <a href="/features" class="xean-footer-link">Features</a>
+            <a href="/playbook" class="xean-footer-link">Playbook</a>
+            <a href="/broker-integration" class="xean-footer-link">Broker Workflow</a>
+            <a href="/transparency" class="xean-footer-link">Transparency</a>
+            <a href="/terms" class="xean-footer-link">Terms</a>
+            <a href="/privacy" class="xean-footer-link">Privacy</a>
+            <a href="/sitemap.xml" class="xean-footer-link">Site Map</a>
         </div>
 
-        <div style="margin-top: 1rem; font-size: 0.85rem; font-weight: 600;">
-            <a href="https://www.facebook.com/profile.php?id=61560981104152" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Facebook" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">Facebook</a>
-            <a href="https://www.instagram.com/xean.vi" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Instagram" style="color: var(--accent-blue); text-decoration: none;">Instagram</a>
+        <div class="xean-footer-social-row">
+            <a href="https://www.facebook.com/profile.php?id=61560981104152" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Facebook" class="xean-footer-link">Facebook</a>
+            <a href="https://www.instagram.com/xean.vi" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Instagram" class="xean-footer-link">Instagram</a>
         </div>
     </div>
 </footer>
