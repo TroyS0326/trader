@@ -1,23 +1,251 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Blog Rhythm</title>{% include 'partials/async_app_css.html' %}</head><body class="auth-body">{% include 'nav.html' %}
-<main class="container" style="max-width:1200px;padding:2rem 1rem;">
-<h1>SEO Blog Publishing Rhythm</h1>
-<div class="alert alert-warning">Admin only. Educational content only. No financial advice, no guaranteed outcomes, and all AI drafts require admin review before publishing.</div>
-<form method="post" action="{{ url_for('admin_blog_rhythm_add') }}"> <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<input name="title" placeholder="Topic title" required>
-<input name="target_keyword" placeholder="Target keyword">
-<input name="search_intent" placeholder="Search intent">
-<input name="funnel_stage" placeholder="Funnel stage">
-<input name="content_type" placeholder="Content type">
-<input type="number" name="priority" min="1" max="5" value="3">
-<input type="date" name="planned_publish_date">
-<textarea name="notes" placeholder="Notes"></textarea>
-<button type="submit">Add Topic</button></form>
-<table><thead><tr><th>Title</th><th>Status</th><th>Keyword</th><th>Planned Date</th><th>Funnel</th><th>Priority</th><th>Checklist</th><th>Actions</th></tr></thead><tbody>
-{% for p in plans %}<tr><td>{{ p.title }}</td><td>{{ p.status }}</td><td>{{ p.target_keyword or '—' }}</td><td>{{ p.planned_publish_date or '—' }}</td><td>{{ p.funnel_stage or '—' }}</td><td>{{ p.priority }}</td>
-<td>draft: {{ 'yes' if p.related_blog_post_id else 'no' }} · keyword: {{ 'yes' if p.target_keyword else 'no' }} · planned: {{ 'yes' if p.planned_publish_date else 'no' }}</td>
-<td>
-{% if p.related_blog_post_id %}<a href="{{ url_for('admin_blog_edit', post_id=p.related_blog_post_id) }}">Edit Draft</a>{% endif %}
-<form method="post" action="{{ url_for('admin_blog_rhythm_update', plan_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="status">{% for s in allowed_statuses %}<option value="{{ s }}" {% if p.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><input type="date" name="planned_publish_date" value="{{ p.planned_publish_date.isoformat() if p.planned_publish_date else '' }}"><input name="assigned_author" value="{{ p.assigned_author or '' }}" placeholder="Author"><input type="number" name="priority" value="{{ p.priority }}"><input name="notes" value="{{ p.notes or '' }}" placeholder="Notes"><button type="submit">Update</button></form>
-<form method="post" action="{{ url_for('admin_blog_rhythm_create_draft', plan_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Create Draft</button></form>
-</td></tr>{% endfor %}
-</tbody></table></main>{% include 'footer.html' %}</body></html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Blog Rhythm</title>
+  {% include 'partials/async_app_css.html' %}
+  <style>
+    .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2.25rem 1rem 3rem; }
+    .admin-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.2rem;
+      padding: .9rem 0;
+      background: linear-gradient(180deg, rgba(6, 11, 17, .96), rgba(6, 11, 17, .85));
+      backdrop-filter: blur(6px);
+    }
+    .admin-title { margin: 0; font-size: clamp(1.7rem, 2.2vw, 2.2rem); }
+    .admin-subtitle { margin: .5rem 0 0; color: #9ca3af; max-width: 760px; }
+    .route-hint { margin-top: .4rem; font-size: .78rem; color: #7f91ab; }
+
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1.1rem; box-shadow: 0 10px 26px rgba(0,0,0,.25); }
+    .admin-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin-bottom: .9rem; }
+    .metric-card { background: #0f1622; border: 1px solid #253247; border-radius: 12px; padding: .85rem; }
+    .metric-label { font-size: .75rem; color: #8ba0bc; text-transform: uppercase; letter-spacing: .03em; }
+    .metric-value { margin-top: .35rem; font-size: 1.5rem; font-weight: 760; color: #d9e5f5; }
+
+    .warning-banner { margin-bottom: .9rem; border-color: #69552a; background: #1a1722; }
+    .warning-list { margin: .5rem 0 0; padding-left: 1.1rem; color: #d0deef; }
+    .warning-list li { margin: .2rem 0; }
+
+    .section-title { margin: 0 0 .85rem; font-size: 1.05rem; color: #d9e5f5; }
+    .form-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .75rem; }
+    .field { display: flex; flex-direction: column; gap: .35rem; }
+    .field label { font-size: .76rem; text-transform: uppercase; letter-spacing: .03em; color: #8ba0bc; }
+    .span-12 { grid-column: span 12; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .span-3 { grid-column: span 3; }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      background: #0f1622;
+      border: 1px solid #253247;
+      color: #d9e5f5;
+      border-radius: 10px;
+      padding: .75rem;
+      font: inherit;
+    }
+    .field textarea { min-height: 84px; resize: vertical; }
+
+    .admin-btn {
+      appearance: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      padding: 0 .9rem;
+      font-size: .86rem;
+      font-weight: 650;
+      line-height: 1.2;
+      cursor: pointer;
+      transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .admin-btn-primary { background: #2f6df6; color: #fff; border-color: #4c7ef6; }
+    .admin-btn-secondary { background: #233247; border-color: #355073; color: #d0deef; }
+    .admin-btn-muted { background: #1d2432; border-color: #36445a; color: #b7c6dc; }
+    .admin-btn-success { background: #12302b; border-color: #1f5b52; color: #8ee6d8; }
+    .admin-btn-warning { background: #372a16; border-color: #69461c; color: #ffcc85; }
+
+    .topic-grid { display: grid; gap: .9rem; margin-top: .9rem; }
+    .topic-card { background: #0f1622; border: 1px solid #253247; border-radius: 12px; padding: .95rem; display: grid; gap: .85rem; }
+    .topic-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .7rem; }
+    .topic-title { margin: 0; font-size: 1.05rem; color: #e7f0ff; }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .5rem .75rem; }
+    .meta-label { font-size: .73rem; letter-spacing: .03em; text-transform: uppercase; color: #8ba0bc; }
+    .meta-value { color: #d9e5f5; word-break: break-word; }
+
+    .status-badge { display: inline-flex; padding: .28rem .65rem; border-radius: 999px; font-size: .73rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; border: 1px solid; }
+    .status-badge.idea { background: #212735; color: #c1cee2; border-color: #4f6282; }
+    .status-badge.queued { background: #1e2738; color: #8ab5ff; border-color: #365f95; }
+    .status-badge.drafting { background: #2c2519; color: #f6cd7a; border-color: #7d5a24; }
+    .status-badge.drafted { background: #2a202f; color: #d8a9ff; border-color: #6e3e9b; }
+    .status-badge.needs_review { background: #322225; color: #ffb0ba; border-color: #85424e; }
+    .status-badge.ready_to_publish { background: #1e2f2a; color: #73e4b8; border-color: #2f7660; }
+    .status-badge.published { background: #1b2d24; color: #86efac; border-color: #2d6f48; }
+    .status-badge.archived { background: #2a2f39; color: #aeb8c7; border-color: #566170; }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip { border-radius: 999px; padding: .22rem .58rem; font-size: .75rem; border: 1px solid #394b66; color: #bcd0ea; background: #1a2231; }
+    .chip.ok { border-color: #2f7660; color: #88ebc1; background: #1a2b27; }
+
+    .actions { display: grid; gap: .65rem; }
+    .action-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .update-form { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .55rem; }
+    .update-form .field { min-width: 0; }
+    .update-form .admin-btn { width: 100%; }
+
+    .empty-state { text-align: center; color: #9fb0c7; padding: 1.8rem 1rem; }
+
+    @media (max-width: 980px) {
+      .admin-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .span-6, .span-4, .span-3 { grid-column: span 12; }
+    }
+    @media (max-width: 700px) {
+      .admin-shell { padding-top: 1.5rem; }
+      .admin-header { position: static; padding: 0; background: none; backdrop-filter: none; }
+      .admin-grid-4 { grid-template-columns: 1fr; }
+      .update-form > .span-6,
+      .update-form > .span-4,
+      .update-form > .span-3 { grid-column: span 12; }
+      .action-row .admin-btn { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
+
+  <main class="admin-shell">
+    {% set ns = namespace(drafts_created=0, ready_to_publish=0, queued_planned=0) %}
+    {% for p in plans %}
+      {% if p.related_blog_post_id %}{% set ns.drafts_created = ns.drafts_created + 1 %}{% endif %}
+      {% if p.status == 'ready_to_publish' %}{% set ns.ready_to_publish = ns.ready_to_publish + 1 %}{% endif %}
+      {% if p.status in ['queued', 'drafting', 'needs_review'] %}{% set ns.queued_planned = ns.queued_planned + 1 %}{% endif %}
+    {% endfor %}
+
+    <header class="admin-header">
+      <div>
+        <h1 class="admin-title">SEO Blog Rhythm</h1>
+        <p class="admin-subtitle">Plan weekly educational posts, create drafts, and keep every article reviewed before publishing.</p>
+        <div class="route-hint">Route: /admin/blog-rhythm</div>
+      </div>
+      <a class="admin-btn admin-btn-secondary" href="{{ url_for('admin_blog_list') }}">Blog Admin</a>
+    </header>
+
+    <section class="admin-grid-4" aria-label="Rhythm summary metrics">
+      <article class="metric-card"><div class="metric-label">Total Topics</div><div class="metric-value">{{ plans|length }}</div></article>
+      <article class="metric-card"><div class="metric-label">Drafts Created</div><div class="metric-value">{{ ns.drafts_created }}</div></article>
+      <article class="metric-card"><div class="metric-label">Ready to Publish</div><div class="metric-value">{{ ns.ready_to_publish }}</div></article>
+      <article class="metric-card"><div class="metric-label">Queued / Planned</div><div class="metric-value">{{ ns.queued_planned }}</div></article>
+    </section>
+
+    <section class="admin-card warning-banner" aria-label="Safety policy">
+      <strong>Publishing safety checklist</strong>
+      <ul class="warning-list">
+        <li>Admin only.</li>
+        <li>Educational content only.</li>
+        <li>No financial advice and no guaranteed outcomes.</li>
+        <li>AI drafts require admin review before publishing.</li>
+      </ul>
+    </section>
+
+    <section class="admin-card" aria-label="Add rhythm topic">
+      <h2 class="section-title">Add Topic</h2>
+      <form method="post" action="{{ url_for('admin_blog_rhythm_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="field span-12"><label for="add-title">Title</label><input id="add-title" name="title" placeholder="Topic title" required aria-label="Topic title"></div>
+          <div class="field span-4"><label for="add-keyword">Target keyword</label><input id="add-keyword" name="target_keyword" placeholder="Target keyword" aria-label="Target keyword"></div>
+          <div class="field span-4"><label for="add-intent">Search intent</label><input id="add-intent" name="search_intent" placeholder="Search intent" aria-label="Search intent"></div>
+          <div class="field span-4"><label for="add-stage">Funnel stage</label><input id="add-stage" name="funnel_stage" placeholder="Funnel stage" aria-label="Funnel stage"></div>
+          <div class="field span-4"><label for="add-type">Content type</label><input id="add-type" name="content_type" placeholder="Content type" aria-label="Content type"></div>
+          <div class="field span-3"><label for="add-priority">Priority</label><input id="add-priority" type="number" name="priority" min="1" max="5" value="3" aria-label="Priority"></div>
+          <div class="field span-5"><label for="add-date">Planned date</label><input id="add-date" type="date" name="planned_publish_date" aria-label="Planned publish date"></div>
+          <div class="field span-12"><label for="add-notes">Notes</label><textarea id="add-notes" name="notes" placeholder="Editorial notes, angle, or compliance reminders" aria-label="Notes"></textarea></div>
+          <div class="span-12" style="display:flex;justify-content:flex-end;"><button type="submit" class="admin-btn admin-btn-primary">Add Topic</button></div>
+        </div>
+      </form>
+    </section>
+
+    <section class="topic-grid" aria-label="Rhythm topics">
+      {% if plans %}
+        {% for p in plans %}
+        <article class="topic-card">
+          <div class="topic-head">
+            <h3 class="topic-title">{{ p.title }}</h3>
+            <span class="status-badge {{ p.status }}">{{ p.status }}</span>
+          </div>
+
+          <div class="meta-grid">
+            <div><div class="meta-label">Planned date</div><div class="meta-value">{{ p.planned_publish_date or '—' }}</div></div>
+            <div><div class="meta-label">Target keyword</div><div class="meta-value">{{ p.target_keyword or '—' }}</div></div>
+            <div><div class="meta-label">Search intent</div><div class="meta-value">{{ p.search_intent or '—' }}</div></div>
+            <div><div class="meta-label">Funnel stage</div><div class="meta-value">{{ p.funnel_stage or '—' }}</div></div>
+            <div><div class="meta-label">Content type</div><div class="meta-value">{{ p.content_type or '—' }}</div></div>
+            <div><div class="meta-label">Priority</div><div class="meta-value">{{ p.priority }}</div></div>
+            <div><div class="meta-label">Assigned author</div><div class="meta-value">{{ p.assigned_author or '—' }}</div></div>
+            <div style="grid-column:1 / -1;"><div class="meta-label">Notes</div><div class="meta-value">{{ (p.notes[:220] ~ '…') if p.notes and p.notes|length > 220 else (p.notes or '—') }}</div></div>
+          </div>
+
+          <div class="chip-row" aria-label="Topic checklist">
+            <span class="chip {% if p.related_blog_post_id %}ok{% endif %}">Draft created: {{ 'yes' if p.related_blog_post_id else 'no' }}</span>
+            <span class="chip {% if p.target_keyword %}ok{% endif %}">Keyword: {{ 'yes' if p.target_keyword else 'no' }}</span>
+            <span class="chip {% if p.planned_publish_date %}ok{% endif %}">Planned date: {{ 'yes' if p.planned_publish_date else 'no' }}</span>
+            <span class="chip">Admin review required</span>
+          </div>
+
+          <div class="actions">
+            <div class="action-row">
+              {% if p.related_blog_post_id %}
+                <a class="admin-btn admin-btn-secondary" href="{{ url_for('admin_blog_edit', post_id=p.related_blog_post_id) }}">Edit Draft</a>
+              {% else %}
+                <form method="post" action="{{ url_for('admin_blog_rhythm_create_draft', plan_id=p.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="admin-btn admin-btn-success">Create Draft</button>
+                </form>
+              {% endif %}
+            </div>
+
+            <form method="post" action="{{ url_for('admin_blog_rhythm_update', plan_id=p.id) }}" class="update-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="field span-3">
+                <label for="status-{{ p.id }}">Status</label>
+                <select id="status-{{ p.id }}" name="status" aria-label="Status">
+                  {% for s in allowed_statuses %}
+                  <option value="{{ s }}" {% if p.status == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field span-3"><label for="date-{{ p.id }}">Planned date</label><input id="date-{{ p.id }}" type="date" name="planned_publish_date" value="{{ p.planned_publish_date.isoformat() if p.planned_publish_date else '' }}" aria-label="Planned publish date"></div>
+              <div class="field span-3"><label for="author-{{ p.id }}">Assigned author</label><input id="author-{{ p.id }}" name="assigned_author" value="{{ p.assigned_author or '' }}" placeholder="Author" aria-label="Assigned author"></div>
+              <div class="field span-3"><label for="priority-{{ p.id }}">Priority</label><input id="priority-{{ p.id }}" type="number" name="priority" value="{{ p.priority }}" aria-label="Priority"></div>
+              <div class="field span-12"><label for="notes-{{ p.id }}">Notes</label><textarea id="notes-{{ p.id }}" name="notes" aria-label="Notes">{{ p.notes or '' }}</textarea></div>
+              <div class="span-12"><button type="submit" class="admin-btn admin-btn-warning">Update</button></div>
+            </form>
+          </div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <article class="admin-card empty-state">
+          <p>No rhythm topics yet. Add your first topic or run the starter seed script.</p>
+          <p><code>python scripts/seed_blog_rhythm.py</code></p>
+        </article>
+      {% endif %}
+    </section>
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>
