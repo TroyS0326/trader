@@ -3,8 +3,38 @@
 <div class="container py-4">
   <div class="alert alert-warning">Admin-only user recovery console.</div>
   <h3>User #{{ user.id }} - {{ user.email }}</h3>
-  <p>Stripe subscription id: {{ masked_stripe_subscription_id }}</p>
-  <p>Broker status: paper={{ broker_status.paper_connected }}, live={{ broker_status.live_connected }}</p>
+
+  <h4>Account summary</h4>
+  <ul>
+    <li>Full name: {{ user.full_name or '' }}</li>
+    <li>Subscription status: {{ user.subscription_status }}</li>
+    <li>Subscription plan: {{ user.subscription_plan or '' }}</li>
+    <li>Stripe customer id (masked): {{ user.stripe_customer_id_masked or '' }}</li>
+    <li>Stripe subscription id (masked): {{ user.stripe_subscription_id_masked or '' }}</li>
+    <li>Trading mode: {{ user.trading_mode }}</li>
+    <li>Alpaca paper account id: {{ user.alpaca_paper_account_id or '' }}</li>
+    <li>Alpaca live account id: {{ user.alpaca_live_account_id or '' }}</li>
+    <li>Broker status: paper={{ broker_status.paper_connected }}, live={{ broker_status.live_connected }}</li>
+  </ul>
+
+  <h4>Onboarding flags</h4>
+  <ul>
+    <li>onboarding_completed: {{ user.onboarding_completed }}</li>
+    <li>paper_bankroll_set: {{ user.paper_bankroll_set }}</li>
+    <li>first_scan_completed: {{ user.first_scan_completed }}</li>
+    <li>scan_preview_completed: {{ user.scan_preview_completed }}</li>
+    <li>playbook_reviewed: {{ user.playbook_reviewed }}</li>
+    <li>transparency_reviewed: {{ user.transparency_reviewed }}</li>
+    <li>broker_connection_started: {{ user.broker_connection_started }}</li>
+  </ul>
+
+  <h4>Bankrolls</h4>
+  <ul>
+    <li>bankroll: {{ user.bankroll }}</li>
+    <li>paper_bankroll: {{ user.paper_bankroll }}</li>
+    <li>live_bankroll: {{ user.live_bankroll }}</li>
+  </ul>
+
   <form method="post" action="{{ url_for('admin_user_recovery_send_reset', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-primary">Send password reset</button></form>
   <form method="post" action="{{ url_for('admin_user_recovery_clear_onboarding', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-warning">Clear onboarding flags</button></form>
   <form method="post" action="{{ url_for('admin_user_recovery_mark_onboarding_complete', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-success">Mark onboarding complete</button></form>
@@ -17,6 +47,6 @@
   <h4>Recent events</h4>
   <ul>{% for e in recent_events %}<li>{{ e.created_at }} {{ e.event_name }}</li>{% endfor %}</ul>
   <h4>Recent trades ({{ recent_trade_count }})</h4>
-  <ul>{% for t in recent_trades %}<li>{{ t.created_at }} {{ t.symbol }} {{ t.status }} qty={{ t.qty }}</li>{% endfor %}</ul>
+  <ul>{% for t in recent_trades %}<li>{{ t.created_at }} {{ t.symbol }} {{ t.status }} qty={{ t.qty }} entry={{ t.entry_price }} exit={{ t.exit_price }} pnl={{ t.pnl }}</li>{% endfor %}</ul>
 </div>
 {% endblock %}

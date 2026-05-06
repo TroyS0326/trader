@@ -11,7 +11,7 @@ from urllib.parse import urlencode, urlparse
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from datetime import datetime
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, text, or_
 from sqlalchemy.exc import IntegrityError
 from zoneinfo import ZoneInfo
 
@@ -206,7 +206,7 @@ def safe_user_summary(user: User) -> dict:
         'full_name': user.full_name,
         'subscription_status': user.subscription_status,
         'subscription_plan': user.subscription_plan,
-        'stripe_customer_id': user.stripe_customer_id,
+        'stripe_customer_id_masked': mask_identifier(user.stripe_customer_id),
         'stripe_subscription_id_masked': mask_identifier(user.stripe_subscription_id),
         'trading_mode': user.trading_mode,
         'alpaca_paper_account_id': user.alpaca_paper_account_id,
@@ -1982,7 +1982,7 @@ def admin_user_recovery():
         ]
         if q.isdigit():
             filters.append(User.id == int(q))
-        users = query.filter(db.or_(*filters)).order_by(User.id.desc()).limit(25).all()
+        users = query.filter(or_(*filters)).order_by(User.id.desc()).limit(25).all()
     return render_template('admin_user_recovery.html', users=[safe_user_summary(u) for u in users], q=q)
 
 
@@ -1999,8 +1999,7 @@ def admin_user_recovery_detail(user_id):
                                'paper_connected': bool(user.alpaca_paper_account_id or user._alpaca_paper_access_token),
                                'live_connected': bool(user.alpaca_live_account_id or user._alpaca_live_access_token),
                            }, recent_events=recent_events, recent_trades=recent_trades,
-                           recent_trade_count=Trade.query.filter_by(user_id=user.id).count(),
-                           masked_stripe_subscription_id=mask_identifier(user.stripe_subscription_id))
+                           recent_trade_count=Trade.query.filter_by(user_id=user.id).count())
 
 
 @app.route('/admin/user-recovery/<int:user_id>/send-reset', methods=['POST'])
