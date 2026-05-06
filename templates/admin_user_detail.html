@@ -1,52 +1,108 @@
-{% extends 'dashboard.html' %}
-{% block content %}
-<div class="container py-4">
-  <div class="alert alert-warning">Admin-only user recovery console.</div>
-  <h3>User #{{ user.id }} - {{ user.email }}</h3>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Recovery Detail</title>
+  {% include 'partials/async_app_css.html' %}
+  <style>
+    .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .admin-title { margin: 0; font-size: clamp(1.4rem, 2vw, 2rem); }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
+    .admin-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .admin-kv { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+    .admin-kv li { color: #d9e5f5; font-size: .92rem; }
+    .admin-kv strong { color: #9fb0c7; font-weight: 600; }
+    .admin-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; border-radius: 9px; border: 1px solid #355073; background: #233247; color: #d0deef; padding: .35rem .8rem; text-decoration: none; font-size: .85rem; font-weight: 650; }
+    .admin-btn.warn { background: #3b2b12; border-color: #6e4d19; color: #fbbf24; }
+    .admin-btn.good { background: #163629; border-color: #25644a; color: #34d399; }
+    .admin-btn.subtle { background: #1d2432; border-color: #36445a; color: #b7c6dc; }
+    .admin-form-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .55rem; }
+    .admin-form-row select { background: #0f1622; color: #e5edf8; border: 1px solid #2a3a53; border-radius: 8px; min-height: 36px; padding: 0 .5rem; }
+    .admin-list { margin: 0; padding-left: 1rem; }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
 
-  <h4>Account summary</h4>
-  <ul>
-    <li>Full name: {{ user.full_name or '' }}</li>
-    <li>Subscription status: {{ user.subscription_status }}</li>
-    <li>Subscription plan: {{ user.subscription_plan or '' }}</li>
-    <li>Stripe customer id (masked): {{ user.stripe_customer_id_masked or '' }}</li>
-    <li>Stripe subscription id (masked): {{ user.stripe_subscription_id_masked or '' }}</li>
-    <li>Trading mode: {{ user.trading_mode }}</li>
-    <li>Alpaca paper account id: {{ user.alpaca_paper_account_id or '' }}</li>
-    <li>Alpaca live account id: {{ user.alpaca_live_account_id or '' }}</li>
-    <li>Broker status: paper={{ broker_status.paper_connected }}, live={{ broker_status.live_connected }}</li>
-  </ul>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <h1 class="admin-title">User #{{ user.id }} - {{ user.email }}</h1>
+      <a class="admin-btn subtle" href="{{ url_for('admin_user_recovery') }}">Back to search</a>
+    </header>
 
-  <h4>Onboarding flags</h4>
-  <ul>
-    <li>onboarding_completed: {{ user.onboarding_completed }}</li>
-    <li>paper_bankroll_set: {{ user.paper_bankroll_set }}</li>
-    <li>first_scan_completed: {{ user.first_scan_completed }}</li>
-    <li>scan_preview_completed: {{ user.scan_preview_completed }}</li>
-    <li>playbook_reviewed: {{ user.playbook_reviewed }}</li>
-    <li>transparency_reviewed: {{ user.transparency_reviewed }}</li>
-    <li>broker_connection_started: {{ user.broker_connection_started }}</li>
-  </ul>
+    <section class="admin-card admin-grid">
+      <div>
+        <h3>Account summary</h3>
+        <ul class="admin-kv">
+          <li><strong>Full name:</strong> {{ user.full_name or '' }}</li>
+          <li><strong>Subscription status:</strong> {{ user.subscription_status }}</li>
+          <li><strong>Subscription plan:</strong> {{ user.subscription_plan or '' }}</li>
+          <li><strong>Stripe customer id (masked):</strong> {{ user.stripe_customer_id_masked or '' }}</li>
+          <li><strong>Stripe subscription id (masked):</strong> {{ user.stripe_subscription_id_masked or '' }}</li>
+          <li><strong>Trading mode:</strong> {{ user.trading_mode }}</li>
+          <li><strong>Alpaca paper account id:</strong> {{ user.alpaca_paper_account_id or '' }}</li>
+          <li><strong>Alpaca live account id:</strong> {{ user.alpaca_live_account_id or '' }}</li>
+          <li><strong>Broker status:</strong> paper={{ broker_status.paper_connected }}, live={{ broker_status.live_connected }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Onboarding flags</h3>
+        <ul class="admin-kv">
+          <li><strong>onboarding_completed:</strong> {{ user.onboarding_completed }}</li>
+          <li><strong>paper_bankroll_set:</strong> {{ user.paper_bankroll_set }}</li>
+          <li><strong>first_scan_completed:</strong> {{ user.first_scan_completed }}</li>
+          <li><strong>scan_preview_completed:</strong> {{ user.scan_preview_completed }}</li>
+          <li><strong>playbook_reviewed:</strong> {{ user.playbook_reviewed }}</li>
+          <li><strong>transparency_reviewed:</strong> {{ user.transparency_reviewed }}</li>
+          <li><strong>broker_connection_started:</strong> {{ user.broker_connection_started }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Bankrolls</h3>
+        <ul class="admin-kv">
+          <li><strong>bankroll:</strong> {{ user.bankroll }}</li>
+          <li><strong>paper_bankroll:</strong> {{ user.paper_bankroll }}</li>
+          <li><strong>live_bankroll:</strong> {{ user.live_bankroll }}</li>
+        </ul>
+      </div>
+    </section>
 
-  <h4>Bankrolls</h4>
-  <ul>
-    <li>bankroll: {{ user.bankroll }}</li>
-    <li>paper_bankroll: {{ user.paper_bankroll }}</li>
-    <li>live_bankroll: {{ user.live_bankroll }}</li>
-  </ul>
+    <section class="admin-card">
+      <h3>Recovery Actions</h3>
+      <form method="post" action="{{ url_for('admin_user_recovery_send_reset', user_id=user.id) }}">
+        {{ csrf_token() }}
+        <button class="admin-btn" type="submit">Send password reset</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_user_recovery_clear_onboarding', user_id=user.id) }}" class="admin-form-row">
+        {{ csrf_token() }}
+        <button class="admin-btn warn" type="submit">Clear onboarding flags</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_user_recovery_mark_onboarding_complete', user_id=user.id) }}" class="admin-form-row">
+        {{ csrf_token() }}
+        <button class="admin-btn good" type="submit">Mark onboarding complete</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_user_recovery_set_subscription_status', user_id=user.id) }}" class="admin-form-row">
+        {{ csrf_token() }}
+        <select name="subscription_status"><option>free</option><option>pro</option><option>canceled</option><option>past_due</option></select>
+        <button class="admin-btn subtle" type="submit">Update local subscription status</button>
+      </form>
+      <p><strong>Warning:</strong> Subscription status update is local-only and does not update Stripe billing.</p>
+    </section>
 
-  <form method="post" action="{{ url_for('admin_user_recovery_send_reset', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-primary">Send password reset</button></form>
-  <form method="post" action="{{ url_for('admin_user_recovery_clear_onboarding', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-warning">Clear onboarding flags</button></form>
-  <form method="post" action="{{ url_for('admin_user_recovery_mark_onboarding_complete', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-success">Mark onboarding complete</button></form>
-  <form method="post" action="{{ url_for('admin_user_recovery_set_subscription_status', user_id=user.id) }}">{{ csrf_token() }}
-    <select name="subscription_status"><option>free</option><option>pro</option><option>canceled</option><option>past_due</option></select>
-    <button class="btn btn-sm btn-secondary">Update local subscription status</button>
-  </form>
-  <p><strong>Warning:</strong> Subscription status update is local-only and does not update Stripe billing.</p>
+    <section class="admin-card admin-grid">
+      <div>
+        <h3>Recent events</h3>
+        <ul class="admin-list">{% for e in recent_events %}<li>{{ e.created_at }} {{ e.event_name }}</li>{% endfor %}</ul>
+      </div>
+      <div>
+        <h3>Recent trades ({{ recent_trade_count }})</h3>
+        <ul class="admin-list">{% for t in recent_trades %}<li>{{ t.created_at }} {{ t.symbol }} {{ t.status }} qty={{ t.qty }} entry={{ t.entry_price }} exit={{ t.exit_price }} pnl={{ t.pnl }}</li>{% endfor %}</ul>
+      </div>
+    </section>
+  </main>
 
-  <h4>Recent events</h4>
-  <ul>{% for e in recent_events %}<li>{{ e.created_at }} {{ e.event_name }}</li>{% endfor %}</ul>
-  <h4>Recent trades ({{ recent_trade_count }})</h4>
-  <ul>{% for t in recent_trades %}<li>{{ t.created_at }} {{ t.symbol }} {{ t.status }} qty={{ t.qty }} entry={{ t.entry_price }} exit={{ t.exit_price }} pnl={{ t.pnl }}</li>{% endfor %}</ul>
-</div>
-{% endblock %}
+  {% include 'footer.html' %}
+</body>
+</html>

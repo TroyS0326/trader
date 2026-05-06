@@ -1,21 +1,75 @@
-{% extends 'dashboard.html' %}
-{% block content %}
-<div class="container py-4">
-  <div class="alert alert-warning">Admin-only user recovery console. Direct URL only: <code>/admin/user-recovery</code>.</div>
-  <p class="text-muted">Search by email, user ID, Stripe customer ID, or Alpaca account ID. Max 25 results.</p>
-  <form method="get" class="mb-3">
-    <input name="q" value="{{ q }}" placeholder="email, user id, stripe customer id, alpaca account id" class="form-control" />
-  </form>
-  <table class="table table-sm">
-    <thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Subscription</th><th>Plan</th><th>Stripe Customer</th><th>Stripe Sub</th><th>Mode</th><th>Paper Acct</th><th>Live Acct</th><th></th></tr></thead>
-    <tbody>
-      {% for u in users %}
-      <tr>
-        <td>{{ u.id }}</td><td>{{ u.email }}</td><td>{{ u.full_name or '' }}</td><td>{{ u.subscription_status }}</td><td>{{ u.subscription_plan or '' }}</td><td>{{ u.stripe_customer_id_masked or '' }}</td><td>{{ u.stripe_subscription_id_masked or '' }}</td><td>{{ u.trading_mode }}</td><td>{{ u.alpaca_paper_account_id or '' }}</td><td>{{ u.alpaca_live_account_id or '' }}</td>
-        <td><a href="{{ url_for('admin_user_recovery_detail', user_id=u.id) }}">Open</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Recovery Admin</title>
+  {% include 'partials/async_app_css.html' %}
+  <style>
+    .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .admin-header { margin-bottom: 1.2rem; }
+    .admin-title { margin: 0; font-size: clamp(1.6rem, 2.2vw, 2.1rem); }
+    .admin-subtitle { margin: .45rem 0 0; color: var(--text-secondary, #9ca3af); }
+    .admin-card { background: #121821; border: 1px solid #263244; border-radius: 14px; padding: 1rem; box-shadow: 0 10px 26px rgba(0,0,0,.25); overflow: hidden; }
+    .status-badge { display: inline-block; padding: .22rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+    .status-free { background: rgba(56, 189, 248, .16); color: #7dd3fc; border: 1px solid rgba(125, 211, 252, .45); }
+    .status-pro { background: rgba(16, 185, 129, .16); color: #34d399; border: 1px solid rgba(52, 211, 153, .45); }
+    .status-other { background: rgba(251, 191, 36, .14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, .42); }
+    .admin-btn { display: inline-flex; align-items: center; justify-content: center; height: 34px; border-radius: 9px; border: 1px solid #355073; background: #233247; color: #d0deef; padding: 0 .8rem; text-decoration: none; font-size: .85rem; font-weight: 650; }
+    .admin-search { margin: 1rem 0; }
+    .admin-search input { width: 100%; background: #0f1622; border: 1px solid #2a3a53; border-radius: 10px; color: #e5edf8; padding: .62rem .8rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { text-align: left; padding: .6rem; border-bottom: 1px solid #243247; font-size: .9rem; }
+    th { color: #9fb0c7; font-size: .78rem; letter-spacing: .02em; text-transform: uppercase; }
+    @media (max-width: 700px) { .admin-shell { padding-top: 1.4rem; } .admin-card { padding: .85rem; } }
+  </style>
+</head>
+<body class="auth-body">
+  {% include 'nav.html' %}
+
+  <main class="admin-shell">
+    <header class="admin-header">
+      <h1 class="admin-title">User Recovery Admin</h1>
+      <p class="admin-subtitle">Admin-only recovery console. Direct URL only: <code>/admin/user-recovery</code>.</p>
+    </header>
+
+    <section class="admin-card">
+      <p class="admin-subtitle">Search by email, user ID, Stripe customer ID, or Alpaca account ID. Max 25 results.</p>
+      <form method="get" class="admin-search">
+        <input name="q" value="{{ q }}" placeholder="email, user id, stripe customer id, alpaca account id" />
+      </form>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Email</th><th>Name</th><th>Subscription</th><th>Plan</th><th>Stripe Customer</th><th>Stripe Sub</th><th>Mode</th><th>Paper Acct</th><th>Live Acct</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>{{ u.id }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.full_name or '' }}</td>
+              <td>
+                {% set sub_status = (u.subscription_status or '')|lower %}
+                <span class="status-badge {{ 'status-free' if sub_status == 'free' else ('status-pro' if sub_status == 'pro' else 'status-other') }}">{{ u.subscription_status }}</span>
+              </td>
+              <td>{{ u.subscription_plan or '' }}</td>
+              <td>{{ u.stripe_customer_id_masked or '' }}</td>
+              <td>{{ u.stripe_subscription_id_masked or '' }}</td>
+              <td>{{ u.trading_mode }}</td>
+              <td>{{ u.alpaca_paper_account_id or '' }}</td>
+              <td>{{ u.alpaca_live_account_id or '' }}</td>
+              <td><a class="admin-btn" href="{{ url_for('admin_user_recovery_detail', user_id=u.id) }}">Open</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>
