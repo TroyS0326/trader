@@ -726,3 +726,40 @@ sudo systemctl status xeanvi --no-pager
 ## Disclaimer
 
 XeanVI is software for trading workflow automation, scanning, execution assistance, and risk-rule enforcement. Trading involves substantial risk. Past performance, scanner rankings, AI-generated analysis, and automated execution rules do not guarantee future results.
+
+---
+
+## Central Scanner Service
+
+- Flask app (`app.py`) serves dashboard and user actions.
+- `execution.py` listens to Alpaca order/fill updates.
+- `scanner_service.py` runs scheduled market scans.
+- By default, the service only scans and approves latest scan plans.
+- Automatic execution is disabled unless `CENTRAL_SCANNER_EXECUTION_ENABLED=1`.
+- Live execution also requires `CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED=1`.
+
+### Run in production
+
+```bash
+python scanner_service.py
+```
+
+### Example systemd unit
+
+```ini
+[Unit]
+Description=XeanVI Central Scanner Service
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/xeanvi/trader
+EnvironmentFile=/etc/xeanvi/xeanvi.env
+ExecStart=/var/www/xeanvi/trader/.venv/bin/python /var/www/xeanvi/trader/scanner_service.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
