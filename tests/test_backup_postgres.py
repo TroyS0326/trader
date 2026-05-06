@@ -129,3 +129,84 @@ def test_healthcheck_failure_does_not_fail(monkeypatch, tmp_path):
     monkeypatch.setattr(bp, 'run_backup', fake_run_backup)
     monkeypatch.setattr(bp, 'requests', BoomRequests)
     assert bp.main([]) == 0
+
+
+class _FakeStream:
+    def __init__(self, data: bytes = b''):
+        self._data = data
+
+    def read(self) -> bytes:
+        return self._data
+
+    def close(self) -> None:
+        return None
+
+
+class _FakeProc:
+    def __init__(self, rc: int = 0, stderr: bytes = b'', stdout: bytes | None = b''):
+        self.stderr = _FakeStream(stderr)
+        self.stdout = _FakeStream(stdout) if stdout is not None else None
+        self._rc = rc
+
+    def wait(self) -> int:
+        return self._rc
+
+
+def test_run_backup_uses_pgpassword_and_sanitized_pg_dump_target(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_popen(cmd, **kwargs):
+        if cmd[0] == 'pg_dump':
+            captured['pg_cmd'] = cmd
+            captured['pg_env'] = kwargs.get('env', {})
+            return _FakeProc(rc=0, stderr=b'', stdout=b'dump')
+        if cmd[0] == 'gzip':
+            return _FakeProc(rc=0, stderr=b'', stdout=None)
+        raise AssertionError('unexpected command')
+
+    monkeypatch.setattr(bp.subprocess, 'Popen', fake_popen)
+    backup_file = tmp_path / 'backup.sql.gz'
+    db_url = 'postgresql://xeanvi_user:secret@127.0.0.1:5432/xeanvi?sslmode=require'
+    bp.run_backup(db_url, backup_file)
+
+    assert captured['pg_cmd'][1] == 'postgresql://xeanvi_user@127.0.0.1:5432/xeanvi?sslmode=require'
+    assert 'secret' not in captured['pg_cmd'][1]
+    assert captured['pg_env']['PGPASSWORD'] == 'secret'
+    assert oct(backup_file.stat().st_mode & 0o777) == '0o600'
+
+
+def test_run_backup_decodes_urlencoded_password_for_pgpassword(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_popen(cmd, **kwargs):
+        if cmd[0] == 'pg_dump':
+            captured['env'] = kwargs.get('env', {})
+            return _FakeProc(rc=0, stderr=b'', stdout=b'dump')
+        if cmd[0] == 'gzip':
+            return _FakeProc(rc=0, stderr=b'', stdout=None)
+        raise AssertionError('unexpected command')
+
+    monkeypatch.setattr(bp.subprocess, 'Popen', fake_popen)
+    db_url = 'postgresql://u:p%40ss%3Aword@localhost:5432/app'
+    bp.run_backup(db_url, tmp_path / 'backup.sql.gz')
+    assert captured['env']['PGPASSWORD'] == 'p@ss:word'
+
+
+def test_run_backup_scrubs_pg_dump_failure(monkeypatch, tmp_path):
+    def fake_popen(cmd, **kwargs):
+        if cmd[0] == 'pg_dump':
+            err = b'auth failed for postgresql://u:secret@localhost:5432/app and secret and postgresql://u@localhost:5432/app'
+            return _FakeProc(rc=1, stderr=err, stdout=b'dump')
+        if cmd[0] == 'gzip':
+            return _FakeProc(rc=0, stderr=b'', stdout=None)
+        raise AssertionError('unexpected command')
+
+    monkeypatch.setattr(bp.subprocess, 'Popen', fake_popen)
+    db_url = 'postgresql://u:secret@localhost:5432/app'
+    with __import__('pytest').raises(RuntimeError) as excinfo:
+        bp.run_backup(db_url, tmp_path / 'backup.sql.gz')
+
+    msg = str(excinfo.value)
+    assert 'secret' not in msg
+    assert db_url not in msg
+    assert 'postgresql://u@localhost:5432/app' not in msg
