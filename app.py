@@ -37,7 +37,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogPost, User, UserEvent, StripeEvent
+from models import BlogPost, User, UserEvent, StripeEvent, Trade
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -187,6 +187,50 @@ BLOG_ALLOWED_STATUSES = {'draft', 'published'}
 def is_admin_user() -> bool:
     return bool(ADMIN_EMAIL) and current_user.is_authenticated and ((current_user.email or '').strip().lower() == ADMIN_EMAIL)
 
+
+
+
+def mask_identifier(value: str, visible: int = 6) -> str:
+    text = (value or '').strip()
+    if not text:
+        return ''
+    if len(text) <= visible:
+        return '*' * len(text)
+    return ('*' * (len(text) - visible)) + text[-visible:]
+
+
+def safe_user_summary(user: User) -> dict:
+    return {
+        'id': user.id,
+        'email': user.email,
+        'full_name': user.full_name,
+        'subscription_status': user.subscription_status,
+        'subscription_plan': user.subscription_plan,
+        'stripe_customer_id': user.stripe_customer_id,
+        'stripe_subscription_id_masked': mask_identifier(user.stripe_subscription_id),
+        'trading_mode': user.trading_mode,
+        'alpaca_paper_account_id': user.alpaca_paper_account_id,
+        'alpaca_live_account_id': user.alpaca_live_account_id,
+        'onboarding_completed': user.onboarding_completed,
+        'paper_bankroll_set': user.paper_bankroll_set,
+        'first_scan_completed': user.first_scan_completed,
+        'scan_preview_completed': user.scan_preview_completed,
+        'playbook_reviewed': user.playbook_reviewed,
+        'transparency_reviewed': user.transparency_reviewed,
+        'broker_connection_started': user.broker_connection_started,
+        'paper_bankroll': user.paper_bankroll,
+        'live_bankroll': user.live_bankroll,
+        'bankroll': user.bankroll,
+    }
+
+
+def log_admin_recovery_action(action: str, target_user_id: int, metadata: dict | None = None) -> None:
+    context = dict(metadata or {})
+    context.update({'action': action, 'target_user_id': target_user_id})
+    try:
+        track_user_event(f'admin_user_recovery.{action}', user=current_user, context=context)
+    except Exception as exc:
+        logger.warning('Failed to log admin recovery action %s: %s', action, exc)
 
 def slugify_blog_title(title: str) -> str:
     base = re.sub(r'[^a-z0-9\s-]', '', (title or '').strip().lower())
@@ -1916,6 +1960,107 @@ def api_admin_conversion_summary():
     return ok({'counts': counts})
 
 
+
+
+
+
+@app.route('/admin/user-recovery')
+@login_required
+def admin_user_recovery():
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    q = (request.args.get('q') or '').strip()
+    users = []
+    if q:
+        query = User.query
+        like = f"%{q}%"
+        filters = [
+            User.email.ilike(like),
+            User.stripe_customer_id.ilike(like),
+            User.alpaca_paper_account_id.ilike(like),
+            User.alpaca_live_account_id.ilike(like),
+        ]
+        if q.isdigit():
+            filters.append(User.id == int(q))
+        users = query.filter(db.or_(*filters)).order_by(User.id.desc()).limit(25).all()
+    return render_template('admin_user_recovery.html', users=[safe_user_summary(u) for u in users], q=q)
+
+
+@app.route('/admin/user-recovery/<int:user_id>')
+@login_required
+def admin_user_recovery_detail(user_id):
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    user = User.query.get_or_404(user_id)
+    recent_events = UserEvent.query.filter_by(user_id=user.id).order_by(UserEvent.created_at.desc()).limit(10).all()
+    recent_trades = Trade.query.filter_by(user_id=user.id).order_by(Trade.created_at.desc()).limit(10).all()
+    return render_template('admin_user_detail.html', user=safe_user_summary(user),
+                           broker_status={
+                               'paper_connected': bool(user.alpaca_paper_account_id or user._alpaca_paper_access_token),
+                               'live_connected': bool(user.alpaca_live_account_id or user._alpaca_live_access_token),
+                           }, recent_events=recent_events, recent_trades=recent_trades,
+                           recent_trade_count=Trade.query.filter_by(user_id=user.id).count(),
+                           masked_stripe_subscription_id=mask_identifier(user.stripe_subscription_id))
+
+
+@app.route('/admin/user-recovery/<int:user_id>/send-reset', methods=['POST'])
+@login_required
+def admin_user_recovery_send_reset(user_id):
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    user = User.query.get_or_404(user_id)
+    reset_url = build_password_reset_url(user)
+    sent = send_password_reset_email(user, reset_url)
+    flash('Password reset email sent.' if sent else 'Failed to send password reset email.', 'success' if sent else 'error')
+    log_admin_recovery_action('send_reset', user.id, {'target_email': user.email, 'result': 'sent' if sent else 'failed'})
+    return redirect(url_for('admin_user_recovery_detail', user_id=user.id))
+
+
+@app.route('/admin/user-recovery/<int:user_id>/clear-onboarding', methods=['POST'])
+@login_required
+def admin_user_recovery_clear_onboarding(user_id):
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    user = User.query.get_or_404(user_id)
+    for field in ['onboarding_completed','paper_bankroll_set','first_scan_completed','scan_preview_completed','playbook_reviewed','transparency_reviewed','broker_connection_started']:
+        setattr(user, field, False)
+    db.session.commit()
+    log_admin_recovery_action('clear_onboarding', user.id, {'target_email': user.email, 'changed_fields': 'onboarding_flags'})
+    flash('Onboarding flags reset.', 'success')
+    return redirect(url_for('admin_user_recovery_detail', user_id=user.id))
+
+
+@app.route('/admin/user-recovery/<int:user_id>/mark-onboarding-complete', methods=['POST'])
+@login_required
+def admin_user_recovery_mark_onboarding_complete(user_id):
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    user = User.query.get_or_404(user_id)
+    for field in ['onboarding_completed','paper_bankroll_set','first_scan_completed','scan_preview_completed','playbook_reviewed','transparency_reviewed']:
+        setattr(user, field, True)
+    user.broker_connection_started = bool(user.alpaca_paper_account_id or user.alpaca_live_account_id or user._alpaca_paper_access_token or user._alpaca_live_access_token)
+    db.session.commit()
+    log_admin_recovery_action('mark_onboarding_complete', user.id, {'target_email': user.email, 'changed_fields': 'onboarding_flags'})
+    flash('Onboarding flags marked complete.', 'success')
+    return redirect(url_for('admin_user_recovery_detail', user_id=user.id))
+
+
+@app.route('/admin/user-recovery/<int:user_id>/set-subscription-status', methods=['POST'])
+@login_required
+def admin_user_recovery_set_subscription_status(user_id):
+    if not is_admin_user():
+        return ('Forbidden', 403)
+    allowed = {'free', 'pro', 'canceled', 'past_due'}
+    status = (request.form.get('subscription_status') or '').strip().lower()
+    if status not in allowed:
+        flash('Invalid subscription status.', 'error')
+        return redirect(url_for('admin_user_recovery_detail', user_id=user_id))
+    user = User.query.get_or_404(user_id)
+    user.subscription_status = status
+    db.session.commit()
+    log_admin_recovery_action('set_subscription_status', user.id, {'target_email': user.email, 'status': status})
+    flash('Subscription status updated locally only; Stripe billing is unchanged.', 'success')
+    return redirect(url_for('admin_user_recovery_detail', user_id=user.id))
 
 
 @app.route('/admin/blog')

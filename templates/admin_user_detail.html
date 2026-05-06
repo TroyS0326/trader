@@ -1,0 +1,22 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container py-4">
+  <div class="alert alert-warning">Admin-only user recovery console.</div>
+  <h3>User #{{ user.id }} - {{ user.email }}</h3>
+  <p>Stripe subscription id: {{ masked_stripe_subscription_id }}</p>
+  <p>Broker status: paper={{ broker_status.paper_connected }}, live={{ broker_status.live_connected }}</p>
+  <form method="post" action="{{ url_for('admin_user_recovery_send_reset', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-primary">Send password reset</button></form>
+  <form method="post" action="{{ url_for('admin_user_recovery_clear_onboarding', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-warning">Clear onboarding flags</button></form>
+  <form method="post" action="{{ url_for('admin_user_recovery_mark_onboarding_complete', user_id=user.id) }}">{{ csrf_token() }}<button class="btn btn-sm btn-success">Mark onboarding complete</button></form>
+  <form method="post" action="{{ url_for('admin_user_recovery_set_subscription_status', user_id=user.id) }}">{{ csrf_token() }}
+    <select name="subscription_status"><option>free</option><option>pro</option><option>canceled</option><option>past_due</option></select>
+    <button class="btn btn-sm btn-secondary">Update local subscription status</button>
+  </form>
+  <p><strong>Warning:</strong> Subscription status update is local-only and does not update Stripe billing.</p>
+
+  <h4>Recent events</h4>
+  <ul>{% for e in recent_events %}<li>{{ e.created_at }} {{ e.event_name }}</li>{% endfor %}</ul>
+  <h4>Recent trades ({{ recent_trade_count }})</h4>
+  <ul>{% for t in recent_trades %}<li>{{ t.created_at }} {{ t.symbol }} {{ t.status }} qty={{ t.qty }}</li>{% endfor %}</ul>
+</div>
+{% endblock %}
