@@ -273,6 +273,26 @@ class BlogPost(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = db.Column(db.DateTime, nullable=True)
 
+class BlogPublishingPlan(db.Model):
+    __tablename__ = "blog_publishing_plans"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(220), nullable=False)
+    target_keyword = db.Column(db.String(180), nullable=True)
+    search_intent = db.Column(db.String(80), nullable=True)
+    funnel_stage = db.Column(db.String(80), nullable=True)
+    content_type = db.Column(db.String(80), nullable=True)
+    priority = db.Column(db.Integer, nullable=False, default=3)
+    status = db.Column(db.String(40), nullable=False, default='idea', index=True)
+    planned_publish_date = db.Column(db.Date, nullable=True)
+    assigned_author = db.Column(db.String(120), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    related_blog_post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    related_blog_post = db.relationship('BlogPost', lazy='joined')
+
 
 class StripeEvent(db.Model):
     __tablename__ = 'stripe_events'
