@@ -6,7 +6,7 @@
   {% set d = form_data or {} %}
   {% set show_ai_draft_assistant = (not post) or (post and post.status == 'draft') %}
   <title>{% if post and post.status == 'draft' %}Edit Blog Draft{% elif post %}Edit Blog Post{% else %}New Blog Post{% endif %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include 'partials/async_app_css.html' %}
   <style>
     .admin-shell { max-width: 1150px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
     .admin-header { margin-bottom: 1.4rem; }

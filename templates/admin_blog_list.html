@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blog Admin</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include 'partials/async_app_css.html' %}
   <style>
     .admin-shell { max-width: 1200px; margin: 0 auto; padding: 2.25rem 1rem 3rem; }
     .admin-header {

@@ -91,8 +91,8 @@
 }
 </script>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% include 'partials/async_app_css.html' %}
+{% include 'partials/async_fontawesome_css.html' %}
 
 <style>
     /* Landing Page Specific Overrides */
