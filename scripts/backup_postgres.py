@@ -78,6 +78,15 @@ def scrub_sensitive_text(text: str, secrets: list[str]) -> str:
     return cleaned
 
 
+def open_secure_backup_file(backup_file: Path):
+    fd = os.open(
+        backup_file,
+        os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+        0o600,
+    )
+    return os.fdopen(fd, 'wb')
+
+
 def run_backup(db_url: str, backup_file: Path) -> None:
     pg_dump_target, db_password = build_pg_dump_target(db_url)
     encoded_password = quote(db_password, safe='') if db_password else ''
@@ -87,22 +96,40 @@ def run_backup(db_url: str, backup_file: Path) -> None:
     if db_password:
         env['PGPASSWORD'] = db_password
 
-    with backup_file.open('wb') as output:
-        dump_proc = subprocess.Popen(['pg_dump', pg_dump_target], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-        gzip_proc = subprocess.Popen(['gzip'], stdin=dump_proc.stdout, stdout=output, stderr=subprocess.PIPE)
-        assert dump_proc.stdout is not None
-        dump_proc.stdout.close()
+    try:
+        with open_secure_backup_file(backup_file) as output:
+            dump_proc = subprocess.Popen(['pg_dump', pg_dump_target], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+            gzip_proc = subprocess.Popen(['gzip'], stdin=dump_proc.stdout, stdout=output, stderr=subprocess.PIPE)
+            assert dump_proc.stdout is not None
+            dump_proc.stdout.close()
 
-        dump_stderr = dump_proc.stderr.read().decode('utf-8', errors='replace') if dump_proc.stderr else ''
-        gzip_stderr = gzip_proc.stderr.read().decode('utf-8', errors='replace') if gzip_proc.stderr else ''
+            dump_stderr = dump_proc.stderr.read().decode('utf-8', errors='replace') if dump_proc.stderr else ''
+            gzip_stderr = gzip_proc.stderr.read().decode('utf-8', errors='replace') if gzip_proc.stderr else ''
 
-        dump_rc = dump_proc.wait()
-        gzip_rc = gzip_proc.wait()
+            dump_rc = dump_proc.wait()
+            gzip_rc = gzip_proc.wait()
+    except Exception:
+        if backup_file.exists():
+            try:
+                backup_file.chmod(0o600)
+            except Exception:
+                pass
+            try:
+                backup_file.unlink()
+            except Exception:
+                pass
+        raise
 
     if dump_rc != 0:
+        if backup_file.exists():
+            backup_file.chmod(0o600)
+            backup_file.unlink()
         safe_err = scrub_sensitive_text(dump_stderr.strip(), secrets)
         raise RuntimeError(f'pg_dump failed with exit code {dump_rc}: {safe_err}')
     if gzip_rc != 0:
+        if backup_file.exists():
+            backup_file.chmod(0o600)
+            backup_file.unlink()
         safe_err = scrub_sensitive_text(gzip_stderr.strip(), secrets)
         raise RuntimeError(f'gzip failed with exit code {gzip_rc}: {safe_err}')
 
@@ -164,6 +191,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         backup_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            backup_dir.chmod(0o700)
+        except Exception as chmod_exc:
+            if os.access(backup_dir, os.W_OK):
+                logging.warning('Could not set backup dir permissions to 0o700: %s', chmod_exc)
+            else:
+                raise RuntimeError(f'Backup directory is not writable and chmod failed: {chmod_exc}') from chmod_exc
         run_backup(db_url, backup_file)
 
         if not backup_file.exists() or backup_file.stat().st_size <= 0:
