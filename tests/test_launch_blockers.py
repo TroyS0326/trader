@@ -139,3 +139,10 @@ def test_config_check_strict_rejects_sqlite_database_url_explicit(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:////tmp/prod.db')
     errs = config_check.validate_required_production_config(strict=True)
     assert any('sqlite is not allowed' in err for err in errs)
+
+
+def test_ensure_schema_migrations_uses_safe_boolean_defaults():
+    source = Path(app_module.__file__).read_text()
+    fn = source[source.index('def ensure_schema_migrations()'):source.index('ensure_db_initialized()')]
+    assert 'BOOLEAN NOT NULL DEFAULT 0' not in fn
+    assert 'BOOLEAN NOT NULL DEFAULT 1' not in fn

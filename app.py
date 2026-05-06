@@ -676,41 +676,41 @@ def ensure_schema_migrations() -> None:
                 conn.execute(text("ALTER TABLE \"user\" ADD COLUMN live_bankroll FLOAT NOT NULL DEFAULT 0.0"))
 
             if 'onboarding_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'paper_bankroll_set' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN paper_bankroll_set BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN paper_bankroll_set BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'first_scan_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN first_scan_completed BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'scan_preview_completed' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN scan_preview_completed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN scan_preview_completed BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'playbook_reviewed' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN playbook_reviewed BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'transparency_reviewed' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN transparency_reviewed BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN transparency_reviewed BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             if 'broker_connection_started' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             
             if 'allow_penny_stocks' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
             if 'allow_biotech' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_biotech BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_biotech BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
             if 'allow_etf_trading' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_etf_trading BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_etf_trading BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
             if 'allow_leveraged_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_leveraged_etfs BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_leveraged_etfs BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
             if 'allow_inverse_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_inverse_etfs BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_inverse_etfs BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
             if 'allow_crypto_etfs' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_crypto_etfs BOOLEAN NOT NULL DEFAULT 1"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_crypto_etfs BOOLEAN NOT NULL DEFAULT {bool_default(True)}"))
             if 'allow_options_trading' not in existing_columns:
-                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN allow_options_trading BOOLEAN NOT NULL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_options_trading BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
             if 'stripe_customer_id' not in existing_columns:
                 conn.execute(text("ALTER TABLE \"user\" ADD COLUMN stripe_customer_id VARCHAR(255)"))
 
@@ -782,9 +782,9 @@ def ensure_schema_migrations() -> None:
                 'og_image': "ALTER TABLE blog_posts ADD COLUMN og_image VARCHAR(320)",
                 'featured_image_alt': "ALTER TABLE blog_posts ADD COLUMN featured_image_alt VARCHAR(240)",
                 'featured_image_caption': "ALTER TABLE blog_posts ADD COLUMN featured_image_caption TEXT",
-                'created_at': "ALTER TABLE blog_posts ADD COLUMN created_at DATETIME",
-                'updated_at': "ALTER TABLE blog_posts ADD COLUMN updated_at DATETIME",
-                'published_at': "ALTER TABLE blog_posts ADD COLUMN published_at DATETIME",
+                'created_at': f"ALTER TABLE blog_posts ADD COLUMN created_at {datetime_type()}",
+                'updated_at': f"ALTER TABLE blog_posts ADD COLUMN updated_at {datetime_type()}",
+                'published_at': f"ALTER TABLE blog_posts ADD COLUMN published_at {datetime_type()}",
             }
             for col_name, stmt in blog_alters.items():
                 if col_name not in blog_columns:
@@ -803,8 +803,8 @@ def ensure_schema_migrations() -> None:
                 'planned_publish_date': "ALTER TABLE blog_keyword_plans ADD COLUMN planned_publish_date DATE",
                 'blog_post_id': "ALTER TABLE blog_keyword_plans ADD COLUMN blog_post_id INTEGER",
                 'notes': "ALTER TABLE blog_keyword_plans ADD COLUMN notes TEXT",
-                'created_at': "ALTER TABLE blog_keyword_plans ADD COLUMN created_at DATETIME",
-                'updated_at': "ALTER TABLE blog_keyword_plans ADD COLUMN updated_at DATETIME",
+                'created_at': f"ALTER TABLE blog_keyword_plans ADD COLUMN created_at {datetime_type()}",
+                'updated_at': f"ALTER TABLE blog_keyword_plans ADD COLUMN updated_at {datetime_type()}",
             }
             for col_name, stmt in keyword_plan_alters.items():
                 if col_name not in keyword_plan_columns:
