@@ -1701,3 +1701,112 @@ input:checked + .slider:before {
     align-items: center;
     gap: 15px;
    }
+
+
+
+/* === Limited Launch Promo === */
+.launch-promo-card {
+  position: relative;
+  max-width: 760px;
+  margin: 1.5rem auto 2rem;
+  padding: 1.65rem 1.5rem;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.36);
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 58%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94));
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.launch-promo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.055), transparent);
+  transform: translateX(-100%);
+  animation: launchPromoSheen 7s ease-in-out infinite;
+}
+
+@keyframes launchPromoSheen {
+  0%, 70% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.launch-promo-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  padding: 0.38rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  background: rgba(56, 189, 248, 0.10);
+  color: var(--accent-blue);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.launch-promo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+}
+
+.launch-promo-title {
+  max-width: 680px;
+  margin: 0 auto 0.65rem;
+  color: var(--text-main);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1.12;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.launch-promo-copy {
+  max-width: 660px;
+  margin: 0 auto;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.launch-promo-subcopy {
+  max-width: 640px;
+  margin: 0.85rem auto 0;
+  color: var(--text-main);
+  font-size: 0.96rem;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+@media (max-width: 720px) {
+  .launch-promo-card {
+    margin: 1.25rem auto 1.75rem;
+    padding: 1.35rem 1rem;
+    border-radius: 16px;
+  }
+
+  .launch-promo-title {
+    font-size: 1.35rem;
+  }
+
+  .launch-promo-copy,
+  .launch-promo-subcopy {
+    font-size: 0.92rem;
+  }
+}

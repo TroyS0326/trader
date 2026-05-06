@@ -159,14 +159,7 @@
                     XeanVI PRO helps traders turn a defined playbook into a more systematic trading workflow with automated market scans, paper-mode testing, user-defined risk settings, and supported broker-connected order routing.
                 </p>
                 
-{% if launch_promo_active %}
-<div style="margin: 1rem 0; padding: 1rem; border: 1px solid var(--accent-blue); border-radius: 10px; background: rgba(37,99,235,0.12);">
-  <strong>Limited Launch Promo</strong><br>
-  Get 2 months of XeanVI Monthly PRO for the price of 1.<br>
-  Use your first two months to define your playbook, test in paper mode, and watch how XeanVI handles scans, validation, and broker-connected workflow logic.<br>
-  Two months to learn the workflow for less than many traders risk on one bad trade.
-</div>
-{% endif %}
+{% include 'partials/launch_promo.html' %}
 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
                     <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Monthly PRO" }}</a>
                     <a href="/features" class="btn btn-secondary">See How It Works</a>
