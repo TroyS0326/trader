@@ -3,15 +3,9 @@ import logging
 import os
 from typing import Any, Dict
 
+import gemini_client
+
 logger = logging.getLogger(__name__)
-
-# Optional Gemini dependency: do not crash if package is unavailable.
-try:
-    import google.generativeai as genai
-
-    HAS_GEMINI = True
-except ImportError:
-    HAS_GEMINI = False
 
 
 EXPECTED_KEYS = ("thesis", "key_reasons", "risk_note")
@@ -65,24 +59,10 @@ def _is_valid_payload(payload: Dict[str, Any]) -> bool:
 def generate_trade_thesis(setup: Dict) -> Dict[str, Any]:
     """Generate a thesis using Gemini; fallback deterministically on any failure."""
     api_key = os.getenv("GEMINI_API_KEY")
-    if not HAS_GEMINI or not api_key:
+    if not api_key:
         return generate_fallback_thesis(setup)
 
     try:
-        genai.configure(api_key=api_key)
-
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=(
-                "You are an objective, professional algorithmic trading system. "
-                "Analyze the provided setup and return strict JSON only."
-            ),
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json",
-                temperature=0.2,
-            ),
-        )
-
         prompt = (
             "Return JSON with exactly three keys: thesis (string), "
             "key_reasons (list of exactly 3 strings), and risk_note (string). "
@@ -91,11 +71,18 @@ def generate_trade_thesis(setup: Dict) -> Dict[str, Any]:
             f"{json.dumps(setup, separators=(',', ':'))}"
         )
 
-        response = model.generate_content(
+        response_text = gemini_client.generate_text(
             prompt,
-            request_options={"timeout": 10.0},
+            model="gemini-2.0-flash",
+            temperature=0.2,
+            response_mime_type="application/json",
+            system_instruction=(
+                "You are an objective, professional algorithmic trading system. "
+                "Analyze the provided setup and return strict JSON only."
+            ),
+            timeout=10.0,
         )
-        parsed = json.loads(response.text)
+        parsed = json.loads(response_text)
 
         if _is_valid_payload(parsed):
             return parsed

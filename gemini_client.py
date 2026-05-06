@@ -37,6 +37,9 @@ def generate_text(
     model: str | None = None,
     temperature: float | None = None,
     max_output_tokens: int | None = None,
+    response_mime_type: str | None = None,
+    system_instruction: str | None = None,
+    timeout: float | None = None,
 ) -> str:
     """Generate plain text from Gemini.
 
@@ -49,12 +52,20 @@ def generate_text(
         config["temperature"] = temperature
     if max_output_tokens is not None:
         config["max_output_tokens"] = max_output_tokens
+    if response_mime_type is not None:
+        config["response_mime_type"] = response_mime_type
+    if system_instruction is not None:
+        config["system_instruction"] = system_instruction
 
-    response = client.models.generate_content(
-        model=get_model_name(model),
-        contents=prompt,
-        config=config or None,
-    )
+    kwargs: dict[str, Any] = {
+        "model": get_model_name(model),
+        "contents": prompt,
+        "config": config or None,
+    }
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+
+    response = client.models.generate_content(**kwargs)
 
     text = getattr(response, "text", None)
     if isinstance(text, str):
