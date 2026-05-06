@@ -123,3 +123,19 @@ def test_config_check_rejects_sqlite_database_url(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:////tmp/test.db')
     errs = config_check.validate_required_production_config(strict=True)
     assert any('sqlite' in err.lower() for err in errs)
+
+
+def test_config_check_strict_rejects_missing_database_url(monkeypatch):
+    monkeypatch.setenv('FLASK_ENV', 'production')
+    monkeypatch.setenv('FLASK_DEBUG', '0')
+    monkeypatch.delenv('DATABASE_URL', raising=False)
+    errs = config_check.validate_required_production_config(strict=True)
+    assert any('DATABASE_URL is required' in err for err in errs)
+
+
+def test_config_check_strict_rejects_sqlite_database_url_explicit(monkeypatch):
+    monkeypatch.setenv('FLASK_ENV', 'production')
+    monkeypatch.setenv('FLASK_DEBUG', '0')
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:////tmp/prod.db')
+    errs = config_check.validate_required_production_config(strict=True)
+    assert any('sqlite is not allowed' in err for err in errs)

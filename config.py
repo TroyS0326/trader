@@ -140,12 +140,10 @@ def build_database_uri() -> str:
     uri = normalize_database_url(DATABASE_URL)
 
     if not uri:
-        if IS_PRODUCTION:
-            raise ValueError("DATABASE_URL is required in production and must point to PostgreSQL.")
         return f"sqlite:///{os.path.abspath(DB_PATH)}"
 
-    if IS_PRODUCTION and not uri.startswith("postgresql+psycopg://"):
-        raise ValueError("Production DATABASE_URL must use postgres://, postgresql://, or postgresql+psycopg://.")
+    if IS_PRODUCTION and uri.startswith("sqlite://"):
+        return uri
 
     return uri
 
