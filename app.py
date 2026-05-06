@@ -28,6 +28,9 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 import config
 from sentry_setup import init_sentry
+
+init_sentry("xeanvi-web")
+
 import scanner as scanner_module
 from broker import BrokerError, get_order, maybe_activate_runner_trailing, place_managed_entry_order
 import db as trade_db
@@ -55,8 +58,6 @@ from execution_guard import (
     validate_execution_against_approved_scan,
     audit_trade_log,
 )
-
-init_sentry("xeanvi-web")
 
 app = Flask(__name__)
 

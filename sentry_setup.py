@@ -12,9 +12,16 @@ _SENSITIVE_KEY_PATTERN = re.compile(
 )
 _SENSITIVE_VALUE_PATTERN = re.compile(
     r"(Bearer\s+[A-Za-z0-9\-._~+/]+=*)|"
+    r"(Basic\s+[A-Za-z0-9+/=]{8,})|"
     r"(sk_(live|test)_[A-Za-z0-9]+)|"
     r"(pk_(live|test)_[A-Za-z0-9]+)|"
-    r"(AKIA[0-9A-Z]{16})",
+    r"(AKIA[0-9A-Z]{16})|"
+    r"(postgres(?:ql(?:\+psycopg)?)?://[^:\s]+:[^@\s]+@[^/\s]+/[^\s]+)|"
+    r"((?:access_token|refresh_token|password|api[_-]?key|authorization)\s*=\s*[^&\s]+)|"
+    r"(https?://[a-z0-9]+@[a-z0-9.-]*sentry\.io/\d+)|"
+    r"(xapp-[A-Za-z0-9_-]{12,})|"
+    r"(sbp_[A-Za-z0-9]{12,})|"
+    r"(AG[A-Za-z0-9_-]{12,})",
     re.IGNORECASE,
 )
 
@@ -55,6 +62,10 @@ def _scrub_value(value: Any, key_hint: str | None = None) -> Any:
 
 
 def before_send(event: dict[str, Any], hint: dict[str, Any] | None) -> dict[str, Any]:
+    for key in ("message", "transaction", "culprit", "logger", "event_id"):
+        if key in event:
+            event[key] = _scrub_value(event.get(key), key)
+
     request = event.get("request") or {}
     if request:
         request["headers"] = _scrub_value(request.get("headers") or {})
@@ -67,6 +78,19 @@ def before_send(event: dict[str, Any], hint: dict[str, Any] | None) -> dict[str,
         event["extra"] = _scrub_value(event.get("extra") or {})
     if "contexts" in event:
         event["contexts"] = _scrub_value(event.get("contexts") or {})
+    if "tags" in event:
+        event["tags"] = _scrub_value(event.get("tags") or {})
+    if "user" in event:
+        event["user"] = _scrub_value(event.get("user") or {})
+    if "logentry" in event:
+        event["logentry"] = _scrub_value(event.get("logentry") or {})
+
+    breadcrumbs = event.get("breadcrumbs") or {}
+    if isinstance(breadcrumbs, dict):
+        breadcrumbs["values"] = _scrub_value(breadcrumbs.get("values") or [])
+        event["breadcrumbs"] = breadcrumbs
+    elif isinstance(breadcrumbs, list):
+        event["breadcrumbs"] = _scrub_value(breadcrumbs)
 
     exc_values = (((event.get("exception") or {}).get("values") or []))
     for exc in exc_values:
@@ -116,6 +140,7 @@ def init_sentry(service_name: str = "xeanvi-web") -> bool:
             server_name=service_name,
         )
         return True
-    except Exception:
-        logger.warning("Sentry initialization failed; continuing without Sentry.", exc_info=True)
+    except Exception as exc:
+        safe_exc = _scrub_value(str(exc), "error")
+        logger.warning("Sentry initialization failed; continuing without Sentry. Reason: %s", safe_exc)
         return False

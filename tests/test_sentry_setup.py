@@ -2,6 +2,7 @@ import importlib
 import os
 import sys
 import types
+from unittest.mock import patch
 
 import sentry_setup
 
@@ -105,6 +106,41 @@ def test_before_send_scrubs_sensitive_fields_recursively():
     assert cleaned['exception']['values'][0]['value'] == '[Filtered]'
 
 
+def test_before_send_scrubs_message_logentry_breadcrumbs_tags_and_user():
+    event = {
+        'message': 'password=abcd',
+        'logentry': {
+            'message': 'api_key=xyz',
+            'formatted': 'Authorization: Basic dGVzdDp0b2tlbg==',
+            'params': ['ok', {'refresh_token': 'rt-123'}],
+        },
+        'breadcrumbs': {
+            'values': [
+                {'message': 'Bearer abc.def.ghi', 'category': 'auth', 'data': {'Authorization': 'Bearer topsecret'}},
+                {'message': 'safe message', 'category': 'ui', 'data': {'status': 'ok'}},
+            ]
+        },
+        'tags': {'api_key': 'abc', 'safe_tag': 'keep'},
+        'user': {'id': 'u1', 'email': 'x@example.com', 'ip_address': '127.0.0.1', 'token': 'abc'},
+        'extra': {'safe': 'keep'},
+    }
+
+    cleaned = sentry_setup.before_send(event, {})
+    assert cleaned['message'] == '[Filtered]'
+    assert cleaned['logentry']['message'] == '[Filtered]'
+    assert cleaned['logentry']['formatted'] == '[Filtered]'
+    assert cleaned['logentry']['params'][0] == 'ok'
+    assert cleaned['logentry']['params'][1]['refresh_token'] == '[Filtered]'
+    assert cleaned['breadcrumbs']['values'][0]['message'] == '[Filtered]'
+    assert cleaned['breadcrumbs']['values'][0]['data']['Authorization'] == '[Filtered]'
+    assert cleaned['breadcrumbs']['values'][1]['message'] == 'safe message'
+    assert cleaned['tags']['api_key'] == '[Filtered]'
+    assert cleaned['tags']['safe_tag'] == 'keep'
+    assert cleaned['user']['token'] == '[Filtered]'
+    assert cleaned['user']['email'] == 'x@example.com'
+    assert cleaned['extra']['safe'] == 'keep'
+
+
 def test_init_failure_does_not_crash(monkeypatch):
     monkeypatch.setenv('SENTRY_DSN', 'https://example@sentry.io/1')
     monkeypatch.setitem(sys.modules, 'sentry_sdk', types.SimpleNamespace(init=lambda **_: (_ for _ in ()).throw(RuntimeError('boom'))))
@@ -112,3 +148,22 @@ def test_init_failure_does_not_crash(monkeypatch):
     monkeypatch.setitem(sys.modules, 'sentry_sdk.integrations.logging', types.SimpleNamespace(LoggingIntegration=object))
 
     assert sentry_setup.init_sentry() is False
+
+
+def test_init_failure_logs_generic_scrubbed_message_without_exc_info(monkeypatch):
+    monkeypatch.setenv('SENTRY_DSN', 'https://public:private@sentry.io/42')
+    monkeypatch.setitem(
+        sys.modules,
+        'sentry_sdk',
+        types.SimpleNamespace(init=lambda **_: (_ for _ in ()).throw(RuntimeError('bad dsn https://public:private@sentry.io/42'))),
+    )
+    monkeypatch.setitem(sys.modules, 'sentry_sdk.integrations.flask', types.SimpleNamespace(FlaskIntegration=object))
+    monkeypatch.setitem(sys.modules, 'sentry_sdk.integrations.logging', types.SimpleNamespace(LoggingIntegration=object))
+
+    with patch.object(sentry_setup.logger, 'warning') as warning_mock:
+        assert sentry_setup.init_sentry() is False
+        warning_mock.assert_called_once()
+        call_args = warning_mock.call_args
+        assert 'exc_info' not in call_args.kwargs
+        assert 'Sentry initialization failed; continuing without Sentry.' in call_args.args[0]
+        assert 'https://public:private@sentry.io/42' not in call_args.args[1]
