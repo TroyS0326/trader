@@ -1,7 +1,8 @@
 {% extends 'dashboard.html' %}
 {% block content %}
 <div class="container py-4">
-  <div class="alert alert-warning">Admin-only user recovery console.</div>
+  <div class="alert alert-warning">Admin-only user recovery console. Direct URL only: <code>/admin/user-recovery</code>.</div>
+  <p class="text-muted">Search by email, user ID, Stripe customer ID, or Alpaca account ID. Max 25 results.</p>
   <form method="get" class="mb-3">
     <input name="q" value="{{ q }}" placeholder="email, user id, stripe customer id, alpaca account id" class="form-control" />
   </form>
@@ -10,7 +11,7 @@
     <tbody>
       {% for u in users %}
       <tr>
-        <td>{{ u.id }}</td><td>{{ u.email }}</td><td>{{ u.full_name or '' }}</td><td>{{ u.subscription_status }}</td><td>{{ u.subscription_plan or '' }}</td><td>{{ u.stripe_customer_id or '' }}</td><td>{{ u.stripe_subscription_id_masked or '' }}</td><td>{{ u.trading_mode }}</td><td>{{ u.alpaca_paper_account_id or '' }}</td><td>{{ u.alpaca_live_account_id or '' }}</td>
+        <td>{{ u.id }}</td><td>{{ u.email }}</td><td>{{ u.full_name or '' }}</td><td>{{ u.subscription_status }}</td><td>{{ u.subscription_plan or '' }}</td><td>{{ u.stripe_customer_id_masked or '' }}</td><td>{{ u.stripe_subscription_id_masked or '' }}</td><td>{{ u.trading_mode }}</td><td>{{ u.alpaca_paper_account_id or '' }}</td><td>{{ u.alpaca_live_account_id or '' }}</td>
         <td><a href="{{ url_for('admin_user_recovery_detail', user_id=u.id) }}">Open</a></td>
       </tr>
       {% endfor %}
