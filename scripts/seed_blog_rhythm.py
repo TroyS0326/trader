@@ -1,7 +1,14 @@
 import argparse
 from datetime import date, timedelta
-from app import app, db
-from models import BlogPublishingPlan
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app import app
+from models import db, BlogPublishingPlan
 
 def norm(t):
     return ' '.join((t or '').lower().split())
