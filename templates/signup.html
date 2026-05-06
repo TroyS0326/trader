@@ -268,13 +268,6 @@
         <section class="auth-terminal-wide">
             
             <div class="auth-info-side">
-<div style="margin: 1rem 0; padding: 1rem; border: 1px solid var(--accent-blue); border-radius: 10px; background: rgba(37,99,235,0.12);">
-  <strong>Limited Launch Promo</strong><br>
-  Get 2 months of XeanVI Monthly PRO for the price of 1.<br>
-  Use your first two months to define your playbook, test in paper mode, and watch how XeanVI handles scans, validation, and broker-connected workflow logic.<br>
-  Two months to learn the workflow for less than many traders risk on one bad trade.
-</div>
-
                 <div class="sys-status">PRO_SYSTEM_INITIALIZATION</div>
                 <h2 style="font-size: 2rem; margin-bottom: 1rem; letter-spacing: -0.5px; line-height: 1.2;">Build Your Automated Workflow</h2>
                 <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 1rem;">
@@ -307,6 +300,15 @@
             </div>
 
             <div class="auth-form-side">
+                {% if launch_promo_active %}
+                <div style="margin: 1rem 0; padding: 1rem; border: 1px solid var(--accent-blue); border-radius: 10px; background: rgba(37,99,235,0.12);">
+                  <strong>Limited Launch Promo</strong><br>
+                  Get 2 months of XeanVI Monthly PRO for the price of 1.<br>
+                  Use your first two months to define your playbook, test in paper mode, and watch how XeanVI handles scans, validation, and broker-connected workflow logic.<br>
+                  Two months to learn the workflow for less than many traders risk on one bad trade.
+                </div>
+                {% endif %}
+
                 <h1 style="font-size: 1.8rem; margin-bottom: 0.75rem; letter-spacing: -0.5px;">
                     Create Your XeanVI Monthly PRO Account
                 </h1>
