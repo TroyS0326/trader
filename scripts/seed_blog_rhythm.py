@@ -25,16 +25,14 @@ TOPICS = [
 ("How XeanVI Uses Playbook Rules to Support Trading Discipline","xeanvi playbook rules discipline","informational","bottom","product education",2),
 ]
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--force', action='store_true')
-    args = parser.parse_args()
+def seed_blog_rhythm(force=False, today=None):
+    run_date = today or date.today()
     with app.app_context():
-        if BlogPublishingPlan.query.count() and not args.force:
+        if BlogPublishingPlan.query.count() and not force:
             print('BlogPublishingPlan rows exist; skipping. Use --force to add starters.')
-            raise SystemExit(0)
+            return 0
         existing = {norm(p.title) for p in BlogPublishingPlan.query.all()}
-        base = next_monday(date.today())
+        base = next_monday(run_date)
         created = 0
         for i, (title, kw, intent, funnel, ctype, prio) in enumerate(TOPICS):
             if norm(title) in existing:
@@ -43,3 +41,11 @@ if __name__ == '__main__':
             created += 1
         db.session.commit()
         print(f'Created {created} starter blog rhythm topics.')
+        return created
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--force', action='store_true')
+    args = parser.parse_args()
+    seed_blog_rhythm(force=args.force)

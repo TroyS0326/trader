@@ -15,7 +15,7 @@ from sqlalchemy import inspect, text, or_
 from sqlalchemy.exc import IntegrityError
 from zoneinfo import ZoneInfo
 
-from flask import Flask, jsonify, make_response, render_template, request, redirect, session, url_for, flash
+from flask import Flask, jsonify, make_response, render_template, request, redirect, session, url_for, flash, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_login import LoginManager
 from flask_sock import Sock
@@ -183,6 +183,24 @@ BLOG_ALLOWED_TAGS = ['h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'l
 BLOG_ALLOWED_ATTRIBUTES = {'a': ['href', 'title', 'rel', 'target']}
 BLOG_ALLOWED_STATUSES = {'draft', 'published'}
 BLOG_PLAN_ALLOWED_STATUSES = {'idea', 'queued', 'drafting', 'drafted', 'needs_review', 'ready_to_publish', 'published', 'archived'}
+
+
+def parse_int(value, default=3, min_value=1, max_value=5):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+
+def parse_date(value):
+    raw = (value or '').strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, '%Y-%m-%d').date()
+    except ValueError:
+        return None
 
 
 def is_admin_user() -> bool:
@@ -2109,16 +2127,20 @@ def admin_blog_rhythm_add():
     if not title:
         flash('Title is required.', 'error')
         return redirect(url_for('admin_blog_rhythm'))
+    planned_publish_date = parse_date(request.form.get('planned_publish_date'))
+    if request.form.get('planned_publish_date') and planned_publish_date is None:
+        flash('Invalid planned publish date. Please use YYYY-MM-DD.', 'error')
+        return redirect(url_for('admin_blog_rhythm'))
     plan = BlogPublishingPlan(
         title=title,
         target_keyword=(request.form.get('target_keyword') or '').strip() or None,
         search_intent=(request.form.get('search_intent') or '').strip() or None,
         funnel_stage=(request.form.get('funnel_stage') or '').strip() or None,
         content_type=(request.form.get('content_type') or '').strip() or None,
-        priority=int(request.form.get('priority') or 3),
+        priority=parse_int(request.form.get('priority'), default=3, min_value=1, max_value=5),
         status='idea',
         notes=(request.form.get('notes') or '').strip() or None,
-        planned_publish_date=datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if request.form.get('planned_publish_date') else None,
+        planned_publish_date=planned_publish_date,
     )
     db.session.add(plan); db.session.commit()
     flash('Blog rhythm topic added.', 'success')
@@ -2134,13 +2156,17 @@ def admin_blog_rhythm_update(plan_id):
     if status and status not in BLOG_PLAN_ALLOWED_STATUSES:
         flash('Invalid status.', 'error')
         return redirect(url_for('admin_blog_rhythm'))
+    planned_publish_date = parse_date(request.form.get('planned_publish_date'))
+    if request.form.get('planned_publish_date') and planned_publish_date is None:
+        flash('Invalid planned publish date. Please use YYYY-MM-DD.', 'error')
+        return redirect(url_for('admin_blog_rhythm'))
     if status:
         plan.status = status
     plan.assigned_author = (request.form.get('assigned_author') or '').strip() or None
     plan.notes = (request.form.get('notes') or '').strip() or None
     if request.form.get('priority'):
-        plan.priority = int(request.form.get('priority'))
-    plan.planned_publish_date = datetime.strptime(request.form.get('planned_publish_date'), '%Y-%m-%d').date() if request.form.get('planned_publish_date') else None
+        plan.priority = parse_int(request.form.get('priority'), default=plan.priority or 3, min_value=1, max_value=5)
+    plan.planned_publish_date = planned_publish_date
     db.session.commit()
     flash('Blog rhythm topic updated.', 'success')
     return redirect(url_for('admin_blog_rhythm'))
@@ -2156,13 +2182,26 @@ def admin_blog_rhythm_create_draft(plan_id):
     title = (plan.title or 'Blog Draft').strip()
     slug = unique_blog_slug(title)
     body_html = "<p>Draft placeholder. Admin review required before publishing.</p>"
+    ai_failed = False
     if os.getenv('GEMINI_API_KEY'):
         try:
-            draft = generate_blog_draft(title=title, target_keyword=plan.target_keyword or '', search_intent=plan.search_intent or 'educational')
+            notes_parts = [
+                plan.notes or '',
+                f"Search intent: {plan.search_intent}" if plan.search_intent else '',
+                f"Funnel stage: {plan.funnel_stage}" if plan.funnel_stage else '',
+                f"Content type: {plan.content_type}" if plan.content_type else '',
+            ]
+            notes = "\n".join(part for part in notes_parts if part)
+            draft = generate_blog_draft(
+                title=title,
+                target_keyword=plan.target_keyword or '',
+                notes=notes,
+            )
             if draft and draft.get('body_html'):
                 body_html = sanitize_blog_html(draft.get('body_html') or body_html)
-        except Exception:
-            pass
+        except Exception as exc:
+            ai_failed = True
+            logger.warning("Blog rhythm AI draft generation failed for plan_id=%s: %s", plan.id, _brief_error_text(str(exc)))
     post = BlogPost(title=title, slug=slug, body_html=body_html, target_keyword=plan.target_keyword, status='draft', excerpt=plan.notes)
     db.session.add(post)
     db.session.flush()
@@ -2170,7 +2209,10 @@ def admin_blog_rhythm_create_draft(plan_id):
     if plan.status in {'idea', 'queued'}:
         plan.status = 'drafted'
     db.session.commit()
-    flash('Draft created. Admin review is required before publishing.', 'success')
+    if ai_failed:
+        flash('AI draft generation failed; a manual placeholder draft was created. Admin review is required before publishing.', 'warning')
+    else:
+        flash('Draft created. Admin review is required before publishing.', 'success')
     return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
