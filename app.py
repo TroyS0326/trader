@@ -2067,7 +2067,7 @@ def admin_keyword_map_create_draft(plan_id):
     plan.updated_at = datetime.utcnow()
 
     db.session.commit()
-    flash('Blog draft created from keyword plan.', 'success')
+    flash('Blog draft created from keyword plan. Use Generate AI Draft to create the article.', 'success')
     return redirect(url_for('admin_blog_edit', post_id=post.id))
 
 
@@ -2271,6 +2271,18 @@ def admin_blog_new():
 def admin_blog_generate_draft():
     if not is_admin_user():
         return ("Forbidden", 403)
+    post = None
+    post_id_raw = (request.form.get('post_id') or '').strip()
+    if post_id_raw:
+        try:
+            post_id = int(post_id_raw)
+        except (TypeError, ValueError):
+            flash('Invalid blog draft reference.', 'error')
+            return redirect(url_for('admin_blog_list'))
+        post = BlogPost.query.get(post_id)
+        if not post:
+            flash('Blog draft not found.', 'error')
+            return redirect(url_for('admin_blog_list'))
 
     title = (request.form.get('title') or '').strip()
     target_keyword = (request.form.get('target_keyword') or '').strip()
@@ -2299,12 +2311,12 @@ def admin_blog_generate_draft():
     if not title:
         flash("Enter a blog title before generating an AI draft.", "error")
         suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
-        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
+        return render_template('admin_blog_form.html', post=post, form_data=form_data, internal_link_suggestions=suggestions)
 
     if not (os.getenv('GEMINI_API_KEY') or '').strip():
         flash("AI draft generation is not configured. Missing GEMINI_API_KEY.", "error")
         suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
-        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
+        return render_template('admin_blog_form.html', post=post, form_data=form_data, internal_link_suggestions=suggestions)
 
     draft = generate_blog_draft(
         title=title,
@@ -2316,7 +2328,7 @@ def admin_blog_generate_draft():
     if not draft.get('ok'):
         flash(draft.get('error') or 'AI draft generation failed.', 'error')
         suggestions = suggest_internal_links(title=form_data['title'], target_keyword=form_data['target_keyword'], excerpt=form_data['excerpt'], body_html=form_data['body_html'])
-        return render_template('admin_blog_form.html', post=None, form_data=form_data, internal_link_suggestions=suggestions)
+        return render_template('admin_blog_form.html', post=post, form_data=form_data, internal_link_suggestions=suggestions)
 
     form_data.update({
         'title': draft.get('title') or title,
@@ -2344,7 +2356,7 @@ def admin_blog_generate_draft():
         excerpt=form_data.get('excerpt') or '',
         body_html=form_data.get('body_html') or '',
     )
-    return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
+    return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
 @app.route('/admin/blog/<int:post_id>/delete', methods=['POST'])
 @login_required
