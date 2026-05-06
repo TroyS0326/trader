@@ -60,8 +60,6 @@ def _onboarding_complete(user: Any) -> bool:
     required_flags = (
         "onboarding_completed",
         "paper_bankroll_set",
-        "first_scan_completed",
-        "scan_preview_completed",
         "playbook_reviewed",
         "transparency_reviewed",
         "broker_connection_started",
@@ -73,21 +71,25 @@ def _extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]
     required = ("symbol", "qty", "entry_price", "stop_price", "target_1", "target_2")
     if any(best_pick.get(k) in (None, "") for k in required):
         return None
-    return {
-        "symbol": str(best_pick.get("symbol", "")).upper().strip(),
-        "qty": int(float(best_pick.get("qty"))),
-        "entry_price": float(best_pick.get("entry_price")),
-        "stop_price": float(best_pick.get("stop_price")),
-        "target_1": float(best_pick.get("target_1")),
-        "target_2": float(best_pick.get("target_2")),
-    }
+    try:
+        return {
+            "symbol": str(best_pick.get("symbol", "")).upper().strip(),
+            "qty": int(float(best_pick.get("qty"))),
+            "entry_price": float(best_pick.get("entry_price")),
+            "stop_price": float(best_pick.get("stop_price")),
+            "target_1": float(best_pick.get("target_1")),
+            "target_2": float(best_pick.get("target_2")),
+        }
+    except (TypeError, ValueError):
+        logger.warning("Execution skipped: invalid numeric order field payload=%r", best_pick)
+        return None
 
 
 def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> None:
     if not _env_bool("CENTRAL_SCANNER_EXECUTION_ENABLED", False):
         logger.info("Execution disabled globally. user_id=%s", user.id)
         return
-    if getattr(user, "subscription_status", "free") != "pro":
+    if str(getattr(user, "subscription_status", "free") or "free").strip().lower() != "pro":
         logger.info("Execution skipped non-pro user. user_id=%s", user.id)
         return
     if not getattr(user, "alpaca_access_token", None):
@@ -106,7 +108,7 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
         logger.info("Execution skipped decision not eligible. user_id=%s decision=%s", user.id, decision)
         return
 
-    if getattr(user, "trading_mode", "paper") == "live" and not _env_bool("CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED", False):
+    if str(getattr(user, "trading_mode", "paper") or "paper").strip().lower() == "live" and not _env_bool("CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED", False):
         logger.warning("Execution skipped: live mode disabled globally. user_id=%s", user.id)
         return
 
