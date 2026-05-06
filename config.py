@@ -27,7 +27,6 @@ FLASK_ENV = os.getenv('FLASK_ENV', '').strip().lower()
 IS_PRODUCTION = FLASK_ENV == 'production' or not DEBUG
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5000'))
-LAUNCH_MODE = os.getenv('LAUNCH_MODE', 'live').strip().lower() or 'live'
 STRICT_PRODUCTION_SCANNER = os.getenv('STRICT_PRODUCTION_SCANNER', '1') == '1'
 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0').strip() or 'redis://localhost:6379/0'

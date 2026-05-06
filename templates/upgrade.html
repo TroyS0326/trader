@@ -158,12 +158,14 @@
         {% endif %}
 
         <div class="pricing-header">
+{% if launch_promo_active %}
 <div style="margin: 1rem 0; padding: 1rem; border: 1px solid var(--accent-blue); border-radius: 10px; background: rgba(37,99,235,0.12);">
   <strong>Limited Launch Promo</strong><br>
   Get 2 months of XeanVI Monthly PRO for the price of 1.<br>
   Use your first two months to define your playbook, test in paper mode, and watch how XeanVI handles scans, validation, and broker-connected workflow logic.<br>
   Two months to learn the workflow for less than many traders risk on one bad trade.
 </div>
+{% endif %}
 
             <h1>Start XeanVI Monthly PRO for Rule-Based Trading Automation.</h1>
             <p>Monthly PRO unlocks broker-connected workflows, AI-assisted setup review, playbook-based order routing, and paper-mode testing before live use.</p>
@@ -196,7 +198,7 @@
                 <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Monthly PRO","content_category":"Subscription","value":19.99,"currency":"USD"}|tojson }}'>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="plan" value="monthly">
-                    <button type="submit" class="checkout-btn primary">Claim 2 Months for $19.99</button>
+                    <button type="submit" class="checkout-btn primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Monthly PRO" }}</button>
                 </form>
             </section>
 

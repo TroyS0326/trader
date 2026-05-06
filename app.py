@@ -154,8 +154,11 @@ def _brief_error_text(text: str, max_len: int = 180) -> str:
 
 
 @app.context_processor
-def inject_meta_pixel():
-    return {'meta_pixel_id': getattr(config, 'META_PIXEL_ID', '')}
+def inject_template_flags():
+    return {
+        'meta_pixel_id': getattr(config, 'META_PIXEL_ID', ''),
+        'launch_promo_active': bool(config.LAUNCH_PROMO_ENABLED and config.LAUNCH_PROMO_STRIPE_COUPON_ID),
+    }
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -872,7 +875,9 @@ def dev_unlock(token):
 @app.route('/waitlist')
 @app.route('/waitlist/')
 @app.route('/waitlist/thank-you')
+@app.route('/waitlist/thank-you/')
 @app.route('/join-waitlist', methods=['GET', 'POST'])
+@app.route('/join-waitlist/', methods=['GET', 'POST'])
 def legacy_waitlist_redirect():
     return redirect(url_for('signup', plan='monthly'), code=301)
 
@@ -1539,18 +1544,21 @@ def create_checkout_session():
         track_user_event('checkout_started', user=current_user, context={'plan': plan})
         promo_discounts = get_launch_promo_discounts(plan)
         launch_promo_value = 'two_months_for_one' if promo_discounts else 'none'
-        checkout_session = stripe.checkout.Session.create(
-            mode='subscription',
-            customer=stripe_customer_id,
-            line_items=[{'price': price_id, 'quantity': 1}],
-            success_url=f"{config.APP_BASE_URL}/checkout-redirect?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{config.APP_BASE_URL}/upgrade?checkout=cancelled",
-            client_reference_id=str(current_user.id),
-            metadata={'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value},
-            subscription_data={'metadata': {'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value}},
-            allow_promotion_codes=True,
-            discounts=promo_discounts,
-        )
+        checkout_kwargs = {
+            'mode': 'subscription',
+            'customer': stripe_customer_id,
+            'line_items': [{'price': price_id, 'quantity': 1}],
+            'success_url': f"{config.APP_BASE_URL}/checkout-redirect?session_id={{CHECKOUT_SESSION_ID}}",
+            'cancel_url': f"{config.APP_BASE_URL}/upgrade?checkout=cancelled",
+            'client_reference_id': str(current_user.id),
+            'metadata': {'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value},
+            'subscription_data': {'metadata': {'user_id': str(current_user.id), 'plan': plan, 'launch_promo': launch_promo_value}},
+        }
+        if promo_discounts:
+            checkout_kwargs['discounts'] = promo_discounts
+        else:
+            checkout_kwargs['allow_promotion_codes'] = True
+        checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
         return redirect(checkout_session.url, code=303)
     except ValueError as exc:
         flash(str(exc), 'error')
