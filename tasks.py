@@ -13,6 +13,9 @@ from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
 from analyze_performance import calculate_user_kelly_fraction
 import config
+from sentry_setup import init_sentry
+
+init_sentry("xeanvi-worker")
 
 celery_app = Celery(
     'veteran_engine',
