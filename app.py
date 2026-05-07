@@ -182,6 +182,13 @@ def inject_template_flags():
     return {
         'meta_pixel_id': getattr(config, 'META_PIXEL_ID', ''),
         'launch_promo_active': bool(config.LAUNCH_PROMO_ENABLED and config.LAUNCH_PROMO_STRIPE_COUPON_ID),
+        'google_ads_conversion_labels': {
+            'signup': config.GOOGLE_ADS_CONVERSION_SIGNUP_LABEL,
+            'checkout': config.GOOGLE_ADS_CONVERSION_CHECKOUT_LABEL,
+            'purchase': config.GOOGLE_ADS_CONVERSION_PURCHASE_LABEL,
+            'contact_email': config.GOOGLE_ADS_CONVERSION_CONTACT_EMAIL_LABEL,
+            'contact_phone': config.GOOGLE_ADS_CONVERSION_CONTACT_PHONE_LABEL,
+        },
     }
 
 @login_manager.user_loader
