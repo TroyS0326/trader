@@ -72,19 +72,19 @@
     <section class="admin-card">
       <h3>Recovery Actions</h3>
       <form method="post" action="{{ url_for('admin_user_recovery_send_reset', user_id=user.id) }}">
-        {{ csrf_token() }}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="admin-btn" type="submit">Send password reset</button>
       </form>
       <form method="post" action="{{ url_for('admin_user_recovery_clear_onboarding', user_id=user.id) }}" class="admin-form-row">
-        {{ csrf_token() }}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="admin-btn warn" type="submit">Clear onboarding flags</button>
       </form>
       <form method="post" action="{{ url_for('admin_user_recovery_mark_onboarding_complete', user_id=user.id) }}" class="admin-form-row">
-        {{ csrf_token() }}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="admin-btn good" type="submit">Mark onboarding complete</button>
       </form>
       <form method="post" action="{{ url_for('admin_user_recovery_set_subscription_status', user_id=user.id) }}" class="admin-form-row">
-        {{ csrf_token() }}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <select name="subscription_status"><option>free</option><option>pro</option><option>canceled</option><option>past_due</option></select>
         <button class="admin-btn subtle" type="submit">Update local subscription status</button>
       </form>
