@@ -122,7 +122,9 @@
 </head>
 <body class="dash-body">
     {% include 'partials/meta_pixel.html' %}
+    {% with google_ads_id=(google_ads_id or '') %}
     {% include 'partials/google_ads_conversions.html' %}
+    {% endwith %}
 
 {% include 'nav.html' %}
     

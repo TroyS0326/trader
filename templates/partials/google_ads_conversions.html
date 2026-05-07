@@ -3,6 +3,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       // Google Ads conversion labels are configured through environment variables. Blank labels disable the event.
       const conversionLabels = {{ (google_ads_conversion_labels or {})|tojson }};
+      const googleAdsId = {{ (google_ads_id or '')|tojson }};
 
       function trackGoogleAdsConversion(el) {
         try {
@@ -16,12 +17,12 @@
           }
 
           const label = (conversionLabels[conversionKey] || '').trim();
-          if (!label) {
+          if (!googleAdsId || !label) {
             return;
           }
 
           const payload = {
-            send_to: 'AW-18144975964/' + label,
+            send_to: googleAdsId + '/' + label,
           };
 
           const valueRaw = (el.getAttribute('data-google-ads-value') || '').trim();
