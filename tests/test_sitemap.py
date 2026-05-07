@@ -29,5 +29,14 @@ def test_sitemap_uses_public_allowlist_only():
         '/playbook',
         '/broker-integration',
         '/transparency',
+        '/contact',
     ]:
         assert f'https://xeanvi.com{allowed}' in xml
+
+
+def test_contact_page_renders():
+    client = app_module.app.test_client()
+    response = client.get('/contact')
+
+    assert response.status_code == 200
+    assert 'Contact XeanVI' in response.get_data(as_text=True)
