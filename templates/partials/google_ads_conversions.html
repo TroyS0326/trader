@@ -1,0 +1,60 @@
+<script>
+  (function () {
+    document.addEventListener('DOMContentLoaded', function () {
+      // Google Ads conversion labels are configured through environment variables. Blank labels disable the event.
+      const conversionLabels = {{ (google_ads_conversion_labels or {})|tojson }};
+
+      function trackGoogleAdsConversion(el) {
+        try {
+          if (typeof window.gtag !== 'function' || !el) {
+            return;
+          }
+
+          const conversionKey = (el.getAttribute('data-google-ads-conversion') || '').trim();
+          if (!conversionKey) {
+            return;
+          }
+
+          const label = (conversionLabels[conversionKey] || '').trim();
+          if (!label) {
+            return;
+          }
+
+          const payload = {
+            send_to: 'AW-18144975964/' + label,
+          };
+
+          const valueRaw = (el.getAttribute('data-google-ads-value') || '').trim();
+          if (valueRaw) {
+            const parsedValue = Number(valueRaw);
+            if (!Number.isNaN(parsedValue) && Number.isFinite(parsedValue)) {
+              payload.value = parsedValue;
+            }
+          }
+
+          const currency = (el.getAttribute('data-google-ads-currency') || '').trim();
+          if (currency) {
+            payload.currency = currency;
+          }
+
+          window.gtag('event', 'conversion', payload);
+        } catch (err) {
+          // no-op
+        }
+      }
+
+      document.querySelectorAll('[data-google-ads-conversion]').forEach(function (el) {
+        if (el.tagName === 'FORM') {
+          el.addEventListener('submit', function () {
+            trackGoogleAdsConversion(el);
+          });
+          return;
+        }
+
+        el.addEventListener('click', function () {
+          trackGoogleAdsConversion(el);
+        });
+      });
+    });
+  })();
+</script>

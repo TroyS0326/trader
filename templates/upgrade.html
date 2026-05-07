@@ -161,6 +161,7 @@
 </head>
 <body class="dash-body">
     {% include 'partials/meta_pixel.html' %}
+    {% include 'partials/google_ads_conversions.html' %}
 
 {% include 'nav.html' %}
     
@@ -213,7 +214,7 @@
                     </ul>
                 </div>
 
-                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Monthly PRO","content_category":"Subscription","value":19.99,"currency":"USD"}|tojson }}'>
+                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Monthly PRO","content_category":"Subscription","value":19.99,"currency":"USD"}|tojson }}' data-google-ads-conversion="checkout" data-google-ads-value="19.99" data-google-ads-currency="USD">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="plan" value="monthly">
                     <button type="submit" class="checkout-btn primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Monthly PRO" }}</button>
@@ -239,7 +240,7 @@
                     </ul>
                 </div>
 
-                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Annual PRO","content_category":"Subscription","value":199.99,"currency":"USD"}|tojson }}'>
+                <form action="/api/create-checkout-session" method="POST" style="margin-top: 1rem;" data-meta-pixel-event="InitiateCheckout" data-meta-pixel-params='{{ {"content_name":"XeanVI Annual PRO","content_category":"Subscription","value":199.99,"currency":"USD"}|tojson }}' data-google-ads-conversion="checkout" data-google-ads-value="199.99" data-google-ads-currency="USD">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="plan" value="annual">
                     <button type="submit" class="checkout-btn secondary">Save With Annual PRO</button>

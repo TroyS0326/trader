@@ -53,6 +53,7 @@
 </head>
 <body>
     {% include 'partials/meta_pixel.html' %}
+    {% include 'partials/google_ads_conversions.html' %}
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
@@ -95,8 +96,8 @@
                 <h1>Contact XeanVI</h1>
                 <p>Need help with your account, billing, broker connection, paper trading setup, or platform access? Use the information below to reach XeanVI.</p>
                 <div class="contact-actions">
-                    <a class="contact-btn contact-btn-primary" href="mailto:admin@xeanvi.com" aria-label="Email support at admin@xeanvi.com">Email Support</a>
-                    <a class="contact-btn contact-btn-secondary" href="tel:+19415297990" aria-label="Call XeanVI at 941 529 7990">Call XeanVI</a>
+                    <a class="contact-btn contact-btn-primary" href="mailto:admin@xeanvi.com" data-google-ads-conversion="contact_email" aria-label="Email support at admin@xeanvi.com">Email Support</a>
+                    <a class="contact-btn contact-btn-secondary" href="tel:+19415297990" data-google-ads-conversion="contact_phone" aria-label="Call XeanVI at 941 529 7990">Call XeanVI</a>
                 </div>
                 <p class="contact-note">Support is generally handled during regular U.S. market hours.</p>
                 <div class="contact-badges" aria-label="Support categories">
@@ -113,12 +114,12 @@
             <div class="contact-grid">
                 <article class="contact-card">
                     <p class="contact-card-label">Email Support</p>
-                    <p class="contact-card-title"><a href="mailto:admin@xeanvi.com">admin@xeanvi.com</a></p>
+                    <p class="contact-card-title"><a href="mailto:admin@xeanvi.com" data-google-ads-conversion="contact_email">admin@xeanvi.com</a></p>
                     <p class="contact-card-text">Best for account, billing, technical, and privacy requests.</p>
                 </article>
                 <article class="contact-card">
                     <p class="contact-card-label">Phone</p>
-                    <p class="contact-card-title"><a href="tel:+19415297990">941 529 7990</a></p>
+                    <p class="contact-card-title"><a href="tel:+19415297990" data-google-ads-conversion="contact_phone">941 529 7990</a></p>
                     <p class="contact-card-text">Available during regular U.S. stock market business hours when possible.</p>
                 </article>
                 <article class="contact-card">
