@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+{% include 'partials/google_ads_tag.html' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>Contact XeanVI | Support, Billing & Broker Integration Help</title>
+    <meta name="description" content="Contact XeanVI for account support, billing questions, broker connection help, and general platform inquiries.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://xeanvi.com/contact">
+    <meta name="theme-color" content="#0f172a">
+    {% include 'partials/async_app_css.html' %}
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "XeanVI",
+      "url": "https://xeanvi.com",
+      "email": "admin@xeanvi.com",
+      "telephone": "+1-941-529-7990",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "2900 Acline RD",
+        "addressLocality": "Punta Gorda",
+        "addressRegion": "FL",
+        "postalCode": "33950",
+        "addressCountry": "US"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "admin@xeanvi.com",
+        "telephone": "+1-941-529-7990",
+        "areaServed": "US",
+        "availableLanguage": "English",
+        "hoursAvailable": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "opens": "09:30",
+          "closes": "16:00"
+        }
+      }
+    }
+    </script>
+</head>
+<body>
+    {% include 'partials/meta_pixel.html' %}
+
+    <nav class="xean-nav">
+        <div class="xean-nav-inner">
+            <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main);">
+                Xean<span style="color: var(--accent-blue);">VI</span>
+            </a>
+
+            <div class="xean-nav-links">
+    {% if current_user.is_authenticated %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/transparency">AI Logic</a>
+    {% else %}
+        <a href="/features">How it Works</a>
+        <a href="/playbook">Playbook</a>
+        <a href="/broker-integration">Broker Workflow</a>
+        <a href="/transparency">AI Logic</a>
+        <a href="/pricing">Pricing</a>
+    {% endif %}
+</div>
+
+            <div class="xean-nav-actions">
+                {% if current_user.is_authenticated %}
+                    <a href="/logout" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600; text-decoration: none; margin-right: 15px; transition: color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">Log Out</a>
+                    <a href="/settings" style="text-decoration: none;">
+                        <div class="nav-avatar" title="Account Settings">{{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}</div>
+                    </a>
+                {% else %}
+                    <a href="/login" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem; text-decoration: none;">Log In</a>
+                    <a href="/signup" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.95rem; border-radius: 8px; border: none;">Start Free</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="legal-wrap">
+        <h1>Contact XeanVI</h1>
+        <p>Use this page to contact XeanVI about account access, billing, subscriptions, broker connection issues, paper trading setup, platform support, or general business inquiries.</p>
+
+        <h2>Business Contact Information</h2>
+        <p><strong>Business Name:</strong> XeanVI</p>
+        <p><strong>Mailing Address:</strong> 2900 Acline RD, Punta Gorda, FL 33950</p>
+        <p><strong>Email:</strong> <a href="mailto:admin@xeanvi.com">admin@xeanvi.com</a></p>
+        <p><strong>Phone:</strong> <a href="tel:+19415297990">941 529 7990</a></p>
+
+        <h2>Support Topics</h2>
+        <ul>
+            <li>Account access and login help</li>
+            <li>Subscription and Stripe billing questions</li>
+            <li>Alpaca paper/live broker connection support</li>
+            <li>Playbook setup and paper trading onboarding</li>
+            <li>Technical website or platform issues</li>
+            <li>Legal, privacy, or terms questions</li>
+        </ul>
+
+        <h2>Important Trading Disclaimer</h2>
+        <p>XeanVI is a software platform and does not provide investment, financial, legal, or tax advice. XeanVI is not a broker-dealer, investment adviser, bank, custodian, or exchange. Trading involves risk, including possible loss of capital. Users are responsible for their own trading decisions, broker account settings, risk controls, and compliance with broker and market rules.</p>
+
+        <h2>Response Time</h2>
+        <p>We aim to review support and business inquiries as soon as reasonably possible. Response times may vary based on request type, account status, and support volume.</p>
+
+        <h2>Business Hours</h2>
+        <p>Business hours follow regular U.S. stock market hours: Monday through Friday, 9:30 AM to 4:00 PM Eastern Time, excluding market holidays. Support messages may still be received outside market hours, but responses are generally handled during market-open business hours.</p>
+
+        <h2>Related Legal and Platform Pages</h2>
+        <ul>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/broker-integration">Broker Workflow</a></li>
+            <li><a href="/pricing">Pricing</a></li>
+        </ul>
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>

@@ -5,7 +5,7 @@
         <loc>{{ url }}</loc>
         <lastmod>{{ lastmod }}</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>{% if 'Home' in url %}1.0{% else %}0.8{% endif %}</priority>
+        <priority>{% if url.endswith('/') %}1.0{% elif '/contact' in url %}0.7{% else %}0.8{% endif %}</priority>
     </url>
     {% endfor %}
 </urlset>

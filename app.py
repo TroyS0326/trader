@@ -1161,6 +1161,11 @@ def privacy():
     return render_template('privacy.html')
 
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+
 @app.route('/faq')
 def faq():
     return render_template('faq.html')
@@ -1210,6 +1215,7 @@ def sitemap_xml():
         '/faq',
         '/terms',
         '/privacy',
+        '/contact',
         '/blog',
     ]
 
