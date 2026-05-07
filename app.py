@@ -181,6 +181,7 @@ def _brief_error_text(text: str, max_len: int = 180) -> str:
 def inject_template_flags():
     return {
         'meta_pixel_id': getattr(config, 'META_PIXEL_ID', ''),
+        'google_ads_id': getattr(config, 'GOOGLE_ADS_ID', ''),
         'launch_promo_active': bool(config.LAUNCH_PROMO_ENABLED and config.LAUNCH_PROMO_STRIPE_COUPON_ID),
         'google_ads_conversion_labels': {
             'signup': config.GOOGLE_ADS_CONVERSION_SIGNUP_LABEL,
@@ -1824,7 +1825,7 @@ def stripe_webhook():
                     update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
                 track_user_event('checkout_completed', user=user, context={'subscription_id': subscription_id})
 
-        elif event_type == 'customer.subscription.updated':
+        elif event_type in {'customer.subscription.created', 'customer.subscription.updated'}:
             metadata_user_id = (obj.get('metadata') or {}).get('user_id')
             user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
             if user:
@@ -2874,8 +2875,8 @@ def alpaca_callback():
         response = requests.post(token_url, data=payload, timeout=15)
 
         if response.status_code != 200:
-            logger.error(f"Alpaca Rejection: {response.text}") #
-            flash(f"Alpaca rejected the exchange. Error: {response.text}", "error")
+            logger.error('Alpaca token exchange rejected with status=%s for user_id=%s', response.status_code, current_user.id)
+            flash('Alpaca rejected the token exchange. Please retry and confirm your broker OAuth app settings.', 'error')
             return redirect(url_for('settings'))
 
         data = response.json()
@@ -2914,10 +2915,11 @@ def alpaca_callback():
                     "error"
                 )
         else:
-            flash(f"OAuth Error: {data.get('error_description', 'Unknown error')}", "error")
-    except Exception as e:
-        logger.error(f"Token Exchange System Error: {str(e)}")
-        flash(f"System Error: {str(e)}", "error")
+            logger.warning('Alpaca OAuth callback missing access token for user_id=%s', current_user.id)
+            flash('Alpaca authorization did not return an access token. Please try again.', 'error')
+    except Exception:
+        logger.exception('Alpaca token exchange system error for user_id=%s', current_user.id)
+        flash('System error while finalizing Alpaca authorization. Please try again shortly.', 'error')
 
     return redirect(url_for('settings'))
 
