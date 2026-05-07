@@ -54,6 +54,9 @@ ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
 ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
 ALPACA_PAPER_BASE = 'https://paper-api.alpaca.markets'
 ALPACA_DATA_BASE = 'https://data.alpaca.markets'
+ALPACA_DATA_FEED = os.getenv('ALPACA_DATA_FEED', 'iex').strip().lower()
+if ALPACA_DATA_FEED not in {'iex', 'sip'}:
+    ALPACA_DATA_FEED = 'iex'
 FINNHUB_API_KEY = require_env('FINNHUB_API_KEY').strip()
 GEMINI_API_KEY = require_env('GEMINI_API_KEY').strip()
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
