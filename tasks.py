@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import redis
+import logging
 import requests
 from celery import Celery
 from celery.schedules import crontab
@@ -137,7 +138,7 @@ def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
                     target_2,
                 )
 
-        print(f'Dispatched {len(active_users)} parallel execution tasks for {symbol}!')
+        logger.info('Dispatched %s parallel execution tasks for %s', len(active_users), symbol)
 
 
 def morning_pre_processing():

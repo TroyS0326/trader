@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import os
 import logging
 from statistics import mean
 from typing import Any, Dict, List, Tuple, Optional
@@ -75,6 +76,17 @@ VETERAN_BLACKLIST = {
 
 class ScanError(Exception):
     pass
+
+
+
+
+def _scanner_verbose_debug_enabled() -> bool:
+    return str(os.getenv("SCANNER_VERBOSE_DEBUG", "0")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _scanner_debug(message: str, *args: Any) -> None:
+    if _scanner_verbose_debug_enabled():
+        logger.debug(message, *args)
 
 
 def resolve_data_feed(user: Optional[Any] = None) -> str:
@@ -1462,7 +1474,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     market_internals = get_market_internals_bias(feed=feed)
 
     ranked = []
-    print(f"\n--- DEBUG: STARTING SCAN LOOP FOR {len(symbols)} SYMBOLS ---")
+    logger.info("Starting scan loop for %s symbols", len(symbols))
     for symbol in symbols:
         if symbol == 'SPY':
             continue
@@ -1475,14 +1487,14 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         daily_close = safe_num(snapshot.get('dailyBar', {}).get('c'))
         current_price = ask or minute_close or daily_close
 
-        print(f"Evaluating {symbol}: Price=${current_price}, DailyBars={len(daily_bars)}, MinBars={len(minute_bars)}")
+        _scanner_debug("Evaluating %s: Price=$%s, DailyBars=%s, MinBars=%s", symbol, current_price, len(daily_bars), len(minute_bars))
 
         # FIX 2: Allow up to $500.00
         if current_price and current_price >= 500.0:
-            print(f" -> SKIP: {symbol} price too high.")
+            _scanner_debug("SKIP: %s price too high.", symbol)
             continue
         if not snapshot or not daily_bars or not minute_bars:
-            print(f" -> SKIP: {symbol} missing Alpaca data.")
+            _scanner_debug("SKIP: %s missing Alpaca data.", symbol)
             continue
 
         # We removed the silent exception so we can see exact crashes
@@ -1504,12 +1516,12 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
                 'rejection_reasons': classification.get('rejection_reasons') or [],
             })
             ranked.append(analysis)
-            print(f" -> SUCCESS: Analyzed {symbol}")
+            _scanner_debug("SUCCESS: Analyzed %s", symbol)
         except Exception as e:
-            print(f" -> CRASH on {symbol}: {e}")
+            logger.exception("Crash while analyzing symbol=%s", symbol)
             continue
 
-    print("--- DEBUG: SCAN LOOP FINISHED ---\n")
+    logger.info("Scan loop finished. analyzed_symbols=%s", len(ranked))
 
     if not ranked:
         raise ScanError('No tradeable candidates were found from the current market data.')
