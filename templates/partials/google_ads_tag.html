@@ -1,10 +1,10 @@
-<!-- Google Ads global site tag. Include once per public page head. -->
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18144975964"></script>
+{% if google_ads_id %}
+<!-- Google Ads global site tag. Include once per public page head when configured. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ google_ads_id|urlencode }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
-  gtag('config', 'AW-18144975964');
+  gtag('config', '{{ google_ads_id|e }}');
 </script>
+{% endif %}
