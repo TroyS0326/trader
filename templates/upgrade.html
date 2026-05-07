@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    {% include 'partials/google_ads_tag.html' %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
@@ -64,7 +65,23 @@
               "name": "Can I cancel my subscription at any time?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes, you can easily cancel your monthly or annual subscription at any time directly from your dashboard settings. There are no hidden cancellation fees or long-term lock-ins."
+                "text": "Yes. You can manage or cancel your subscription from your account dashboard where available. Cancellation stops future renewals, and your PRO access generally remains active until the end of the current paid billing period."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do you offer refunds?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Fees are generally non-refundable once a billing period begins, except where required by law or expressly approved by XeanVI in writing. Contact admin@xeanvi.com for billing questions."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Who processes payments?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Payments are processed by Stripe. XeanVI does not store full credit card numbers."
               }
             },
             {
@@ -77,10 +94,10 @@
             },
             {
               "@type": "Question",
-              "name": "Is my payment information secure?",
+              "name": "Is XeanVI financial advice?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Absolutely. All payments are processed through Stripe utilizing industry-standard 256-bit encryption. XeanVI does not store or have direct access to your credit card details."
+                "text": "No. XeanVI is software for rule-based trading workflows and does not provide investment, financial, legal, or tax advice. Trading involves risk, including possible loss of capital."
               }
             }
           ]
@@ -128,6 +145,14 @@
         .faq-item { background: var(--bg-card); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; }
         .faq-item h4 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-main); }
         .faq-item p { margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; }
+        .pricing-disclosure { max-width: 980px; margin: 0 auto 2rem; padding: 0 1.5rem; }
+        .pricing-disclosure h2 { text-align: center; margin-bottom: 1.25rem; font-size: 1.7rem; color: var(--text-main); }
+        .pricing-disclosure-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+        .pricing-disclosure-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.1rem; color: var(--text-muted); line-height: 1.6; font-size: 0.93rem; }
+        .pricing-disclosure-links { text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.92rem; }
+        .pricing-disclosure-links a { color: var(--accent-blue); }
+        .plan-fine-print { margin-top: 0.7rem; color: var(--text-muted); font-size: 0.82rem; line-height: 1.45; text-align: left; }
+        .pricing-support-note { color: var(--text-muted); font-size: 0.86rem; text-align: center; max-width: 900px; margin: 0 auto 2.5rem; line-height: 1.6; padding: 0 1.5rem; }
         
         .trust-banner { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 4rem; padding: 2rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
         
@@ -193,6 +218,7 @@
                     <input type="hidden" name="plan" value="monthly">
                     <button type="submit" class="checkout-btn primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Monthly PRO" }}</button>
                 </form>
+                <p class="plan-fine-print">Renews monthly at $19.99/month until canceled. If a launch promotion is active, promotional pricing applies only as displayed at checkout. Taxes may apply.</p>
             </section>
 
             <section class="pricing-card secondary-focus">
@@ -218,8 +244,19 @@
                     <input type="hidden" name="plan" value="annual">
                     <button type="submit" class="checkout-btn secondary">Save With Annual PRO</button>
                 </form>
+                <p class="plan-fine-print">Renews annually at $199.99/year until canceled. Taxes may apply.</p>
             </section>
         </div>
+
+        <section class="pricing-disclosure">
+            <h2>Billing, Renewal, and Cancellation</h2>
+            <div class="pricing-disclosure-grid">
+                <article class="pricing-disclosure-card">XeanVI PRO is a paid subscription service. Monthly PRO renews monthly until canceled. Annual PRO renews annually until canceled. Payments are processed securely by Stripe, and XeanVI does not store full credit card numbers.</article>
+                <article class="pricing-disclosure-card">Users may manage or cancel their subscription from their account dashboard where available. Cancellation stops future renewals, and PRO access generally remains available through the end of the paid billing period.</article>
+                <article class="pricing-disclosure-card">Fees are generally non-refundable once a billing period begins, except where required by law or expressly approved by XeanVI in writing. For billing help, contact <a href="mailto:admin@xeanvi.com">admin@xeanvi.com</a>.</article>
+            </div>
+            <p class="pricing-disclosure-links">Review our <a href="/terms">Terms</a>, <a href="/privacy">Privacy</a>, and <a href="/contact">Contact</a> pages before checkout.</p>
+        </section>
         
         <div class="trust-banner">
             <div style="display: flex; justify-content: center; align-items: center; gap: 3rem; flex-wrap: wrap; max-width: 800px; margin: 0 auto;">
@@ -229,7 +266,7 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-lock" style="font-size: 1.5rem; color: var(--success);"></i>
-                    <span style="text-align: left;"><strong>256-bit Encryption</strong><br>Powered by Stripe</span>
+                    <span style="text-align: left;"><strong>Stripe Checkout</strong><br>No full card storage by XeanVI</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-calendar-times" style="font-size: 1.5rem; color: var(--text-muted);"></i>
@@ -247,14 +284,26 @@
                 </article>
                 <article class="faq-item">
                     <h4>Can I cancel my subscription at any time?</h4>
-                    <p>Yes. You can easily manage or cancel your monthly or annual subscription at any time directly from your dashboard settings. There are no hidden cancellation fees, and your PRO access remains active until the end of your current billing period.</p>
+                    <p>Yes. You can manage or cancel your subscription from your account dashboard where available. Cancellation stops future renewals, and your PRO access generally remains active until the end of the current paid billing period.</p>
                 </article>
                 <article class="faq-item">
-                    <h4>Is my payment information secure?</h4>
-                    <p>Absolutely. All payments are processed through Stripe utilizing industry-standard 256-bit SSL encryption. XeanVI does not store, process, or have direct access to your credit card details.</p>
+                    <h4>Do you offer refunds?</h4>
+                    <p>Fees are generally non-refundable once a billing period begins, except where required by law or expressly approved by XeanVI in writing. Contact admin@xeanvi.com for billing questions.</p>
+                </article>
+                <article class="faq-item">
+                    <h4>Who processes payments?</h4>
+                    <p>Payments are processed by Stripe. XeanVI does not store full credit card numbers.</p>
+                </article>
+                <article class="faq-item">
+                    <h4>Is XeanVI financial advice?</h4>
+                    <p>No. XeanVI is software for rule-based trading workflows and does not provide investment, financial, legal, or tax advice. Trading involves risk, including possible loss of capital.</p>
                 </article>
             </div>
         </section>
+
+        <p class="pricing-support-note">
+            Billing, subscription, and account support: <a href="mailto:admin@xeanvi.com">admin@xeanvi.com</a>. Business hours generally follow regular U.S. stock market hours: Monday through Friday, 9:30 AM to 4:00 PM Eastern Time, excluding regular market holidays.
+        </p>
 
         <p class="disclaimer-text">
             XeanVI provides rule-based trading automation and supported broker connectivity via API. It does not provide financial advice, investment recommendations, or guaranteed results. Trading involves significant risk, including the possible loss of capital. Automation strictly follows user-defined parameters, and past performance or simulated paper trading results do not guarantee live market profitability.
