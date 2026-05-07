@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark"><head>
+{% include 'partials/google_ads_tag.html' %}
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ post.meta_title or post.title }}</title>
 <meta name="description" content="{{ post.meta_description or post.excerpt or '' }}">
