@@ -53,7 +53,9 @@
 </head>
 <body>
     {% include 'partials/meta_pixel.html' %}
+    {% with google_ads_id=(google_ads_id or '') %}
     {% include 'partials/google_ads_conversions.html' %}
+    {% endwith %}
 
     <nav class="xean-nav">
         <div class="xean-nav-inner">
