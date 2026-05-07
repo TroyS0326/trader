@@ -1193,10 +1193,6 @@ def contact():
     return render_template('contact.html')
 
 
-@app.route('/faq')
-def faq():
-    return render_template('faq.html')
-
 
 @app.route('/blog')
 def blog_index():
@@ -1239,7 +1235,6 @@ def sitemap_xml():
         '/broker-integration',
         '/transparency',
         '/signup',
-        '/faq',
         '/terms',
         '/privacy',
         '/contact',

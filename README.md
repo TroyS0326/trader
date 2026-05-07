@@ -516,7 +516,6 @@ The `/v1/oauth/callback` route exists as an alias for compatibility.
 /forgot-password          Password reset request
 /terms                    Terms
 /privacy                  Privacy
-/faq                      FAQ
 /sitemap.xml              XML sitemap
 /robots.txt               Robots file
 ```
