@@ -161,14 +161,34 @@ def _safe_float(value):
 
 
 def _fetch_snapshot(symbols):
-    response = requests.get(
-        f'{config.ALPACA_DATA_BASE}/v2/stocks/snapshots',
-        headers=ALPACA_HEADERS,
-        params={'symbols': ','.join(symbols), 'feed': 'iex'},
-        timeout=10,
-    )
-    response.raise_for_status()
-    return response.json()
+    symbols_param = ','.join(symbols)
+    feed = config.ALPACA_DATA_FEED
+    params = {'symbols': symbols_param, 'feed': feed}
+    try:
+        response = requests.get(
+            f'{config.ALPACA_DATA_BASE}/v2/stocks/snapshots',
+            headers=ALPACA_HEADERS,
+            params=params,
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.HTTPError as exc:
+        status_code = getattr(getattr(exc, 'response', None), 'status_code', None)
+        if feed == 'sip' and status_code in {400, 403}:
+            celery_app.log.get_default_logger().warning(
+                'SIP snapshot request failed with status=%s; retrying with IEX feed.',
+                status_code,
+            )
+            fallback_response = requests.get(
+                f'{config.ALPACA_DATA_BASE}/v2/stocks/snapshots',
+                headers=ALPACA_HEADERS,
+                params={'symbols': symbols_param, 'feed': 'iex'},
+                timeout=10,
+            )
+            fallback_response.raise_for_status()
+            return fallback_response.json()
+        raise
 
 
 def _extract_from_snapshot(snapshot):
@@ -183,15 +203,35 @@ def _extract_from_snapshot(snapshot):
     }
 
 
-def _fetch_latest_15m_bars(symbols):
-    response = requests.get(
-        f'{config.ALPACA_DATA_BASE}/v2/stocks/bars/latest',
-        headers=ALPACA_HEADERS,
-        params={'symbols': ','.join(symbols), 'timeframe': '15Min', 'feed': 'iex'},
-        timeout=10,
-    )
-    response.raise_for_status()
-    return response.json().get('bars') or {}
+def _fetch_latest_bars(symbols):
+    symbols_param = ','.join(symbols)
+    feed = config.ALPACA_DATA_FEED
+    params = {'symbols': symbols_param, 'feed': feed}
+    try:
+        response = requests.get(
+            f'{config.ALPACA_DATA_BASE}/v2/stocks/bars/latest',
+            headers=ALPACA_HEADERS,
+            params=params,
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json().get('bars') or {}
+    except requests.HTTPError as exc:
+        status_code = getattr(getattr(exc, 'response', None), 'status_code', None)
+        if feed == 'sip' and status_code in {400, 403}:
+            celery_app.log.get_default_logger().warning(
+                'SIP latest bars request failed with status=%s; retrying with IEX feed.',
+                status_code,
+            )
+            fallback_response = requests.get(
+                f'{config.ALPACA_DATA_BASE}/v2/stocks/bars/latest',
+                headers=ALPACA_HEADERS,
+                params={'symbols': symbols_param, 'feed': 'iex'},
+                timeout=10,
+            )
+            fallback_response.raise_for_status()
+            return fallback_response.json().get('bars') or {}
+        raise
 
 
 @celery_app.task
@@ -203,10 +243,22 @@ def update_market_regime_task():
     if not config.ALPACA_API_KEY or not config.ALPACA_API_SECRET:
         return 'Skipped: missing ALPACA_API_KEY/ALPACA_API_SECRET.'
 
-    snapshots = _fetch_snapshot(['SPY', 'VIXY'])
+    try:
+        snapshots = _fetch_snapshot(['SPY', 'VIXY'])
+    except Exception as exc:
+        return {'status': 'skipped', 'reason': f'snapshot fetch failed: {exc}'}
+
     spy_data = _extract_from_snapshot(snapshots.get('SPY') or {})
     vixy_data = _extract_from_snapshot(snapshots.get('VIXY') or {})
-    latest_bars = _fetch_latest_15m_bars(['SPY', 'VIXY'])
+    latest_bars = {}
+    if spy_data['last_price'] is None or vixy_data['last_price'] is None:
+        try:
+            latest_bars = _fetch_latest_bars(['SPY', 'VIXY'])
+        except Exception as exc:
+            celery_app.log.get_default_logger().warning(
+                'Latest bars fallback unavailable: %s',
+                exc,
+            )
 
     if spy_data['last_price'] is None:
         spy_data['last_price'] = _safe_float((latest_bars.get('SPY') or {}).get('c'))
@@ -218,6 +270,20 @@ def update_market_regime_task():
     spy_day_low = spy_data['day_low']
     vixy_price = vixy_data['last_price']
     vixy_prev_close = vixy_data['prev_close']
+
+    if (
+        spy_price is None
+        or spy_day_high is None
+        or spy_day_low is None
+        or vixy_price is None
+        or vixy_prev_close is None
+    ):
+        return {
+            'status': 'skipped',
+            'reason': 'insufficient market regime inputs after snapshot/latest-bars fallback',
+            'spy': spy_data,
+            'vixy': vixy_data,
+        }
 
     vixy_day_change_pct = None
     if vixy_price and vixy_prev_close and vixy_prev_close > 0:
@@ -238,6 +304,7 @@ def update_market_regime_task():
             db.session.add(latest)
 
         latest.regime_status = regime_status
+        # vix_value currently stores VIXY proxy price, not raw VIX index level.
         latest.vix_value = vixy_price
         latest.spy_trend = 'chop' if tight_chop else 'normal'
         latest.updated_at = datetime.utcnow()
