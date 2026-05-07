@@ -90,6 +90,12 @@ if config.IS_PRODUCTION:
             'https://connect.facebook.net',
             'https://unpkg.com',
             'https://cdnjs.cloudflare.com',
+            # Google Ads / Google tag destinations required for AW-18144975964.
+            'https://www.googletagmanager.com',
+            'https://www.googleadservices.com',
+            'https://www.google.com',
+            'https://pagead2.googlesyndication.com',
+            'https://googleads.g.doubleclick.net',
         ],
         'style-src': [
             "'self'",
@@ -108,16 +114,30 @@ if config.IS_PRODUCTION:
             'https://www.facebook.com',
             'https://connect.facebook.net',
             'https://api.stripe.com',
+            'https://www.googletagmanager.com',
+            'https://pagead2.googlesyndication.com',
+            'https://www.googleadservices.com',
+            'https://googleads.g.doubleclick.net',
+            'https://ad.doubleclick.net',
+            'https://www.google.com',
+            'https://google.com',
         ],
         'img-src': [
             "'self'",
             'data:',
             'https://www.facebook.com',
+            'https://www.googletagmanager.com',
+            'https://googleads.g.doubleclick.net',
+            'https://www.google.com',
+            'https://pagead2.googlesyndication.com',
+            'https://www.googleadservices.com',
+            'https://google.com',
         ],
         'frame-src': [
             "'self'",
             'https://js.stripe.com',
             'https://hooks.stripe.com',
+            'https://www.googletagmanager.com',
         ],
     }
     Talisman(app, content_security_policy=csp, force_https=True, strict_transport_security=True)
