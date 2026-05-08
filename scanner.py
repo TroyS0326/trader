@@ -818,6 +818,7 @@ def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premar
 def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str, Any]]:
     _ = price_change_pct
     ml_features = store.get_symbol_features(symbol)
+    ml_features = _apply_news_evidence_fallback_features(ml_features, news_catalyst)
     p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
     keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)
@@ -1620,6 +1621,58 @@ def _extract_news_keywords(headlines: List[str]) -> Dict[str, List[str]]:
     }
 
 
+
+
+def _clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, float(value)))
+
+
+def _apply_news_evidence_fallback_features(ml_features: Dict[str, Any], news_catalyst: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    news = news_catalyst or {}
+    headline_count = int(ml_features.get('headline_count', 0) or 0)
+    qualifies = bool(ml_features.get('qualifies_as_news_catalyst'))
+    positive_terms = ml_features.get('positive_terms') or []
+    negative_terms = ml_features.get('negative_terms') or []
+    if not isinstance(positive_terms, list):
+        positive_terms = []
+    if not isinstance(negative_terms, list):
+        negative_terms = []
+
+    prev_p = float(ml_features.get('p_success', 0.5) or 0.5)
+    prev_k = float(ml_features.get('keyword_boost', 0.0) or 0.0)
+    adjusted = False
+    source = 'feature_store'
+    reason = 'FEATURE_STORE_VALUES_USED'
+
+    if qualifies and headline_count > 0:
+        pos_count = len(positive_terms)
+        neg_count = len(negative_terms)
+        fallback_keyword_boost = _clamp((pos_count * 0.08) - (neg_count * 0.12), -0.25, 0.30)
+        applied_k = prev_k
+        applied_p = prev_p
+        if abs(prev_k) < 1e-9:
+            applied_k = fallback_keyword_boost
+            adjusted = True
+            reason = 'KEYWORD_BOOST_DERIVED_FROM_NEWS_TERMS'
+        if abs(prev_p - 0.5) < 1e-9:
+            applied_p = _clamp(0.50 + applied_k, 0.25, 0.80)
+            adjusted = True
+            reason = 'P_SUCCESS_DERIVED_FROM_NEWS_EVIDENCE' if applied_k != prev_k else 'P_SUCCESS_ADJUSTED_WITH_EXISTING_KEYWORD_BOOST'
+
+        ml_features['keyword_boost'] = float(applied_k)
+        ml_features['p_success'] = float(applied_p)
+        ml_features['catalyst_negative_terms'] = negative_terms
+        ml_features['catalyst_negative_risk'] = bool(neg_count > 0)
+        if neg_count > 0:
+            ml_features['catalyst_negative_risk_reason'] = 'NEGATIVE_CATALYST_TERMS_DETECTED'
+            if pos_count == 0:
+                reason = 'NEGATIVE_TERMS_ONLY_CAPPED_CATALYST_UPLIFT'
+        source = 'news_evidence_fallback' if adjusted and (abs(prev_k) < 1e-9 and abs(prev_p - 0.5) < 1e-9) else ('feature_store_plus_news_evidence' if adjusted else 'feature_store')
+    ml_features['catalyst_score_input_source'] = source
+    ml_features['catalyst_score_adjusted_from_news'] = bool(adjusted)
+    ml_features['catalyst_score_adjustment_reason'] = reason
+    ml_features['catalyst_score_before_news_adjustment'] = max(1, min(5, int(round(prev_p * 5))))
+    return ml_features
 def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict[str, Any]) -> Dict[str, Any]:
     headline_count = int(ml_features.get('headline_count', 0) or 0)
     recent_count = int(ml_features.get('recent_headline_count', headline_count) or 0)
@@ -1651,6 +1704,8 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
         missing_reason = 'NEWS_TOO_OLD'
     elif not keywords:
         missing_reason = 'NO_KEYWORDS_HIT'
+    elif qualifies and keywords:
+        missing_reason = 'CATALYST_EVIDENCE_PRESENT'
     elif not qualifies:
         missing_reason = 'NO_KEYWORDS_HIT'
 
@@ -1742,6 +1797,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
                 ml_features[key] = news_catalyst.get(key)
         if news_catalyst.get('news_lookup_status') in {'API_ERROR', 'INVALID_RESPONSE', 'FINNHUB_KEY_MISSING'}:
             ml_features['news_api_error'] = True
+    ml_features = _apply_news_evidence_fallback_features(ml_features, news_catalyst)
     p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
     keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)
@@ -1760,6 +1816,13 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         'reason': 'Loaded from pre-market feature store.',
     }
     catalyst_diag = _build_catalyst_diagnostics(ml_features, catalyst_meta)
+    catalyst_diag['catalyst_score_input_source'] = ml_features.get('catalyst_score_input_source', 'feature_store')
+    catalyst_diag['catalyst_score_adjusted_from_news'] = bool(ml_features.get('catalyst_score_adjusted_from_news'))
+    catalyst_diag['catalyst_score_before_news_adjustment'] = ml_features.get('catalyst_score_before_news_adjustment')
+    catalyst_diag['catalyst_score_after_news_adjustment'] = catalyst_score
+    catalyst_diag['catalyst_score_adjustment_reason'] = ml_features.get('catalyst_score_adjustment_reason')
+    catalyst_diag['catalyst_negative_risk'] = bool(ml_features.get('catalyst_negative_risk'))
+    catalyst_diag['catalyst_negative_risk_reason'] = ml_features.get('catalyst_negative_risk_reason')
     catalyst_baseline_reason = _baseline_catalyst_reason(catalyst_score, catalyst_diag)
     if catalyst_score == 2 and news_catalyst and catalyst_diag.get('catalyst_headline_count', 0) > 0 and float(keyword_boost or 0.0) <= 0:
         catalyst_baseline_reason = 'FRESH_BUT_NOT_STRONG' if catalyst_diag.get('catalyst_is_fresh') else 'BASELINE_ONLY_WEAK_NEWS'
@@ -2473,7 +2536,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         required_pmdv = d.get('required_premarket_dollar_volume')
         gap = (actual_pmdv - required_pmdv) if isinstance(actual_pmdv, (int, float)) and isinstance(required_pmdv, (int, float)) else None
         cat = d.get('catalyst') or {}
-        top_5.append({'symbol': r.get('symbol'), 'source': r.get('source', 'unknown'), 'sources': r.get('sources') or [r.get('source', 'unknown')], 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'liquidity_score_reason': (d.get('liquidity') or {}).get('liquidity_score_reason'), 'liquidity_failure_codes': (d.get('liquidity') or {}).get('liquidity_failure_codes') or [], 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'catalyst_source': cat.get('catalyst_source', 'unknown'), 'catalyst_strength_reason': cat.get('catalyst_strength_reason'), 'catalyst_score_baseline_reason': cat.get('catalyst_score_baseline_reason'), 'catalyst_missing_reason': cat.get('catalyst_missing_reason'), 'catalyst_confidence': cat.get('catalyst_confidence'), 'catalyst_headline_count': cat.get('catalyst_headline_count'), 'catalyst_latest_headline_age_minutes': cat.get('catalyst_latest_headline_age_minutes'), 'catalyst_keywords_hit': cat.get('catalyst_keywords_hit') or [], 'catalyst_score_components': cat.get('catalyst_score_components') or {}, 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'vwap_trend_aligned': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_aligned'), 'vwap_trend_reason': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_reason'), 'price_vs_vwap_pct': (d.get('vwap_hold_reclaim') or {}).get('price_vs_vwap_pct'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
+        top_5.append({'symbol': r.get('symbol'), 'source': r.get('source', 'unknown'), 'sources': r.get('sources') or [r.get('source', 'unknown')], 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'liquidity_score_reason': (d.get('liquidity') or {}).get('liquidity_score_reason'), 'liquidity_failure_codes': (d.get('liquidity') or {}).get('liquidity_failure_codes') or [], 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'catalyst_source': cat.get('catalyst_source', 'unknown'), 'catalyst_strength_reason': cat.get('catalyst_strength_reason'), 'catalyst_score_baseline_reason': cat.get('catalyst_score_baseline_reason'), 'catalyst_missing_reason': cat.get('catalyst_missing_reason'), 'catalyst_confidence': cat.get('catalyst_confidence'), 'catalyst_headline_count': cat.get('catalyst_headline_count'), 'catalyst_latest_headline_age_minutes': cat.get('catalyst_latest_headline_age_minutes'), 'catalyst_keywords_hit': cat.get('catalyst_keywords_hit') or [], 'catalyst_score_components': cat.get('catalyst_score_components') or {}, 'catalyst_score_input_source': cat.get('catalyst_score_input_source'), 'catalyst_score_adjusted_from_news': cat.get('catalyst_score_adjusted_from_news'), 'catalyst_score_before_news_adjustment': cat.get('catalyst_score_before_news_adjustment'), 'catalyst_score_after_news_adjustment': cat.get('catalyst_score_after_news_adjustment'), 'catalyst_score_adjustment_reason': cat.get('catalyst_score_adjustment_reason'), 'catalyst_score_not_upgraded_reason': cat.get('catalyst_score_not_upgraded_reason'), 'catalyst_positive_terms': cat.get('catalyst_positive_terms') or [], 'catalyst_negative_terms': cat.get('catalyst_negative_terms') or [], 'catalyst_negative_risk': cat.get('catalyst_negative_risk'), 'catalyst_negative_risk_reason': cat.get('catalyst_negative_risk_reason'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'vwap_trend_aligned': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_aligned'), 'vwap_trend_reason': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_reason'), 'price_vs_vwap_pct': (d.get('vwap_hold_reclaim') or {}).get('price_vs_vwap_pct'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
     premarket_unavailable_symbols = [r.get('symbol') for r in ranked if (r.get('details') or {}).get('premarket_data_available') is False]
     premarket_too_light_symbols = [r.get('symbol') for r in ranked if 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT' in ((r.get('details') or {}).get('skip_reason_codes') or [])]
     premarket_passed_count = len([r for r in ranked if bool((r.get('details') or {}).get('premarket_dollar_volume_passed'))])
@@ -2514,6 +2577,35 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         mr = cat.get('catalyst_missing_reason') or 'UNKNOWN'
         catalyst_baseline_reason_counts[br] = catalyst_baseline_reason_counts.get(br, 0) + 1
         catalyst_missing_reason_counts[mr] = catalyst_missing_reason_counts.get(mr, 0) + 1
+
+    news_symbols = [r for r in ranked if int((((r.get('details') or {}).get('catalyst') or {}).get('catalyst_headline_count') or 0)) > 0]
+    non_news_symbols = [r for r in ranked if r not in news_symbols]
+    news_adjusted = [r for r in news_symbols if bool((((r.get('details') or {}).get('catalyst') or {}).get('catalyst_score_adjusted_from_news')))]
+    positive_keyword_symbols = [r.get('symbol') for r in news_symbols if (((r.get('details') or {}).get('catalyst') or {}).get('catalyst_positive_terms'))]
+    negative_keyword_symbols = [r.get('symbol') for r in news_symbols if (((r.get('details') or {}).get('catalyst') or {}).get('catalyst_negative_terms'))]
+    still_baseline_after_news_symbols = [r.get('symbol') for r in news_symbols if int((r.get('scores') or {}).get('catalyst') or 0) == 2]
+    latest_news_evidence_scoring_summary = {
+        'qualified_news_symbols': [r.get('symbol') for r in news_symbols],
+        'news_symbols_adjusted_count': len(news_adjusted),
+        'news_symbols_not_adjusted_count': max(0, len(news_symbols) - len(news_adjusted)),
+        'positive_keyword_symbols': positive_keyword_symbols,
+        'negative_keyword_symbols': negative_keyword_symbols,
+        'still_baseline_after_news_symbols': still_baseline_after_news_symbols,
+        'avg_catalyst_score_for_news_symbols': round(sum(float((r.get('scores') or {}).get('catalyst') or 0) for r in news_symbols) / max(1, len(news_symbols)), 3),
+        'avg_catalyst_score_for_non_news_symbols': round(sum(float((r.get('scores') or {}).get('catalyst') or 0) for r in non_news_symbols) / max(1, len(non_news_symbols)), 3),
+    }
+    latest_news_catalyst_score_blockers = [
+        {
+            'symbol': r.get('symbol'),
+            'headline_count': ((r.get('details') or {}).get('catalyst') or {}).get('catalyst_headline_count'),
+            'keywords_hit': ((r.get('details') or {}).get('catalyst') or {}).get('catalyst_keywords_hit') or [],
+            'positive_terms': ((r.get('details') or {}).get('catalyst') or {}).get('catalyst_positive_terms') or [],
+            'negative_terms': ((r.get('details') or {}).get('catalyst') or {}).get('catalyst_negative_terms') or [],
+            'catalyst_score': (r.get('scores') or {}).get('catalyst'),
+            'catalyst_score_not_upgraded_reason': ((r.get('details') or {}).get('catalyst') or {}).get('catalyst_score_not_upgraded_reason'),
+        }
+        for r in news_symbols[:20]
+    ]
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
@@ -2631,6 +2723,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'latest_candidate_source_quality_summary': source_quality_summary,
             'latest_catalyst_baseline_reason_counts': catalyst_baseline_reason_counts,
             'latest_catalyst_missing_reason_counts': catalyst_missing_reason_counts,
+            'latest_news_evidence_scoring_summary': latest_news_evidence_scoring_summary,
+            'latest_news_catalyst_score_blockers': latest_news_catalyst_score_blockers,
             'latest_catalyst_feature_store_hit_count': len([r for r in ranked if bool(((r.get('details') or {}).get('catalyst') or {}).get('catalyst_feature_store_hit'))]),
             'latest_catalyst_feature_store_missing_count': len([r for r in ranked if not bool(((r.get('details') or {}).get('catalyst') or {}).get('catalyst_feature_store_hit'))]),
             'candidate_rejection_counts': {k: len([r for r in rejection_events if r.get('stage') == k]) for k in {r.get('stage') for r in rejection_events}},
