@@ -1,7 +1,11 @@
 import os
 from typing import Any, Dict, List, Optional
 
-from scanner import buy_window_open
+
+
+def buy_window_open() -> bool:
+    from scanner import buy_window_open as _buy_window_open
+    return _buy_window_open()
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -18,14 +22,36 @@ def decision_allowlist() -> set[str]:
 
 
 def onboarding_complete(user: Any) -> bool:
-    required_flags = (
-        "onboarding_completed",
-        "paper_bankroll_set",
-        "playbook_reviewed",
-        "transparency_reviewed",
-        "broker_connection_started",
-    )
-    return all(bool(getattr(user, flag, False)) for flag in required_flags)
+    return not onboarding_missing_codes(user, str(getattr(user, "trading_mode", "paper") or "paper").strip().lower(), True)
+
+
+def user_has_alpaca_paper_connection(user: Any) -> bool:
+    return bool(getattr(user, "alpaca_paper_account_id", None) or getattr(user, "alpaca_paper_access_token", None))
+
+
+def user_has_alpaca_live_connection(user: Any) -> bool:
+    return bool(getattr(user, "alpaca_live_account_id", None) or getattr(user, "alpaca_live_access_token", None))
+
+
+def onboarding_missing_codes(user: Any, trading_mode: str, require_onboarding_completed: bool) -> List[str]:
+    codes: List[str] = []
+    if not user_has_alpaca_paper_connection(user):
+        codes.append("PAPER_NOT_CONNECTED")
+    if trading_mode == "live" and not user_has_alpaca_live_connection(user):
+        codes.append("LIVE_NOT_CONNECTED")
+    if not bool(getattr(user, "paper_bankroll_set", False)):
+        codes.append("PAPER_BANKROLL_NOT_SET")
+    if (getattr(user, "paper_bankroll", 0) or 0) <= 0:
+        codes.append("PAPER_BANKROLL_ZERO")
+    if require_onboarding_completed and not bool(getattr(user, "onboarding_completed", False)):
+        codes.append("ONBOARDING_NOT_COMPLETED")
+    if hasattr(user, "playbook_reviewed") and not bool(getattr(user, "playbook_reviewed", False)):
+        codes.append("PLAYBOOK_NOT_REVIEWED")
+    if hasattr(user, "transparency_reviewed") and not bool(getattr(user, "transparency_reviewed", False)):
+        codes.append("TRANSPARENCY_NOT_REVIEWED")
+    if hasattr(user, "broker_connection_started") and not bool(getattr(user, "broker_connection_started", False)):
+        codes.append("BROKER_CONNECTION_NOT_STARTED")
+    return codes
 
 
 def extract_best_pick(scan_payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -80,10 +106,15 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         add("EXECUTION_DISABLED", "CENTRAL_SCANNER_EXECUTION_ENABLED is not enabled.")
     if str(getattr(user, "subscription_status", "free") or "free").strip().lower() != "pro":
         add("NON_PRO_USER", "User subscription is not PRO.")
-    if not getattr(user, "alpaca_access_token", None):
+    has_active_token = bool(getattr(user, "alpaca_access_token", None))
+    if trading_mode == "paper":
+        has_active_token = has_active_token or bool(getattr(user, "alpaca_paper_access_token", None))
+    elif trading_mode == "live":
+        has_active_token = has_active_token or bool(getattr(user, "alpaca_live_access_token", None))
+    if not has_active_token:
         add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for the selected trading mode.")
-    if require_onboarding and not onboarding_complete(user):
-        add("ONBOARDING_INCOMPLETE", "Required onboarding flags are incomplete.")
+    for code in onboarding_missing_codes(user, trading_mode, require_onboarding):
+        add(code, f"Missing requirement: {code}")
     if not window_open:
         add("BUY_WINDOW_CLOSED", "Current time is before NO_BUY_BEFORE_ET.")
     if decision not in decision_allowlist():
@@ -101,6 +132,7 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         "decision": decision,
         "symbol": (order_fields or {}).get("symbol") or str(best_pick.get("symbol") or "").upper().strip(),
         "qty": qty,
+        "order_fields": order_fields,
         "trading_mode": trading_mode,
         "execution_enabled": exec_enabled,
         "live_execution_enabled": live_exec_enabled,

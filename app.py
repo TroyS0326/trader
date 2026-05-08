@@ -3028,6 +3028,7 @@ def api_execution_readiness():
     diag = evaluate_execution_readiness(current_user, latest_payload)
     if no_recent_scan:
         diag['blocked_reasons'].append({'code': 'NO_RECENT_SCAN', 'message': 'No recent scan found for current user.'})
+        diag['execution_ready'] = False
 
     payload = {
         'execution_enabled': env_bool('CENTRAL_SCANNER_EXECUTION_ENABLED', False),

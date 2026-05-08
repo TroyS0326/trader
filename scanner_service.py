@@ -18,6 +18,8 @@ from models import User
 from scanner import run_scan
 from daily_report import run_daily_reports
 from execution_diagnostics import evaluate_execution_readiness
+import json
+from db import get_recent_scans
 
 logger = logging.getLogger("scanner_service")
 logging.basicConfig(
@@ -81,15 +83,16 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
     target_1 = best_pick.get("target_1", best_pick.get("target_1_price"))
     target_2 = best_pick.get("target_2", best_pick.get("target_2_price"))
 
+    order_fields = diag.get("order_fields") or {}
     execute_user_trade_task.delay(
         user.id,
         scan_payload.get("scan_id"),
-        diag["symbol"],
-        diag["qty"],
-        float(best_pick.get("entry_price")),
-        float(best_pick.get("stop_price")),
-        float(target_1),
-        float(target_2),
+        order_fields.get("symbol", diag["symbol"]),
+        order_fields.get("qty", diag["qty"]),
+        float(order_fields.get("entry_price", best_pick.get("entry_price"))),
+        float(order_fields.get("stop_price", best_pick.get("stop_price"))),
+        float(order_fields.get("target_1", target_1)),
+        float(order_fields.get("target_2", target_2)),
     )
     logger.warning("Execution task dispatched. ctx=%s", base_ctx)
 
@@ -193,8 +196,37 @@ def _build_scheduler() -> BackgroundScheduler:
 def diagnose_execution_readiness() -> None:
     with app.app_context():
         for user in _eligible_users():
-            diag = evaluate_execution_readiness(user, {})
-            logger.info("Execution readiness user_id=%s ready=%s reasons=%s mode=%s", user.id, diag["execution_ready"], [r["code"] for r in diag["blocked_reasons"]], diag["trading_mode"])
+            latest_payload = None
+            try:
+                raw = redis_client.get(f"latest_scan:{user.id}")
+                if raw:
+                    latest_payload = json.loads(raw)
+            except Exception:
+                latest_payload = None
+            if latest_payload is None:
+                scans = get_recent_scans() or []
+                for scan in scans:
+                    if int(scan.get("user_id") or 0) == int(user.id):
+                        latest_payload = scan
+                        break
+            if latest_payload is None:
+                latest_payload = {}
+
+            diag = evaluate_execution_readiness(user, latest_payload)
+            reasons = [r["code"] for r in diag["blocked_reasons"]]
+            if not latest_payload:
+                reasons.append("NO_RECENT_SCAN")
+            logger.info(
+                "Execution readiness user_id=%s mode=%s ready=%s reasons=%s symbol=%s decision=%s qty=%s scan_id=%s",
+                user.id,
+                diag["trading_mode"],
+                diag["execution_ready"],
+                reasons,
+                diag.get("symbol"),
+                diag.get("decision"),
+                diag.get("qty"),
+                latest_payload.get("scan_id"),
+            )
 
 
 def main() -> None:
