@@ -129,3 +129,29 @@ def test_setup_and_onboarding_readiness_independent_from_execution_gates(monkeyp
     assert d['live_onboarding_ready'] is False
     assert d['live_execution_ready'] is False
 
+
+
+def test_paper_setup_not_ready_with_live_only_token_in_live_mode(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: True)
+    d = evaluate_execution_readiness(_user(trading_mode='live', alpaca_access_token='active-live-token', alpaca_live_access_token='live-token', alpaca_paper_access_token=None), _payload())
+    assert d['paper_setup_ready'] is False
+    assert any(x['code'] == 'NO_ACTIVE_ALPACA_TOKEN' for x in d['paper_setup_blocked_reasons'])
+
+
+def test_live_onboarding_not_ready_with_paper_only_token_in_paper_mode(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
+    d = evaluate_execution_readiness(_user(trading_mode='paper', alpaca_access_token='active-paper-token', alpaca_paper_access_token='paper-token', alpaca_live_access_token=None), _payload())
+    assert d['live_onboarding_ready'] is False
+    assert any(x['code'] == 'NO_ACTIVE_ALPACA_TOKEN' for x in d['live_onboarding_blocked_reasons'])
+
+
+def test_paper_setup_ready_for_normal_paper_user(monkeypatch):
+    d = evaluate_execution_readiness(_user(trading_mode='paper'), _payload())
+    assert d['paper_setup_ready'] is True
+
+
+def test_live_onboarding_ready_for_normal_live_ready_user(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
+    d = evaluate_execution_readiness(_user(trading_mode='live', onboarding_completed=True, alpaca_live_access_token='live-token', alpaca_live_account_id='live-acct'), _payload())
+    assert d['live_onboarding_ready'] is True

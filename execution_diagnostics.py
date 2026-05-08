@@ -33,6 +33,20 @@ def user_has_alpaca_live_connection(user: Any) -> bool:
     return bool(getattr(user, "alpaca_live_account_id", None) or getattr(user, "alpaca_live_access_token", None))
 
 
+def has_paper_token(user: Any) -> bool:
+    return bool(
+        getattr(user, "alpaca_paper_access_token", None)
+        or (str(getattr(user, "trading_mode", "paper") or "paper").strip().lower() == "paper" and getattr(user, "alpaca_access_token", None))
+    )
+
+
+def has_live_token(user: Any) -> bool:
+    return bool(
+        getattr(user, "alpaca_live_access_token", None)
+        or (str(getattr(user, "trading_mode", "paper") or "paper").strip().lower() == "live" and getattr(user, "alpaca_access_token", None))
+    )
+
+
 def onboarding_missing_codes(user: Any, trading_mode: str, require_onboarding_completed: bool) -> List[str]:
     codes: List[str] = []
     if not user_has_alpaca_paper_connection(user):
@@ -91,11 +105,10 @@ def _evaluate_paper_setup_readiness(user: Any) -> Dict[str, Any]:
     def add(code: str, message: str):
         reasons.append({"code": code, "message": message})
 
-    has_paper_token = bool(getattr(user, "alpaca_paper_access_token", None))
-    has_active_token = bool(getattr(user, "alpaca_access_token", None))
+    has_paper_mode_token = has_paper_token(user)
     if not user_has_alpaca_paper_connection(user):
         add("PAPER_NOT_CONNECTED", "Missing requirement: PAPER_NOT_CONNECTED")
-    if not (has_active_token or has_paper_token):
+    if not has_paper_mode_token:
         add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for paper mode.")
     if not bool(getattr(user, "paper_bankroll_set", False)):
         add("PAPER_BANKROLL_NOT_SET", "Missing requirement: PAPER_BANKROLL_NOT_SET")
@@ -118,11 +131,10 @@ def _evaluate_live_onboarding_readiness(user: Any) -> Dict[str, Any]:
         reasons.append({"code": code, "message": message})
 
     require_onboarding = env_bool("CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING", True)
-    has_live_token = bool(getattr(user, "alpaca_live_access_token", None))
-    has_active_token = bool(getattr(user, "alpaca_access_token", None))
+    has_live_mode_token = has_live_token(user)
     if not user_has_alpaca_live_connection(user):
         add("LIVE_NOT_CONNECTED", "Missing requirement: LIVE_NOT_CONNECTED")
-    if not (has_active_token or has_live_token):
+    if not has_live_mode_token:
         add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for live mode.")
     if require_onboarding and not bool(getattr(user, "onboarding_completed", False)):
         add("LIVE_ONBOARDING_NOT_COMPLETED", "Missing requirement: LIVE_ONBOARDING_NOT_COMPLETED")
@@ -151,12 +163,8 @@ def _evaluate_mode_readiness(user: Any, scan_payload: Dict[str, Any], mode: str)
         add("EXECUTION_DISABLED", "CENTRAL_SCANNER_EXECUTION_ENABLED is not enabled.")
     if str(getattr(user, "subscription_status", "free") or "free").strip().lower() != "pro":
         add("NON_PRO_USER", "User subscription is not PRO.")
-    has_active_token = bool(getattr(user, "alpaca_access_token", None))
-    if trading_mode == "paper":
-        has_active_token = has_active_token or bool(getattr(user, "alpaca_paper_access_token", None))
-    elif trading_mode == "live":
-        has_active_token = has_active_token or bool(getattr(user, "alpaca_live_access_token", None))
-    if not has_active_token:
+    mode_has_token = has_paper_token(user) if trading_mode == "paper" else has_live_token(user)
+    if not mode_has_token:
         add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for the selected trading mode.")
 
     if trading_mode == "paper":
