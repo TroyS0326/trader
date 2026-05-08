@@ -818,7 +818,6 @@ def score_float_liquidity(profile: Dict[str, Any], asset: Dict[str, Any], premar
 def score_catalyst(symbol: str, price_change_pct: float) -> Tuple[int, Dict[str, Any]]:
     _ = price_change_pct
     ml_features = store.get_symbol_features(symbol)
-    ml_features = _apply_news_evidence_fallback_features(ml_features, news_catalyst)
     p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
     keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)

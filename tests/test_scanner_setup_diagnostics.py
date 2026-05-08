@@ -404,3 +404,68 @@ def test_catalyst_missing_reason_not_unknown_when_headlines_and_positive_terms()
     diag = scanner._build_catalyst_diagnostics(feats, {'model': 'm', 'reason': 'r'})
     assert diag['catalyst_missing_reason'] != 'UNKNOWN'
     assert diag['catalyst_missing_reason'] in {'CATALYST_EVIDENCE_PRESENT', None}
+
+
+def test_score_catalyst_backcompat_no_name_error(monkeypatch):
+    monkeypatch.setattr(scanner.store, 'get_symbol_features', lambda symbol: {
+        'p_success': 0.5,
+        'finbert_sentiment': 0.1,
+        'keyword_boost': 0.0,
+        'headline_count': 0,
+    })
+    score, meta = scanner.score_catalyst('AAPL', 5.0)
+    assert isinstance(score, int)
+    assert score == 2
+    assert meta['p_success'] == 0.5
+
+
+def test_analyze_symbol_news_fallback_adjusts_scoring_and_diagnostics(monkeypatch):
+    monkeypatch.setattr(scanner.store, 'get_symbol_features', lambda symbol: {
+        'p_success': 0.5,
+        'finbert_sentiment': 0.0,
+        'keyword_boost': 0.0,
+    })
+    monkeypatch.setattr(scanner, 'calc_atr', lambda *_: 0.3)
+    monkeypatch.setattr(scanner, 'calculate_premarket_dollar_volume', lambda *a, **k: {
+        'actual_premarket_dollar_volume': 5_000_000,
+        'premarket_data_unavailable_reason': None,
+    })
+    monkeypatch.setattr(scanner, 'calc_daily_volume_poc', lambda *a, **k: 10.0)
+    monkeypatch.setattr(scanner, 'calc_value_area', lambda *a, **k: {'vah': 11.0, 'val': 9.0})
+    monkeypatch.setattr(scanner, 'filter_bars_for_today_session', lambda bars: bars)
+    monkeypatch.setattr(scanner, 'detect_heavy_red_candle_trap', lambda *_: {'detected': False})
+    monkeypatch.setattr(scanner, 'has_positive_mtf_vwap_trend', lambda *_: True)
+    monkeypatch.setattr(scanner, 'get_vix_change', lambda: 0.0)
+    monkeypatch.setattr(scanner, 'score_float_liquidity', lambda *a, **k: (4, {'wide_spread_block': False, 'spread_pct': 0.001, 'spread': 0.01}))
+    monkeypatch.setattr(scanner, 'score_daily_alignment', lambda *a, **k: (3, {}))
+    monkeypatch.setattr(scanner, 'choose_sector_etf', lambda *a, **k: 'XLK')
+    monkeypatch.setattr(scanner, 'score_sector_sympathy', lambda *a, **k: (3, {}))
+    monkeypatch.setattr(scanner, 'score_open_relative_strength', lambda *a, **k: (3, {'edge': 1.0}))
+    monkeypatch.setattr(scanner, 'score_vwap_hold_reclaim', lambda *a, **k: (3, {'vwap_trend_aligned': True, 'vwap_trend_reason': 'ok', 'price_vs_vwap_pct': 0.5}))
+    monkeypatch.setattr(scanner, 'score_pullback_quality', lambda *a, **k: (3, {}))
+    monkeypatch.setattr(scanner, 'score_intraday_confirmations', lambda *a, **k: (3, {}))
+    monkeypatch.setattr(scanner, 'calc_relative_volume', lambda *a, **k: 2.0)
+    monkeypatch.setattr(scanner, 'build_setup_grade_diagnostics', lambda **k: {'setup_grade': 'A', 'failed_watch_requirements': [], 'failed_a_requirements': []})
+
+    snapshot = {'dailyBar': {'c': 10, 'v': 2_000_000}, 'prevDailyBar': {'c': 9, 'v': 2_000_000}, 'minuteBar': {'c': 10}}
+    quote = {'ap': 10.0, 'bp': 9.99}
+    bars = [{ 't': '2026-05-08T13:30:00+00:00', 'o': 9.5, 'h': 10.1, 'l': 9.4, 'c': 10.0, 'v': 1000 }]
+    news = {
+        'headline_count': 5,
+        'recent_headline_count': 5,
+        'latest_headline_age_minutes': 20,
+        'positive_terms': ['ai', 'earnings'],
+        'negative_terms': [],
+        'qualifies_as_news_catalyst': True,
+    }
+
+    out = scanner.analyze_symbol('RXT', snapshot, quote, bars, bars, 0.0, {}, {}, bars, {'XLK': {'prevDailyBar': {'c': 100}, 'dailyBar': {'c': 101}}}, {'longs_blocked': False}, news_catalyst=news)
+    cat = out['details']['catalyst']
+    assert cat['catalyst_score_input_source'] in {'news_evidence_fallback', 'feature_store_plus_news_evidence'}
+    assert cat['catalyst_score_adjusted_from_news'] is True
+    assert cat['catalyst_score_before_news_adjustment'] is not None
+    assert cat['catalyst_score_after_news_adjustment'] is not None
+    assert cat['catalyst_score_adjustment_reason']
+    assert cat['catalyst_missing_reason'] != 'UNKNOWN'
+    assert (cat['catalyst_score_components'] or {}).get('keyword_boost', 0) > 0
+    assert (cat['catalyst_score_components'] or {}).get('p_success', 0) > 0.5
