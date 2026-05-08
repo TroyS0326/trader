@@ -85,6 +85,51 @@ def extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return normalized
 
 
+def _evaluate_paper_setup_readiness(user: Any) -> Dict[str, Any]:
+    reasons: List[Dict[str, str]] = []
+
+    def add(code: str, message: str):
+        reasons.append({"code": code, "message": message})
+
+    has_paper_token = bool(getattr(user, "alpaca_paper_access_token", None))
+    has_active_token = bool(getattr(user, "alpaca_access_token", None))
+    if not user_has_alpaca_paper_connection(user):
+        add("PAPER_NOT_CONNECTED", "Missing requirement: PAPER_NOT_CONNECTED")
+    if not (has_active_token or has_paper_token):
+        add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for paper mode.")
+    if not bool(getattr(user, "paper_bankroll_set", False)):
+        add("PAPER_BANKROLL_NOT_SET", "Missing requirement: PAPER_BANKROLL_NOT_SET")
+    if (getattr(user, "paper_bankroll", 0) or 0) <= 0:
+        add("PAPER_BANKROLL_ZERO", "Missing requirement: PAPER_BANKROLL_ZERO")
+    if hasattr(user, "playbook_reviewed") and not bool(getattr(user, "playbook_reviewed", False)):
+        add("PLAYBOOK_NOT_REVIEWED", "Missing requirement: PLAYBOOK_NOT_REVIEWED")
+    if hasattr(user, "transparency_reviewed") and not bool(getattr(user, "transparency_reviewed", False)):
+        add("TRANSPARENCY_NOT_REVIEWED", "Missing requirement: TRANSPARENCY_NOT_REVIEWED")
+    if hasattr(user, "broker_connection_started") and not bool(getattr(user, "broker_connection_started", False)):
+        add("BROKER_CONNECTION_NOT_STARTED", "Missing requirement: BROKER_CONNECTION_NOT_STARTED")
+
+    return {"paper_setup_ready": not reasons, "paper_setup_blocked_reasons": reasons}
+
+
+def _evaluate_live_onboarding_readiness(user: Any) -> Dict[str, Any]:
+    reasons: List[Dict[str, str]] = []
+
+    def add(code: str, message: str):
+        reasons.append({"code": code, "message": message})
+
+    require_onboarding = env_bool("CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING", True)
+    has_live_token = bool(getattr(user, "alpaca_live_access_token", None))
+    has_active_token = bool(getattr(user, "alpaca_access_token", None))
+    if not user_has_alpaca_live_connection(user):
+        add("LIVE_NOT_CONNECTED", "Missing requirement: LIVE_NOT_CONNECTED")
+    if not (has_active_token or has_live_token):
+        add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for live mode.")
+    if require_onboarding and not bool(getattr(user, "onboarding_completed", False)):
+        add("LIVE_ONBOARDING_NOT_COMPLETED", "Missing requirement: LIVE_ONBOARDING_NOT_COMPLETED")
+
+    return {"live_onboarding_ready": not reasons, "live_onboarding_blocked_reasons": reasons}
+
+
 def _evaluate_mode_readiness(user: Any, scan_payload: Dict[str, Any], mode: str) -> Dict[str, Any]:
     reasons: List[Dict[str, str]] = []
 
@@ -165,6 +210,8 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
     paper_diag = _evaluate_mode_readiness(user, scan_payload, "paper")
     live_diag = _evaluate_mode_readiness(user, scan_payload, "live")
     active_diag = paper_diag if active_mode == "paper" else live_diag
+    paper_setup_diag = _evaluate_paper_setup_readiness(user)
+    live_onboarding_diag = _evaluate_live_onboarding_readiness(user)
     return {
         **active_diag,
         "active_mode": active_mode,
@@ -173,4 +220,8 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         "paper_blocked_reasons": paper_diag["blocked_reasons"],
         "live_blocked_reasons": live_diag["blocked_reasons"],
         "active_mode_blocked_reasons": active_diag["blocked_reasons"],
+        "paper_setup_ready": paper_setup_diag["paper_setup_ready"],
+        "paper_setup_blocked_reasons": paper_setup_diag["paper_setup_blocked_reasons"],
+        "live_onboarding_ready": live_onboarding_diag["live_onboarding_ready"],
+        "live_onboarding_blocked_reasons": live_onboarding_diag["live_onboarding_blocked_reasons"],
     }
