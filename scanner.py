@@ -656,7 +656,128 @@ def classify_setup_grade(total: int, catalyst_score: int, liquidity_score: int, 
     if total >= (A_SCORE - 4) and catalyst_score >= 4:
         return 'WATCH'
     return 'NO TRADE'
-    
+
+
+def build_setup_grade_diagnostics(
+    total: int,
+    catalyst_score: int,
+    liquidity_score: int,
+    sector_score: int,
+    confirm_score: int,
+    vwap_score: int,
+    pullback_score: int,
+    premarket_gap_pct: float,
+    premarket_notional: float,
+) -> Dict[str, Any]:
+    a_plus_gap_threshold = max(8.0, MIN_PREMARKET_GAP_PCT)
+    a_plus_notional_threshold = max(3_500_000, MIN_PREMARKET_DOLLAR_VOL)
+    a_gap_threshold = MIN_PREMARKET_GAP_PCT
+    a_notional_threshold = MIN_PREMARKET_DOLLAR_VOL
+    watch_total_threshold = A_SCORE - 4
+    watch_catalyst_threshold = 4
+
+    failed_a_plus = []
+    if total < A_PLUS_SCORE:
+        failed_a_plus.append('TOTAL_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if catalyst_score < 5:
+        failed_a_plus.append('CATALYST_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if liquidity_score < 4:
+        failed_a_plus.append('LIQUIDITY_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if sector_score < 4:
+        failed_a_plus.append('SECTOR_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if confirm_score < 4:
+        failed_a_plus.append('CONFIRM_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if vwap_score < 4:
+        failed_a_plus.append('VWAP_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if pullback_score < 4:
+        failed_a_plus.append('PULLBACK_SCORE_BELOW_A_PLUS_THRESHOLD')
+    if premarket_gap_pct < a_plus_gap_threshold:
+        failed_a_plus.append('PREMARKET_GAP_BELOW_A_PLUS_THRESHOLD')
+    if premarket_notional < a_plus_notional_threshold:
+        failed_a_plus.append('PREMARKET_DOLLAR_VOLUME_BELOW_A_PLUS_THRESHOLD')
+
+    failed_a = []
+    if total < A_SCORE:
+        failed_a.append('TOTAL_SCORE_BELOW_A_THRESHOLD')
+    if catalyst_score < 4:
+        failed_a.append('CATALYST_SCORE_BELOW_A_THRESHOLD')
+    if liquidity_score < 3:
+        failed_a.append('LIQUIDITY_SCORE_BELOW_A_THRESHOLD')
+    if sector_score < MIN_SECTOR_SYMPATHY_SCORE:
+        failed_a.append('SECTOR_SCORE_BELOW_A_THRESHOLD')
+    if confirm_score < 3:
+        failed_a.append('CONFIRM_SCORE_BELOW_A_THRESHOLD')
+    if vwap_score < 3:
+        failed_a.append('VWAP_SCORE_BELOW_A_THRESHOLD')
+    if premarket_gap_pct < a_gap_threshold:
+        failed_a.append('PREMARKET_GAP_BELOW_A_THRESHOLD')
+    if premarket_notional < a_notional_threshold:
+        failed_a.append('PREMARKET_DOLLAR_VOLUME_BELOW_A_THRESHOLD')
+
+    failed_watch = []
+    if total < watch_total_threshold:
+        failed_watch.append('TOTAL_SCORE_BELOW_WATCH_THRESHOLD')
+    if catalyst_score < watch_catalyst_threshold:
+        failed_watch.append('CATALYST_SCORE_BELOW_WATCH_THRESHOLD')
+
+    setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
+    setup_grade_reason = "Setup passed A/A+ scoring thresholds."
+    if setup_grade == 'NO TRADE':
+        setup_grade_reason = "Total score and component thresholds did not qualify for WATCH/A grades."
+    elif setup_grade == 'WATCH':
+        setup_grade_reason = "Setup met baseline quality checks but did not meet A/A+ execution thresholds."
+
+    nearest_grade = 'A+'
+    nearest_failed = failed_a_plus
+    if setup_grade != 'A+':
+        nearest_grade = 'A'
+        nearest_failed = failed_a
+    if setup_grade not in {'A+', 'A'}:
+        nearest_grade = 'WATCH'
+        nearest_failed = failed_watch
+
+    threshold_comparisons = {
+        'total_score': total,
+        'required_total_score_a_plus': A_PLUS_SCORE,
+        'required_total_score_a': A_SCORE,
+        'required_total_score_watch': watch_total_threshold,
+        'catalyst_score': catalyst_score,
+        'required_catalyst_score_a_plus': 5,
+        'required_catalyst_score_a': 4,
+        'required_catalyst_score_watch': watch_catalyst_threshold,
+        'liquidity_score': liquidity_score,
+        'required_liquidity_score_a_plus': 4,
+        'required_liquidity_score_a': 3,
+        'sector_score': sector_score,
+        'required_sector_score_a_plus': 4,
+        'required_sector_score_a': MIN_SECTOR_SYMPATHY_SCORE,
+        'confirm_score': confirm_score,
+        'required_confirm_score_a_plus': 4,
+        'required_confirm_score_a': 3,
+        'vwap_score': vwap_score,
+        'required_vwap_score_a_plus': 4,
+        'required_vwap_score_a': 3,
+        'pullback_score': pullback_score,
+        'required_pullback_score_a_plus': 4,
+        'premarket_gap_pct': round(premarket_gap_pct, 3),
+        'required_premarket_gap_pct_a_plus': a_plus_gap_threshold,
+        'required_premarket_gap_pct_a': a_gap_threshold,
+        'premarket_dollar_volume': round(premarket_notional, 2),
+        'required_premarket_dollar_volume_a_plus': round(a_plus_notional_threshold, 2),
+        'required_premarket_dollar_volume_a': round(a_notional_threshold, 2),
+    }
+
+    return {
+        'setup_grade': setup_grade,
+        'setup_grade_reason': setup_grade_reason,
+        'threshold_comparisons': threshold_comparisons,
+        'failed_a_plus_requirements': failed_a_plus,
+        'failed_a_requirements': failed_a,
+        'failed_watch_requirements': failed_watch,
+        'nearest_grade': nearest_grade,
+        'nearest_grade_failed_requirements': nearest_failed,
+    }
+
 def required_premarket_volume_for_gap(premarket_gap_pct: float) -> float:
     return HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL if premarket_gap_pct >= HIGH_GAP_THRESHOLD_PCT else MIN_PREMARKET_DOLLAR_VOL
 
@@ -1299,12 +1420,19 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     if vixy_change >= VIX_CIRCUIT_BREAKER_PCT:
         skip_reasons.append(f'VIX Volatility Spike: {vixy_change:.1f}% (Limit {VIX_CIRCUIT_BREAKER_PCT:g}%).')
 
-    setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
-    setup_grade_reason = "Setup passed A/A+ scoring thresholds."
-    if setup_grade == 'NO TRADE':
-        setup_grade_reason = "Total score and component thresholds did not qualify for WATCH/A grades."
-    elif setup_grade == 'WATCH':
-        setup_grade_reason = "Setup met baseline quality checks but did not meet A/A+ execution thresholds."
+    setup_diag = build_setup_grade_diagnostics(
+        total=total,
+        catalyst_score=catalyst_score,
+        liquidity_score=liquidity_score,
+        sector_score=sector_score,
+        confirm_score=confirm_score,
+        vwap_score=vwap_score,
+        pullback_score=pullback_score,
+        premarket_gap_pct=premarket_gap_pct,
+        premarket_notional=premarket_notional,
+    )
+    setup_grade = setup_diag['setup_grade']
+    setup_grade_reason = setup_diag['setup_grade_reason']
     decision = 'SKIP'
 
     # --- FIXED DECISION LOGIC ---
@@ -1340,14 +1468,17 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     elif decision == "SKIP":
         if setup_grade == "NO TRADE":
             decision_reason = "Setup grade is NO TRADE, so decision is non-executable SKIP."
+            skip_reasons.extend([r for r in setup_diag.get('failed_watch_requirements', []) if r not in skip_reasons])
+            skip_reasons.extend([r for r in setup_diag.get('failed_a_requirements', []) if r not in skip_reasons])
         else:
             decision_reason = "Setup failed non-negotiable execution gates and was downgraded to SKIP."
     elif decision == "WATCH":
         decision_reason = "Setup is watchlist-eligible but did not meet executable BUY NOW gates."
 
-    execution_eligibility_reason = "Decision is executable under current scan contract rules."
-    if decision not in {"BUY NOW"}:
-        execution_eligibility_reason = "Decision is non-executable under current scan contract rules."
+    executable_decisions = {'BUY NOW', 'A+', 'A'}
+    execution_eligibility_reason = "Decision is executable under current CENTRAL_SCANNER_EXECUTE_DECISIONS allowlist."
+    if decision not in executable_decisions:
+        execution_eligibility_reason = "Decision is non-executable under current CENTRAL_SCANNER_EXECUTE_DECISIONS allowlist."
 
     notes = []
     if or_stats.get('or_high'):
@@ -1439,24 +1570,12 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'setup_grade_reason': setup_grade_reason,
             'execution_eligibility_reason': execution_eligibility_reason,
             'min_score_to_execute': MIN_SCORE_TO_EXECUTE,
-            'threshold_comparisons': {
-                'catalyst_score': catalyst_score,
-                'required_catalyst_score': MIN_CATALYST_SCORE,
-                'liquidity_score': liquidity_score,
-                'required_liquidity_score': MIN_LIQUIDITY_SCORE,
-                'sector_score': sector_score,
-                'required_sector_score': MIN_SECTOR_SYMPATHY_SCORE,
-                'confirm_score': confirm_score,
-                'required_confirm_score': MIN_CONFIRM_SCORE,
-                'vwap_score': vwap_score,
-                'required_vwap_score': MIN_VWAP_SCORE,
-                'pullback_score': pullback_score,
-                'required_pullback_score': MIN_PULLBACK_SCORE,
-                'premarket_gap_pct': round(premarket_gap_pct, 3),
-                'required_premarket_gap_pct': MIN_PREMARKET_GAP_PCT,
-                'premarket_dollar_volume': round(premarket_notional, 2),
-                'required_premarket_dollar_volume': round(required_premarket_notional, 2),
-            },
+            'threshold_comparisons': setup_diag['threshold_comparisons'],
+            'failed_a_plus_requirements': setup_diag['failed_a_plus_requirements'],
+            'failed_a_requirements': setup_diag['failed_a_requirements'],
+            'failed_watch_requirements': setup_diag['failed_watch_requirements'],
+            'nearest_grade': setup_diag['nearest_grade'],
+            'nearest_grade_failed_requirements': setup_diag['nearest_grade_failed_requirements'],
             'sizing': sizing,
             'quick_notes': notes,
         },
