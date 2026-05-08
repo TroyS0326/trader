@@ -45,3 +45,29 @@ def test_execution_eligibility_reason_uses_allowlist_semantics():
     )
     assert executable["setup_grade"] in {"A", "A+"}
 
+
+def _mk_bar(ts, o=10,h=11,l=9,c=10,v=1000):
+    return {'t': ts, 'o': o, 'h': h, 'l': l, 'c': c, 'v': v}
+
+
+def test_opening_range_reason_no_opening_range_bars(monkeypatch):
+    monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
+    bars=[_mk_bar('2026-05-08T14:00:00+00:00'), _mk_bar('2026-05-08T14:50:00+00:00')]
+    stats=scanner.get_opening_range_stats(bars)
+    assert stats['opening_range_complete_reason']=='NO_OPENING_RANGE_BARS'
+
+
+def test_opening_range_reason_latest_before_end(monkeypatch):
+    monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
+    bars=[_mk_bar('2026-05-08T13:30:00+00:00'), _mk_bar('2026-05-08T13:35:00+00:00')]
+    stats=scanner.get_opening_range_stats(bars)
+    assert stats['opening_range_complete_reason']=='LATEST_BAR_BEFORE_OR_END'
+
+
+def test_opening_range_complete(monkeypatch):
+    monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
+    bars=[]
+    for i in range(20):
+        bars.append(_mk_bar(f'2026-05-08T13:{30+i:02d}:00+00:00'))
+    stats=scanner.get_opening_range_stats(bars)
+    assert stats['opening_range_complete'] is True

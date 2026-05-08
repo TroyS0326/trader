@@ -835,9 +835,25 @@ def score_daily_alignment(current_price: float, daily_bars: List[Dict[str, Any]]
 
 
 def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]:
+    now_dt = now_et()
     session_bars = filter_bars_for_today_session(minute_bars)
     or_bars = filter_bars_in_et_window(session_bars, OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
     now_bar_count = len(session_bars)
+    def _dt(bar):
+        return bar_dt_et(bar)
+    latest_bar_dt = _dt(session_bars[-1]) if session_bars else (_dt(minute_bars[-1]) if minute_bars else None)
+    earliest_dt = _dt(session_bars[0]) if session_bars else None
+    or_end_h, or_end_m = [int(x) for x in OPENING_RANGE_END_ET.split(':', 1)]
+    if not minute_bars:
+        reason = 'NO_INTRADAY_BARS'
+    elif not session_bars:
+        reason = 'NO_TODAY_SESSION_BARS'
+    elif not or_bars and latest_bar_dt and (latest_bar_dt.hour > or_end_h or (latest_bar_dt.hour == or_end_h and latest_bar_dt.minute >= or_end_m)):
+        reason = 'NO_OPENING_RANGE_BARS'
+    elif not or_bars:
+        reason = 'LATEST_BAR_BEFORE_OR_END'
+    else:
+        reason = 'COMPLETE'
     if not session_bars:
         return {
             'session_bars': 0,
@@ -852,6 +868,11 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
             'breakout_price': None,
             'breakout_confirmed': False,
             'bars_above_breakout': 0,
+            'scanner_now_et': now_dt.isoformat(), 'intraday_bar_count': len(minute_bars), 'today_session_bar_count': 0, 'opening_range_bar_count': 0,
+            'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': None,
+            'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
+            'opening_range_complete': False, 'opening_range_complete_reason': reason,
+            'breakout_confirmed_reason': 'OPENING_RANGE_NOT_COMPLETE',
         }
 
     if or_bars:
@@ -866,9 +887,10 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
         bars_above_breakout = sum(1 for b in recent if safe_num(b.get('c')) >= breakout_price)
         or_complete = buy_window_open() and len(or_bars) >= 20
         breakout_confirmed = or_complete and bars_above_breakout >= 2 and current_price >= breakout_price
+        complete = buy_window_open() and len(or_bars) >= 20
         return {
             'session_bars': now_bar_count,
-            'or_complete': or_complete,
+            'or_complete': complete,
             'or_high': round(or_high, 2),
             'or_low': round(or_low, 2),
             'or_open': round(or_open, 2),
@@ -879,6 +901,12 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
             'breakout_price': breakout_price,
             'breakout_confirmed': breakout_confirmed,
             'bars_above_breakout': bars_above_breakout,
+            'scanner_now_et': now_dt.isoformat(), 'intraday_bar_count': len(minute_bars), 'today_session_bar_count': len(session_bars), 'opening_range_bar_count': len(or_bars),
+            'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': earliest_dt.isoformat() if earliest_dt else None,
+            'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
+            'opening_range_complete': complete, 'opening_range_complete_reason': 'COMPLETE' if complete else 'LATEST_BAR_BEFORE_OR_END',
+            'breakout_threshold_price': breakout_price,
+            'breakout_confirmed_reason': 'BREAKOUT_CONFIRMED' if breakout_confirmed else 'BREAKOUT_NOT_CONFIRMED',
         }
 
     current_price = safe_num(session_bars[-1].get('c'))
@@ -895,6 +923,11 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
         'breakout_price': None,
         'breakout_confirmed': False,
         'bars_above_breakout': 0,
+        'scanner_now_et': now_dt.isoformat(), 'intraday_bar_count': len(minute_bars), 'today_session_bar_count': len(session_bars), 'opening_range_bar_count': 0,
+        'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': earliest_dt.isoformat() if earliest_dt else None,
+        'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
+        'opening_range_complete': False, 'opening_range_complete_reason': reason,
+        'breakout_confirmed_reason': 'OPENING_RANGE_NOT_COMPLETE',
     }
 
 
@@ -1565,6 +1598,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'vixy_change_pct_1h': round(vixy_change, 3),
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
+            'skip_reason_codes': skip_reason_codes,
             'skip_reason': skip_reasons[0] if skip_reasons else None,
             'decision_reason': decision_reason,
             'setup_grade_reason': setup_grade_reason,
@@ -1612,11 +1646,14 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     orb_symbols = get_refined_universe(user=user)
     momentum_symbols, rejected_candidates = get_momentum_breakout_universe(user=user) if MOMENTUM_BREAKOUT_MODE_ENABLED else ([], [])
     symbols = list(dict.fromkeys(orb_symbols + momentum_symbols))
+    candidate_count_raw = len(orb_symbols + momentum_symbols)
+    candidate_count_after_dedupe = len(symbols)
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
     quotes = get_latest_quotes(symbols, feed=feed)
     symbols = apply_user_symbol_filters(symbols, snapshots, quotes, user=user)
+    candidate_count_after_user_filters = len(symbols)
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
     snapshots = get_snapshots(symbols, feed=feed)
@@ -1636,6 +1673,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     market_internals = get_market_internals_bias(feed=feed)
 
     ranked = []
+    analyzed_symbols = []
     logger.info("Starting scan loop for %s symbols", len(symbols))
     for symbol in symbols:
         if symbol == 'SPY':
@@ -1678,6 +1716,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
                 'rejection_reasons': classification.get('rejection_reasons') or [],
             })
             ranked.append(analysis)
+            analyzed_symbols.append(symbol)
             _scanner_debug("SUCCESS: Analyzed %s", symbol)
         except Exception as e:
             logger.exception("Crash while analyzing symbol=%s", symbol)
@@ -1703,6 +1742,18 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         reverse=True,
     )
     best = ranked[0]
+    executable_candidates = [r for r in ranked if r.get('decision') in {'BUY NOW', 'A+', 'A'}]
+    watch_candidates = [r for r in ranked if r.get('decision') == 'WATCH']
+    skip_candidates = [r for r in ranked if r.get('decision') == 'SKIP']
+    best_pick_selection_reason = 'HIGHEST_RANKED_CANDIDATE'
+    starvation_flags = []
+    if executable_candidates and best.get('decision') == 'SKIP':
+        starvation_flags.append('BEST_PICK_IGNORED_EXECUTABLE_CANDIDATE')
+        best_pick_selection_reason = 'POTENTIAL_RANKING_BUG_SKIP_OVER_EXECUTABLE'
+    top_5 = []
+    for r in ranked[:5]:
+        d = r.get('details', {})
+        top_5.append({'symbol': r.get('symbol'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'premarket_dollar_volume': d.get('required_premarket_dollar_volume'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
@@ -1721,6 +1772,26 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         'chart_pack': chart_pack,
         'rejected_candidates': rejected_candidates,
         'debug_summary': {'total_symbols_scanned': len(symbols), 'total_symbols_accepted': len(ranked), 'total_symbols_rejected': len(rejected_candidates)},
+        'scan_diagnostics': {
+            'candidate_count_raw': candidate_count_raw,
+            'candidate_count_after_dedupe': candidate_count_after_dedupe,
+            'candidate_count_after_user_filters': candidate_count_after_user_filters,
+            'candidate_count_after_price_volume_filters': len(analyzed_symbols),
+            'candidate_symbols_sample': symbols[:20],
+            'analyzed_symbols': analyzed_symbols,
+            'watchlist_symbols': [x.get('symbol') for x in ranked[:WATCHLIST_SIZE]],
+            'best_pick_symbol': best.get('symbol'),
+            'best_pick_rank_method': 'grade->decision->catalyst->sector->total->rs->spread',
+            'top_5_candidates_by_score': top_5,
+            'executable_candidate_count': len(executable_candidates),
+            'watch_candidate_count': len(watch_candidates),
+            'skip_candidate_count': len(skip_candidates),
+            'best_executable_candidate_symbol': executable_candidates[0]['symbol'] if executable_candidates else None,
+            'best_watch_candidate_symbol': watch_candidates[0]['symbol'] if watch_candidates else None,
+            'best_skip_candidate_symbol': skip_candidates[0]['symbol'] if skip_candidates else None,
+            'best_pick_selection_reason': best_pick_selection_reason,
+            'scanner_starvation_flags': starvation_flags,
+        },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,
         'rules_applied': {
@@ -1788,3 +1859,37 @@ def get_momentum_breakout_universe(limit: Optional[int] = None, user: Optional[A
         else:
             rejected.append({'symbol': symbol, **base, 'rejection_reason': 'not_enough_momentum', 'rejection_reasons': ['not_enough_momentum']})
     return valid, rejected[:MOMENTUM_DEBUG_REJECTIONS_LIMIT]
+SKIP_REASON_CODE_MAP = {
+    'Catalyst not strong enough.': 'CATALYST_SCORE_BELOW_WATCH_THRESHOLD',
+    'Premarket gap is not strong enough for an A-grade setup.': 'PREMARKET_GAP_BELOW_A_THRESHOLD',
+    'Sector sympathy is too weak.': 'SECTOR_SYMPATHY_BELOW_THRESHOLD',
+    'Gemini flagged the headlines as non-tradeable noise or risk.': 'CATALYST_HARD_PASS',
+    'Spread is too wide.': 'SPREAD_TOO_WIDE',
+    'Price is below the daily volume POC.': 'PRICE_NOT_ABOVE_DAILY_POC',
+    'Hard skip: opening heavy red candle trap detected.': 'HEAVY_RED_CANDLE_TRAP',
+    '5-minute VWAP trend is not aligned.': 'VWAP_TREND_NOT_ALIGNED',
+    'Price is extended above the entry zone.': 'PRICE_EXTENDED_ABOVE_ENTRY_ZONE',
+    'Risk sizing says size is zero.': 'QTY_BELOW_ONE',
+    'Opening range is not complete.': 'OPENING_RANGE_NOT_COMPLETE',
+    'Opening-range breakout is not confirmed yet.': 'OPENING_RANGE_BREAKOUT_NOT_CONFIRMED',
+    'VWAP reclaim/hold is not strong enough.': 'VWAP_RECLAIM_NOT_STRONG_ENOUGH',
+}
+
+def normalize_skip_reason_code(reason: str) -> str:
+    text = str(reason or '').strip()
+    if not text:
+        return 'UNKNOWN'
+    if text in SKIP_REASON_CODE_MAP:
+        return SKIP_REASON_CODE_MAP[text]
+    if text.startswith('Premarket dollar volume is too light'):
+        return 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT'
+    if text.startswith('Price ($') and 'Value Area High' in text:
+        return 'PRICE_NOT_ABOVE_VALUE_AREA_HIGH'
+    if text.startswith('Float is too high'):
+        return 'FLOAT_TOO_HIGH'
+    if text.startswith('WAIT until after'):
+        return 'BUY_WINDOW_CLOSED'
+    if text.startswith('VIX Volatility Spike'):
+        return 'VIX_CIRCUIT_BREAKER'
+    return text.upper().replace(' ', '_').replace('-', '_').replace('.', '')
+    skip_reason_codes = [normalize_skip_reason_code(r) for r in skip_reasons]

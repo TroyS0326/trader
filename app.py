@@ -3125,6 +3125,7 @@ def api_scan():
         result["trading_mode"] = getattr(current_user, "trading_mode", "paper")
         result["subscription_status"] = getattr(current_user, "subscription_status", "free")
         result["scan_source"] = "dashboard_manual"
+        result["scan_attribution_version"] = 1
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
         if not current_user.first_scan_completed:

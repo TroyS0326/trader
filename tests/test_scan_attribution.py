@@ -45,6 +45,7 @@ def test_dashboard_scan_persists_user_attribution(monkeypatch):
     assert saved['trading_mode'] == 'paper'
     assert saved['subscription_status'] == 'pro'
     assert saved['scan_source'] == 'dashboard_manual'
+    assert saved['scan_attribution_version'] == 1
 
 
 def test_central_scanner_persists_user_attribution(monkeypatch):
@@ -75,3 +76,22 @@ def test_central_scanner_persists_user_attribution(monkeypatch):
     assert saved['trading_mode'] == 'paper'
     assert saved['subscription_status'] == 'pro'
     assert saved['scan_source'] == 'central_scanner'
+
+    assert saved['scan_attribution_version'] == 1
+
+
+def test_central_scan_attribution_version(monkeypatch):
+    user = SimpleNamespace(id=8, trading_mode='paper', subscription_status='pro')
+    saved = {}
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: [user])
+    monkeypatch.setattr(scanner_service, '_run_scan_for_user', lambda *_: {'best_pick': {'symbol': 'MSFT', 'decision': 'WATCH'}})
+    monkeypatch.setattr(scanner_service, 'validate_scan_payload_contract', lambda *_: {'has_best_pick': True, 'best_pick_key_used': 'best_pick', 'executable_payload_ready': False, 'missing_order_fields': [], 'decision': 'WATCH', 'qty_valid': True, 'payload_shape_notes': []})
+    monkeypatch.setattr(scanner_service, 'approve_scan_for_user', lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service, '_dispatch_execution_if_allowed', lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service, 'insert_scan', lambda payload: saved.update(payload) or 1)
+    class Ctx:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    monkeypatch.setattr(scanner_service.app, 'app_context', lambda: Ctx())
+    scanner_service.run_central_scan_cycle('x')
+    assert saved['scan_attribution_version'] == 1
