@@ -158,4 +158,4 @@ def test_run_scan_user_attribution_helper_sets_version():
     src = Path("scanner.py").read_text()
     assert "def apply_scan_attribution" in src
     assert "scan_attribution_version" in src
-    assert "return apply_scan_attribution(result, user=user, source='run_scan')" in src
+    assert "return _finalize_scan_result(result, user=user, source='run_scan')" in src

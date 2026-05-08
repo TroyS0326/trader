@@ -15,10 +15,11 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 from decision import regime_trade_decision, momentum_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
-from models import db, User, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
+from models import db, User, Scan, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
 from db import insert_scan
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
+from scanner_effectiveness import normalize_scan_record, _parse_dt
 
 from feature_store import store
 import dynamic_orb
@@ -440,7 +441,7 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
 def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
     if not symbols:
         logger.debug("Skipping get_snapshots() because symbols list is empty.")
-        return {}
+        result = {}
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/snapshots',
         params={'symbols': ','.join(symbols), 'feed': feed},
@@ -2526,6 +2527,11 @@ def persist_scan_result(result: Dict[str, Any], user: Optional[Any] = None, sour
     return response
 
 
+def _finalize_scan_result(result: Any, user: Optional[Any] = None, source: str = "run_scan") -> Dict[str, Any]:
+    payload = result if isinstance(result, dict) else {}
+    return apply_scan_attribution(payload, user=user, source=source)
+
+
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -3177,7 +3183,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
     }
-    return apply_scan_attribution(result, user=user, source='run_scan')
+    return _finalize_scan_result(result, user=user, source='run_scan')
 
 
 def debug_asset_metadata_lookup(
@@ -3332,18 +3338,30 @@ if __name__ == '__main__':
                 if user is None:
                     raise SystemExit(f"User not found: {args.user_id}")
             result = run_scan(user=user)
+            result = apply_scan_attribution(result, user=user, source='manual_terminal_user_scan')
             summary = {
                 'symbol': ((result.get('best_pick') or {}).get('symbol')),
                 'decision': (result.get('best_pick') or {}).get('decision'),
                 'setup_grade': (result.get('best_pick') or {}).get('setup_grade'),
                 'user_id': result.get('user_id'),
+                'report_user_id': result.get('report_user_id'),
+                'scan_source': result.get('scan_source'),
                 'scan_attribution_version': result.get('scan_attribution_version'),
                 'has_scan_diagnostics': bool(result.get('scan_diagnostics')),
                 'watch_candidate_count': (result.get('scan_diagnostics') or {}).get('watch_candidate_count'),
                 'executable_candidate_count': (result.get('scan_diagnostics') or {}).get('executable_candidate_count'),
             }
             if args.persist:
-                if user is not None and (int(result.get('user_id') or 0) != int(user.id) or int(result.get('scan_attribution_version') or 0) < 1):
+                if user is not None and (int(result.get('user_id') or 0) != int(user.id) or int(result.get('report_user_id') or 0) != int(user.id) or int(result.get('scan_attribution_version') or 0) < 1):
+                    print(json.dumps({
+                        'error': 'RUN_SCAN_ATTRIBUTION_FAILED',
+                        'requested_user_id': int(user.id),
+                        'result_user_id': result.get('user_id'),
+                        'result_report_user_id': result.get('report_user_id'),
+                        'result_scan_attribution_version': result.get('scan_attribution_version'),
+                        'scan_source': result.get('scan_source'),
+                        'has_scan_diagnostics': bool(result.get('scan_diagnostics')),
+                    }, indent=2, default=str))
                     print(f"ERROR: run_scan attribution failed for user_id={int(user.id)}; refusing to persist unattributed scan.")
                     raise SystemExit(1)
                 ps = persist_scan_result(result, user=user, source='manual_terminal_user_scan')
