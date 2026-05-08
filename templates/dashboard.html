@@ -584,6 +584,7 @@
                         </div>
                         <div id="scanner-no-reconnect-needed" class="scanner-muted" style="display:none;">Authorization healthy. No reconnect required.</div>
                         <div id="scanner-fallback-note" class="scanner-muted" style="display:none;">Metadata validation is using server fallback. Trading execution rules unchanged.</div>
+                        <div id="scanner-last-metadata-check" class="scanner-muted">Last scanner metadata check: unavailable.</div>
                     </div>
                 </div>
             </div>
@@ -1017,13 +1018,13 @@
             const fallbackCount = Number(report.latest_alpaca_asset_metadata_server_fallback_success_count || 0);
             document.getElementById('scanner-alpaca-fallback').textContent = fallbackCount > 0 ? `Server metadata fallback active (${fallbackCount})` : 'Normal metadata path';
             document.getElementById('scanner-oauth-health').textContent = humanizeReconnectReason((report.latest_alpaca_user_oauth_asset_metadata_health || 'unknown').toUpperCase().replace(/\s+/g, '_'));
-            const reconnectRequired = !!report.latest_alpaca_asset_metadata_reconnect_required;
+            const reconnectRequired = !!report.alpaca_user_action_reconnect_required;
             document.getElementById('scanner-reconnect-required').textContent = reconnectRequired ? 'Yes — Alpaca reconnect recommended.' : 'No';
-            const reconnectCode = report.latest_alpaca_asset_metadata_reconnect_reason || '';
+            const reconnectCode = report.alpaca_user_action_reconnect_reason || '';
             document.getElementById('scanner-reconnect-reason').textContent = humanizeReconnectReason(reconnectCode);
             document.getElementById('scanner-reconnect-reason-code').textContent = reconnectCode || '';
-            const reconnectEnv = (report.alpaca_reconnect_env || report.trading_mode || 'paper').toLowerCase() === 'live' ? 'live' : 'paper';
-            const reconnectUrl = report.alpaca_reconnect_url || `/alpaca/login?env=${reconnectEnv}`;
+            const reconnectEnv = (report.alpaca_user_action_reconnect_env || report.trading_mode || 'paper').toLowerCase() === 'live' ? 'live' : 'paper';
+            const reconnectUrl = report.alpaca_user_action_reconnect_url || `/alpaca/login?env=${reconnectEnv}`;
             const reconnectCtaEl = document.getElementById('scanner-alpaca-reconnect-card');
             const reconnectLinkEl = document.getElementById('scanner-alpaca-reconnect-link');
             const reconnectLabelEl = document.getElementById('scanner-reconnect-label');
@@ -1032,9 +1033,15 @@
             noReconnectEl.style.display = reconnectRequired ? 'none' : 'block';
             if (reconnectRequired) {
                 reconnectLinkEl.setAttribute('href', reconnectUrl);
-                reconnectLabelEl.textContent = report.alpaca_reconnect_label || (reconnectEnv === 'live' ? 'Reconnect Alpaca Live' : 'Reconnect Alpaca Paper');
+                reconnectLabelEl.textContent = report.alpaca_user_action_reconnect_label || (reconnectEnv === 'live' ? 'Reconnect Alpaca Live' : 'Reconnect Alpaca Paper');
             }
-            document.getElementById('scanner-fallback-note').style.display = fallbackCount > 0 ? 'block' : 'none';
+            const fallbackNotice = report.alpaca_metadata_fallback_notice || '';
+            const fallbackNoteEl = document.getElementById('scanner-fallback-note');
+            fallbackNoteEl.textContent = fallbackNotice || 'Metadata validation is using server fallback. Trading execution rules unchanged.';
+            fallbackNoteEl.style.display = (!reconnectRequired && !!fallbackNotice) ? 'block' : 'none';
+            const ageSecondsEl = document.getElementById('scanner-last-metadata-check');
+            const ageSecondsValue = Number(report.latest_enriched_scan_age_seconds);
+            ageSecondsEl.textContent = Number.isFinite(ageSecondsValue) ? `Last scanner metadata check: ${Math.max(0, Math.floor(ageSecondsValue / 60))} minutes ago.` : 'Last scanner metadata check: unavailable.';
             document.getElementById('scanner-degraded-mode').textContent = !!report.latest_asset_metadata_degraded_mode ? 'Active — Asset metadata degraded mode active. Reconnect/check credentials.' : 'Inactive';
         }
 

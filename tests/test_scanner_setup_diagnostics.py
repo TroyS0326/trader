@@ -496,8 +496,36 @@ def test_get_alpaca_asset_with_diagnostics_fallback_from_user_401_to_server_pape
     assert asset.get('symbol') == 'AAPL'
     assert diag['ok'] is True
     assert diag['used_fallback'] is True
-    assert [a['auth_source'] for a in diag['attempts']][:2] == ['user_oauth_token', 'server_paper_api_key']
+    assert [a['auth_source'] for a in diag['attempts']][:2] == ['user_oauth_token_paper', 'server_paper_api_key']
     assert diag['token_health'] == 'unauthorized'
+    assert diag['user_oauth_env_attempted'] == 'paper'
+    assert diag['active_trading_mode_for_metadata'] == 'paper'
+
+
+def test_get_alpaca_asset_with_diagnostics_prefers_live_token_in_live_mode(monkeypatch):
+    user = SimpleNamespace(
+        trading_mode='live',
+        alpaca_live_access_token='live-token',
+        alpaca_paper_access_token='paper-token',
+        alpaca_access_token='legacy-token',
+    )
+    calls = []
+
+    class Resp:
+        def __init__(self, code, text, payload):
+            self.status_code = code
+            self.text = text
+            self._payload = payload
+        def json(self):
+            return self._payload
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(headers or {})
+        return Resp(401, 'unauthorized', {})
+    monkeypatch.setattr(scanner.requests, 'get', fake_get)
+    _, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL', user=user)
+    assert diag['user_oauth_env_attempted'] == 'live'
+    auth = calls[0].get('Authorization') or ''
+    assert 'live-token' in auth
 
 
 def test_get_alpaca_asset_with_diagnostics_no_secret_leak(monkeypatch):

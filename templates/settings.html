@@ -202,17 +202,27 @@
                     {% endif %}
                 </div>
             </div>
-            {% if scanner_health.latest_alpaca_asset_metadata_reconnect_required %}
+            {% if scanner_health.alpaca_user_action_reconnect_required %}
             <div style="margin-top: 1rem; border: 1px solid rgba(251, 191, 36, 0.45); border-radius: 8px; padding: 1rem; background: rgba(251, 191, 36, 0.08);">
                 <div class="logic-label" style="color: var(--warning);">Reconnect required</div>
                 <div class="logic-desc" style="margin: 0.4rem 0 0.9rem;">
-                    User OAuth token appears unauthorized. Reconnect Alpaca to refresh authorization.
+                    Alpaca authorization for your active trading mode requires reconnection.
                 </div>
                 {% include 'partials/alpaca_authorization_disclosure.html' %}
-                {% set reconnect_env = scanner_health.alpaca_reconnect_env if scanner_health.alpaca_reconnect_env in ['paper', 'live'] else 'paper' %}
+                {% set reconnect_env = scanner_health.alpaca_user_action_reconnect_env if scanner_health.alpaca_user_action_reconnect_env in ['paper', 'live'] else 'paper' %}
                 <a href="{{ url_for('alpaca_login', env=reconnect_env) }}" class="btn btn-secondary" style="margin-top: 0.8rem;">
-                    <i class="fas fa-link"></i> Reconnect Alpaca {{ 'Live' if reconnect_env == 'live' else 'Paper' }}
+                    <i class="fas fa-link"></i> {{ scanner_health.alpaca_user_action_reconnect_label or ('Reconnect Alpaca Live' if reconnect_env == 'live' else 'Reconnect Alpaca Paper') }}
                 </a>
+            </div>
+            {% elif scanner_health.alpaca_metadata_fallback_notice %}
+            <div style="margin-top: 1rem; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 1rem; background: rgba(56, 189, 248, 0.08);">
+                <div class="logic-label" style="color: var(--accent-blue);">Metadata notice</div>
+                <div class="logic-desc" style="margin: 0.4rem 0 0;">{{ scanner_health.alpaca_metadata_fallback_notice }}</div>
+            </div>
+            {% endif %}
+            {% if scanner_health.latest_enriched_scan_age_seconds is not none %}
+            <div style="margin-top: 0.65rem; font-size: 0.82rem; color: var(--text-muted);">
+                Last scanner metadata check: {{ (scanner_health.latest_enriched_scan_age_seconds // 60)|int }} minutes ago.
             </div>
             {% endif %}
         </div>
