@@ -320,6 +320,21 @@ def test_normalize_skip_reason_code_mappings():
     assert scanner.normalize_skip_reason_code("Opening-range breakout is not confirmed yet.") == "OPENING_RANGE_BREAKOUT_NOT_CONFIRMED"
     assert scanner.normalize_skip_reason_code("Spread is too wide.") == "SPREAD_TOO_WIDE"
     assert scanner.normalize_skip_reason_code("Premarket dollar volume is too light for this setup right now.") == "PREMARKET_DOLLAR_VOLUME_TOO_LIGHT"
+    assert scanner.normalize_skip_reason_code("Premarket dollar volume unavailable from current data feed.") == "PREMARKET_DOLLAR_VOLUME_UNAVAILABLE"
+
+
+def test_scanner_effectiveness_exposes_premarket_volume_summary(monkeypatch):
+    row = {"id": 61, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({
+        "user_id": 9, "scan_attribution_version": 1,
+        "scan_diagnostics": {"latest_premarket_volume_summary": {"symbols_checked": 3, "available_count": 1, "unavailable_count": 2, "passed_count": 1, "failed_count": 0, "feed_used": "iex"}},
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP"}
+    })}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_premarket_volume_summary"]["symbols_checked"] == 3
 
 
 def test_analyze_symbol_assigns_skip_reason_codes_before_result_build():
