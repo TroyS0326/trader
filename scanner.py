@@ -834,6 +834,14 @@ def score_daily_alignment(current_price: float, daily_bars: List[Dict[str, Any]]
     return score, {'ma200': round(ma200, 2), 'breakout_20': round(breakout_20, 2), 'breakout_60': round(breakout_60, 2), 'blue_sky_proxy': blue_sky}
 
 
+def _opening_range_expected_bar_count() -> int:
+    start_h, start_m = parse_hhmm(OPENING_RANGE_START_ET)
+    end_h, end_m = parse_hhmm(OPENING_RANGE_END_ET)
+    start_total = start_h * 60 + start_m
+    end_total = end_h * 60 + end_m
+    return max(1, end_total - start_total)
+
+
 def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]:
     now_dt = now_et()
     session_bars = filter_bars_for_today_session(minute_bars)
@@ -844,6 +852,7 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
     latest_bar_dt = _dt(session_bars[-1]) if session_bars else (_dt(minute_bars[-1]) if minute_bars else None)
     earliest_dt = _dt(session_bars[0]) if session_bars else None
     or_end_h, or_end_m = [int(x) for x in OPENING_RANGE_END_ET.split(':', 1)]
+    expected_or_bars = _opening_range_expected_bar_count()
     if not minute_bars:
         reason = 'NO_INTRADAY_BARS'
     elif not session_bars:
@@ -872,6 +881,9 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
             'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': None,
             'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
             'opening_range_complete': False, 'opening_range_complete_reason': reason,
+            'expected_opening_range_bar_count': expected_or_bars,
+            'opening_range_bar_coverage_pct': 0.0,
+            'opening_range_latest_bar_after_end': bool(latest_bar_dt and (latest_bar_dt.hour > or_end_h or (latest_bar_dt.hour == or_end_h and latest_bar_dt.minute >= or_end_m))),
             'breakout_confirmed_reason': 'OPENING_RANGE_NOT_COMPLETE',
         }
 
@@ -885,9 +897,20 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
         breakout_price = round(or_high * (1 + OR_BREAKOUT_BUFFER_PCT), 2)
         recent = session_bars[-3:]
         bars_above_breakout = sum(1 for b in recent if safe_num(b.get('c')) >= breakout_price)
-        or_complete = buy_window_open() and len(or_bars) >= 20
-        breakout_confirmed = or_complete and bars_above_breakout >= 2 and current_price >= breakout_price
-        complete = buy_window_open() and len(or_bars) >= 20
+        latest_bar_after_or_end = bool(latest_bar_dt and (latest_bar_dt.hour > or_end_h or (latest_bar_dt.hour == or_end_h and latest_bar_dt.minute >= or_end_m)))
+        min_or_bars_with_tolerance = max(1, expected_or_bars - 1)
+        complete = bool(buy_window_open() and latest_bar_after_or_end and len(or_bars) >= min_or_bars_with_tolerance)
+        if not latest_bar_after_or_end:
+            complete_reason = 'LATEST_BAR_BEFORE_OR_END'
+        elif len(or_bars) == 0:
+            complete_reason = 'NO_OPENING_RANGE_BARS'
+        elif len(or_bars) >= expected_or_bars:
+            complete_reason = 'COMPLETE'
+        elif len(or_bars) >= min_or_bars_with_tolerance:
+            complete_reason = 'COMPLETE_WITH_MINOR_BAR_GAP'
+        else:
+            complete_reason = 'MISSING_TOO_MANY_OR_BARS'
+        breakout_confirmed = complete and bars_above_breakout >= 2 and current_price >= breakout_price
         return {
             'session_bars': now_bar_count,
             'or_complete': complete,
@@ -904,9 +927,12 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
             'scanner_now_et': now_dt.isoformat(), 'intraday_bar_count': len(minute_bars), 'today_session_bar_count': len(session_bars), 'opening_range_bar_count': len(or_bars),
             'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': earliest_dt.isoformat() if earliest_dt else None,
             'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
-            'opening_range_complete': complete, 'opening_range_complete_reason': 'COMPLETE' if complete else 'LATEST_BAR_BEFORE_OR_END',
+            'opening_range_complete': complete, 'opening_range_complete_reason': complete_reason,
             'breakout_threshold_price': breakout_price,
-            'breakout_confirmed_reason': 'BREAKOUT_CONFIRMED' if breakout_confirmed else 'BREAKOUT_NOT_CONFIRMED',
+            'expected_opening_range_bar_count': expected_or_bars,
+            'opening_range_bar_coverage_pct': round((len(or_bars) / expected_or_bars) * 100, 2) if expected_or_bars else 0.0,
+            'opening_range_latest_bar_after_end': latest_bar_after_or_end,
+            'breakout_confirmed_reason': 'BREAKOUT_CONFIRMED' if breakout_confirmed else ('OPENING_RANGE_NOT_COMPLETE' if not complete else 'BREAKOUT_NOT_CONFIRMED'),
         }
 
     current_price = safe_num(session_bars[-1].get('c'))
@@ -927,6 +953,9 @@ def get_opening_range_stats(minute_bars: List[Dict[str, Any]]) -> Dict[str, Any]
         'latest_bar_timestamp_et': latest_bar_dt.isoformat() if latest_bar_dt else None, 'earliest_today_bar_timestamp_et': earliest_dt.isoformat() if earliest_dt else None,
         'opening_range_start_et': OPENING_RANGE_START_ET, 'opening_range_end_et': OPENING_RANGE_END_ET,
         'opening_range_complete': False, 'opening_range_complete_reason': reason,
+        'expected_opening_range_bar_count': expected_or_bars,
+        'opening_range_bar_coverage_pct': 0.0,
+        'opening_range_latest_bar_after_end': bool(latest_bar_dt and (latest_bar_dt.hour > or_end_h or (latest_bar_dt.hour == or_end_h and latest_bar_dt.minute >= or_end_m))),
         'breakout_confirmed_reason': 'OPENING_RANGE_NOT_COMPLETE',
     }
 
@@ -1667,15 +1696,33 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     feed = resolve_data_feed(user)
     orb_symbols = get_refined_universe(user=user)
     momentum_symbols, rejected_candidates = get_momentum_breakout_universe(user=user) if MOMENTUM_BREAKOUT_MODE_ENABLED else ([], [])
+    source_candidate_counts = {
+        'alpaca_movers': len(get_alpaca_movers(SCAN_CANDIDATE_LIMIT)),
+        'premarket_leaders': len(get_premarket_leaders(SCAN_CANDIDATE_LIMIT)),
+        'unusual_relvol': len(get_unusual_relvol(SCAN_CANDIDATE_LIMIT)),
+        'news_catalyst': 0,
+        'fallback_market_candidates': 0,
+        'momentum_breakout': len(momentum_symbols),
+    }
     symbols = list(dict.fromkeys(orb_symbols + momentum_symbols))
     candidate_count_raw = len(orb_symbols + momentum_symbols)
     candidate_count_after_dedupe = len(symbols)
+    fallback_used = False
+    fallback_reason = None
+    fallback_candidates = []
+    if candidate_count_after_dedupe < 10:
+        fallback_candidates = [s for s in get_market_candidates(SCAN_CANDIDATE_LIMIT) if s != 'SPY']
+        source_candidate_counts['fallback_market_candidates'] = len(fallback_candidates)
+        fallback_used = True
+        fallback_reason = 'CANDIDATE_UNIVERSE_TOO_SMALL'
+        symbols = list(dict.fromkeys(symbols + fallback_candidates))
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
     quotes = get_latest_quotes(symbols, feed=feed)
     symbols = apply_user_symbol_filters(symbols, snapshots, quotes, user=user)
     candidate_count_after_user_filters = len(symbols)
+    symbols_removed_by_user_filters = [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols + fallback_candidates)) if s not in symbols]
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
     snapshots = get_snapshots(symbols, feed=feed)
@@ -1697,8 +1744,10 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     ranked = []
     analyzed_symbols = []
     logger.info("Starting scan loop for %s symbols", len(symbols))
+    rejection_events = []
     for symbol in symbols:
         if symbol == 'SPY':
+            rejection_events.append({'symbol': symbol, 'stage': 'context', 'reason': 'SPY_CONTEXT_ONLY', 'price': None, 'dollar_volume': None, 'spread_pct': None, 'source': 'context'})
             continue
         daily_bars = daily_bars_map.get(symbol, [])
         minute_bars = minute_bars_map.get(symbol, [])
@@ -1713,9 +1762,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
 
         # FIX 2: Allow up to $500.00
         if current_price and current_price >= 500.0:
+            rejection_events.append({'symbol': symbol, 'stage': 'price_volume_filter', 'reason': 'PRICE_TOO_HIGH', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
             _scanner_debug("SKIP: %s price too high.", symbol)
             continue
         if not snapshot or not daily_bars or not minute_bars:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_MARKET_DATA', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
             _scanner_debug("SKIP: %s missing Alpaca data.", symbol)
             continue
 
@@ -1741,6 +1792,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             analyzed_symbols.append(symbol)
             _scanner_debug("SUCCESS: Analyzed %s", symbol)
         except Exception as e:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis', 'reason': 'ANALYSIS_EXCEPTION', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
             logger.exception("Crash while analyzing symbol=%s", symbol)
             continue
 
@@ -1813,6 +1865,23 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'best_skip_candidate_symbol': skip_candidates[0]['symbol'] if skip_candidates else None,
             'best_pick_selection_reason': best_pick_selection_reason,
             'scanner_starvation_flags': starvation_flags,
+            'source_candidate_counts': source_candidate_counts,
+            'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20]},
+            'candidate_rejection_counts': {k: len([r for r in rejection_events if r.get('stage') == k]) for k in {r.get('stage') for r in rejection_events}},
+            'candidate_rejection_samples': rejection_events[:20],
+            'gatekeeper_rejection_counts': {},
+            'user_filter_rejection_counts': {'user_filters': len(symbols_removed_by_user_filters)},
+            'symbols_removed_by_price_volume_filter': [r.get('symbol') for r in rejection_events if r.get('stage') == 'price_volume_filter'],
+            'symbols_removed_by_strict_gatekeeper': [],
+            'symbols_removed_by_user_filters': symbols_removed_by_user_filters,
+            'final_candidate_count': len(symbols),
+            'fallback_used': fallback_used,
+            'fallback_reason': fallback_reason,
+            'fallback_candidate_count': len(fallback_candidates),
+            'candidate_count_after_fallback': len(symbols),
+            'latest_top_5_raw_candidates_before_filters': [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols))[:5]],
+            'latest_top_5_rejected_candidates': [r.get('symbol') for r in rejection_events[:5]],
+            'latest_final_analyzed_count': len(analyzed_symbols),
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,
