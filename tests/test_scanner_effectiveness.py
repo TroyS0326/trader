@@ -513,6 +513,8 @@ def test_report_exposes_asset_metadata_reconnect_fields(monkeypatch):
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["latest_alpaca_user_oauth_asset_metadata_health"] == "unauthorized"
     assert report["latest_alpaca_asset_metadata_reconnect_required"] is True
+    assert report["alpaca_reconnect_env"] == "paper"
+    assert report["alpaca_reconnect_url"] == "/alpaca/login?env=paper"
     assert "server metadata fallback" in report["recommended_next_action"]
 
 
@@ -603,7 +605,7 @@ def test_api_scanner_effectiveness_includes_dashboard_watch_and_health_fields(mo
     _set_redis(monkeypatch, {})
     _stub_user_query(monkeypatch)
     monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 1, "latest_watch_candidates": [{"symbol": "RXT", "status": "ACTIVE"}], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
-    user = SimpleNamespace(id=77, is_authenticated=True)
+    user = SimpleNamespace(id=77, is_authenticated=True, trading_mode='paper')
     monkeypatch.setattr(app_module, "current_user", user)
     monkeypatch.setattr(app_module, "is_admin_user", lambda: False)
     with app_module.app.test_request_context('/api/scanner/effectiveness?limit=50', method='GET'):
@@ -614,6 +616,8 @@ def test_api_scanner_effectiveness_includes_dashboard_watch_and_health_fields(mo
     assert payload["best_active_watch_symbol"] == "RXT"
     assert payload["latest_alpaca_user_oauth_asset_metadata_health"] == "unauthorized"
     assert payload["latest_alpaca_asset_metadata_reconnect_required"] is True
+    assert payload["alpaca_reconnect_url"] == "/alpaca/login?env=paper"
+    assert "token" not in str(payload).lower()
 
 
 def test_dashboard_template_renders_scanner_cards_and_watch_non_executable_copy():
@@ -621,6 +625,8 @@ def test_dashboard_template_renders_scanner_cards_and_watch_non_executable_copy(
     assert "id=\"scanner-current-decision\"" in src
     assert "id=\"scanner-active-watch\"" in src
     assert "id=\"scanner-oauth-health\"" in src
+    assert "id=\"scanner-reconnect-cta\"" in src
+    assert "Reconnect Alpaca Paper" in src
     assert "WATCH is non-executable" in src
     assert "PREMARKET_DOLLAR_VOLUME_TOO_LIGHT" in src
 
@@ -640,6 +646,8 @@ def test_dashboard_js_humanizes_reconnect_and_avoids_raw_decision_json_rendering
     assert "USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA" in src
     assert "SERVER_KEYS_SUCCEEDED" in src
     assert "HTTP_401" in src and "HTTP_403" in src
+    assert "reconnectCtaEl.style.display = reconnectRequired ? 'block' : 'none';" in src
+    assert "report.alpaca_reconnect_url" in src
     assert "function renderCountBadges(counts)" in src
     assert "JSON.stringify(summary.decision_counts" not in src
 
