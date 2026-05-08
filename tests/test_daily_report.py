@@ -162,3 +162,41 @@ def test_brevo_network_exception_is_failed_and_batch_safe(monkeypatch, tmp_path)
         assert out['failed'] == 1
         assert out['sent'] == 1
         assert DailyReportEmailLog.query.count() == 2
+
+
+def test_report_user_id_scan_is_used(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        db.create_all(); u = _user(); db.session.add(u); db.session.commit()
+        db.session.add(Scan(payload_json=f'{{"report_user_id": {u.id}, "rejections": ["report-id-reason"]}}', best_symbol='RID', best_score=77))
+        db.session.commit()
+        r = generate_daily_report(u, date.today())
+        assert 'report-id-reason' in r['trades_skipped_and_why']
+        assert 'RID' in r['best_setup_of_day']
+
+
+def test_mismatched_report_user_id_scan_is_ignored(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        db.create_all(); u = _user(); db.session.add(u); db.session.commit()
+        db.session.add(Scan(payload_json=f'{{"report_user_id": {u.id + 1}, "rejections": ["wrong-user"]}}', best_symbol='NOPE', best_score=91))
+        db.session.commit()
+        r = generate_daily_report(u, date.today())
+        assert 'wrong-user' not in r['trades_skipped_and_why']
+        assert 'NOPE' not in r['best_setup_of_day']
+
+
+def test_force_resend_failure_does_not_downgrade_existing_sent_log(monkeypatch, tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        db.create_all(); u = _user(); db.session.add(u); db.session.commit()
+        monkeypatch.setattr(config, 'BREVO_DAILY_REPORT_TEMPLATE_ID', '12')
+        monkeypatch.setattr(config, 'BREVO_API_KEY', 'k')
+        monkeypatch.setattr('daily_report.requests.post', lambda *a, **k: DummyResp(body={'messageId': 'm6'}))
+        out1 = run_daily_reports(date.today(), send=True, user_id=u.id)
+        monkeypatch.setattr('daily_report.requests.post', lambda *a, **k: DummyResp(status_code=500, text='err'))
+        out2 = run_daily_reports(date.today(), send=True, user_id=u.id, force=True)
+        log = DailyReportEmailLog.query.filter_by(user_id=u.id, report_date=date.today().isoformat()).first()
+        assert out1['sent'] == 1
+        assert out2['failed'] == 1
+        assert log.status == 'sent'
