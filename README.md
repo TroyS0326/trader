@@ -733,6 +733,18 @@ XeanVI is software for trading workflow automation, scanning, execution assistan
 - Flask app (`app.py`) serves dashboard and user actions.
 - `execution.py` listens to Alpaca order/fill updates.
 - `scanner_service.py` runs scheduled market scans.
+
+### Centralized scan + fan-out architecture
+
+The scanner service is intentionally split into three phases:
+
+1. `run_shared_market_scan()` performs the expensive market-wide scan **once per cycle**.
+2. `fan_out_scan_to_users(shared_scan, users)` iterates eligible users and calls `personalize_scan_for_user(user, shared_scan)` to stamp user-specific metadata while preserving the existing scan payload contract.
+3. Each personalized payload is validated, persisted (`insert_scan`), written to per-user Redis keys (`approved_scan:{user_id}` and `latest_scan:{user_id}` via `approve_scan_for_user`), and only then evaluated for execution readiness before dispatching Celery tasks.
+
+This design scales to 250 users because market discovery work happens once and only lightweight per-user personalization/readiness checks fan out.
+
+**Do not revert this separation** by calling the expensive scanner inside a per-user loop. Any future scanner changes must keep shared market scan logic separate from per-user personalization and execution gating.
 - By default, the service only scans and approves latest scan plans.
 - Automatic execution is disabled unless `CENTRAL_SCANNER_EXECUTION_ENABLED=1`.
 - Live execution also requires `CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED=1`.
