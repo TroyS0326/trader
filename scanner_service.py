@@ -21,6 +21,7 @@ from execution_diagnostics import evaluate_execution_readiness
 from scan_contract import validate_scan_payload_contract
 import json
 from db import get_recent_scans
+from scanner_effectiveness import build_scanner_effectiveness_report
 
 logger = logging.getLogger("scanner_service")
 logging.basicConfig(
@@ -267,8 +268,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--diagnose', action='store_true', help='Print execution readiness diagnostics without dispatching trades')
+    parser.add_argument('--effectiveness-report', action='store_true', help='Print scanner effectiveness report without dispatching trades')
+    parser.add_argument('--limit', type=int, default=50, help='Limit for effectiveness report scans')
     args = parser.parse_args()
     if args.diagnose:
         diagnose_execution_readiness()
+    elif args.effectiveness_report:
+        with app.app_context():
+            print(json.dumps(build_scanner_effectiveness_report(limit=max(1, args.limit)), indent=2, default=str))
     else:
         main()

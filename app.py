@@ -54,6 +54,7 @@ from blog_internal_links import suggest_internal_links
 from blog_human_quality import analyze_human_quality
 from blog_images import save_blog_featured_image
 from blog_image_seo import generate_image_alt_caption
+from scanner_effectiveness import build_scanner_effectiveness_report
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -3070,6 +3071,18 @@ def api_execution_readiness():
         'scan_contract': contract_diag,
     }
     return ok(payload)
+
+
+
+@app.route('/api/scanner-effectiveness')
+@login_required
+def api_scanner_effectiveness():
+    limit = parse_int(request.args.get('limit'), default=50, min_value=1, max_value=200)
+    target_user = current_user
+    if is_admin_user() and str(request.args.get('scope', 'user')).strip().lower() == 'all':
+        target_user = None
+    report = build_scanner_effectiveness_report(user=target_user, limit=limit)
+    return ok(report)
 
 
 @app.route('/api/runtime-health')
