@@ -598,6 +598,73 @@ def premarket_dollar_volume(minute_bars: List[Dict[str, Any]]) -> float:
     return total
 
 
+def calculate_premarket_dollar_volume(symbol: str, minute_bars: List[Dict[str, Any]], snapshot: Dict[str, Any], scanner_now_et: Optional[datetime] = None, required_premarket_dollar_volume: Optional[float] = None) -> Dict[str, Any]:
+    now_ref = scanner_now_et if isinstance(scanner_now_et, datetime) else now_et()
+    if now_ref.tzinfo is None:
+        now_ref = ET.localize(now_ref)
+    window_start = now_ref.replace(hour=4, minute=0, second=0, microsecond=0)
+    window_end = now_ref.replace(hour=9, minute=30, second=0, microsecond=0)
+    bars_in_window: List[Dict[str, Any]] = []
+    bad_timestamps = 0
+    for bar in minute_bars or []:
+        dt = bar_dt_et(bar)
+        if not dt:
+            bad_timestamps += 1
+            continue
+        if window_start <= dt < window_end:
+            bars_in_window.append(bar)
+
+    total_dollar_volume = 0.0
+    total_volume = 0.0
+    earliest_dt = None
+    latest_dt = None
+    for bar in bars_in_window:
+        dt = bar_dt_et(bar)
+        if not dt:
+            continue
+        earliest_dt = dt if earliest_dt is None else min(earliest_dt, dt)
+        latest_dt = dt if latest_dt is None else max(latest_dt, dt)
+        close_px = safe_num(bar.get('c'))
+        if close_px <= 0:
+            close_px = (safe_num(bar.get('o')) + safe_num(bar.get('h')) + safe_num(bar.get('l')) + safe_num(bar.get('c'))) / 4.0
+        vol = max(0.0, safe_num(bar.get('v')))
+        total_dollar_volume += (close_px * vol)
+        total_volume += vol
+
+    source = 'unavailable'
+    unavailable_reason = None
+    actual = round(total_dollar_volume, 2) if total_volume > 0 else None
+    if actual is not None:
+        source = 'minute_bars_extended_hours'
+    elif minute_bars:
+        unavailable_reason = 'NO_PREMARKET_BARS_IN_WINDOW' if bad_timestamps == 0 else 'BAD_BAR_TIMESTAMPS'
+    else:
+        unavailable_reason = 'NO_MINUTE_BARS'
+
+    feed_used = str((snapshot or {}).get('_feed_used') or '').lower().strip()
+    if actual is None and feed_used == 'iex':
+        unavailable_reason = 'FEED_DOES_NOT_INCLUDE_EXTENDED_HOURS'
+    passed = bool(actual is not None and required_premarket_dollar_volume is not None and actual >= required_premarket_dollar_volume)
+    gap = None if actual is None or required_premarket_dollar_volume is None else round(actual - required_premarket_dollar_volume, 2)
+    return {
+        'symbol': symbol,
+        'actual_premarket_dollar_volume': actual,
+        'premarket_bar_count': len(bars_in_window),
+        'premarket_volume': round(total_volume, 2),
+        'premarket_vwap_or_avg_price': round(total_dollar_volume / total_volume, 4) if total_volume > 0 else None,
+        'premarket_window_start_et': window_start.isoformat(),
+        'premarket_window_end_et': window_end.isoformat(),
+        'earliest_premarket_bar_et': earliest_dt.isoformat() if earliest_dt else None,
+        'latest_premarket_bar_et': latest_dt.isoformat() if latest_dt else None,
+        'premarket_data_available': actual is not None,
+        'premarket_data_source': source,
+        'premarket_data_unavailable_reason': unavailable_reason or 'UNKNOWN',
+        'required_premarket_dollar_volume': round(required_premarket_dollar_volume, 2) if required_premarket_dollar_volume is not None else None,
+        'premarket_dollar_volume_gap': gap,
+        'premarket_dollar_volume_passed': passed,
+    }
+
+
 def to_chart_bars(bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     out = []
     for b in bars:
@@ -1414,7 +1481,7 @@ def calculate_position_size(
     }
 
 
-def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any], feed_used: Optional[str] = None) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
     minute_bar = snapshot.get('minuteBar', {})
@@ -1426,9 +1493,13 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     day_volume = safe_num(daily_bar.get('v')) or safe_num(prev_daily.get('v'))
     price_change_pct = ((current_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
     atr = calc_atr(daily_bars)
-    premarket_notional = premarket_dollar_volume(minute_bars)
     premarket_gap_pct = price_change_pct
     required_premarket_notional = required_premarket_volume_for_gap(premarket_gap_pct)
+    snapshot = dict(snapshot or {})
+    if feed_used:
+        snapshot['_feed_used'] = feed_used
+    pmv_diag = calculate_premarket_dollar_volume(symbol, minute_bars, snapshot, required_premarket_dollar_volume=required_premarket_notional)
+    premarket_notional = safe_num(pmv_diag.get('actual_premarket_dollar_volume'))
     volume_poc = calc_daily_volume_poc(minute_bars, 0.01 if current_price >= 1 else 0.0001)
     va_metrics = calc_value_area(filter_bars_for_today_session(minute_bars), safe_num, VA_PERCENT)
     vah = safe_num(va_metrics.get('vah'))
@@ -1518,7 +1589,11 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append('Catalyst not strong enough.')
     if premarket_gap_pct < MIN_PREMARKET_GAP_PCT:
         skip_reasons.append('Premarket gap is not strong enough for an A-grade setup.')
-    if premarket_notional < required_premarket_notional:
+    if pmv_diag.get('actual_premarket_dollar_volume') is None:
+        skip_reasons.append('Premarket dollar volume unavailable from current data feed.')
+        if str(feed_used or '').lower() == 'iex':
+            skip_reasons.append('PREMARKET_DATA_UNAVAILABLE_CURRENT_FEED')
+    elif premarket_notional < required_premarket_notional:
         skip_reasons.append(f'Premarket dollar volume is too light for a {premarket_gap_pct:.1f}% gap (needs at least ${required_premarket_notional:,.0f}).')
     if sector_score < MIN_SECTOR_SYMPATHY_SCORE:
         skip_reasons.append('Sector sympathy is too weak.')
@@ -1718,7 +1793,17 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'mtf_vwap_aligned': mtf_aligned,
             'vix_circuit_breaker': vixy_change >= VIX_CIRCUIT_BREAKER_PCT,
             'vixy_change_pct_1h': round(vixy_change, 3),
+            'feed_used': feed_used,
+            'extended_hours_bars_available': bool(pmv_diag.get('premarket_data_available')),
+            'premarket_volume_confidence': 'high' if pmv_diag.get('premarket_data_available') else ('low' if (minute_bars or []) else 'unavailable'),
+            'premarket_dollar_volume': pmv_diag.get('actual_premarket_dollar_volume'),
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
+            'premarket_dollar_volume_gap': pmv_diag.get('premarket_dollar_volume_gap'),
+            'premarket_dollar_volume_passed': pmv_diag.get('premarket_dollar_volume_passed'),
+            'premarket_bar_count': pmv_diag.get('premarket_bar_count'),
+            'premarket_data_available': pmv_diag.get('premarket_data_available'),
+            'premarket_data_unavailable_reason': pmv_diag.get('premarket_data_unavailable_reason'),
+            'premarket_data_source': pmv_diag.get('premarket_data_source'),
             'skip_reasons': skip_reasons,
             'skip_reason_codes': skip_reason_codes,
             'skip_reason': skip_reasons[0] if skip_reasons else None,
@@ -2023,7 +2108,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         try:
             profile = get_company_profile(symbol)
             asset = get_alpaca_asset(symbol)
-            analysis = analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals)
+            analysis = analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals, feed_used=feed)
             classification = classify_asset(
                 symbol, asset, profile,
                 platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
@@ -2082,6 +2167,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         required_pmdv = d.get('required_premarket_dollar_volume')
         gap = (actual_pmdv - required_pmdv) if isinstance(actual_pmdv, (int, float)) and isinstance(required_pmdv, (int, float)) else None
         top_5.append({'symbol': r.get('symbol'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'skip_reason_codes': d.get('skip_reason_codes') or []})
+    premarket_unavailable_symbols = [r.get('symbol') for r in ranked if (r.get('details') or {}).get('premarket_data_available') is False]
+    premarket_too_light_symbols = [r.get('symbol') for r in ranked if 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT' in ((r.get('details') or {}).get('skip_reason_codes') or [])]
+    premarket_passed_count = len([r for r in ranked if bool((r.get('details') or {}).get('premarket_dollar_volume_passed'))])
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
@@ -2114,6 +2202,19 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'best_pick_symbol': best.get('symbol'),
             'best_pick_rank_method': 'grade->decision->catalyst->sector->total->rs->spread',
             'top_5_candidates_by_score': top_5,
+            'feed_used': feed,
+            'extended_hours_bars_available': bool(len(ranked) - len(premarket_unavailable_symbols)),
+            'latest_premarket_data_unavailable_count': len(premarket_unavailable_symbols),
+            'latest_premarket_volume_unavailable_symbols': premarket_unavailable_symbols[:20],
+            'latest_premarket_volume_too_light_symbols': premarket_too_light_symbols[:20],
+            'latest_premarket_volume_summary': {
+                'symbols_checked': len(ranked),
+                'available_count': len(ranked) - len(premarket_unavailable_symbols),
+                'unavailable_count': len(premarket_unavailable_symbols),
+                'passed_count': premarket_passed_count,
+                'failed_count': max(0, len(ranked) - len(premarket_unavailable_symbols) - premarket_passed_count),
+                'feed_used': feed,
+            },
             'executable_candidate_count': len(executable_candidates),
             'watch_candidate_count': len(watch_candidates),
             'skip_candidate_count': len(skip_candidates),
@@ -2266,6 +2367,7 @@ SKIP_REASON_CODE_MAP = {
     'Opening range is not complete.': 'OPENING_RANGE_NOT_COMPLETE',
     'Opening-range breakout is not confirmed yet.': 'OPENING_RANGE_BREAKOUT_NOT_CONFIRMED',
     'VWAP reclaim/hold is not strong enough.': 'VWAP_RECLAIM_NOT_STRONG_ENOUGH',
+    'Premarket dollar volume unavailable from current data feed.': 'PREMARKET_DOLLAR_VOLUME_UNAVAILABLE',
 }
 
 def normalize_skip_reason_code(reason: str) -> str:
