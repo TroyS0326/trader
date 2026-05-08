@@ -348,3 +348,14 @@ def test_fill_missing_bars_individually_exception_does_not_crash(monkeypatch):
     assert result["individual_bar_retry_attempted_count"] == 1
     assert result["individual_bar_retry_success_count"] == 0
     assert result["individual_bar_retry_failed_symbols"] == ["FAIL"]
+
+def test_central_scan_cycle_runs_watch_recheck(monkeypatch):
+    calls = {"recheck": 0}
+    monkeypatch.setattr(scanner_service, "_eligible_users", lambda: [])
+    monkeypatch.setattr(scanner_service, "run_shared_market_scan", lambda: {"best_pick": {}, "watchlist": []})
+    monkeypatch.setattr(scanner_service, "fan_out_scan_to_users", lambda shared_scan, users: None)
+    monkeypatch.setattr(scanner_service, "recheck_active_watch_candidates", lambda **kwargs: calls.__setitem__("recheck", calls["recheck"] + 1) or {"checked_count": 0})
+    monkeypatch.setattr(scanner_service.config, "WATCH_RECHECK_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "WATCH_RECHECK_LIMIT", 25)
+    scanner_service.run_central_scan_cycle("x")
+    assert calls["recheck"] == 1

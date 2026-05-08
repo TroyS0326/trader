@@ -729,6 +729,7 @@ def ensure_schema_migrations() -> None:
     BlogPublishingPlan.__table__.create(bind=db.engine, checkfirst=True)
     StripeEvent.__table__.create(bind=db.engine, checkfirst=True)
     DailyReportEmailLog.__table__.create(bind=db.engine, checkfirst=True)
+    WatchCandidate.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.begin() as conn:
         if 'user' in table_names:

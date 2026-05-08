@@ -415,3 +415,12 @@ def test_scanner_effectiveness_exposes_news_evidence_scoring_summary(monkeypatch
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["latest_news_evidence_scoring_summary"]["qualified_news_symbols"] == ["RXT"]
     assert report["latest_news_catalyst_score_blockers"][0]["symbol"] == "RXT"
+
+def test_scanner_effectiveness_exposes_watch_diagnostics(monkeypatch):
+    row = {"id": 1, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "s-1", "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 2, "latest_watch_candidates": [{"symbol": "RXT"}], "latest_watch_recheck_summary": None, "watch_promoted_count_today": 1, "watch_expired_count_today": 1, "watch_top_blockers": [["VWAP_TREND_NOT_ALIGNED", 2]], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
+    with scanner_effectiveness.app.app_context() if hasattr(scanner_effectiveness, 'app') else __import__('contextlib').nullcontext():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["active_watch_candidate_count"] == 2
+    assert report["best_active_watch_symbol"] == "RXT"

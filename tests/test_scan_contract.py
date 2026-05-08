@@ -71,3 +71,8 @@ def test_top_level_payload_shape_notes_are_preserved():
 def test_internal_payload_shape_notes_are_preserved_and_deduped():
     result = validate_scan_payload_contract({"payload_shape_notes": ["PAYLOAD_JSON_MISSING_OR_INVALID"], "_payload_shape_notes": ["PAYLOAD_JSON_MISSING_OR_INVALID", 123]})
     assert result["payload_shape_notes"].count("PAYLOAD_JSON_MISSING_OR_INVALID") == 1
+
+def test_watch_recheck_cli_flag_present_in_scanner_source():
+    import inspect, scanner
+    src = inspect.getsource(scanner)
+    assert '--recheck-watch' in src
