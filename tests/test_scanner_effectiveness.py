@@ -1,4 +1,6 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import json
 import sys
 from types import SimpleNamespace
 
@@ -12,36 +14,106 @@ import scanner_effectiveness
 import app as app_module
 
 
-def test_report_handles_no_scans(monkeypatch):
-    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [])
-    monkeypatch.setattr(scanner_effectiveness.User, "query", SimpleNamespace(get=lambda uid: None))
-    with app_module.app.app_context():
-        report = scanner_effectiveness.build_scanner_effectiveness_report(user=None, limit=5)
-    assert report["total_scans_analyzed"] == 0
+class FakeRedis:
+    def __init__(self, mapping):
+        self.mapping = mapping
+
+    def get(self, key):
+        return self.mapping.get(key)
 
 
-def test_report_counts_decisions_and_missing_fields(monkeypatch):
-    scans = [
-        {"id": 1, "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "BUY NOW", "qty": 2, "entry_price": 1, "stop_price": 0.9, "target_1": 1.1, "target_2": 1.2}},
-        {"id": 2, "user_id": 1, "best_pick": {"symbol": "MSFT", "decision": "WATCH", "qty": 1, "entry_price": 2}},
-    ]
-    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: scans)
+def _set_redis(monkeypatch, mapping):
+    monkeypatch.setattr(app_module, "redis_client", FakeRedis(mapping))
+
+
+def _stub_user_query(monkeypatch):
     monkeypatch.setattr(scanner_effectiveness.User, "query", SimpleNamespace(get=lambda uid: SimpleNamespace(id=uid, trading_mode='paper', subscription_status='pro', alpaca_paper_account_id='x', paper_bankroll_set=True, paper_bankroll=100, onboarding_completed=True, playbook_reviewed=True, transparency_reviewed=True, broker_connection_started=True)))
+
+
+def test_db_payload_json_best_pick_counted(monkeypatch):
+    row = {"id": 5, "created_at": datetime.now(timezone.utc).isoformat(), "best_symbol": "AAPL", "best_decision": "BUY NOW", "payload_json": json.dumps({"scan_id": "s-1", "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "BUY NOW", "qty": 2, "entry_price": 10, "stop_price": 9, "target_1": 11, "target_2": 12}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
     with app_module.app.app_context():
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["best_pick_present_count"] == 1
     assert report["decision_counts"]["BUY NOW"] == 1
-    assert report["decision_counts"]["WATCH"] == 1
-    assert report["executable_payload_ready_count"] == 1
-    assert report["missing_order_field_counts"]["stop_price"] >= 1
 
 
-def test_api_scanner_effectiveness_current_user(monkeypatch):
+def test_filter_uses_payload_user_id(monkeypatch):
+    row = {"id": 6, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "s-2", "user_id": 77, "best_pick": {"symbol": "MSFT", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(user=SimpleNamespace(id=77), limit=10)
+    assert report["total_scans_analyzed"] == 1
+
+
+def test_current_user_api_excludes_other_users(monkeypatch):
+    rows = [
+        {"id": 10, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "s-10", "user_id": 77, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})},
+        {"id": 11, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "s-11", "user_id": 88, "best_pick": {"symbol": "TSLA", "decision": "WATCH"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
     user = SimpleNamespace(id=77, is_authenticated=True)
     monkeypatch.setattr(app_module, "current_user", user)
     monkeypatch.setattr(app_module, "is_admin_user", lambda: False)
-    monkeypatch.setattr(app_module, "build_scanner_effectiveness_report", lambda user=None, limit=50: {"total_scans_analyzed": 1, "scans_by_user_count": {77: 1}})
     with app_module.app.test_request_context('/api/scanner-effectiveness?limit=20', method='GET'):
-        resp = app_module.api_scanner_effectiveness.__wrapped__()
-        payload = resp.get_json()
-        assert payload['ok'] is True
-        assert payload['data']['total_scans_analyzed'] == 1
+        payload = app_module.api_scanner_effectiveness.__wrapped__().get_json()["data"]
+    assert payload["total_scans_analyzed"] == 1
+    assert payload["scans_by_user_count"] == {"77": 1} or payload["scans_by_user_count"] == {77: 1}
+
+
+def test_invalid_payload_json_is_flagged_and_not_executable(monkeypatch):
+    row = {"id": 12, "created_at": datetime.now(timezone.utc).isoformat(), "best_symbol": "NVDA", "best_decision": "BUY NOW", "payload_json": "{"}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["executable_payload_ready_count"] == 0
+    sample = report["sample_recent_failures"][0]
+    assert "PAYLOAD_JSON_MISSING_OR_INVALID" in sample["payload_shape_notes"]
+
+
+def test_redis_and_db_both_included_and_deduped(monkeypatch):
+    row = {"id": 20, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "shared", "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {
+        "latest_scan:1": json.dumps({"scan_id": "shared", "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}}),
+        "latest_scan:2": json.dumps({"scan_id": "other", "user_id": 2, "best_pick": {"symbol": "TSLA", "decision": "WATCH"}}),
+    })
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["total_scans_analyzed"] == 2
+    assert report["source_counts"]["db_recent"] == 1
+    assert report["source_counts"]["redis_latest"] == 1
+
+
+def test_latest_age_uses_db_without_redis(monkeypatch):
+    created = (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat()
+    row = {"id": 30, "created_at": created, "payload_json": json.dumps({"user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert isinstance(report["latest_scan_age_seconds"], int)
+    assert report["latest_scan_age_seconds"] >= 0
+
+
+def test_safe_samples_do_not_expose_payload_json(monkeypatch):
+    row = {"id": 40, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}, "alpaca_live_access_token": "secret"})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    sample = report["sample_recent_failures"][0]
+    assert "payload_json" not in sample
+    assert "alpaca_live_access_token" not in sample

@@ -32,8 +32,11 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
     best = (scan.get("best_pick") or scan.get("best") or scan.get("top_pick") or {}) if isinstance(scan, dict) else {}
     normalized = contract.get("normalized_order_fields") or {}
     return {
+        "source": scan.get("_source"),
+        "db_scan_id": scan.get("db_scan_id"),
         "scan_id": scan.get("scan_id") or scan.get("id"),
         "user_id": scan.get("user_id"),
+        "created_at": scan.get("created_at") or scan.get("timestamp"),
         "symbol": normalized.get("symbol") or str(best.get("symbol") or "").upper().strip() or None,
         "decision": contract.get("decision") or None,
         "setup_grade": best.get("setup_grade"),
@@ -44,7 +47,46 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         "target_2": normalized.get("target_2"),
         "missing_order_fields": contract.get("missing_order_fields") or [],
         "payload_shape_notes": contract.get("payload_shape_notes") or [],
+        "blocked_reason_codes": [],
     }
+
+
+def normalize_scan_record(record: dict) -> dict:
+    row = dict(record or {})
+    payload: dict[str, Any] = {}
+    notes: list[str] = []
+    raw_payload = row.get("payload_json")
+    if isinstance(raw_payload, str) and raw_payload.strip():
+        try:
+            parsed = json.loads(raw_payload)
+            if isinstance(parsed, dict):
+                payload = dict(parsed)
+            else:
+                notes.append("PAYLOAD_JSON_MISSING_OR_INVALID")
+        except Exception:
+            notes.append("PAYLOAD_JSON_MISSING_OR_INVALID")
+    else:
+        notes.append("PAYLOAD_JSON_MISSING_OR_INVALID")
+
+    db_scan_id = row.get("id")
+    payload["db_scan_id"] = db_scan_id
+    payload["scan_id"] = payload.get("scan_id") or db_scan_id
+    payload["best_symbol_db"] = row.get("best_symbol")
+    payload["best_decision_db"] = row.get("best_decision")
+    if not payload.get("created_at") and not payload.get("timestamp") and row.get("created_at"):
+        payload["created_at"] = row.get("created_at")
+
+    payload_user_id = payload.get("user_id") or payload.get("report_user_id")
+    payload["user_id"] = int(payload_user_id) if str(payload_user_id or "").isdigit() else payload_user_id
+
+    if notes and not payload.get("best_pick") and row.get("best_symbol"):
+        payload["best_pick"] = {
+            "symbol": str(row.get("best_symbol") or "").upper().strip() or None,
+            "decision": row.get("best_decision"),
+        }
+    if notes:
+        payload["payload_shape_notes"] = sorted(set((payload.get("payload_shape_notes") or []) + notes))
+    return payload
 
 
 def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, dict]]:
@@ -55,7 +97,7 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
     if user is not None:
         user_ids = [int(user.id)]
     else:
-        user_ids = sorted({int(s.get("user_id") or 0) for s in scans if int(s.get("user_id") or 0) > 0})
+        user_ids = sorted({int((normalize_scan_record(s).get("user_id") or 0)) for s in scans if int((normalize_scan_record(s).get("user_id") or 0)) > 0})
 
     for uid in user_ids:
         try:
@@ -64,6 +106,7 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
                 payload = json.loads(raw)
                 if isinstance(payload, dict):
                     payload.setdefault("user_id", uid)
+                    payload.setdefault("scan_id", payload.get("scan_id"))
                     payload["_source"] = "redis_latest"
                     scans_by_user[uid] = payload
         except Exception:
@@ -71,20 +114,30 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
 
     filtered: list[dict] = []
     for scan in scans:
-        uid = int(scan.get("user_id") or 0)
+        normalized = normalize_scan_record(scan)
+        uid = int(normalized.get("user_id") or 0)
         if user is not None and uid != int(user.id):
             continue
-        scan = dict(scan)
-        scan["_source"] = "db_recent"
-        filtered.append(scan)
-    filtered.sort(key=lambda x: int(x.get("id") or x.get("scan_id") or 0), reverse=True)
+        if user is not None and uid <= 0:
+            continue
+        normalized["_source"] = "db_recent"
+        filtered.append(normalized)
+    filtered.sort(key=lambda x: int(x.get("db_scan_id") or x.get("scan_id") or 0), reverse=True)
     return filtered[:limit], scans_by_user
 
 
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
     scans, latest_by_user = _load_scans(user=user, limit=limit)
     all_scans = list(scans)
-    all_scans.extend(v for v in latest_by_user.values() if not any(int(s.get("user_id") or 0) == int(v.get("user_id") or 0) for s in scans))
+    seen: set[tuple[Any, Any]] = set()
+    for s in all_scans:
+        seen.add((s.get("scan_id") or s.get("db_scan_id"), s.get("user_id")))
+    for v in latest_by_user.values():
+        key = (v.get("scan_id") or v.get("db_scan_id"), v.get("user_id"))
+        if key in seen:
+            continue
+        all_scans.append(v)
+        seen.add(key)
 
     decision_counts: Counter = Counter()
     missing_order_field_counts: Counter = Counter()
@@ -98,12 +151,14 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     best_pick_present_count = 0
     executable_payload_ready_count = 0
     scans_by_user_count: dict[int, int] = defaultdict(int)
+    source_counts: Counter = Counter()
     failures: list[dict] = []
     executable_samples: list[dict] = []
     rejection_reasons: Counter = Counter()
 
     for scan in all_scans:
         uid = int(scan.get("user_id") or 0)
+        source_counts[str(scan.get("_source") or "unknown")] += 1
         if uid:
             scans_by_user_count[uid] += 1
         contract = validate_scan_payload_contract(scan if isinstance(scan, dict) else {})
@@ -141,14 +196,15 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                     rejection_reasons[str(reason)] += 1
 
         diag = None
-        if uid:
-            u = user if (user is not None and int(user.id) == uid) else User.query.get(uid)
-            if u:
-                diag = evaluate_execution_readiness(u, scan)
-                for reason in diag.get("active_mode_blocked_reasons", []):
-                    code = reason.get("code")
-                    if code:
-                        blocked_reason_counts[code] += 1
+        effective_user = user if user is not None else (User.query.get(uid) if uid else None)
+        if effective_user:
+            diag = evaluate_execution_readiness(effective_user, scan)
+            for reason in diag.get("active_mode_blocked_reasons", []):
+                code = reason.get("code")
+                if code:
+                    blocked_reason_counts[code] += 1
+        else:
+            blocked_reason_counts["USER_CONTEXT_MISSING"] += 1
 
         safe_view = _safe_scan_view(scan)
         safe_view["active_mode"] = (diag or {}).get("active_mode")
@@ -164,9 +220,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                 failures.append(safe_view)
 
     latest_age = None
-    if latest_by_user:
+    if all_scans:
         dts = []
-        for payload in latest_by_user.values():
+        for payload in all_scans:
             dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
             if dt:
                 dts.append(dt)
@@ -177,6 +233,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     return {
         "total_scans_analyzed": len(all_scans),
         "scans_by_user_count": dict(scans_by_user_count),
+        "source_counts": dict(source_counts),
         "latest_scan_age_seconds": latest_age,
         "best_pick_present_count": best_pick_present_count,
         "executable_payload_ready_count": executable_payload_ready_count,
