@@ -244,3 +244,9 @@ def test_apply_user_symbol_filters_candidate_source_map_tags_snapshot(monkeypatc
     monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
     out = scanner.apply_user_symbol_filters(['AAPL'], snapshots=snapshots, quotes=quotes, user=user, candidate_source_map={'AAPL': 'momentum_breakout'})
     assert out == ['AAPL']
+
+
+def test_source_priority_prefers_news_then_momentum_then_orb():
+    assert scanner._select_primary_source(['orb_primary', 'momentum_breakout']) == 'momentum_breakout'
+    assert scanner._select_primary_source(['fallback_market_candidates', 'news_catalyst']) == 'news_catalyst'
+    assert scanner._select_primary_source([]) == 'unknown'

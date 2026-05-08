@@ -431,6 +431,10 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     catalyst_summary = latest_diag.get('latest_catalyst_score_summary') if isinstance(latest_diag, dict) else {}
     vwap_summary = latest_diag.get('latest_vwap_alignment_summary') if isinstance(latest_diag, dict) else {}
     liq_summary = latest_diag.get('latest_liquidity_failure_summary') if isinstance(latest_diag, dict) else {}
+    source_quality_summary = latest_diag.get('latest_candidate_source_quality_summary') if isinstance(latest_diag, dict) else {}
+    catalyst_baseline_reason_counts = latest_diag.get('latest_catalyst_baseline_reason_counts') if isinstance(latest_diag, dict) else {}
+    catalyst_missing_reason_counts = latest_diag.get('latest_catalyst_missing_reason_counts') if isinstance(latest_diag, dict) else {}
+    latest_source_quality_warning = None
     avg_catalyst = float((catalyst_summary or {}).get('average_catalyst_score') or 0)
     checked = int((catalyst_summary or {}).get('symbols_checked') or 0)
     not_aligned = int((vwap_summary or {}).get('not_aligned_count') or 0)
@@ -441,6 +445,22 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         recommended_next_action = 'Candidate universe is producing weak liquidity; improve candidate source quality.'
     elif checked > 0 and not_aligned >= max(1, int(checked * 0.6)):
         recommended_next_action = 'Scanner is finding movers but not confirmed trend setups; wait for confirmed setups or improve source ranking.'
+    if isinstance(source_quality_summary, dict) and source_quality_summary:
+        source_with_max_analyzed = max(source_quality_summary.items(), key=lambda kv: int((kv[1] or {}).get('analyzed_count') or 0))
+        src, meta = source_with_max_analyzed
+        analyzed_count = int((meta or {}).get('analyzed_count') or 0)
+        skip_count = int((meta or {}).get('skip_count') or 0)
+        if analyzed_count > 0 and skip_count == analyzed_count:
+            latest_source_quality_warning = f"{src} produced analyzed candidates but all were SKIP."
+            if src == 'fallback_market_candidates':
+                recommended_next_action = "Improve primary candidate discovery; fallback is driving weak candidates."
+    if isinstance(catalyst_baseline_reason_counts, dict) and catalyst_baseline_reason_counts:
+        dominant_baseline = max(catalyst_baseline_reason_counts.items(), key=lambda kv: int(kv[1] or 0))[0]
+        if dominant_baseline in {'FEATURE_STORE_BASELINE_ONLY', 'BASELINE_ONLY_NO_NEWS'}:
+            recommended_next_action = "Fix catalyst/news feature generation before changing thresholds."
+    unknown_sources = [x for x in (latest_diag.get('final_analyzed_symbols_with_source') or []) if (x or {}).get('source') == 'unknown']
+    if (latest_diag.get('final_analyzed_symbols_with_source') or []) and len(unknown_sources) >= int(len(latest_diag.get('final_analyzed_symbols_with_source')) * 0.6):
+        recommended_next_action = "Fix candidate source propagation before tuning strategy."
 
     return {
         "total_scans_analyzed": len(all_scans),
@@ -490,6 +510,12 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_analyzed_symbols": latest_diag.get("analyzed_symbols"),
         "latest_candidate_symbols_sample": latest_diag.get("candidate_symbols_sample"),
         "latest_top_5_candidates_by_score": latest_diag.get("top_5_candidates_by_score"),
+        "latest_candidate_source_quality_summary": source_quality_summary,
+        "latest_source_quality_warning": latest_source_quality_warning,
+        "latest_catalyst_baseline_reason_counts": catalyst_baseline_reason_counts,
+        "latest_catalyst_missing_reason_counts": catalyst_missing_reason_counts,
+        "latest_catalyst_feature_store_hit_count": latest_diag.get("latest_catalyst_feature_store_hit_count"),
+        "latest_catalyst_feature_store_missing_count": latest_diag.get("latest_catalyst_feature_store_missing_count"),
         "latest_premarket_data_unavailable_count": latest_diag.get("latest_premarket_data_unavailable_count"),
         "latest_premarket_volume_unavailable_symbols": latest_diag.get("latest_premarket_volume_unavailable_symbols"),
         "latest_premarket_volume_too_light_symbols": latest_diag.get("latest_premarket_volume_too_light_symbols"),

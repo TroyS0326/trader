@@ -373,6 +373,8 @@ def test_scanner_effectiveness_exposes_new_quality_summaries(monkeypatch):
     assert report["latest_catalyst_score_summary"]["symbols_checked"] == 2
     assert report["latest_vwap_alignment_summary"]["not_aligned_count"] == 2
     assert report["latest_liquidity_failure_summary"]["low_liquidity_count"] == 2
+    assert "latest_candidate_source_quality_summary" in report
+    assert "latest_catalyst_baseline_reason_counts" in report
 
 
 def test_scanner_top5_and_catalyst_diag_fields_present_in_source():
@@ -384,6 +386,9 @@ def test_scanner_top5_and_catalyst_diag_fields_present_in_source():
     assert "'vwap_trend_reason'" in src
     assert "'liquidity_score_reason'" in src
     assert "'liquidity_failure_codes'" in src
+    assert "'sources'" in src
+    assert "'catalyst_score_baseline_reason'" in src
+    assert "'catalyst_missing_reason'" in src
 
 
 def test_catalyst_score_baseline_reason_and_no_news_diagnostics_in_source():
@@ -391,3 +396,4 @@ def test_catalyst_score_baseline_reason_and_no_news_diagnostics_in_source():
     src = inspect.getsource(scanner.analyze_symbol)
     assert "catalyst_score_baseline_reason" in src
     assert "catalyst_missing_reason" in src
+    assert "UNKNOWN_BASELINE_REASON" in src
