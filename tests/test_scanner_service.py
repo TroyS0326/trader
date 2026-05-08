@@ -230,3 +230,87 @@ def test_fan_out_dispatches_only_execution_ready_users(monkeypatch):
 
     assert calls == [1]
 
+
+
+def test_central_cycle_calls_expensive_scan_once_for_250_users(monkeypatch):
+    users = [SimpleNamespace(id=i, trading_mode='paper', subscription_status='pro') for i in range(1, 251)]
+    calls = {'run_scan': 0, 'run_scan_users': [], 'insert': 0, 'approved': 0}
+
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: users)
+
+    def fake_run_scan(*args, **kwargs):
+        calls['run_scan'] += 1
+        calls['run_scan_users'].append(kwargs.get('user', 'missing'))
+        return {'best_pick': {'symbol': 'AAPL', 'decision': 'BUY NOW', 'qty': 1, 'entry_price': 100, 'stop_price': 99, 'target_1': 101, 'target_2': 102}, 'watchlist': [{'symbol': 'AAPL', 'entry_price': 100}]}
+
+    monkeypatch.setattr(scanner_service, 'run_scan', fake_run_scan)
+    monkeypatch.setattr(scanner_service, 'insert_scan', lambda payload: calls.__setitem__('insert', calls['insert'] + 1) or calls['insert'])
+    monkeypatch.setattr(scanner_service, 'approve_scan_for_user', lambda *a, **k: calls.__setitem__('approved', calls['approved'] + 1))
+    monkeypatch.setattr(scanner_service, '_dispatch_execution_if_allowed', lambda *a, **k: None)
+
+    class Ctx:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(scanner_service.app, 'app_context', lambda: Ctx())
+    scanner_service.run_central_scan_cycle('test_cycle')
+
+    assert calls['run_scan'] == 1
+    assert calls['run_scan_users'] == [None]
+    assert calls['insert'] == 250
+    assert calls['approved'] == 250
+
+
+def test_approve_scan_writes_latest_and_approved_per_user():
+    from execution_guard import approve_scan_for_user
+
+    class FakeRedis:
+        def __init__(self):
+            self.data = {}
+        def setex(self, key, ttl, value):
+            self.data[key] = {'ttl': ttl, 'value': json.loads(value)}
+
+    redis = FakeRedis()
+    user_1 = SimpleNamespace(id=1, trading_mode='paper', subscription_status='pro')
+    user_2 = SimpleNamespace(id=2, trading_mode='live', subscription_status='pro')
+
+    approve_scan_for_user(redis, user_1, {'scan_id': 11, 'best_pick': {'symbol': 'AAPL'}, 'watchlist': [{'symbol': 'AAPL'}]})
+    approve_scan_for_user(redis, user_2, {'scan_id': 22, 'best_pick': {'symbol': 'MSFT'}, 'watchlist': [{'symbol': 'MSFT'}]})
+
+    assert redis.data['latest_scan:1']['value']['scan_id'] == 11
+    assert redis.data['approved_scan:1']['value']['scan_id'] == 11
+    assert redis.data['latest_scan:2']['value']['scan_id'] == 22
+    assert redis.data['approved_scan:2']['value']['scan_id'] == 22
+
+
+def test_personalize_scan_preserves_user_exclusion_safety():
+    shared_scan = {
+        'best_pick': {'symbol': 'PENNY', 'entry_price': 1.2, 'industry': 'Biotechnology', 'decision': 'BUY NOW', 'qty': 1},
+        'watchlist': [
+            {'symbol': 'PENNY', 'entry_price': 1.2, 'industry': 'Biotechnology'},
+            {'symbol': 'AAPL', 'entry_price': 150, 'industry': 'Technology'},
+        ]
+    }
+    user = SimpleNamespace(id=1, trading_mode='paper', subscription_status='pro', exclude_penny_stocks=True, exclude_biotech=True)
+
+    result = scanner_service.personalize_scan_for_user(user, shared_scan)
+
+    assert result['best_pick']['symbol'] == 'AAPL'
+    assert [w['symbol'] for w in result['watchlist']] == ['AAPL']
+
+
+def test_central_cycle_skips_invalid_shared_payload_before_fanout(monkeypatch):
+    users = [SimpleNamespace(id=1, trading_mode='paper', subscription_status='pro')]
+    called = {'fanout': 0}
+
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: users)
+    monkeypatch.setattr(scanner_service, 'run_shared_market_scan', lambda: 'not-a-dict')
+    monkeypatch.setattr(scanner_service, 'fan_out_scan_to_users', lambda *_: called.__setitem__('fanout', called['fanout'] + 1))
+
+    class Ctx:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(scanner_service.app, 'app_context', lambda: Ctx())
+    scanner_service.run_central_scan_cycle('bad_cycle')
+    assert called['fanout'] == 0
