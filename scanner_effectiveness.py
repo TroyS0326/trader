@@ -611,12 +611,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     has_paper_token = bool(user is not None and (getattr(user, "alpaca_paper_access_token", None) or getattr(user, "alpaca_access_token", None)))
     has_live_token = bool(user is not None and getattr(user, "alpaca_live_access_token", None))
     has_active_env_token = has_live_token if active_env == "live" else has_paper_token
-    raw_reconnect_required = bool(latest_diag.get("alpaca_asset_metadata_reconnect_required"))
-    fallback_success_count = int(latest_diag.get("alpaca_asset_metadata_server_fallback_success_count") or 0)
+    raw_metadata_reconnect_required = bool(latest_diag.get("alpaca_asset_metadata_reconnect_required"))
+    server_fallback_success_count = int(latest_diag.get("alpaca_asset_metadata_server_fallback_success_count") or 0)
     degraded_mode = bool(latest_diag.get("asset_metadata_degraded_mode"))
-    metadata_success_count = int(latest_diag.get("asset_metadata_success_count") or 0)
-    metadata_failure_count = int(latest_diag.get("asset_metadata_failure_count") or 0)
-    metadata_all_failed = metadata_failure_count > 0 and metadata_success_count == 0 and fallback_success_count == 0
     reconnect_required = False
     reconnect_reason = None
     reconnect_env = None
@@ -626,14 +623,15 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     if not has_active_env_token:
         reconnect_required = True
         reconnect_reason = "ACTIVE_ENV_TOKEN_MISSING"
-    elif degraded_mode and metadata_all_failed:
+    elif degraded_mode:
         reconnect_required = True
         reconnect_reason = "ASSET_METADATA_DEGRADED_CREDENTIALS_CHECK_REQUIRED"
-    elif raw_reconnect_required and fallback_success_count > 0 and has_active_env_token:
+    elif raw_metadata_reconnect_required and server_fallback_success_count > 0:
         reconnect_required = False
         metadata_fallback_notice = "Metadata validation is using server fallback. Trading execution rules unchanged."
-    elif raw_reconnect_required and has_active_env_token:
-        reconnect_required = False
+    elif raw_metadata_reconnect_required:
+        reconnect_required = True
+        reconnect_reason = latest_diag.get("alpaca_asset_metadata_reconnect_reason") or "USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA"
     if reconnect_required:
         reconnect_env = active_env
         reconnect_url = f"/alpaca/login?env={active_env}"
