@@ -16,6 +16,7 @@ from decision import regime_trade_decision, momentum_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
 from models import db, User, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
+from db import insert_scan
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
@@ -122,7 +123,7 @@ def buy_window_open() -> bool:
 def _alpaca_headers() -> Dict[str, str]:
     if not ALPACA_API_KEY or not ALPACA_API_SECRET:
         raise ScanError('Missing Alpaca API credentials. Put ALPACA_API_KEY and ALPACA_API_SECRET in .env')
-    return {
+    result = {
         'accept': 'application/json',
         'APCA-API-KEY-ID': ALPACA_API_KEY,
         'APCA-API-SECRET-KEY': ALPACA_API_SECRET,
@@ -3115,7 +3116,34 @@ if __name__ == '__main__':
     parser.add_argument('--normalize-watch-statuses', action='store_true', help='Normalize persisted watch candidate lifecycle statuses')
     parser.add_argument('--user-id', type=int, default=None, help='Recheck WATCH for a specific user id')
     parser.add_argument('--all-users', action='store_true', help='Recheck WATCH for all users with active WATCH candidates')
+    parser.add_argument('--run-scan', action='store_true', help='Run scanner once (safe)')
+    parser.add_argument('--persist', action='store_true', help='Persist run-scan output')
     args = parser.parse_args()
+
+
+    if args.run_scan:
+        from app import app
+        with app.app_context():
+            user = None
+            if args.user_id:
+                user = User.query.get(int(args.user_id))
+                if user is None:
+                    raise SystemExit(f"User not found: {args.user_id}")
+            result = run_scan(user=user)
+            summary = {
+                'symbol': ((result.get('best_pick') or {}).get('symbol')),
+                'decision': (result.get('best_pick') or {}).get('decision'),
+                'setup_grade': (result.get('best_pick') or {}).get('setup_grade'),
+                'user_id': result.get('user_id'),
+                'scan_attribution_version': result.get('scan_attribution_version'),
+                'has_scan_diagnostics': bool(result.get('scan_diagnostics')),
+                'watch_candidate_count': (result.get('scan_diagnostics') or {}).get('watch_candidate_count'),
+                'executable_candidate_count': (result.get('scan_diagnostics') or {}).get('executable_candidate_count'),
+            }
+            if args.persist:
+                ps = persist_scan_result(result, user=user, source='manual_terminal_scan')
+                summary.update({'persisted': ps.get('persisted'), 'persisted_scan_id': ps.get('scan_id')})
+            print(json.dumps(summary, indent=2, default=str))
 
     if args.recheck_watch:
         from app import app
