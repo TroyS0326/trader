@@ -43,7 +43,8 @@ def _safe_float(v):
 def generate_daily_report(user: User, report_date: date):
     start_utc, end_utc = _market_date_bounds(report_date)
     trades = Trade.query.filter(Trade.user_id == user.id, Trade.created_at >= start_utc, Trade.created_at < end_utc).order_by(Trade.created_at.asc()).all()
-    scans = Scan.query.filter(Scan.created_at >= start_utc, Scan.created_at < end_utc).all()
+    all_scans = Scan.query.filter(Scan.created_at >= start_utc, Scan.created_at < end_utc).all()
+    scans = []
     wins = losses = breakeven = open_pending = 0
     rr_values = []
     realized = []
@@ -73,8 +74,14 @@ def generate_daily_report(user: User, report_date: date):
             if reason:
                 skip_reasons[str(reason)] += 1
 
-    for s in scans:
+    for s in all_scans:
         payload = _parse_json(s.payload_json)
+        payload_user_id = payload.get('user_id')
+        if payload_user_id is None and isinstance(payload.get('user'), dict):
+            payload_user_id = payload.get('user', {}).get('id')
+        if str(payload_user_id) != str(user.id):
+            continue
+        scans.append(s)
         rejects = payload.get('rejections') or payload.get('blocked_reasons') or payload.get('skipped_reasons') or []
         if isinstance(rejects, dict):
             rejects = [f"{k}: {v}" for k,v in rejects.items()]
@@ -150,6 +157,8 @@ def send_daily_paper_report_email(user: User, report: dict):
         return {'status': 'skipped', 'reason': 'missing_template_id'}
     if config.DAILY_REPORT_DRY_RUN:
         return {'status': 'dry_run', 'reason': 'dry_run_enabled'}
+    if not (config.BREVO_API_KEY or '').strip():
+        return {'status': 'skipped', 'reason': 'missing_brevo_api_key'}
 
     to_email = config.DAILY_REPORT_TEST_RECIPIENT or user.email
     payload = {
@@ -164,34 +173,69 @@ def send_daily_paper_report_email(user: User, report: dict):
     if config.DAILY_REPORT_TEST_RECIPIENT:
         payload['subject'] = f"[TEST] Your XeanVI Paper-Trading Report Card — {report.get('report_date')}"
 
-    response = requests.post('https://api.brevo.com/v3/smtp/email', headers={'accept':'application/json','api-key':config.BREVO_API_KEY,'content-type':'application/json'}, json=payload, timeout=15)
+    try:
+        response = requests.post('https://api.brevo.com/v3/smtp/email', headers={'accept':'application/json','api-key':config.BREVO_API_KEY,'content-type':'application/json'}, json=payload, timeout=15)
+    except Exception as exc:
+        return {'status': 'failed', 'reason': 'brevo_request_exception', 'raw': str(exc)[:250]}
     if response.status_code >= 400:
         return {'status': 'failed', 'reason': f'brevo_{response.status_code}', 'raw': response.text[:250]}
-    body = response.json() if response.content else {}
+    try:
+        body = response.json() if response.content else {}
+    except Exception:
+        body = {}
     return {'status': 'sent', 'brevo_message_id': str(body.get('messageId', ''))}
+
+def _user_has_activity(report: dict) -> bool:
+    return bool(
+        (report.get('trades_taken_count') or 0) > 0
+        or (report.get('skipped_or_blocked_count') or 0) > 0
+        or ('No rule-breaking executions were detected' not in (report.get('mistakes_blocked') or ''))
+    )
+
+
+def _build_user_query(user_id=None, send_all=False):
+    users_q = User.query.filter(User.email.isnot(None))
+    if user_id:
+        return users_q.filter(User.id == user_id)
+    if send_all:
+        return users_q
+
+    users_q = users_q.filter(User.trading_mode == 'paper')
+    types = []
+    if config.DAILY_REPORT_SEND_TO_PRO_USERS:
+        types.append('pro')
+    if config.DAILY_REPORT_SEND_TO_FREE_USERS:
+        types.append('free')
+    if not types:
+        return users_q.filter(User.id == -1)
+    return users_q.filter(User.subscription_status.in_(types))
 
 
 def run_daily_reports(report_date: date, send: bool, user_id=None, send_all=False, dry_run=False, force=False):
-    users_q = User.query.filter(User.email.isnot(None))
-    if user_id:
-        users_q = users_q.filter(User.id == user_id)
-    elif not send_all:
-        users_q = users_q.filter(User.subscription_status == 'pro')
+    users_q = _build_user_query(user_id=user_id, send_all=send_all)
     users = users_q.all()
-    out = {'attempted': 0, 'sent': 0, 'skipped': 0, 'failed': 0}
+    out = {'attempted': 0, 'sent': 0, 'skipped': 0, 'failed': 0, 'dry_run': 0, 'users_considered': len(users), 'reasons': {}}
+    if not user_id and not send_all and not (config.DAILY_REPORT_SEND_TO_PRO_USERS or config.DAILY_REPORT_SEND_TO_FREE_USERS):
+        logger.info('daily_report summary users_considered=0 reason=no_user_types_enabled')
     for user in users:
-        out['attempted'] += 1
-        existing = DailyReportEmailLog.query.filter_by(user_id=user.id, report_date=report_date.isoformat()).first()
-        if existing and not force:
-            out['skipped'] += 1
-            continue
-        report = generate_daily_report(user, report_date)
-        if dry_run:
-            result = {'status': 'dry_run', 'reason': 'cli_dry_run'}
-        elif send:
-            result = send_daily_paper_report_email(user, report)
-        else:
-            result = {'status': 'skipped', 'reason': 'send_disabled'}
+        try:
+            out['attempted'] += 1
+            existing = DailyReportEmailLog.query.filter_by(user_id=user.id, report_date=report_date.isoformat()).first()
+            if existing and existing.status == 'sent' and not force:
+                out['skipped'] += 1
+                out['reasons']['already_sent'] = out['reasons'].get('already_sent', 0) + 1
+                continue
+            report = generate_daily_report(user, report_date)
+            if config.DAILY_REPORT_REQUIRE_ACTIVITY and not user_id and not send_all and not _user_has_activity(report):
+                result = {'status': 'skipped', 'reason': 'no_activity'}
+            elif dry_run:
+                result = {'status': 'dry_run', 'reason': 'cli_dry_run'}
+            elif send:
+                result = send_daily_paper_report_email(user, report)
+            else:
+                result = {'status': 'skipped', 'reason': 'send_disabled'}
+        except Exception as exc:
+            result = {'status': 'failed', 'reason': 'report_generation_exception', 'raw': str(exc)[:250]}
 
         log = existing or DailyReportEmailLog(user_id=user.id, report_date=report_date.isoformat(), email=(config.DAILY_REPORT_TEST_RECIPIENT or user.email), status=result.get('status','skipped'))
         log.status = result.get('status', 'skipped')
@@ -199,11 +243,19 @@ def run_daily_reports(report_date: date, send: bool, user_id=None, send_all=Fals
         log.brevo_message_id = result.get('brevo_message_id')
         log.raw_json = json.dumps(result)
         db.session.add(log)
-        if log.status == 'sent': out['sent'] += 1
-        elif log.status in {'failed'}: out['failed'] += 1
-        else: out['skipped'] += 1
+        if log.status == 'sent':
+            out['sent'] += 1
+        elif log.status in {'failed'}:
+            out['failed'] += 1
+        elif log.status == 'dry_run':
+            out['dry_run'] += 1
+        else:
+            out['skipped'] += 1
+        reason = result.get('reason')
+        if reason:
+            out['reasons'][reason] = out['reasons'].get(reason, 0) + 1
     db.session.commit()
-    logger.info('daily_report summary attempted=%s sent=%s skipped=%s failed=%s', out['attempted'], out['sent'], out['skipped'], out['failed'])
+    logger.info('daily_report summary attempted=%s sent=%s skipped=%s failed=%s dry_run=%s users_considered=%s reasons=%s', out['attempted'], out['sent'], out['skipped'], out['failed'], out['dry_run'], out['users_considered'], out['reasons'])
     return out
 
 
