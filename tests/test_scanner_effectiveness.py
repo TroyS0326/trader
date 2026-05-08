@@ -496,6 +496,9 @@ def test_safe_scan_view_source_has_no_undefined_enriched_vars():
     assert "latest_enriched_scan" not in fn
     assert "watch_snapshot" not in fn
     assert "now_utc" not in fn
+    assert "latest_diag" not in fn
+    assert "user is not None" not in fn
+    assert "alpaca_reconnect" not in fn
 
 
 def test_build_report_source_has_stale_scan_calculation():
@@ -688,3 +691,13 @@ def test_dashboard_template_has_reconnect_disclosure_link_and_no_trade_cta_in_re
     assert 'review Alpaca authorization terms' in block
     assert 'Buy' not in block and 'Execute' not in block and 'Trade now' not in block
 
+
+
+def test_build_scan_aggregate_summary_runtime_smoke():
+    scans = [
+        {"scan_id": "1", "created_at": datetime.now(timezone.utc).isoformat(), "best_pick": {"symbol": "AAPL", "decision": "WATCH"}, "scan_diagnostics": {"candidate_count_raw": 3}},
+        {"scan_id": "2", "created_at": datetime.now(timezone.utc).isoformat(), "best_pick": {"symbol": "MSFT", "decision": "SKIP"}, "scan_diagnostics": {"candidate_count_raw": 2}},
+    ]
+    summary = scanner_effectiveness.build_scan_aggregate_summary(scans)
+    assert isinstance(summary, dict)
+    assert summary["scan_count"] == 2
