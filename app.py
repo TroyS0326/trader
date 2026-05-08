@@ -2689,7 +2689,7 @@ def admin_blog_edit(post_id):
 
         prev_status = post.status
         upload_file = request.files.get('featured_image_file')
-        og_image_value = form_data['og_image']
+        og_image_value = (form_data['og_image'] or '').strip() or (post.og_image or '')
         if upload_file and (upload_file.filename or '').strip():
             upload_result = save_blog_featured_image(upload_file, form_data['slug'] or title)
             if not upload_result.get('ok'):
@@ -2727,7 +2727,26 @@ def admin_blog_edit(post_id):
         if prev_status != 'published' and post.status == 'published' and not post.published_at:
             post.published_at = datetime.utcnow()
         post.updated_at = datetime.utcnow()
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError as exc:
+            db.session.rollback()
+            app.logger.exception('Failed to update blog post %s due to integrity error', post.id)
+            flash('Unable to update post. Another post may already be using this slug.', 'error')
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report), 400
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Unexpected error while updating blog post %s', post.id)
+            flash('Unexpected error while updating blog post. Please try again.', 'error')
+            internal_link_suggestions = suggest_internal_links(
+                title=form_data['title'], target_keyword=form_data['target_keyword'],
+                excerpt=form_data['excerpt'], body_html=form_data['body_html']
+            )
+            return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report), 500
         warned = False
         if requested_status == 'published' and seo_report['status'] == 'needs_work':
             flash('Published with SEO warnings. Review suggestions when possible.', 'error')
