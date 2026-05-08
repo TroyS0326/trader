@@ -464,3 +464,29 @@ def test_report_exposes_asset_metadata_reconnect_fields(monkeypatch):
     assert report["latest_alpaca_user_oauth_asset_metadata_health"] == "unauthorized"
     assert report["latest_alpaca_asset_metadata_reconnect_required"] is True
     assert "server metadata fallback" in report["recommended_next_action"]
+
+
+def test_scanner_effectiveness_prefers_attributed_over_unattributed(monkeypatch):
+    rows = [
+        {"id": 200, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": None, "scan_attribution_version": 0, "scan_diagnostics": {"candidate_count_after_dedupe": 1}, "best_pick": {"symbol": "OLD", "decision": "SKIP"}})},
+        {"id": 199, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "scan_diagnostics": {"candidate_count_after_dedupe": 9}, "best_pick": {"symbol": "RXT", "decision": "WATCH"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=20: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(user=SimpleNamespace(id=1), limit=20)
+    assert report["current_report_scan_scope"] == "attributed_user"
+    assert report["current_report_uses_unattributed_scan"] is False
+    assert report["latest_candidate_count_after_dedupe"] == 9
+
+
+def test_scanner_effectiveness_exposes_legacy_unattributed_counts(monkeypatch):
+    row = {"id": 201, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": None, "scan_attribution_version": 0, "legacy_flags": {"unattributed_scan_legacy": True}, "scan_diagnostics": {}, "best_pick": {"symbol": "OLD", "decision": "SKIP"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["legacy_unattributed_scan_count"] == 1
+    assert report["ignored_unattributed_scan_count"] >= 1
