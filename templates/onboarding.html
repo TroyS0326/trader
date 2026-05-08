@@ -56,6 +56,7 @@
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Live account connected.</p>
             <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">You can manage live broker-connected workflows from account settings.</p>
         {% else %}
+            {% include 'partials/alpaca_authorization_disclosure.html' %}
             <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary" style="margin-top: 0.5rem; display: inline-flex;">
                 <i class="fas fa-link"></i>&nbsp;Connect Alpaca Live Account
             </a>
