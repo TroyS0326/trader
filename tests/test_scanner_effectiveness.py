@@ -648,6 +648,7 @@ def test_dashboard_js_humanizes_reconnect_and_avoids_raw_decision_json_rendering
     assert "HTTP_401" in src and "HTTP_403" in src
     assert "reconnectCtaEl.style.display = reconnectRequired ? 'block' : 'none';" in src
     assert "report.alpaca_reconnect_url" in src
+    assert "report.alpaca_reconnect_label" in src
     assert "function renderCountBadges(counts)" in src
     assert "JSON.stringify(summary.decision_counts" not in src
 
@@ -656,3 +657,34 @@ def test_dashboard_scanner_render_avoids_unescaped_innerhtml_for_backend_strings
     src = Path("templates/dashboard.html").read_text()
     fn = src[src.index("function renderScannerEffectiveness") : src.index("async function refreshScannerEffectiveness")]
     assert ".innerHTML" not in fn
+
+
+def test_scanner_effectiveness_reconnect_fields_null_when_not_required(monkeypatch):
+    row = {"id": 71, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 77, "scan_attribution_version": 1, "scan_diagnostics": {"alpaca_asset_metadata_reconnect_required": False}, "best_pick": {"symbol": "RXT", "decision": "WATCH", "setup_grade": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    report = scanner_effectiveness.build_scanner_effectiveness_report(user=SimpleNamespace(id=77, trading_mode='paper'), limit=10)
+    assert report["alpaca_reconnect_env"] is None
+    assert report["alpaca_reconnect_url"] is None
+    assert report["alpaca_reconnect_label"] is None
+
+
+def test_scanner_effectiveness_reconnect_url_uses_live_mode(monkeypatch):
+    row = {"id": 72, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 88, "scan_attribution_version": 1, "scan_diagnostics": {"alpaca_asset_metadata_reconnect_required": True}, "best_pick": {"symbol": "RXT", "decision": "WATCH", "setup_grade": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    report = scanner_effectiveness.build_scanner_effectiveness_report(user=SimpleNamespace(id=88, trading_mode='live'), limit=10)
+    assert report["alpaca_reconnect_env"] == "live"
+    assert report["alpaca_reconnect_url"] == "/alpaca/login?env=live"
+    assert report["alpaca_reconnect_label"] == "Reconnect Alpaca Live"
+
+
+def test_dashboard_template_has_reconnect_disclosure_link_and_no_trade_cta_in_reconnect_block():
+    src = Path("templates/dashboard.html").read_text()
+    block = src[src.index('id="scanner-reconnect-cta"'):src.index('id="scanner-no-reconnect-needed"')]
+    assert '/broker-integration' in block
+    assert 'review Alpaca authorization terms' in block
+    assert 'Buy' not in block and 'Execute' not in block and 'Trade now' not in block
+

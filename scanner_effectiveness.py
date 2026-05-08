@@ -63,8 +63,15 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         if key in scan_diag:
             safe_scan_diag[key] = scan_diag.get(key)
 
-    reconnect_env = "live" if user is not None and str(getattr(user, "trading_mode", "paper")).strip().lower() == "live" else "paper"
     reconnect_required = bool(latest_diag.get("alpaca_asset_metadata_reconnect_required"))
+    reconnect_env = None
+    reconnect_url = None
+    reconnect_label = None
+    if reconnect_required:
+        env = "live" if user is not None and str(getattr(user, "trading_mode", "paper")).strip().lower() == "live" else "paper"
+        reconnect_env = env
+        reconnect_url = f"/alpaca/login?env={env}"
+        reconnect_label = "Reconnect Alpaca Live" if env == "live" else "Reconnect Alpaca Paper"
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -819,7 +826,8 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_alpaca_asset_metadata_reconnect_reason": latest_diag.get("alpaca_asset_metadata_reconnect_reason"),
         "latest_alpaca_asset_metadata_server_fallback_success_count": latest_diag.get("alpaca_asset_metadata_server_fallback_success_count"),
         "alpaca_reconnect_env": reconnect_env,
-        "alpaca_reconnect_url": f"/alpaca/login?env={reconnect_env}" if reconnect_required else None,
+        "alpaca_reconnect_url": reconnect_url,
+        "alpaca_reconnect_label": reconnect_label,
         "latest_asset_metadata_failure_reason_counts": latest_diag.get("asset_metadata_failure_reason_counts"),
         "latest_asset_metadata_failure_samples": latest_diag.get("asset_metadata_failure_samples"),
         "latest_asset_metadata_endpoint_used": latest_diag.get("asset_metadata_endpoint_used"),
