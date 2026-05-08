@@ -428,6 +428,20 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         primary_blocker_summary = "CANDIDATE_SOURCE_LOW_QUALITY"
         recommended_next_action = "Improve candidate source filtering before analysis."
 
+    catalyst_summary = latest_diag.get('latest_catalyst_score_summary') if isinstance(latest_diag, dict) else {}
+    vwap_summary = latest_diag.get('latest_vwap_alignment_summary') if isinstance(latest_diag, dict) else {}
+    liq_summary = latest_diag.get('latest_liquidity_failure_summary') if isinstance(latest_diag, dict) else {}
+    avg_catalyst = float((catalyst_summary or {}).get('average_catalyst_score') or 0)
+    checked = int((catalyst_summary or {}).get('symbols_checked') or 0)
+    not_aligned = int((vwap_summary or {}).get('not_aligned_count') or 0)
+    low_pmv = int((liq_summary or {}).get('low_premarket_dollar_volume_count') or 0) + int((liq_summary or {}).get('unavailable_premarket_volume_count') or 0)
+    if checked > 0 and avg_catalyst <= 2.0:
+        recommended_next_action = 'Investigate catalyst/news sourcing or scoring before changing trading thresholds.'
+    elif checked > 0 and low_pmv >= max(1, int(checked * 0.6)):
+        recommended_next_action = 'Candidate universe is producing weak liquidity; improve candidate source quality.'
+    elif checked > 0 and not_aligned >= max(1, int(checked * 0.6)):
+        recommended_next_action = 'Scanner is finding movers but not confirmed trend setups; wait for confirmed setups or improve source ranking.'
+
     return {
         "total_scans_analyzed": len(all_scans),
         "scans_by_user_count": dict(scans_by_user_count),
