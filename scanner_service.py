@@ -124,6 +124,7 @@ def run_central_scan_cycle(cycle_name: str) -> None:
                 result["report_user_id"] = user.id
                 result["trading_mode"] = getattr(user, "trading_mode", "paper")
                 result["subscription_status"] = getattr(user, "subscription_status", "free")
+                result["scan_source"] = "central_scanner"
 
                 scan_id = insert_scan(result)
                 result["scan_id"] = scan_id

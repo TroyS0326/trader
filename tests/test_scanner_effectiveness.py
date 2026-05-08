@@ -117,3 +117,50 @@ def test_safe_samples_do_not_expose_payload_json(monkeypatch):
     sample = report["sample_recent_failures"][0]
     assert "payload_json" not in sample
     assert "alpaca_live_access_token" not in sample
+
+
+def test_effectiveness_aggregates_skip_reasons_and_attribution(monkeypatch):
+    row = {
+        "id": 41,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "payload_json": json.dumps({
+            "user_id": 9,
+            "best_pick": {
+                "symbol": "ATRA",
+                "decision": "SKIP",
+                "setup_grade": "NO TRADE",
+                "score_total": 58,
+                "scores": {"catalyst": 6, "liquidity": 4},
+                "details": {"skip_reason": "BUY_WINDOW_CLOSED", "skip_reasons": ["BUY_WINDOW_CLOSED", "SETUP_GRADE_NO_TRADE"], "decision_reason": "Setup grade is NO TRADE"},
+            },
+        }),
+    }
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["attributed_scan_count"] == 1
+    assert report["unattributed_scan_count"] == 0
+    assert report["user_context_missing_count"] == 0
+    assert report["skip_reason_counts"]["BUY_WINDOW_CLOSED"] >= 1
+    assert report["setup_grade_counts"]["NO TRADE"] == 1
+
+
+def test_effectiveness_detects_dominant_symbol(monkeypatch):
+    rows = []
+    for i in range(10):
+        symbol = "ATRA" if i < 9 else "MSFT"
+        rows.append({
+            "id": 100 + i,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "payload_json": json.dumps({"user_id": 1, "best_pick": {"symbol": symbol, "decision": "SKIP", "details": {"skip_reasons": ["SETUP_GRADE_NO_TRADE"]}}}),
+        })
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=20: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=20)
+    assert report["dominant_symbol_warning"] is True
+    assert report["dominant_symbol"] == "ATRA"
+    assert report["same_symbol_count"] == 9

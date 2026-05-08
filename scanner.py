@@ -1300,6 +1300,11 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         skip_reasons.append(f'VIX Volatility Spike: {vixy_change:.1f}% (Limit {VIX_CIRCUIT_BREAKER_PCT:g}%).')
 
     setup_grade = classify_setup_grade(total, catalyst_score, liquidity_score, sector_score, confirm_score, vwap_score, pullback_score, premarket_gap_pct, premarket_notional)
+    setup_grade_reason = "Setup passed A/A+ scoring thresholds."
+    if setup_grade == 'NO TRADE':
+        setup_grade_reason = "Total score and component thresholds did not qualify for WATCH/A grades."
+    elif setup_grade == 'WATCH':
+        setup_grade_reason = "Setup met baseline quality checks but did not meet A/A+ execution thresholds."
     decision = 'SKIP'
 
     # --- FIXED DECISION LOGIC ---
@@ -1328,6 +1333,21 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             decision = 'BUY NOW'
         else:
             decision = 'WATCH' if setup_grade != 'NO TRADE' else 'SKIP'
+
+    decision_reason = "High-precision conditions satisfied; decision is executable BUY NOW."
+    if decision == "WAIT":
+        decision_reason = f"Buy window closed before {NO_BUY_BEFORE_ET} ET."
+    elif decision == "SKIP":
+        if setup_grade == "NO TRADE":
+            decision_reason = "Setup grade is NO TRADE, so decision is non-executable SKIP."
+        else:
+            decision_reason = "Setup failed non-negotiable execution gates and was downgraded to SKIP."
+    elif decision == "WATCH":
+        decision_reason = "Setup is watchlist-eligible but did not meet executable BUY NOW gates."
+
+    execution_eligibility_reason = "Decision is executable under current scan contract rules."
+    if decision not in {"BUY NOW"}:
+        execution_eligibility_reason = "Decision is non-executable under current scan contract rules."
 
     notes = []
     if or_stats.get('or_high'):
@@ -1414,6 +1434,29 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
             'vixy_change_pct_1h': round(vixy_change, 3),
             'required_premarket_dollar_volume': round(required_premarket_notional, 2),
             'skip_reasons': skip_reasons,
+            'skip_reason': skip_reasons[0] if skip_reasons else None,
+            'decision_reason': decision_reason,
+            'setup_grade_reason': setup_grade_reason,
+            'execution_eligibility_reason': execution_eligibility_reason,
+            'min_score_to_execute': MIN_SCORE_TO_EXECUTE,
+            'threshold_comparisons': {
+                'catalyst_score': catalyst_score,
+                'required_catalyst_score': MIN_CATALYST_SCORE,
+                'liquidity_score': liquidity_score,
+                'required_liquidity_score': MIN_LIQUIDITY_SCORE,
+                'sector_score': sector_score,
+                'required_sector_score': MIN_SECTOR_SYMPATHY_SCORE,
+                'confirm_score': confirm_score,
+                'required_confirm_score': MIN_CONFIRM_SCORE,
+                'vwap_score': vwap_score,
+                'required_vwap_score': MIN_VWAP_SCORE,
+                'pullback_score': pullback_score,
+                'required_pullback_score': MIN_PULLBACK_SCORE,
+                'premarket_gap_pct': round(premarket_gap_pct, 3),
+                'required_premarket_gap_pct': MIN_PREMARKET_GAP_PCT,
+                'premarket_dollar_volume': round(premarket_notional, 2),
+                'required_premarket_dollar_volume': round(required_premarket_notional, 2),
+            },
             'sizing': sizing,
             'quick_notes': notes,
         },

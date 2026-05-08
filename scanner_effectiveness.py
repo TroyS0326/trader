@@ -47,6 +47,17 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         "target_2": normalized.get("target_2"),
         "missing_order_fields": contract.get("missing_order_fields") or [],
         "payload_shape_notes": contract.get("payload_shape_notes") or [],
+        "score_total": best.get("score_total"),
+        "min_score_to_execute": (best.get("details") or {}).get("min_score_to_execute"),
+        "skip_reason": (best.get("details") or {}).get("skip_reason"),
+        "skip_reasons": (best.get("details") or {}).get("skip_reasons") or [],
+        "decision_reason": (best.get("details") or {}).get("decision_reason"),
+        "setup_grade_reason": (best.get("details") or {}).get("setup_grade_reason"),
+        "execution_eligibility_reason": (best.get("details") or {}).get("execution_eligibility_reason"),
+        "buy_window_open": best.get("buy_window_open"),
+        "opening_range_complete": best.get("opening_range_complete"),
+        "breakout_confirmed": best.get("breakout_confirmed"),
+        "component_scores": best.get("scores") or {},
         "blocked_reason_codes": [],
     }
 
@@ -152,15 +163,26 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     executable_payload_ready_count = 0
     scans_by_user_count: dict[int, int] = defaultdict(int)
     source_counts: Counter = Counter()
+    skip_reason_counts: Counter = Counter()
+    setup_grade_counts: Counter = Counter()
+    score_total_buckets: Counter = Counter()
+    component_score_totals: defaultdict[str, float] = defaultdict(float)
+    component_score_counts: Counter = Counter()
     failures: list[dict] = []
     executable_samples: list[dict] = []
     rejection_reasons: Counter = Counter()
+
+    attributed_scan_count = 0
+    unattributed_scan_count = 0
 
     for scan in all_scans:
         uid = int(scan.get("user_id") or 0)
         source_counts[str(scan.get("_source") or "unknown")] += 1
         if uid:
+            attributed_scan_count += 1
             scans_by_user_count[uid] += 1
+        else:
+            unattributed_scan_count += 1
         contract = validate_scan_payload_contract(scan if isinstance(scan, dict) else {})
         decision = contract.get("decision") or "blank/missing"
         decision_counts[decision] += 1
@@ -172,6 +194,23 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
 
         symbol = (contract.get("normalized_order_fields") or {}).get("symbol") or "UNKNOWN"
         symbol_counts[symbol] += 1
+        best_pick = scan.get("best_pick") if isinstance(scan.get("best_pick"), dict) else {}
+        setup_grade = str(best_pick.get("setup_grade") or "").strip() or "UNKNOWN"
+        setup_grade_counts[setup_grade] += 1
+        score_total = best_pick.get("score_total")
+        if isinstance(score_total, (int, float)):
+            bucket_floor = int(score_total // 10) * 10
+            score_total_buckets[f"{bucket_floor:02d}-{bucket_floor + 9:02d}"] += 1
+        details = best_pick.get("details") if isinstance(best_pick.get("details"), dict) else {}
+        for reason in details.get("skip_reasons") or []:
+            skip_reason_counts[str(reason)] += 1
+        if details.get("skip_reason"):
+            skip_reason_counts[str(details.get("skip_reason"))] += 1
+        component_scores = best_pick.get("scores") if isinstance(best_pick.get("scores"), dict) else {}
+        for key, value in component_scores.items():
+            if isinstance(value, (int, float)):
+                component_score_totals[str(key)] += float(value)
+                component_score_counts[str(key)] += 1
 
         if not contract.get("qty_valid"):
             qty_invalid_count += 1
@@ -204,7 +243,8 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                 if code:
                     blocked_reason_counts[code] += 1
         else:
-            blocked_reason_counts["USER_CONTEXT_MISSING"] += 1
+            if uid <= 0:
+                blocked_reason_counts["USER_CONTEXT_MISSING"] += 1
 
         safe_view = _safe_scan_view(scan)
         safe_view["active_mode"] = (diag or {}).get("active_mode")
@@ -230,6 +270,33 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
             latest = max(dts)
             latest_age = int((datetime.now(timezone.utc) - latest.astimezone(timezone.utc)).total_seconds())
 
+    dominant_symbol = None
+    dominant_symbol_pct = 0.0
+    same_symbol_count = 0
+    repeated_best_pick_warning = False
+    latest_dominant_symbol_decisions: list[str] = []
+    latest_dominant_symbol_skip_reasons: list[str] = []
+    if symbol_counts:
+        dominant_symbol, same_symbol_count = symbol_counts.most_common(1)[0]
+        if all_scans:
+            dominant_symbol_pct = round((same_symbol_count / len(all_scans)) * 100, 2)
+        repeated_best_pick_warning = dominant_symbol_pct > 80.0
+        for scan in all_scans:
+            safe = _safe_scan_view(scan)
+            if safe.get("symbol") == dominant_symbol:
+                if safe.get("decision"):
+                    latest_dominant_symbol_decisions.append(safe["decision"])
+                for reason in safe.get("skip_reasons") or []:
+                    latest_dominant_symbol_skip_reasons.append(str(reason))
+                if len(latest_dominant_symbol_decisions) >= 10 and len(latest_dominant_symbol_skip_reasons) >= 20:
+                    break
+
+    component_score_averages = {
+        key: round(component_score_totals[key] / component_score_counts[key], 3)
+        for key in sorted(component_score_totals.keys())
+        if component_score_counts.get(key)
+    }
+
     return {
         "total_scans_analyzed": len(all_scans),
         "scans_by_user_count": dict(scans_by_user_count),
@@ -242,9 +309,23 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "qty_invalid_count": qty_invalid_count,
         "qty_below_one_count": qty_below_one_count,
         "symbol_counts": dict(symbol_counts),
+        "skip_reason_counts": dict(skip_reason_counts),
+        "setup_grade_counts": dict(setup_grade_counts),
+        "score_total_buckets": dict(score_total_buckets),
+        "component_score_averages": component_score_averages,
         "top_non_executable_symbols": non_exec_symbols.most_common(10),
         "top_executable_symbols": executable_symbols.most_common(10),
         "blocked_reason_counts": dict(blocked_reason_counts),
+        "user_context_missing_count": int(blocked_reason_counts.get("USER_CONTEXT_MISSING", 0)),
+        "attributed_scan_count": attributed_scan_count,
+        "unattributed_scan_count": unattributed_scan_count,
+        "dominant_symbol_warning": repeated_best_pick_warning,
+        "repeated_best_pick_warning": repeated_best_pick_warning,
+        "dominant_symbol": dominant_symbol,
+        "dominant_symbol_pct": dominant_symbol_pct,
+        "same_symbol_count": same_symbol_count,
+        "latest_dominant_symbol_decisions": latest_dominant_symbol_decisions[:10],
+        "latest_dominant_symbol_skip_reasons": latest_dominant_symbol_skip_reasons[:20],
         "scan_contract_failure_counts": dict(scan_contract_failure_counts),
         "top_rejection_reasons": dict(rejection_reasons.most_common(20)),
         "sample_recent_failures": failures,
