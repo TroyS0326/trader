@@ -1514,7 +1514,14 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
         samples = []
     samples = [_truncate_headline(h) for h in samples[:3] if str(h or '').strip()]
 
+    feature_store_hit = bool(ml_features)
     missing_reason = 'UNKNOWN'
+    if not feature_store_hit:
+        missing_reason = 'SOURCE_UNAVAILABLE'
+    elif all(k not in ml_features for k in ('headline_count', 'recent_headline_count', 'latest_headline_age_minutes', 'keywords_hit')):
+        missing_reason = 'FEATURE_STORE_MISSING_FIELDS'
+    elif headline_count <= 0 and float(ml_features.get('p_success', 0.5) or 0.5) == 0.5:
+        missing_reason = 'FEATURE_STORE_BASELINE_ONLY'
     if headline_count <= 0:
         missing_reason = 'NO_NEWS_FOUND'
     elif latest_age is not None and latest_age > 240:
@@ -1529,6 +1536,8 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
 
     return {
         'catalyst_source': catalyst_meta.get('model') or 'unknown',
+        'catalyst_feature_store_hit': feature_store_hit,
+        'catalyst_feature_store_age_minutes': ml_features.get('feature_store_age_minutes'),
         'catalyst_headline_count': headline_count,
         'catalyst_recent_headline_count': recent_count,
         'catalyst_latest_headline_age_minutes': latest_age,
@@ -1553,9 +1562,27 @@ def _baseline_catalyst_reason(catalyst_score: int, cat_diag: Dict[str, Any]) -> 
         return 'BASELINE_ONLY_NO_AI_CONFIRMATION'
     if miss in {'NEWS_API_ERROR'}:
         return 'SOURCE_UNAVAILABLE'
+    if miss in {'FEATURE_STORE_MISSING_FIELDS', 'FEATURE_STORE_BASELINE_ONLY'}:
+        return 'FEATURE_STORE_BASELINE_ONLY'
     if cat_diag.get('catalyst_is_fresh'):
         return 'FRESH_BUT_NOT_STRONG'
-    return 'BASELINE_ONLY_WEAK_NEWS'
+    return 'UNKNOWN_BASELINE_REASON'
+
+
+_SOURCE_PRIORITY = {
+    'news_catalyst': 0,
+    'momentum_breakout': 1,
+    'orb_primary': 2,
+    'fallback_market_candidates': 3,
+    'unknown': 4,
+}
+
+
+def _select_primary_source(sources: List[str]) -> str:
+    if not sources:
+        return 'unknown'
+    deduped = [s for s in dict.fromkeys([str(x or 'unknown') for x in sources]).keys()]
+    return sorted(deduped, key=lambda x: _SOURCE_PRIORITY.get(x, 99))[0]
 
 def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any], feed_used: Optional[str] = None) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
@@ -1983,9 +2010,16 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         'momentum_breakout': len(momentum_symbols),
     }
     symbols = list(dict.fromkeys(orb_symbols + momentum_symbols))
-    candidate_source_map = {sym: 'orb_primary' for sym in orb_symbols}
+    candidate_sources_map: Dict[str, List[str]] = {}
+    for sym in orb_symbols:
+        candidate_sources_map.setdefault(sym, []).append('orb_primary')
     for sym in momentum_symbols:
-        candidate_source_map[sym] = 'momentum_breakout'
+        candidate_sources_map.setdefault(sym, []).append('momentum_breakout')
+    news_catalyst_symbols = get_news_catalyst_list(symbols or get_market_candidates(SCAN_CANDIDATE_LIMIT))
+    source_candidate_counts['news_catalyst'] = len(news_catalyst_symbols)
+    for sym in news_catalyst_symbols:
+        candidate_sources_map.setdefault(sym, []).append('news_catalyst')
+    candidate_source_map = {sym: _select_primary_source(srcs) for sym, srcs in candidate_sources_map.items()}
     candidate_count_raw = len(orb_symbols + momentum_symbols)
     candidate_count_after_dedupe = len(symbols)
     fallback_used = False
@@ -1998,7 +2032,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         fallback_reason = 'CANDIDATE_UNIVERSE_TOO_SMALL'
         symbols = list(dict.fromkeys(symbols + fallback_candidates))
         for sym in fallback_candidates:
-            candidate_source_map.setdefault(sym, 'fallback_market_candidates')
+            candidate_sources_map.setdefault(sym, []).append('fallback_market_candidates')
+            candidate_source_map[sym] = _select_primary_source(candidate_sources_map.get(sym, []))
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
@@ -2184,7 +2219,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         daily_bars = daily_bars_map.get(symbol, [])
         minute_bars = minute_bars_map.get(symbol, [])
         snapshot = dict(snapshots.get(symbol, {}) or {})
-        snapshot['_candidate_source'] = candidate_source_map.get(symbol, 'unknown')
+        source_list = candidate_sources_map.get(symbol, [candidate_source_map.get(symbol, 'unknown')])
+        source = _select_primary_source(source_list)
+        snapshot['_candidate_source'] = source
         quote = quotes.get(symbol, {})
         ask = safe_num(quote.get('ap'))
         minute_close = safe_num(snapshot.get('minuteBar', {}).get('c'))
@@ -2227,6 +2264,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
                 user_flags={'biotech': bool(getattr(user, 'allow_biotech', True)), 'etf': bool(getattr(user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(user, 'allow_crypto_etfs', True)), 'options': bool(getattr(user, 'allow_options_trading', False))}
             )
             analysis.update({
+                'source': source,
+                'sources': list(dict.fromkeys(source_list)),
                 'asset_type': classification.get('asset_type'),
                 'asset_type_reason': classification.get('asset_type_reason'),
                 'platform_allowed': classification.get('platform_allowed'),
@@ -2234,6 +2273,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
                 'tradable_by_xeanvi': classification.get('tradable_by_xeanvi'),
                 'rejection_reasons': classification.get('rejection_reasons') or [],
             })
+            analysis.setdefault('details', {})['candidate_source'] = source
+            analysis['details']['candidate_sources'] = list(dict.fromkeys(source_list))
             ranked.append(analysis)
             analyzed_symbols.append(symbol)
             _scanner_debug("SUCCESS: Analyzed %s", symbol)
@@ -2278,10 +2319,39 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         actual_pmdv = d.get('premarket_dollar_volume')
         required_pmdv = d.get('required_premarket_dollar_volume')
         gap = (actual_pmdv - required_pmdv) if isinstance(actual_pmdv, (int, float)) and isinstance(required_pmdv, (int, float)) else None
-        top_5.append({'symbol': r.get('symbol'), 'source': r.get('source', 'unknown'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'liquidity_score_reason': (d.get('liquidity') or {}).get('liquidity_score_reason'), 'liquidity_failure_codes': (d.get('liquidity') or {}).get('liquidity_failure_codes') or [], 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'catalyst_source': (d.get('catalyst') or {}).get('catalyst_source', 'unknown'), 'catalyst_strength_reason': (d.get('catalyst') or {}).get('catalyst_strength_reason'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'vwap_trend_aligned': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_aligned'), 'vwap_trend_reason': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_reason'), 'price_vs_vwap_pct': (d.get('vwap_hold_reclaim') or {}).get('price_vs_vwap_pct'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
+        cat = d.get('catalyst') or {}
+        top_5.append({'symbol': r.get('symbol'), 'source': r.get('source', 'unknown'), 'sources': r.get('sources') or [r.get('source', 'unknown')], 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'liquidity_score_reason': (d.get('liquidity') or {}).get('liquidity_score_reason'), 'liquidity_failure_codes': (d.get('liquidity') or {}).get('liquidity_failure_codes') or [], 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'catalyst_source': cat.get('catalyst_source', 'unknown'), 'catalyst_strength_reason': cat.get('catalyst_strength_reason'), 'catalyst_score_baseline_reason': cat.get('catalyst_score_baseline_reason'), 'catalyst_missing_reason': cat.get('catalyst_missing_reason'), 'catalyst_confidence': cat.get('catalyst_confidence'), 'catalyst_headline_count': cat.get('catalyst_headline_count'), 'catalyst_latest_headline_age_minutes': cat.get('catalyst_latest_headline_age_minutes'), 'catalyst_keywords_hit': cat.get('catalyst_keywords_hit') or [], 'catalyst_score_components': cat.get('catalyst_score_components') or {}, 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'vwap_trend_aligned': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_aligned'), 'vwap_trend_reason': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_reason'), 'price_vs_vwap_pct': (d.get('vwap_hold_reclaim') or {}).get('price_vs_vwap_pct'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
     premarket_unavailable_symbols = [r.get('symbol') for r in ranked if (r.get('details') or {}).get('premarket_data_available') is False]
     premarket_too_light_symbols = [r.get('symbol') for r in ranked if 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT' in ((r.get('details') or {}).get('skip_reason_codes') or [])]
     premarket_passed_count = len([r for r in ranked if bool((r.get('details') or {}).get('premarket_dollar_volume_passed'))])
+    source_quality_summary: Dict[str, Any] = {}
+    all_sources = sorted(set([s for srcs in candidate_sources_map.values() for s in srcs] + ['unknown']))
+    for src in all_sources:
+        analyzed_for_source = [r for r in ranked if src in (r.get('sources') or [r.get('source', 'unknown')])]
+        if not analyzed_for_source and src not in source_candidate_counts:
+            continue
+        source_quality_summary[src] = {
+            'raw_count': source_candidate_counts.get(src, 0),
+            'analyzed_count': len(analyzed_for_source),
+            'executable_count': len([r for r in analyzed_for_source if r.get('decision') in {'BUY NOW', 'A+', 'A'}]),
+            'watch_count': len([r for r in analyzed_for_source if r.get('decision') == 'WATCH']),
+            'skip_count': len([r for r in analyzed_for_source if r.get('decision') == 'SKIP']),
+            'average_score_total': round(sum(float(r.get('score_total') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 3),
+            'average_catalyst_score': round(sum(float((r.get('scores') or {}).get('catalyst') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 3),
+            'average_liquidity_score': round(sum(float((r.get('scores') or {}).get('liquidity') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 3),
+            'average_spread_pct': round(sum(float((r.get('details') or {}).get('spread_pct') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 5),
+            'average_premarket_dollar_volume': round(sum(float((r.get('details') or {}).get('premarket_dollar_volume') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 2),
+            'top_symbols': [r.get('symbol') for r in analyzed_for_source[:5]],
+            'primary_skip_reason_codes': sorted([(code, len([r for r in analyzed_for_source if code in ((r.get('details') or {}).get('skip_reason_codes') or [])])) for code in {c for rr in analyzed_for_source for c in ((rr.get('details') or {}).get('skip_reason_codes') or [])}], key=lambda x: x[1], reverse=True)[:5],
+        }
+    catalyst_baseline_reason_counts = {}
+    catalyst_missing_reason_counts = {}
+    for r in ranked:
+        cat = (r.get('details') or {}).get('catalyst', {})
+        br = cat.get('catalyst_score_baseline_reason') or 'NONE'
+        mr = cat.get('catalyst_missing_reason') or 'UNKNOWN'
+        catalyst_baseline_reason_counts[br] = catalyst_baseline_reason_counts.get(br, 0) + 1
+        catalyst_missing_reason_counts[mr] = catalyst_missing_reason_counts.get(mr, 0) + 1
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
@@ -2362,12 +2432,17 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'best_skip_candidate_symbol': skip_candidates[0]['symbol'] if skip_candidates else None,
             'best_pick_selection_reason': best_pick_selection_reason,
             'scanner_starvation_flags': starvation_flags,
-            'source_candidate_counts': source_candidate_counts,
+            'source_candidate_counts': {src: len([sym for sym, srcs in candidate_sources_map.items() if src in srcs]) for src in sorted(set(list(source_candidate_counts.keys()) + [s for srcs in candidate_sources_map.values() for s in srcs]))},
             'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20], 'orb_primary': orb_symbols[:20], 'momentum_breakout': momentum_symbols[:20]},
-            'top_candidates_by_source': {src: [x.get('symbol') for x in ranked if x.get('source', 'unknown') == src][:5] for src in sorted(set([x.get('source', 'unknown') for x in ranked]))},
+            'top_candidates_by_source': {src: [x.get('symbol') for x in ranked if src in (x.get('sources') or [x.get('source', 'unknown')])][:5] for src in sorted(set([s for srcs in candidate_sources_map.values() for s in srcs]))},
             'rejected_candidate_source_counts': {src: len([r for r in rejection_events if r.get('source') == src]) for src in sorted(set([r.get('source','unknown') for r in rejection_events]))},
-            'final_analyzed_symbols_with_source': [{'symbol': x.get('symbol'), 'source': x.get('source', 'unknown')} for x in ranked],
+            'final_analyzed_symbols_with_source': [{'symbol': x.get('symbol'), 'source': x.get('source', 'unknown'), 'sources': x.get('sources') or [x.get('source', 'unknown')]} for x in ranked],
             'best_pick_source': best.get('source', 'unknown'),
+            'latest_candidate_source_quality_summary': source_quality_summary,
+            'latest_catalyst_baseline_reason_counts': catalyst_baseline_reason_counts,
+            'latest_catalyst_missing_reason_counts': catalyst_missing_reason_counts,
+            'latest_catalyst_feature_store_hit_count': len([r for r in ranked if bool(((r.get('details') or {}).get('catalyst') or {}).get('catalyst_feature_store_hit'))]),
+            'latest_catalyst_feature_store_missing_count': len([r for r in ranked if not bool(((r.get('details') or {}).get('catalyst') or {}).get('catalyst_feature_store_hit'))]),
             'candidate_rejection_counts': {k: len([r for r in rejection_events if r.get('stage') == k]) for k in {r.get('stage') for r in rejection_events}},
             'candidate_rejection_samples': rejection_events[:20],
             'gatekeeper_rejection_counts': {},
