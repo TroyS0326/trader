@@ -33,6 +33,34 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
     best = (scan.get("best_pick") or scan.get("best") or scan.get("top_pick") or {}) if isinstance(scan, dict) else {}
     normalized = contract.get("normalized_order_fields") or {}
 
+    details = best.get("details") or {}
+    explicit_codes = details.get("skip_reason_codes") or []
+    skip_reason_values = list(details.get("skip_reasons") or [])
+    single_skip_reason = str(details.get("skip_reason") or "").strip()
+    if single_skip_reason:
+        skip_reason_values.append(single_skip_reason)
+    synthesized_codes: list[str] = []
+    for reason in skip_reason_values:
+        code = normalize_skip_reason_code(reason)
+        if code and code not in synthesized_codes:
+            synthesized_codes.append(code)
+    deduped_codes: list[str] = []
+    for code in explicit_codes or synthesized_codes:
+        text = str(code or "").strip()
+        if text and text not in deduped_codes:
+            deduped_codes.append(text)
+
+    safe_scan_diag = {}
+    scan_diag = scan.get("scan_diagnostics") if isinstance(scan.get("scan_diagnostics"), dict) else {}
+    for key in [
+        "candidate_count_raw", "candidate_count_after_dedupe", "candidate_count_after_user_filters",
+        "candidate_count_after_price_volume_filters", "top_5_candidates_by_score", "best_pick_selection_reason",
+        "executable_candidate_count", "watch_candidate_count", "skip_candidate_count",
+        "best_executable_candidate_symbol", "best_watch_candidate_symbol", "best_skip_candidate_symbol",
+    ]:
+        if key in scan_diag:
+            safe_scan_diag[key] = scan_diag.get(key)
+
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -51,17 +79,34 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         "payload_shape_notes": contract.get("payload_shape_notes") or [],
         "score_total": best.get("score_total"),
         "min_score_to_execute": (best.get("details") or {}).get("min_score_to_execute"),
-        "skip_reason": (best.get("details") or {}).get("skip_reason"),
-        "skip_reasons": (best.get("details") or {}).get("skip_reasons") or [],
-        "decision_reason": (best.get("details") or {}).get("decision_reason"),
-        "setup_grade_reason": (best.get("details") or {}).get("setup_grade_reason"),
-        "execution_eligibility_reason": (best.get("details") or {}).get("execution_eligibility_reason"),
+        "skip_reason": details.get("skip_reason"),
+        "skip_reasons": details.get("skip_reasons") or [],
+        "decision_reason": details.get("decision_reason"),
+        "setup_grade_reason": details.get("setup_grade_reason"),
+        "execution_eligibility_reason": details.get("execution_eligibility_reason"),
         "buy_window_open": best.get("buy_window_open"),
         "opening_range_complete": best.get("opening_range_complete"),
         "breakout_confirmed": best.get("breakout_confirmed"),
         "component_scores": best.get("scores") or {},
         "blocked_reason_codes": [],
-        "skip_reason_codes": (best.get("details") or {}).get("skip_reason_codes") or [],
+        "skip_reason_codes": deduped_codes,
+        "scanner_now_et": details.get("scanner_now_et"),
+        "feed_used": details.get("feed_used") or details.get("data_feed_used"),
+        "intraday_bar_count": details.get("intraday_bar_count"),
+        "today_session_bar_count": details.get("today_session_bar_count"),
+        "opening_range_bar_count": details.get("opening_range_bar_count"),
+        "latest_bar_timestamp_et": details.get("latest_bar_timestamp_et"),
+        "earliest_today_bar_timestamp_et": details.get("earliest_today_bar_timestamp_et"),
+        "opening_range_start_et": details.get("opening_range_start_et"),
+        "opening_range_end_et": details.get("opening_range_end_et"),
+        "opening_range_complete_reason": details.get("opening_range_complete_reason"),
+        "or_high": details.get("or_high"),
+        "or_low": details.get("or_low"),
+        "current_price": details.get("current_price") if details.get("current_price") is not None else best.get("current_price"),
+        "breakout_threshold_price": details.get("breakout_threshold_price"),
+        "breakout_confirmed_reason": details.get("breakout_confirmed_reason"),
+        "bars_above_breakout": details.get("bars_above_breakout"),
+        "scan_diagnostics": safe_scan_diag,
     }
 
 
@@ -326,6 +371,23 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         else:
             latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
 
+    latest_scan = all_scans[0] if all_scans else {}
+    latest_diag = latest_scan.get("scan_diagnostics") if isinstance(latest_scan.get("scan_diagnostics"), dict) else {}
+    latest_attr_version = latest_scan.get("scan_attribution_version")
+    attr_version_counts: Counter = Counter(str(scan.get("scan_attribution_version")) for scan in all_scans)
+    has_new_diag = False
+    missing_diag_reason = "NO_SCANS"
+    if all_scans:
+        if latest_attr_version is None:
+            missing_diag_reason = "SCAN_ATTRIBUTION_VERSION_MISSING"
+        elif int(latest_attr_version) < 1:
+            missing_diag_reason = "OLD_SCAN_PAYLOAD"
+        elif not latest_diag:
+            missing_diag_reason = "SCAN_DIAGNOSTICS_MISSING"
+        else:
+            has_new_diag = True
+            missing_diag_reason = None
+
     starvation_flags = []
     if repeated_best_pick_warning:
         starvation_flags.append("DOMINANT_SYMBOL_STUCK")
@@ -333,6 +395,19 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         starvation_flags.append("NO_EXECUTABLE_CANDIDATES")
     if unattributed_scan_count > 0 and (latest_unattr_age is not None and latest_unattr_age < 7200):
         starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
+
+    latest_candidate_count_after_dedupe = latest_diag.get("candidate_count_after_dedupe")
+    recommended_next_action = "Rerun scanner_effectiveness and inspect scan_diagnostics/opening_range diagnostics for dominant symbols."
+    if not has_new_diag:
+        recommended_next_action = "Run a fresh manual scan or wait for the next central scan after deploying latest code, then rerun scanner_effectiveness."
+    elif latest_diag.get("executable_candidate_count", 0) > 0 and (latest_scan.get("best_pick") or {}).get("decision") == "SKIP":
+        recommended_next_action = "Investigate best-pick ranking bug."
+    elif repeated_best_pick_warning and isinstance(latest_candidate_count_after_dedupe, int) and latest_candidate_count_after_dedupe <= 3:
+        recommended_next_action = "Investigate candidate universe breadth."
+    elif repeated_best_pick_warning and isinstance(latest_candidate_count_after_dedupe, int) and latest_candidate_count_after_dedupe > 5:
+        recommended_next_action = "Investigate ranking logic and top candidate quality."
+    elif any((s.get("opening_range_complete") is False and s.get("opening_range_bar_count") == 0 and isinstance(s.get("latest_bar_timestamp_et"), str) and isinstance(s.get("opening_range_end_et"), str)) for s in failures):
+        recommended_next_action = "Investigate Alpaca intraday bars/feed/window filtering for missing opening-range bars."
 
     return {
         "total_scans_analyzed": len(all_scans),
@@ -370,9 +445,29 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_dominant_symbol_skip_reason_codes": latest_dominant_symbol_skip_reason_codes[:20],
         "scan_contract_failure_counts": dict(scan_contract_failure_counts),
         "top_rejection_reasons": dict(rejection_reasons.most_common(20)),
+        "latest_scan_diagnostics": latest_diag,
+        "latest_candidate_count_raw": latest_diag.get("candidate_count_raw"),
+        "latest_candidate_count_after_dedupe": latest_diag.get("candidate_count_after_dedupe"),
+        "latest_candidate_count_after_user_filters": latest_diag.get("candidate_count_after_user_filters"),
+        "latest_candidate_count_after_price_volume_filters": latest_diag.get("candidate_count_after_price_volume_filters"),
+        "latest_analyzed_symbols": latest_diag.get("analyzed_symbols"),
+        "latest_candidate_symbols_sample": latest_diag.get("candidate_symbols_sample"),
+        "latest_top_5_candidates_by_score": latest_diag.get("top_5_candidates_by_score"),
+        "latest_executable_candidate_count": latest_diag.get("executable_candidate_count"),
+        "latest_watch_candidate_count": latest_diag.get("watch_candidate_count"),
+        "latest_skip_candidate_count": latest_diag.get("skip_candidate_count"),
+        "latest_best_executable_candidate_symbol": latest_diag.get("best_executable_candidate_symbol"),
+        "latest_best_watch_candidate_symbol": latest_diag.get("best_watch_candidate_symbol"),
+        "latest_best_skip_candidate_symbol": latest_diag.get("best_skip_candidate_symbol"),
+        "latest_best_pick_selection_reason": latest_diag.get("best_pick_selection_reason"),
+        "latest_scan_starvation_flags": latest_diag.get("scan_starvation_flags") or [],
+        "latest_scan_attribution_version": latest_attr_version,
+        "scan_attribution_version_counts": dict(attr_version_counts),
+        "latest_scan_has_new_diagnostics": has_new_diag,
+        "latest_scan_missing_new_diagnostics_reason": missing_diag_reason,
         "sample_recent_failures": failures,
         "primary_blocker_summary": starvation_flags[0] if starvation_flags else "NONE",
-        "recommended_next_action": "Rerun scanner_effectiveness and inspect scan_diagnostics/opening_range diagnostics for dominant symbols.",
+        "recommended_next_action": recommended_next_action,
         "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
     }
