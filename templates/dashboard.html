@@ -80,6 +80,7 @@
         
         .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; height: 500px; flex-shrink: 0; }
         .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 2rem; }
+        .bottom-row > .full-width { grid-column: 1 / -1; }
 
         /* --- Global Card Aesthetics --- */
         .card, .control-panel, .chart-panel, .data-card {
@@ -167,6 +168,25 @@
         .mini-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
         .mini-card .value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
 
+
+        .scanner-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .scanner-metric-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 0.85rem; min-width: 0; }
+        .scanner-metric-card .label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+        .scanner-metric-card .value { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main); line-height: 1.45; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+        .scanner-ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; }
+        .scanner-section { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
+        .scanner-kv { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 10px; margin-bottom: 0.55rem; align-items: start; min-width: 0; }
+        .scanner-kv:last-child { margin-bottom: 0; }
+        .scanner-kv > * { min-width: 0; }
+        .scanner-value { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.45; color: var(--text-main); white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+        .scanner-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; margin-right: 6px; margin-bottom: 6px; }
+        .scanner-badge.watch, .scanner-badge.warn { color: var(--warning); background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); }
+        .scanner-badge.ok { color: var(--success); background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.45); }
+        .scanner-badge.danger { color: var(--danger); background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.45); }
+        .scanner-confirmation-list { margin: 0.4rem 0 0 1rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.45; }
+        .scanner-alpaca-health { margin-top: 0.35rem; }
+        .scanner-muted { font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); }
+        
         /* Tables */
         .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
         table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -201,6 +221,8 @@
             .chart-panel { height: 350px; }
             .chart-container { height: 100%; min-height: 250px; }
             .bottom-row { display: flex; flex-direction: column; }
+            .scanner-ops-grid { grid-template-columns: 1fr; }
+            .scanner-kv { grid-template-columns: 1fr; gap: 6px; }
         }
 
         @media (max-width: 768px) {
@@ -527,26 +549,25 @@
             </div>
             <div class="data-card full-width" id="scanner-ops-panel">
                 <div class="card-header">Scanner Operational Status <span class="sys-tag">SCANNER_STATE</span></div>
-                <div class="mini-grid" id="scanner-freshness-grid"></div>
-                <div class="watch-panel" style="margin-top:12px;">
-                    <div class="watch-line"><span>Current Scanner Decision:</span><span id="scanner-current-decision">—</span></div>
-                    <div class="watch-line"><span>Executable Candidates:</span><span id="scanner-executable-count">0</span></div>
-                    <div class="watch-line"><span>Decision Counts:</span><span id="scanner-decision-counts">—</span></div>
-                    <div class="watch-line"><span>Primary Blocker:</span><span id="scanner-primary-blocker">—</span></div>
-                </div>
-                <div class="watch-panel" style="margin-top:12px;">
-                    <div class="watch-line"><span>Active WATCH:</span><span id="scanner-active-watch">No active WATCH candidates.</span></div>
-                    <div id="scanner-missing-confirmations" style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;"></div>
-                </div>
-                <div class="watch-panel" style="margin-top:12px;">
-                    <div class="watch-line"><span>Recommended Action:</span><span id="scanner-recommended-action">—</span></div>
-                </div>
-                <div class="watch-panel" style="margin-top:12px;">
-                    <div class="watch-line"><span>Alpaca metadata:</span><span id="scanner-alpaca-fallback">—</span></div>
-                    <div class="watch-line"><span>User OAuth metadata health:</span><span id="scanner-oauth-health">—</span></div>
-                    <div class="watch-line"><span>Reconnect required:</span><span id="scanner-reconnect-required">—</span></div>
-                    <div class="watch-line"><span>Reconnect reason:</span><span id="scanner-reconnect-reason">—</span></div>
-                    <div class="watch-line"><span>Degraded mode:</span><span id="scanner-degraded-mode">—</span></div>
+                <div class="scanner-metric-grid" id="scanner-freshness-grid"></div>
+                <div class="scanner-ops-grid">
+                    <div class="scanner-section">
+                        <div class="scanner-kv"><div class="label">Current Decision</div><div class="scanner-value" id="scanner-current-decision">—</div></div>
+                        <div class="scanner-kv"><div class="label">Executable</div><div class="scanner-value" id="scanner-executable-count">0 (WATCH is non-executable)</div></div>
+                        <div class="scanner-kv"><div class="label">Decision Counts</div><div class="scanner-value" id="scanner-decision-counts">—</div></div>
+                        <div class="scanner-kv"><div class="label">Primary Blocker</div><div class="scanner-value" id="scanner-primary-blocker">—</div></div>
+                        <div class="scanner-kv"><div class="label">Active WATCH</div><div class="scanner-value" id="scanner-active-watch">No active WATCH candidates.</div></div>
+                        <div id="scanner-missing-confirmations" class="scanner-confirmation-list"></div>
+                    </div>
+                    <div class="scanner-section scanner-alpaca-health">
+                        <div class="scanner-kv"><div class="label">Recommended Action</div><div class="scanner-value" id="scanner-recommended-action">—</div></div>
+                        <div class="scanner-kv"><div class="label">Alpaca metadata</div><div class="scanner-value" id="scanner-alpaca-fallback">—</div></div>
+                        <div class="scanner-kv"><div class="label">User OAuth metadata health</div><div class="scanner-value" id="scanner-oauth-health">—</div></div>
+                        <div class="scanner-kv"><div class="label">Reconnect required</div><div class="scanner-value" id="scanner-reconnect-required">—</div></div>
+                        <div class="scanner-kv"><div class="label">Reconnect reason</div><div class="scanner-value" id="scanner-reconnect-reason">—</div></div>
+                        <div id="scanner-reconnect-reason-code" class="scanner-muted"></div>
+                        <div class="scanner-kv"><div class="label">Degraded mode</div><div class="scanner-value" id="scanner-degraded-mode">—</div></div>
+                    </div>
                 </div>
             </div>
 
@@ -904,45 +925,87 @@
             return reasonCodeLabels[code] || code || '—';
         }
 
+        function humanizeReconnectReason(code) {
+            const labels = {
+                USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA: 'Alpaca reconnect required',
+                SERVER_KEYS_SUCCEEDED: 'Server metadata fallback active',
+                HTTP_401: 'Unauthorized',
+                HTTP_403: 'Forbidden',
+            };
+            return labels[code] || (code ? code.replaceAll('_', ' ') : '—');
+        }
+
+        function clearNode(node) {
+            while (node.firstChild) node.removeChild(node.firstChild);
+        }
+
+        function renderCountBadges(counts) {
+            const fragment = document.createDocumentFragment();
+            ['WATCH', 'SKIP', 'BUY NOW'].forEach((key) => {
+                const badge = document.createElement('span');
+                badge.className = `scanner-badge ${key === 'WATCH' ? 'watch' : key === 'BUY NOW' ? 'ok' : 'warn'}`;
+                badge.textContent = `${key} ${Number(counts?.[key] || 0)}`;
+                fragment.appendChild(badge);
+            });
+            return fragment;
+        }
+
+        function addMetricCard(container, label, value, badgeClass = null) {
+            const card = document.createElement('div');
+            card.className = 'scanner-metric-card';
+            const labelEl = document.createElement('div'); labelEl.className = 'label'; labelEl.textContent = label;
+            const valueEl = document.createElement('div'); valueEl.className = 'value';
+            if (badgeClass) {
+                const badge = document.createElement('span'); badge.className = `scanner-badge ${badgeClass}`; badge.textContent = value;
+                valueEl.appendChild(badge);
+            } else {
+                valueEl.textContent = value;
+            }
+            card.append(labelEl, valueEl);
+            container.appendChild(card);
+        }
+
         function renderScannerEffectiveness(report) {
             const freshnessGrid = document.getElementById('scanner-freshness-grid');
+            clearNode(freshnessGrid);
             const ageSeconds = Number(report.latest_enriched_scan_age_seconds);
             const stale = !report.has_recent_operational_scans;
-            freshnessGrid.innerHTML = `
-                <div class="mini-card"><div class="label">Dashboard scope used</div><div class="value">${report.dashboard_scope_used || report.current_dashboard_summary_scope || '—'}</div></div>
-                <div class="mini-card"><div class="label">Latest scan age</div><div class="value">${Number.isFinite(ageSeconds) ? `${ageSeconds}s` : '—'}</div></div>
-                <div class="mini-card"><div class="label">Report scope</div><div class="value">${report.current_report_scan_scope || '—'}</div></div>
-                <div class="mini-card"><div class="label">Stale status</div><div class="value">${stale ? 'No recent attributed scans. Run a fresh scan.' : 'Fresh attributed scan data present'}</div></div>
-                <div class="mini-card"><div class="label">Recent scans (15m/60m/day)</div><div class="value">${report.operational_scans_recent_15m_count || 0} / ${report.operational_scans_recent_60m_count || 0} / ${report.operational_scans_current_day_count || 0}</div></div>
-            `;
+            addMetricCard(freshnessGrid, 'Scope', report.dashboard_scope_used || report.current_dashboard_summary_scope || '—');
+            addMetricCard(freshnessGrid, 'Latest Scan Age', Number.isFinite(ageSeconds) ? `${ageSeconds}s` : '—');
+            addMetricCard(freshnessGrid, 'Report Scope', report.current_report_scan_scope || '—');
+            addMetricCard(freshnessGrid, 'Recent Scans', `${report.operational_scans_recent_15m_count || 0} / ${report.operational_scans_recent_60m_count || 0} / ${report.operational_scans_current_day_count || 0}`);
+            addMetricCard(freshnessGrid, 'Executable Count', String((report.current_dashboard_summary || {}).executable_payload_ready_count || 0), ((report.current_dashboard_summary || {}).executable_payload_ready_count || 0) > 0 ? 'ok' : 'warn');
+            addMetricCard(freshnessGrid, 'Data Freshness', stale ? 'No recent attributed scans. Run a fresh scan.' : 'Fresh attributed scan data present', stale ? 'warn' : 'ok');
+
             const summary = report.current_dashboard_summary || {};
-            const latestSymbol = summary.latest_symbol || '—';
-            const latestDecision = summary.latest_decision || '—';
-            const latestGrade = summary.latest_setup_grade || '—';
-            const executableCount = Number(summary.executable_payload_ready_count || 0);
-            document.getElementById('scanner-current-decision').textContent = `${latestSymbol} — ${latestDecision} / ${latestGrade}`;
-            document.getElementById('scanner-executable-count').textContent = `${executableCount} (WATCH is non-executable)`;
-            document.getElementById('scanner-decision-counts').textContent = JSON.stringify(summary.decision_counts || {});
+            document.getElementById('scanner-current-decision').textContent = `${summary.latest_symbol || '—'} — ${summary.latest_decision || '—'} / ${summary.latest_setup_grade || '—'}`;
+            document.getElementById('scanner-executable-count').textContent = `${Number(summary.executable_payload_ready_count || 0)} (WATCH is non-executable)`;
+            const decisionCounts = document.getElementById('scanner-decision-counts');
+            clearNode(decisionCounts);
+            decisionCounts.appendChild(renderCountBadges(summary.decision_counts || {}));
 
             const missing = (report.best_active_watch_missing_confirmations || []).map(formatReasonCode);
             document.getElementById('scanner-primary-blocker').textContent = missing[0] || 'None';
-
+            document.getElementById('scanner-active-watch').textContent = (report.active_watch_candidate_count || 0) > 0 ? (report.best_active_watch_symbol || report.latest_watch_candidates?.[0]?.symbol || 'WATCH candidate present') : 'No active WATCH candidates.';
+            const missingEl = document.getElementById('scanner-missing-confirmations');
+            clearNode(missingEl);
             if ((report.active_watch_candidate_count || 0) > 0) {
-                document.getElementById('scanner-active-watch').textContent = report.best_active_watch_symbol || report.latest_watch_candidates?.[0]?.symbol || 'WATCH candidate present';
-                document.getElementById('scanner-missing-confirmations').innerHTML = `<strong>Missing confirmations:</strong><br>${missing.map(m => `• ${m}`).join('<br>') || '• None'}`;
-            } else {
-                document.getElementById('scanner-active-watch').textContent = 'No active WATCH candidates.';
-                document.getElementById('scanner-missing-confirmations').textContent = '';
+                const header = document.createElement('div'); header.textContent = 'Missing confirmations:'; missingEl.appendChild(header);
+                const ul = document.createElement('ul');
+                (missing.length ? missing : ['None']).forEach((m) => { const li = document.createElement('li'); li.textContent = m; ul.appendChild(li); });
+                missingEl.appendChild(ul);
             }
 
-            document.getElementById('scanner-recommended-action').textContent = report.recommended_next_action || '—';
+            document.getElementById('scanner-recommended-action').textContent = report.recommended_next_action || 'Active WATCH candidate exists; continue rechecking until missing confirmations clear.';
             const fallbackCount = Number(report.latest_alpaca_asset_metadata_server_fallback_success_count || 0);
-            document.getElementById('scanner-alpaca-fallback').textContent = fallbackCount > 0 ? `server fallback active (${fallbackCount})` : 'normal';
-            document.getElementById('scanner-oauth-health').textContent = report.latest_alpaca_user_oauth_asset_metadata_health || 'unknown';
+            document.getElementById('scanner-alpaca-fallback').textContent = fallbackCount > 0 ? `Server metadata fallback active (${fallbackCount})` : 'Normal metadata path';
+            document.getElementById('scanner-oauth-health').textContent = humanizeReconnectReason((report.latest_alpaca_user_oauth_asset_metadata_health || 'unknown').toUpperCase().replace(/\s+/g, '_'));
             const reconnectRequired = !!report.latest_alpaca_asset_metadata_reconnect_required;
-            document.getElementById('scanner-reconnect-required').textContent = reconnectRequired ? 'yes — Alpaca reconnect recommended.' : 'no';
-            document.getElementById('scanner-reconnect-reason').textContent = report.latest_alpaca_asset_metadata_reconnect_reason || '—';
-            document.getElementById('scanner-degraded-mode').textContent = String(!!report.latest_asset_metadata_degraded_mode);
+            document.getElementById('scanner-reconnect-required').textContent = reconnectRequired ? 'Yes — Alpaca reconnect recommended.' : 'No';
+            const reconnectCode = report.latest_alpaca_asset_metadata_reconnect_reason || '';
+            document.getElementById('scanner-reconnect-reason').textContent = humanizeReconnectReason(reconnectCode);
+            document.getElementById('scanner-reconnect-reason-code').textContent = reconnectCode || '';
+            document.getElementById('scanner-degraded-mode').textContent = !!report.latest_asset_metadata_degraded_mode ? 'Yes' : 'No';
         }
 
         async function refreshScannerEffectiveness() {
