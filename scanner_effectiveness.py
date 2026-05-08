@@ -607,15 +607,37 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
             latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
 
     latest_diag = latest_scan.get("scan_diagnostics") if isinstance(latest_scan.get("scan_diagnostics"), dict) else {}
-    reconnect_required = bool(latest_diag.get("alpaca_asset_metadata_reconnect_required"))
+    active_env = "live" if user is not None and str(getattr(user, "trading_mode", "paper")).strip().lower() == "live" else "paper"
+    has_paper_token = bool(user is not None and (getattr(user, "alpaca_paper_access_token", None) or getattr(user, "alpaca_access_token", None)))
+    has_live_token = bool(user is not None and getattr(user, "alpaca_live_access_token", None))
+    has_active_env_token = has_live_token if active_env == "live" else has_paper_token
+    raw_reconnect_required = bool(latest_diag.get("alpaca_asset_metadata_reconnect_required"))
+    fallback_success_count = int(latest_diag.get("alpaca_asset_metadata_server_fallback_success_count") or 0)
+    degraded_mode = bool(latest_diag.get("asset_metadata_degraded_mode"))
+    metadata_success_count = int(latest_diag.get("asset_metadata_success_count") or 0)
+    metadata_failure_count = int(latest_diag.get("asset_metadata_failure_count") or 0)
+    metadata_all_failed = metadata_failure_count > 0 and metadata_success_count == 0 and fallback_success_count == 0
+    reconnect_required = False
+    reconnect_reason = None
     reconnect_env = None
     reconnect_url = None
     reconnect_label = None
+    metadata_fallback_notice = None
+    if not has_active_env_token:
+        reconnect_required = True
+        reconnect_reason = "ACTIVE_ENV_TOKEN_MISSING"
+    elif degraded_mode and metadata_all_failed:
+        reconnect_required = True
+        reconnect_reason = "ASSET_METADATA_DEGRADED_CREDENTIALS_CHECK_REQUIRED"
+    elif raw_reconnect_required and fallback_success_count > 0 and has_active_env_token:
+        reconnect_required = False
+        metadata_fallback_notice = "Metadata validation is using server fallback. Trading execution rules unchanged."
+    elif raw_reconnect_required and has_active_env_token:
+        reconnect_required = False
     if reconnect_required:
-        env = "live" if user is not None and str(getattr(user, "trading_mode", "paper")).strip().lower() == "live" else "paper"
-        reconnect_env = env
-        reconnect_url = f"/alpaca/login?env={env}"
-        reconnect_label = "Reconnect Alpaca Live" if env == "live" else "Reconnect Alpaca Paper"
+        reconnect_env = active_env
+        reconnect_url = f"/alpaca/login?env={active_env}"
+        reconnect_label = "Reconnect Alpaca Live" if active_env == "live" else "Reconnect Alpaca Paper"
     latest_attr_version = latest_scan.get("scan_attribution_version")
     attr_version_counts: Counter = Counter(str(scan.get("scan_attribution_version")) for scan in operational_scans)
     has_new_diag = False
@@ -825,6 +847,12 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_alpaca_asset_metadata_reconnect_required": latest_diag.get("alpaca_asset_metadata_reconnect_required"),
         "latest_alpaca_asset_metadata_reconnect_reason": latest_diag.get("alpaca_asset_metadata_reconnect_reason"),
         "latest_alpaca_asset_metadata_server_fallback_success_count": latest_diag.get("alpaca_asset_metadata_server_fallback_success_count"),
+        "alpaca_user_action_reconnect_required": reconnect_required,
+        "alpaca_user_action_reconnect_reason": reconnect_reason,
+        "alpaca_user_action_reconnect_env": reconnect_env,
+        "alpaca_user_action_reconnect_url": reconnect_url,
+        "alpaca_user_action_reconnect_label": reconnect_label,
+        "alpaca_metadata_fallback_notice": metadata_fallback_notice,
         "alpaca_reconnect_env": reconnect_env,
         "alpaca_reconnect_url": reconnect_url,
         "alpaca_reconnect_label": reconnect_label,

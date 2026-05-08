@@ -570,9 +570,21 @@ def get_alpaca_asset_with_diagnostics(
     user: Optional[Any] = None,
     source: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    token = None
+    active_mode = 'paper'
     if user is not None:
-        token = getattr(user, 'alpaca_live_access_token', None) or getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_access_token', None)
+        mode = str(getattr(user, 'trading_mode', 'paper') or 'paper').strip().lower()
+        active_mode = 'live' if mode == 'live' else 'paper'
+    user_tokens: List[Tuple[str, Optional[str]]] = []
+    if user is not None:
+        live_token = getattr(user, 'alpaca_live_access_token', None)
+        paper_token = getattr(user, 'alpaca_paper_access_token', None)
+        legacy_token = getattr(user, 'alpaca_access_token', None)
+        if active_mode == 'live':
+            user_tokens = [('live', live_token), ('paper', paper_token), ('legacy', legacy_token)]
+        else:
+            user_tokens = [('paper', paper_token), ('legacy', legacy_token), ('live', live_token)]
+    first_user_token_env = next((env for env, tok in user_tokens if tok), None)
+    token = next((tok for _, tok in user_tokens if tok), None)
     attempts = []
     user_endpoint = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
 
@@ -608,7 +620,7 @@ def get_alpaca_asset_with_diagnostics(
 
     methods = []
     if token:
-        methods.append((user_endpoint, 'user_oauth_token', {'accept': 'application/json', 'Authorization': f'Bearer {token}'}))
+        methods.append((user_endpoint, f'user_oauth_token_{first_user_token_env}', {'accept': 'application/json', 'Authorization': f'Bearer {token}'}))
     paper_key = os.getenv('ALPACA_PAPER_API_KEY', '').strip() or ALPACA_API_KEY
     paper_secret = os.getenv('ALPACA_PAPER_API_SECRET', '').strip() or ALPACA_API_SECRET
     live_key = os.getenv('ALPACA_LIVE_API_KEY', '').strip()
@@ -630,7 +642,7 @@ def get_alpaca_asset_with_diagnostics(
             final_payload = payload
             break
 
-    first_user = next((a for a in attempts if a.get('auth_source') == 'user_oauth_token'), None)
+    first_user = next((a for a in attempts if str(a.get('auth_source') or '').startswith('user_oauth_token_')), None)
     if token and first_user and first_user.get('ok'):
         token_health, token_reason = 'valid', 'SERVER_KEYS_SUCCEEDED'
     elif token and first_user and first_user.get('status_code') == 401:
@@ -643,7 +655,7 @@ def get_alpaca_asset_with_diagnostics(
         token_health, token_reason = 'unknown', 'UNKNOWN'
 
     final_attempt = next((a for a in reversed(attempts) if a.get('ok')), attempts[-1])
-    used_fallback = bool(final_attempt.get('ok') and final_attempt.get('auth_source') != 'user_oauth_token' and any(a.get('auth_source') == 'user_oauth_token' for a in attempts))
+    used_fallback = bool(final_attempt.get('ok') and not str(final_attempt.get('auth_source') or '').startswith('user_oauth_token_') and any(str(a.get('auth_source') or '').startswith('user_oauth_token_') for a in attempts))
     diag = {
         'symbol': symbol,
         'source': source or 'unknown',
@@ -659,6 +671,8 @@ def get_alpaca_asset_with_diagnostics(
         'used_fallback': used_fallback,
         'token_health': token_health,
         'token_health_reason': 'SERVER_KEYS_SUCCEEDED' if used_fallback else token_reason,
+        'user_oauth_env_attempted': first_user_token_env,
+        'active_trading_mode_for_metadata': active_mode,
     }
     if final_payload:
         return final_payload, diag
