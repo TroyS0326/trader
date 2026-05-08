@@ -192,7 +192,11 @@ def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
     q = WatchCandidate.query
     if user is not None:
         q = q.filter_by(user_id=int(user.id))
-    active = q.filter_by(status='ACTIVE').order_by(WatchCandidate.last_seen_at.desc()).all()
+    active_rows = q.filter_by(status='ACTIVE').order_by(WatchCandidate.last_seen_at.desc()).all()
+    active = [r for r in active_rows if str(getattr(r, 'latest_decision', '') or '') == 'WATCH' or str(getattr(r, 'latest_setup_grade', '') or '') == 'WATCH']
+    downgraded = q.filter_by(status='DOWNGRADED').order_by(WatchCandidate.last_seen_at.desc()).all()
+    rejected = q.filter_by(status='REJECTED').order_by(WatchCandidate.last_seen_at.desc()).all()
+    monitoring = q.filter_by(status='MONITORING').order_by(WatchCandidate.last_seen_at.desc()).all()
     today = datetime.now(timezone.utc).date()
     promoted_today = q.filter(WatchCandidate.status=='PROMOTED').all()
     expired_today = q.filter(WatchCandidate.status=='EXPIRED').all()
@@ -234,6 +238,12 @@ def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
     return {
         'active_watch_candidate_count': len(active),
         'latest_watch_candidates': latest,
+        'downgraded_watch_candidate_count': len(downgraded),
+        'rejected_watch_candidate_count': len(rejected),
+        'expired_watch_candidate_count': len(expired_today),
+        'monitoring_candidate_count': len(monitoring),
+        'latest_downgraded_watch_candidates': [{'symbol': r.symbol, 'status': r.status, 'latest_decision': r.latest_decision, 'latest_setup_grade': r.latest_setup_grade} for r in downgraded[:10]],
+        'latest_rejected_watch_candidates': [{'symbol': r.symbol, 'status': r.status, 'latest_decision': r.latest_decision, 'latest_setup_grade': r.latest_setup_grade} for r in rejected[:10]],
         'watch_promoted_count_today': len([r for r in promoted_today if getattr(r,'promoted_at',None) and r.promoted_at.date()==today]),
         'watch_expired_count_today': len([r for r in expired_today if getattr(r,'last_seen_at',None) and r.last_seen_at.date()==today]),
         'watch_top_blockers': blockers.most_common(10),
@@ -632,6 +642,12 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_data_starvation_summary": data_starvation_summary,
         "active_watch_candidate_count": watch_snapshot.get("active_watch_candidate_count", 0),
         "latest_watch_candidates": watch_snapshot.get("latest_watch_candidates", []),
+        "downgraded_watch_candidate_count": watch_snapshot.get("downgraded_watch_candidate_count", 0),
+        "rejected_watch_candidate_count": watch_snapshot.get("rejected_watch_candidate_count", 0),
+        "expired_watch_candidate_count": watch_snapshot.get("expired_watch_candidate_count", 0),
+        "monitoring_candidate_count": watch_snapshot.get("monitoring_candidate_count", 0),
+        "latest_downgraded_watch_candidates": watch_snapshot.get("latest_downgraded_watch_candidates", []),
+        "latest_rejected_watch_candidates": watch_snapshot.get("latest_rejected_watch_candidates", []),
         "latest_watch_recheck_summary": watch_snapshot.get("latest_watch_recheck_summary"),
         "watch_promoted_count_today": watch_snapshot.get("watch_promoted_count_today", 0),
         "watch_expired_count_today": watch_snapshot.get("watch_expired_count_today", 0),

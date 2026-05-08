@@ -17,6 +17,8 @@ class DummyRow:
         self.promoted_at = None
         self.promotion_attempt_count = 0
         self.latest_skip_reason_codes_json = '[]'
+        self.latest_decision = 'WATCH'
+        self.latest_setup_grade = 'WATCH'
 
 
 class DummyQuery:
@@ -71,6 +73,7 @@ def test_recheck_handles_naive_expires_at_without_type_error(monkeypatch):
 def test_recheck_watch_cli_flag_present_and_safe_json_printer():
     src = Path('scanner.py').read_text()
     assert '--recheck-watch' in src
+    assert '--normalize-watch-statuses' in src
     assert 'json.dumps(summary, indent=2, default=str)' in src
 
 
@@ -109,3 +112,45 @@ def test_all_user_recheck_groups_by_user(monkeypatch):
     out = scanner.recheck_active_watch_candidates_for_all_users(limit_per_user=5)
     assert out['total_users_checked'] == 2
     assert out['total_checked_count'] == 2
+
+
+def test_upsert_does_not_persist_skip_even_with_high_catalyst(monkeypatch):
+    calls = {'commit': 0}
+    monkeypatch.setattr(scanner.WatchCandidate, 'query', DummyQuery([]))
+    monkeypatch.setattr(scanner.db.session, 'commit', lambda: calls.__setitem__('commit', calls['commit'] + 1))
+    scanner.upsert_watch_candidate_from_analysis({'symbol': 'NVDA', 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'score_total': 49, 'scores': {'catalyst': 4}}, user=type('U', (), {'id': 1})())
+    assert calls['commit'] == 0
+
+
+def test_recheck_downgrades_skip_to_downgraded(monkeypatch):
+    row = DummyRow('AAA', datetime.utcnow())
+    monkeypatch.setattr(scanner.WatchCandidate, 'query', DummyQuery([row]))
+    monkeypatch.setattr(scanner, 'run_scan', lambda user=None: {'ranked': [{'symbol': 'AAA', 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'details': {'skip_reason_codes': []}, 'scores': {}}]})
+    monkeypatch.setattr(scanner.db.session, 'commit', lambda: None)
+    summary = scanner.recheck_active_watch_candidates(user=type('U', (), {'id': 1})(), limit=10)
+    assert row.status == 'DOWNGRADED'
+    assert summary['downgraded_skip_count'] == 1
+
+
+def test_normalize_converts_active_skip_to_downgraded(monkeypatch):
+    row = DummyRow('NVDA', datetime.utcnow())
+    row.status = 'ACTIVE'
+    row.latest_decision = 'SKIP'
+    row.latest_setup_grade = 'NO TRADE'
+    monkeypatch.setattr(scanner.WatchCandidate, 'query', DummyQuery([row]))
+    monkeypatch.setattr(scanner.db.session, 'commit', lambda: None)
+    out = scanner.normalize_watch_candidate_statuses(user=type('U', (), {'id': 1})())
+    assert row.status == 'DOWNGRADED'
+    assert out['normalized_downgraded_count'] == 1
+
+
+def test_normalize_keeps_watch_active(monkeypatch):
+    row = DummyRow('RXT', datetime.utcnow())
+    row.status = 'ACTIVE'
+    row.latest_decision = 'WATCH'
+    row.latest_setup_grade = 'WATCH'
+    monkeypatch.setattr(scanner.WatchCandidate, 'query', DummyQuery([row]))
+    monkeypatch.setattr(scanner.db.session, 'commit', lambda: None)
+    out = scanner.normalize_watch_candidate_statuses(user=type('U', (), {'id': 1})())
+    assert row.status == 'ACTIVE'
+    assert out['kept_active_count'] == 1

@@ -2223,7 +2223,7 @@ def _watch_payload_from_analysis(analysis: Dict[str, Any]) -> Dict[str, Any]:
 def upsert_watch_candidate_from_analysis(analysis: Dict[str, Any], user: Optional[Any] = None, promoted_scan_id: Optional[int] = None) -> None:
     decision = str(analysis.get('decision') or '')
     setup_grade = str(analysis.get('setup_grade') or '')
-    if not (decision == 'WATCH' or setup_grade == 'WATCH' or int(analysis.get('score_total') or 0) >= (A_SCORE - 5) or int(((analysis.get('scores') or {}).get('catalyst') or 0)) >= 4):
+    if not (decision == 'WATCH' or setup_grade == 'WATCH'):
         return
     symbol = str(analysis.get('symbol') or '').upper().strip()
     if not symbol:
@@ -2307,7 +2307,12 @@ def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WAT
     now = utcnow_naive()
     q = WatchCandidate.query.filter_by(status='ACTIVE', user_id=int(getattr(user, 'id', 0) or 0))
     rows = q.order_by(WatchCandidate.last_seen_at.desc()).limit(max(1, limit)).all()
-    summary = {'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': [], 'top_blockers_by_count': [], 'execution_attempted': False, 'execution_path_called': False}
+    summary = {
+        'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'rejected_count': 0, 'errors_count': 0,
+        'promoted_symbols': [], 'still_watch_symbols': [], 'downgraded_symbols': [], 'rejected_symbols': [], 'expired_symbols': [],
+        'active_watch_symbols': [], 'active_watch_after_recheck_count': 0,
+        'top_blockers_by_count': [], 'execution_attempted': False, 'execution_path_called': False
+    }
     blockers = {}
     ranked_by_symbol = {}
     try:
@@ -2317,13 +2322,17 @@ def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WAT
         summary['errors_count'] += 1
     for row in rows:
         if row.expires_at and row.expires_at <= now:
-            row.status = 'EXPIRED'; summary['expired_count'] += 1; continue
+            row.status = 'EXPIRED'; summary['expired_count'] += 1; summary['expired_symbols'].append(row.symbol); continue
         summary['checked_count'] += 1
         try:
             match = ranked_by_symbol.get(str(row.symbol or '').upper())
             if not match:
                 row.promotion_attempt_count += 1
                 row.last_recheck_at = now
+                if row.promotion_attempt_count >= 3:
+                    row.status = 'REJECTED'
+                    summary['rejected_count'] += 1
+                    summary['rejected_symbols'].append(row.symbol)
                 continue
             for k, v in _watch_payload_from_analysis(match).items(): setattr(row, k, v)
             row.last_recheck_at = now; row.last_seen_at = now; row.promotion_attempt_count += 1
@@ -2332,17 +2341,62 @@ def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WAT
             if dec in {'BUY NOW','A','A+'} or grd in {'A','A+'}:
                 row.status='PROMOTED'; row.promoted_at=now; summary['promoted_count'] += 1; summary['promoted_symbols'].append(row.symbol)
             elif dec == 'WATCH' or grd == 'WATCH':
+                row.status = 'ACTIVE'
                 summary['still_watch_count'] += 1; summary['still_watch_symbols'].append(row.symbol)
             else:
+                disqualifiers = set(json.loads(row.latest_skip_reason_codes_json or '[]'))
+                hard_disqualifiers = {
+                    'ETF_BLOCKED_BY_SETTINGS', 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS', 'INVERSE_ETF_BLOCKED_BY_SETTINGS',
+                    'WARRANT_OR_RIGHT', 'NOT_TRADABLE', 'QTY_BELOW_ONE'
+                }
+                if disqualifiers.intersection(hard_disqualifiers):
+                    row.status = 'REJECTED'
+                    summary['rejected_count'] += 1
+                    summary['rejected_symbols'].append(row.symbol)
+                else:
+                    row.status = 'DOWNGRADED'
+                    summary['downgraded_symbols'].append(row.symbol)
                 summary['downgraded_skip_count'] += 1
             for code in json.loads(row.latest_skip_reason_codes_json or '[]'):
                 blockers[code]=blockers.get(code,0)+1
         except Exception:
             summary['errors_count'] += 1
     db.session.commit()
+    summary['active_watch_symbols'] = list(summary['still_watch_symbols'])
+    summary['active_watch_after_recheck_count'] = len(summary['active_watch_symbols'])
     summary['top_blockers_by_count']=sorted(blockers.items(), key=lambda x:x[1], reverse=True)[:10]
     _persist_watch_recheck_summary(summary, user_id=int(getattr(user, 'id', 0) or 0))
     return summary
+
+
+def normalize_watch_candidate_statuses(user: Optional[Any] = None) -> Dict[str, Any]:
+    now = utcnow_naive()
+    q = WatchCandidate.query
+    if user is not None:
+        q = q.filter_by(user_id=int(getattr(user, 'id', 0) or 0))
+    rows = q.all()
+    out = {'checked_count': 0, 'normalized_downgraded_count': 0, 'normalized_rejected_count': 0, 'normalized_expired_count': 0, 'kept_active_count': 0}
+    hard_disqualifiers = {'ETF_BLOCKED_BY_SETTINGS', 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS', 'INVERSE_ETF_BLOCKED_BY_SETTINGS', 'WARRANT_OR_RIGHT', 'NOT_TRADABLE', 'QTY_BELOW_ONE'}
+    for row in rows:
+        out['checked_count'] += 1
+        if row.expires_at and row.expires_at <= now:
+            if row.status != 'EXPIRED':
+                row.status = 'EXPIRED'; out['normalized_expired_count'] += 1
+            continue
+        dec = str(row.latest_decision or '')
+        grd = str(row.latest_setup_grade or '')
+        if dec == 'WATCH' or grd == 'WATCH':
+            row.status = 'ACTIVE'
+            out['kept_active_count'] += 1
+            continue
+        codes = set(json.loads(row.latest_skip_reason_codes_json or '[]'))
+        if codes.intersection(hard_disqualifiers):
+            if row.status != 'REJECTED':
+                row.status = 'REJECTED'; out['normalized_rejected_count'] += 1
+        elif row.status == 'ACTIVE':
+            row.status = 'DOWNGRADED'; out['normalized_downgraded_count'] += 1
+    db.session.commit()
+    return out
 
 
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
@@ -3058,6 +3112,7 @@ def normalize_skip_reason_code(reason: str) -> str:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scanner utilities')
     parser.add_argument('--recheck-watch', action='store_true', help='Recheck active WATCH candidates')
+    parser.add_argument('--normalize-watch-statuses', action='store_true', help='Normalize persisted watch candidate lifecycle statuses')
     parser.add_argument('--user-id', type=int, default=None, help='Recheck WATCH for a specific user id')
     parser.add_argument('--all-users', action='store_true', help='Recheck WATCH for all users with active WATCH candidates')
     args = parser.parse_args()
@@ -3074,4 +3129,17 @@ if __name__ == '__main__':
                 summary = recheck_active_watch_candidates_for_all_users(limit_per_user=WATCH_RECHECK_LIMIT)
             else:
                 summary = recheck_active_watch_candidates_for_all_users(limit_per_user=WATCH_RECHECK_LIMIT)
+            print(json.dumps(summary, indent=2, default=str))
+    if args.normalize_watch_statuses:
+        from app import app
+        with app.app_context():
+            if args.user_id:
+                user = User.query.get(int(args.user_id))
+                if user is None:
+                    raise SystemExit(f"User not found: {args.user_id}")
+                summary = normalize_watch_candidate_statuses(user=user)
+            elif args.all_users:
+                summary = normalize_watch_candidate_statuses(user=None)
+            else:
+                summary = normalize_watch_candidate_statuses(user=None)
             print(json.dumps(summary, indent=2, default=str))
