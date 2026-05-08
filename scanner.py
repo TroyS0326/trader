@@ -2477,17 +2477,34 @@ def apply_scan_attribution(result: Dict[str, Any], user: Optional[Any] = None, s
     return payload
 
 
+def _verify_user_scan_attribution(payload: Dict[str, Any], user: Optional[Any]) -> bool:
+    if user is None:
+        return True
+    expected_user_id = int(getattr(user, 'id', 0) or 0)
+    if expected_user_id <= 0:
+        return False
+    return int(payload.get('user_id') or 0) == expected_user_id and int(payload.get('scan_attribution_version') or 0) == 1
+
+
 def persist_scan_result(result: Dict[str, Any], user: Optional[Any] = None, source: str = "manual_terminal_scan") -> Dict[str, Any]:
     payload = dict(result) if isinstance(result, dict) else {}
     if not payload:
         return {'persisted': False, 'error': 'result must be a dict'}
     payload = apply_scan_attribution(payload, user=user, source=source)
+    if user is not None and not _verify_user_scan_attribution(payload, user=user):
+        return {
+            'persisted': False,
+            'error': 'ATTRIBUTION_FAILED_REFUSED_TO_PERSIST',
+            'user_id': payload.get('user_id'),
+            'scan_attribution_version': payload.get('scan_attribution_version'),
+        }
     payload.setdefault('scan_diagnostics', payload.get('scan_diagnostics') if isinstance(payload.get('scan_diagnostics'), dict) else {})
     response = {
         'persisted': False,
         'scan_id': None,
         'db_scan_id': None,
         'user_id': payload.get('user_id'),
+        'report_user_id': payload.get('report_user_id'),
         'symbol': ((payload.get('best_pick') or {}).get('symbol')),
         'decision': ((payload.get('best_pick') or {}).get('decision')),
         'setup_grade': ((payload.get('best_pick') or {}).get('setup_grade')),
@@ -2507,6 +2524,8 @@ def persist_scan_result(result: Dict[str, Any], user: Optional[Any] = None, sour
     except Exception as exc:
         response['error'] = str(exc)
     return response
+
+
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -3266,7 +3285,42 @@ if __name__ == '__main__':
     parser.add_argument('--all-users', action='store_true', help='Recheck WATCH for all users with active WATCH candidates')
     parser.add_argument('--run-scan', action='store_true', help='Run scanner once (safe)')
     parser.add_argument('--persist', action='store_true', help='Persist run-scan output')
+    parser.add_argument('--mark-unattributed-scans-legacy', action='store_true', help='Mark unattributed scan records as legacy metadata')
+    parser.add_argument('--older-than-minutes', type=int, default=30, help='Only mark unattributed scans older than this many minutes')
+    parser.add_argument('--dry-run', action='store_true', help='Preview unattributed legacy marking changes without writing')
     args = parser.parse_args()
+
+
+    if args.mark_unattributed_scans_legacy:
+        from app import app
+        with app.app_context():
+            now_utc = datetime.now(timezone.utc)
+            older_than = max(0, int(args.older_than_minutes or 0))
+            cutoff = now_utc - timedelta(minutes=older_than)
+            rows = Scan.query.order_by(Scan.id.desc()).all()
+            scanned_count = len(rows)
+            unattributed_count = 0
+            marked_legacy_count = 0
+            for row in rows:
+                payload = normalize_scan_record({'id': row.id, 'created_at': row.created_at, 'best_symbol': row.best_symbol, 'best_decision': row.best_decision, 'payload_json': row.payload_json})
+                if int(payload.get('user_id') or 0) > 0 or int(payload.get('scan_attribution_version') or 0) >= 1:
+                    continue
+                unattributed_count += 1
+                created = _parse_dt(payload.get('created_at') or payload.get('timestamp'))
+                if created is not None and created.astimezone(timezone.utc) > cutoff:
+                    continue
+                legacy_flags = payload.get('legacy_flags') if isinstance(payload.get('legacy_flags'), dict) else {}
+                if legacy_flags.get('unattributed_scan_legacy'):
+                    continue
+                legacy_flags['unattributed_scan_legacy'] = True
+                payload['legacy_flags'] = legacy_flags
+                if not args.dry_run:
+                    row.payload_json = json.dumps(payload, default=str)
+                marked_legacy_count += 1
+            if not args.dry_run:
+                db.session.commit()
+            print(json.dumps({'scanned_count': scanned_count, 'unattributed_count': unattributed_count, 'marked_legacy_count': marked_legacy_count, 'dry_run': bool(args.dry_run)}, indent=2, default=str))
+
 
 
     if args.run_scan:
@@ -3289,8 +3343,11 @@ if __name__ == '__main__':
                 'executable_candidate_count': (result.get('scan_diagnostics') or {}).get('executable_candidate_count'),
             }
             if args.persist:
-                ps = persist_scan_result(result, user=user, source='manual_terminal_scan')
-                summary.update({'persisted': ps.get('persisted'), 'persisted_scan_id': ps.get('scan_id')})
+                if user is not None and (int(result.get('user_id') or 0) != int(user.id) or int(result.get('scan_attribution_version') or 0) < 1):
+                    print(f"ERROR: run_scan attribution failed for user_id={int(user.id)}; refusing to persist unattributed scan.")
+                    raise SystemExit(1)
+                ps = persist_scan_result(result, user=user, source='manual_terminal_user_scan')
+                summary.update({'persisted': ps.get('persisted'), 'persisted_scan_id': ps.get('scan_id'), 'report_user_id': ps.get('report_user_id'), 'user_id': ps.get('user_id'), 'scan_attribution_version': ps.get('scan_attribution_version'), 'has_scan_diagnostics': ps.get('has_scan_diagnostics')})
             print(json.dumps(summary, indent=2, default=str))
 
     if args.recheck_watch:

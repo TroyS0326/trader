@@ -168,8 +168,24 @@ def test_run_scan_cli_flags_and_persist_call_present():
     assert "--run-scan" in src
     assert "--user-id" in src
     assert "--persist" in src
-    assert "persist_scan_result(result, user=user, source='manual_terminal_scan')" in src
+    assert "persist_scan_result(result, user=user, source='manual_terminal_user_scan')" in src
 
 
 def test_persist_scan_result_exists():
     assert hasattr(scanner, "persist_scan_result")
+
+
+def test_persist_scan_result_refuses_unattributed_when_user_provided(monkeypatch):
+    user = type("U", (), {"id": 1})()
+    payload = {"best_pick": {"symbol": "AAPL", "decision": "WATCH"}, "scan_attribution_version": 0, "user_id": None}
+    out = scanner.persist_scan_result(payload, user=user, source="manual_terminal_user_scan")
+    assert out["persisted"] is False
+    assert out["error"] == "ATTRIBUTION_FAILED_REFUSED_TO_PERSIST"
+
+
+def test_scanner_source_contains_cli_attribution_guardrail():
+    src = Path("scanner.py").read_text()
+    assert "ERROR: run_scan attribution failed for user_id=" in src
+    assert "manual_terminal_user_scan" in src
+    assert "--mark-unattributed-scans-legacy" in src
+    assert "--dry-run" in src

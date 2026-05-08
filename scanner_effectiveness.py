@@ -264,6 +264,17 @@ def _is_enriched_scan(scan: Dict[str, Any], user: Optional[Any] = None) -> bool:
         return False
     return isinstance(scan.get("scan_diagnostics"), dict) and bool(scan.get("scan_diagnostics"))
 
+def _is_unattributed_scan(scan: Dict[str, Any]) -> bool:
+    if not isinstance(scan, dict):
+        return False
+    return int(scan.get("user_id") or 0) <= 0 or int(scan.get("scan_attribution_version") or 0) < 1
+
+
+def _is_legacy_unattributed_scan(scan: Dict[str, Any]) -> bool:
+    flags = scan.get("legacy_flags") if isinstance(scan.get("legacy_flags"), dict) else {}
+    return bool(flags.get("unattributed_scan_legacy"))
+
+
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
     watch_snapshot = _watch_snapshot(user=user)
     scans, latest_by_user = _load_scans(user=user, limit=limit)
@@ -278,8 +289,28 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         all_scans.append(v)
         seen.add(key)
 
-    latest_enriched_scan = next((scan for scan in all_scans if _is_enriched_scan(scan, user=user)), None)
-    latest_scan = latest_enriched_scan or (all_scans[0] if all_scans else {})
+    latest_enriched_scan_user = next((scan for scan in all_scans if _is_enriched_scan(scan, user=user)), None)
+    latest_enriched_scan_any_user = next((scan for scan in all_scans if _is_enriched_scan(scan, user=None)), None)
+    latest_redis_user_scan = latest_by_user.get(int(user.id)) if user is not None else None
+    unattributed_scans = [scan for scan in all_scans if _is_unattributed_scan(scan)]
+    legacy_unattributed_scans = [scan for scan in unattributed_scans if _is_legacy_unattributed_scan(scan)]
+    ignored_unattributed_scans = [scan for scan in unattributed_scans if _is_legacy_unattributed_scan(scan) or latest_enriched_scan_user or latest_enriched_scan_any_user]
+    latest_enriched_scan = latest_enriched_scan_user or latest_enriched_scan_any_user
+    if latest_enriched_scan_user:
+        latest_scan = latest_enriched_scan_user
+        current_report_scan_scope = "attributed_user"
+    elif latest_enriched_scan_any_user:
+        latest_scan = latest_enriched_scan_any_user
+        current_report_scan_scope = "attributed_any_user"
+    elif latest_redis_user_scan:
+        latest_scan = latest_redis_user_scan
+        current_report_scan_scope = "redis_latest"
+    elif unattributed_scans:
+        latest_scan = unattributed_scans[0]
+        current_report_scan_scope = "legacy_unattributed_fallback"
+    else:
+        latest_scan = all_scans[0] if all_scans else {}
+        current_report_scan_scope = "legacy_unattributed_fallback"
     now_utc = datetime.now(timezone.utc)
     enriched_dt = _parse_dt((latest_enriched_scan or {}).get('created_at') or (latest_enriched_scan or {}).get('timestamp'))
     latest_enriched_scan_age_seconds = int((now_utc - enriched_dt.astimezone(timezone.utc)).total_seconds()) if enriched_dt else None
@@ -593,6 +624,10 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "unattributed_scan_count": unattributed_scan_count,
         "latest_attributed_scan_age_seconds": latest_attr_age,
         "latest_unattributed_scan_age_seconds": latest_unattr_age,
+        "legacy_unattributed_scan_count": len(legacy_unattributed_scans),
+        "ignored_unattributed_scan_count": len(ignored_unattributed_scans),
+        "current_report_uses_unattributed_scan": current_report_scan_scope == "legacy_unattributed_fallback",
+        "current_report_scan_scope": current_report_scan_scope,
         "attribution_warning": bool(unattributed_scan_count > 0 and latest_unattr_age is not None and latest_unattr_age < 7200),
         "dominant_symbol_warning": repeated_best_pick_warning,
         "repeated_best_pick_warning": repeated_best_pick_warning,
