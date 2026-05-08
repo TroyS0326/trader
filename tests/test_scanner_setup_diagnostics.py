@@ -473,3 +473,36 @@ def test_analyze_symbol_news_fallback_adjusts_scoring_and_diagnostics(monkeypatc
     assert cat['catalyst_missing_reason'] != 'UNKNOWN'
     assert (cat['catalyst_score_components'] or {}).get('keyword_boost', 0) > 0
     assert (cat['catalyst_score_components'] or {}).get('p_success', 0) > 0.5
+
+def test_get_alpaca_asset_with_diagnostics_fallback_from_user_401_to_server_paper(monkeypatch):
+    user = type('U', (), {'alpaca_live_access_token': 'bad'})()
+    monkeypatch.setenv('ALPACA_PAPER_API_KEY', 'paper-key')
+    monkeypatch.setenv('ALPACA_PAPER_API_SECRET', 'paper-secret')
+    calls = []
+    class Resp:
+        def __init__(self, code, text, payload):
+            self.status_code = code
+            self.text = text
+            self._payload = payload
+        def json(self):
+            return self._payload
+    def fake_get(url, headers=None, timeout=None):
+        calls.append((url, headers))
+        if 'paper-api' in url:
+            return Resp(200, '{"symbol":"AAPL"}', {'symbol': 'AAPL', 'tradable': True})
+        return Resp(401, 'unauthorized', {})
+    monkeypatch.setattr(scanner.requests, 'get', fake_get)
+    asset, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL', user=user)
+    assert asset.get('symbol') == 'AAPL'
+    assert diag['ok'] is True
+    assert diag['used_fallback'] is True
+    assert [a['auth_source'] for a in diag['attempts']][:2] == ['user_oauth_token', 'server_paper_api_key']
+    assert diag['token_health'] == 'unauthorized'
+
+
+def test_get_alpaca_asset_with_diagnostics_no_secret_leak(monkeypatch):
+    monkeypatch.setattr(scanner.requests, 'get', lambda *a, **k: (_ for _ in ()).throw(scanner.requests.RequestException('boom token=abc')))
+    _, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL')
+    rendered = str(diag)
+    assert 'APCA-API-SECRET-KEY' not in rendered
+    assert 'Authorization' not in rendered
