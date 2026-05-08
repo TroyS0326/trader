@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from db import get_recent_scans
 from execution_diagnostics import evaluate_execution_readiness
-from models import User
+from models import User, WatchCandidate
 from scan_contract import validate_scan_payload_contract
 from scanner import normalize_skip_reason_code
 
@@ -61,6 +61,7 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         if key in scan_diag:
             safe_scan_diag[key] = scan_diag.get(key)
 
+    watch_diag = _watch_snapshot(user=user)
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -185,6 +186,37 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
     return filtered[:limit], scans_by_user
 
 
+
+
+def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
+    q = WatchCandidate.query
+    if user is not None:
+        q = q.filter_by(user_id=int(user.id))
+    active = q.filter_by(status='ACTIVE').all()
+    today = datetime.now(timezone.utc).date()
+    promoted_today = q.filter(WatchCandidate.status=='PROMOTED').all()
+    expired_today = q.filter(WatchCandidate.status=='EXPIRED').all()
+    blockers = Counter()
+    latest = []
+    for row in active[:10]:
+        codes = []
+        try:
+            codes = json.loads(row.latest_skip_reason_codes_json or '[]')
+        except Exception:
+            pass
+        for c in codes: blockers[str(c)] += 1
+        latest.append({'symbol': row.symbol, 'missing_buy_confirmations': json.loads(row.missing_buy_confirmations_json or '[]') if row.missing_buy_confirmations_json else [], 'latest_score_total': row.latest_score_total, 'status': row.status})
+    best = sorted(active, key=lambda r: int(r.latest_score_total or 0), reverse=True)[0] if active else None
+    return {
+        'active_watch_candidate_count': len(active),
+        'latest_watch_candidates': latest,
+        'watch_promoted_count_today': len([r for r in promoted_today if getattr(r,'promoted_at',None) and r.promoted_at.date()==today]),
+        'watch_expired_count_today': len([r for r in expired_today if getattr(r,'last_seen_at',None) and r.last_seen_at.date()==today]),
+        'watch_top_blockers': blockers.most_common(10),
+        'best_active_watch_symbol': best.symbol if best else None,
+        'best_active_watch_missing_confirmations': json.loads(best.missing_buy_confirmations_json or '[]') if best and best.missing_buy_confirmations_json else [],
+        'latest_watch_recheck_summary': None,
+    }
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
     scans, latest_by_user = _load_scans(user=user, limit=limit)
     all_scans = list(scans)

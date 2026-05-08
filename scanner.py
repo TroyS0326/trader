@@ -13,7 +13,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 from decision import regime_trade_decision, momentum_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
-from models import ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
+from models import db, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
@@ -60,7 +60,7 @@ from config import (
     VIX_PENALTY_MULTIPLIER,
     VIX_SYMBOL,
     WATCHLIST_SIZE,
-    MOMENTUM_BREAKOUT_MODE_ENABLED, MOMENTUM_WATCHLIST_SIZE, MOMENTUM_MIN_DAY_CHANGE_PCT, MOMENTUM_MIN_RVOL, MOMENTUM_MAX_SPREAD_PCT, MOMENTUM_MAX_ENTRY_EXTENSION_PCT, MOMENTUM_SCAN_CANDIDATE_LIMIT, MOMENTUM_MIN_DOLLAR_VOLUME, MOMENTUM_EXTREME_DAY_CHANGE_PCT, MOMENTUM_MIN_PRICE, MOMENTUM_MAX_PRICE, MOMENTUM_ALLOW_PENNY_STOCKS, BIOTECH_TRADING_ENABLED, ETF_TRADING_ENABLED, LEVERAGED_ETF_TRADING_ENABLED, INVERSE_ETF_TRADING_ENABLED, CRYPTO_ETF_TRADING_ENABLED, OPTIONS_TRADING_ENABLED, MOMENTUM_DEBUG_REJECTIONS_LIMIT,
+    MOMENTUM_BREAKOUT_MODE_ENABLED, MOMENTUM_WATCHLIST_SIZE, MOMENTUM_MIN_DAY_CHANGE_PCT, MOMENTUM_MIN_RVOL, MOMENTUM_MAX_SPREAD_PCT, MOMENTUM_MAX_ENTRY_EXTENSION_PCT, MOMENTUM_SCAN_CANDIDATE_LIMIT, MOMENTUM_MIN_DOLLAR_VOLUME, MOMENTUM_EXTREME_DAY_CHANGE_PCT, MOMENTUM_MIN_PRICE, MOMENTUM_MAX_PRICE, MOMENTUM_ALLOW_PENNY_STOCKS, BIOTECH_TRADING_ENABLED, ETF_TRADING_ENABLED, LEVERAGED_ETF_TRADING_ENABLED, INVERSE_ETF_TRADING_ENABLED, CRYPTO_ETF_TRADING_ENABLED, OPTIONS_TRADING_ENABLED, MOMENTUM_DEBUG_REJECTIONS_LIMIT, WATCH_CANDIDATE_TTL_MINUTES, WATCH_RECHECK_LIMIT, WATCH_RECHECK_ENABLED,
 )
 TIMEOUT = 20
 HIGH_GAP_THRESHOLD_PCT = 20.0
@@ -2189,6 +2189,92 @@ def fill_missing_bars_individually(symbols: List[str], bars_map: Dict[str, List[
         'individual_bar_retry_failed_symbols': failed_symbols,
     }
 
+
+
+def _watch_payload_from_analysis(analysis: Dict[str, Any]) -> Dict[str, Any]:
+    details = analysis.get('details') or {}
+    skip_codes = list(dict.fromkeys(details.get('skip_reason_codes') or []))
+    missing = [c for c in skip_codes if c in {'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT', 'VWAP_TREND_NOT_ALIGNED', 'PRICE_NOT_ABOVE_VALUE_AREA_HIGH'}]
+    return {
+        'latest_decision': analysis.get('decision'),
+        'latest_setup_grade': analysis.get('setup_grade'),
+        'latest_score_total': analysis.get('score_total'),
+        'latest_catalyst_score': (analysis.get('scores') or {}).get('catalyst'),
+        'latest_liquidity_score': (analysis.get('scores') or {}).get('liquidity'),
+        'latest_vwap_score': (analysis.get('scores') or {}).get('vwap_hold_reclaim'),
+        'latest_skip_reason_codes_json': json.dumps(skip_codes),
+        'missing_buy_confirmations_json': json.dumps(missing or skip_codes),
+        'details_json': json.dumps({
+            'catalyst': details.get('catalyst') or {}, 'liquidity': details.get('liquidity') or {},
+            'vwap_hold_reclaim': details.get('vwap_hold_reclaim') or {},
+            'premarket_dollar_volume': details.get('premarket_dollar_volume'),
+            'required_premarket_dollar_volume': details.get('required_premarket_dollar_volume'),
+            'source': analysis.get('source'), 'sources': analysis.get('sources') or [],
+        }),
+    }
+
+
+def upsert_watch_candidate_from_analysis(analysis: Dict[str, Any], user: Optional[Any] = None, promoted_scan_id: Optional[int] = None) -> None:
+    decision = str(analysis.get('decision') or '')
+    setup_grade = str(analysis.get('setup_grade') or '')
+    if not (decision == 'WATCH' or setup_grade == 'WATCH' or int(analysis.get('score_total') or 0) >= (A_SCORE - 5) or int(((analysis.get('scores') or {}).get('catalyst') or 0)) >= 4):
+        return
+    symbol = str(analysis.get('symbol') or '').upper().strip()
+    if not symbol:
+        return
+    user_id = int(getattr(user, 'id', 0) or 0) or None
+    now = now_utc()
+    expires_at = now + timedelta(minutes=max(1, WATCH_CANDIDATE_TTL_MINUTES))
+    row = WatchCandidate.query.filter_by(user_id=user_id, symbol=symbol).first()
+    if row is None:
+        row = WatchCandidate(user_id=user_id, symbol=symbol, first_seen_at=now, status='ACTIVE')
+        db.session.add(row)
+    row.last_seen_at = now
+    row.expires_at = expires_at
+    row.source = analysis.get('source')
+    row.sources_json = json.dumps(analysis.get('sources') or [])
+    for k, v in _watch_payload_from_analysis(analysis).items():
+        setattr(row, k, v)
+    if promoted_scan_id:
+        row.promoted_scan_id = promoted_scan_id
+    db.session.commit()
+
+
+def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WATCH_RECHECK_LIMIT) -> Dict[str, Any]:
+    now = now_utc()
+    q = WatchCandidate.query.filter_by(status='ACTIVE')
+    if user is not None:
+        q = q.filter_by(user_id=int(getattr(user, 'id', 0) or 0))
+    rows = q.order_by(WatchCandidate.last_seen_at.desc()).limit(max(1, limit)).all()
+    summary = {'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': [], 'top_blockers_by_count': []}
+    blockers = {}
+    for row in rows:
+        if row.expires_at and row.expires_at <= now:
+            row.status = 'EXPIRED'; summary['expired_count'] += 1; continue
+        summary['checked_count'] += 1
+        try:
+            result = run_scan(user=user)
+            candidates = (result.get('ranked') or [])
+            match = next((c for c in candidates if str(c.get('symbol') or '').upper() == row.symbol), None)
+            if not match:
+                row.promotion_attempt_count += 1; continue
+            for k, v in _watch_payload_from_analysis(match).items(): setattr(row, k, v)
+            row.last_recheck_at = now; row.last_seen_at = now; row.promotion_attempt_count += 1
+            dec = str(match.get('decision') or '')
+            grd = str(match.get('setup_grade') or '')
+            if dec in {'BUY NOW','A','A+'} or grd in {'A','A+'}:
+                row.status='PROMOTED'; row.promoted_at=now; summary['promoted_count'] += 1; summary['promoted_symbols'].append(row.symbol)
+            elif dec == 'WATCH' or grd == 'WATCH':
+                summary['still_watch_count'] += 1; summary['still_watch_symbols'].append(row.symbol)
+            else:
+                summary['downgraded_skip_count'] += 1
+            for code in json.loads(row.latest_skip_reason_codes_json or '[]'):
+                blockers[code]=blockers.get(code,0)+1
+        except Exception:
+            summary['errors_count'] += 1
+    db.session.commit()
+    summary['top_blockers_by_count']=sorted(blockers.items(), key=lambda x:x[1], reverse=True)[:10]
+    return summary
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -2605,6 +2691,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         }
         for r in news_symbols[:20]
     ]
+    for candidate in ranked:
+        upsert_watch_candidate_from_analysis(candidate, user=user)
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'

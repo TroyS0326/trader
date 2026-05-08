@@ -374,6 +374,36 @@ class MarketRegime(db.Model):
 
 
 
+class WatchCandidate(db.Model):
+    __tablename__ = 'watch_candidates'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'symbol', name='uq_watch_candidates_user_symbol'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    symbol = db.Column(db.String(10), nullable=False, index=True)
+    source = db.Column(db.String(64), nullable=True)
+    sources_json = db.Column(db.Text, nullable=True)
+    first_seen_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_seen_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True, index=True)
+    status = db.Column(db.String(20), nullable=False, default='ACTIVE', index=True)
+    latest_decision = db.Column(db.String(20), nullable=True)
+    latest_setup_grade = db.Column(db.String(20), nullable=True)
+    latest_score_total = db.Column(db.Integer, nullable=True)
+    latest_catalyst_score = db.Column(db.Integer, nullable=True)
+    latest_liquidity_score = db.Column(db.Integer, nullable=True)
+    latest_vwap_score = db.Column(db.Integer, nullable=True)
+    latest_skip_reason_codes_json = db.Column(db.Text, nullable=True)
+    missing_buy_confirmations_json = db.Column(db.Text, nullable=True)
+    promotion_attempt_count = db.Column(db.Integer, nullable=False, default=0)
+    last_recheck_at = db.Column(db.DateTime, nullable=True)
+    promoted_at = db.Column(db.DateTime, nullable=True)
+    promoted_scan_id = db.Column(db.Integer, nullable=True)
+    details_json = db.Column(db.Text, nullable=True)
+
+
 class DailyReportEmailLog(db.Model):
     __tablename__ = 'daily_report_email_logs'
     __table_args__ = (

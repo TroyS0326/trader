@@ -15,7 +15,7 @@ from app import app, redis_client
 from db import insert_scan
 from execution_guard import approve_scan_for_user
 from models import User
-from scanner import run_scan
+from scanner import run_scan, recheck_active_watch_candidates
 from daily_report import run_daily_reports
 from execution_diagnostics import evaluate_execution_readiness
 from scan_contract import validate_scan_payload_contract
@@ -194,6 +194,8 @@ def run_central_scan_cycle(cycle_name: str) -> None:
             logger.warning("Shared scan returned invalid payload type=%s; skipping cycle before fan-out", type(shared_scan).__name__)
             return
         fan_out_scan_to_users(shared_scan, users)
+        if config.WATCH_RECHECK_ENABLED:
+            logger.info("Watch recheck summary=%s", recheck_active_watch_candidates(limit=max(1, config.WATCH_RECHECK_LIMIT)))
 
 
 def _handle_shutdown(signum, _frame):
