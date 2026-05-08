@@ -67,7 +67,26 @@ def test_opening_range_reason_latest_before_end(monkeypatch):
 def test_opening_range_complete(monkeypatch):
     monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
     bars=[]
-    for i in range(20):
+    for i in range(15):
         bars.append(_mk_bar(f'2026-05-08T13:{30+i:02d}:00+00:00'))
     stats=scanner.get_opening_range_stats(bars)
+    assert stats['expected_opening_range_bar_count'] == 15
     assert stats['opening_range_complete'] is True
+
+
+def test_opening_range_complete_with_minor_gap(monkeypatch):
+    monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
+    bars=[_mk_bar(f'2026-05-08T13:{30+i:02d}:00+00:00') for i in range(14)]
+    bars.append(_mk_bar('2026-05-08T13:49:00+00:00'))
+    stats=scanner.get_opening_range_stats(bars)
+    assert stats['opening_range_complete'] is True
+    assert stats['opening_range_complete_reason'] == 'COMPLETE_WITH_MINOR_BAR_GAP'
+
+
+def test_opening_range_missing_too_many_bars(monkeypatch):
+    monkeypatch.setattr(scanner, 'buy_window_open', lambda: True)
+    bars=[_mk_bar(f'2026-05-08T13:{30+i:02d}:00+00:00') for i in range(10)]
+    bars.append(_mk_bar('2026-05-08T13:49:00+00:00'))
+    stats=scanner.get_opening_range_stats(bars)
+    assert stats['opening_range_complete'] is False
+    assert stats['opening_range_complete_reason'] == 'MISSING_TOO_MANY_OR_BARS'
