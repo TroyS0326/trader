@@ -110,7 +110,7 @@ def test_get_alpaca_asset_uses_trading_base(monkeypatch):
     monkeypatch.setattr(scanner, '_get_json', _fake_get_json)
     payload = scanner.get_alpaca_asset('AAPL')
     assert payload['symbol'] == 'AAPL'
-    assert captured['url'].startswith(f"{scanner.config.ALPACA_PAPER_BASE}/v2/assets/")
+    assert captured['url'].startswith(f"{scanner.config.ALPACA_ASSETS_BASE}/v2/assets/")
 
 
 def test_run_scan_raises_diagnostic_when_asset_filter_empties_candidates(monkeypatch):
@@ -130,7 +130,7 @@ def test_run_scan_raises_diagnostic_when_asset_filter_empties_candidates(monkeyp
         scanner.run_scan()
 
 
-def test_run_scan_raises_diagnostic_when_all_asset_metadata_lookups_fail(monkeypatch):
+def test_run_scan_degrades_when_all_asset_metadata_lookups_fail(monkeypatch):
     monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
     monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
     monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['AAPL', 'MSFT'])
@@ -142,6 +142,29 @@ def test_run_scan_raises_diagnostic_when_all_asset_metadata_lookups_fail(monkeyp
     monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
     monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
     monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
-    monkeypatch.setattr(scanner, 'get_alpaca_asset', lambda symbol: {})
-    with pytest.raises(scanner.ScanError, match='Asset metadata lookup failed for all candidates'):
-        scanner.run_scan()
+    def _asset_diag(symbol, user=None):
+        return {}, {'symbol': symbol, 'endpoint_used': 'x', 'auth_source': 'server_api_key', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401', 'response_text_short': 'unauthorized', 'used_fallback': False}
+    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', _asset_diag)
+    monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
+    monkeypatch.setattr(scanner, 'fill_missing_bars_individually', lambda *a, **k: {'individual_bar_retry_attempted_count':0,'individual_bar_retry_success_count':0,'individual_bar_retry_failed_symbols':[]})
+    monkeypatch.setattr(scanner, 'analyze_symbol', lambda symbol, *a, **k: {'symbol': symbol, 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'scores': {'catalyst': 0}, 'score_total': 0, 'details': {'open_relative_strength': {'edge': 0}, 'liquidity': {'spread': 0}, 'skip_reason_codes': []}})
+    monkeypatch.setattr(scanner, 'get_stock_chart_pack', lambda *a, **k: {})
+    out = scanner.run_scan()
+    diag = out['scan_diagnostics']
+    assert diag['asset_metadata_degraded_mode'] is True
+    assert diag['asset_metadata_global_failure'] is True
+    assert 'ASSET_METADATA_DEGRADED_MODE' in diag['scanner_starvation_flags']
+
+
+def test_get_alpaca_asset_with_diagnostics_401(monkeypatch):
+    class Resp:
+        status_code = 401
+        text = 'unauthorized secret'
+        def json(self):
+            return {}
+    monkeypatch.setattr(scanner.requests, 'get', lambda *a, **k: Resp())
+    asset, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL')
+    assert asset == {}
+    assert diag['failure_reason'] == 'HTTP_401'
+    assert diag['ok'] is False
+    assert len(diag['response_text_short']) <= 180
