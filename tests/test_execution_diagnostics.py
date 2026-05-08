@@ -155,3 +155,11 @@ def test_live_onboarding_ready_for_normal_live_ready_user(monkeypatch):
     monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
     d = evaluate_execution_readiness(_user(trading_mode='live', onboarding_completed=True, alpaca_live_access_token='live-token', alpaca_live_account_id='live-acct'), _payload())
     assert d['live_onboarding_ready'] is True
+
+
+def test_readiness_includes_scan_contract(monkeypatch):
+    monkeypatch.setenv("CENTRAL_SCANNER_EXECUTION_ENABLED", "1")
+    monkeypatch.setattr("execution_diagnostics.buy_window_open", lambda: True)
+    d = evaluate_execution_readiness(_user(), _payload())
+    assert "scan_contract" in d
+    assert d["scan_contract"]["has_best_pick"] is True

@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional
 
+from scan_contract import validate_scan_payload_contract
 
 
 def buy_window_open() -> bool:
@@ -69,33 +70,24 @@ def onboarding_missing_codes(user: Any, trading_mode: str, require_onboarding_co
 
 
 def extract_best_pick(scan_payload: Dict[str, Any]) -> Dict[str, Any]:
-    return (scan_payload.get("best_pick") or scan_payload.get("best") or scan_payload.get("top_pick") or {})
+    contract = validate_scan_payload_contract(scan_payload)
+    key = contract.get("best_pick_key_used")
+    if key == "watchlist[0]":
+        watchlist = scan_payload.get("watchlist") or []
+        return watchlist[0] if watchlist else {}
+    if key:
+        return scan_payload.get(key) or {}
+    return {}
 
 
 def extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    symbol = best_pick.get("symbol")
-    qty_raw = best_pick.get("qty")
-    entry = best_pick.get("entry_price")
-    stop = best_pick.get("stop_price")
-    target_1 = best_pick.get("target_1", best_pick.get("target_1_price"))
-    target_2 = best_pick.get("target_2", best_pick.get("target_2_price"))
-
-    required_values = (symbol, qty_raw, entry, stop, target_1, target_2)
-    if any(v in (None, "") for v in required_values):
+    contract = validate_scan_payload_contract({"best_pick": best_pick})
+    if contract.get("missing_order_fields"):
         return None
-
-    try:
-        normalized = {
-            "symbol": str(symbol).upper().strip(),
-            "qty": int(float(qty_raw)),
-            "entry_price": float(entry),
-            "stop_price": float(stop),
-            "target_1": float(target_1),
-            "target_2": float(target_2),
-        }
-    except (TypeError, ValueError):
+    normalized = contract.get("normalized_order_fields") or {}
+    required = ("symbol", "qty", "entry_price", "stop_price", "target_1", "target_2")
+    if any(normalized.get(k) in (None, "") for k in required):
         return None
-
     return normalized
 
 
@@ -220,6 +212,7 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
     active_diag = paper_diag if active_mode == "paper" else live_diag
     paper_setup_diag = _evaluate_paper_setup_readiness(user)
     live_onboarding_diag = _evaluate_live_onboarding_readiness(user)
+    contract_diag = validate_scan_payload_contract(scan_payload)
     return {
         **active_diag,
         "active_mode": active_mode,
@@ -232,4 +225,5 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         "paper_setup_blocked_reasons": paper_setup_diag["paper_setup_blocked_reasons"],
         "live_onboarding_ready": live_onboarding_diag["live_onboarding_ready"],
         "live_onboarding_blocked_reasons": live_onboarding_diag["live_onboarding_blocked_reasons"],
+        "scan_contract": contract_diag,
     }
