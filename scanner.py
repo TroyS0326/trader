@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import argparse
+import json
 import os
 import logging
 from statistics import mean
@@ -96,6 +98,10 @@ def resolve_data_feed(user: Optional[Any] = None) -> str:
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def utcnow_naive() -> datetime:
+    return datetime.utcnow()
 
 
 def now_et() -> datetime:
@@ -2223,7 +2229,10 @@ def upsert_watch_candidate_from_analysis(analysis: Dict[str, Any], user: Optiona
     if not symbol:
         return
     user_id = int(getattr(user, 'id', 0) or 0) or None
-    now = now_utc()
+    if user_id is None:
+        logger.info('Skipping WATCH persistence because user context is missing.')
+        return
+    now = utcnow_naive()
     expires_at = now + timedelta(minutes=max(1, WATCH_CANDIDATE_TTL_MINUTES))
     row = WatchCandidate.query.filter_by(user_id=user_id, symbol=symbol).first()
     if row is None:
@@ -2241,23 +2250,29 @@ def upsert_watch_candidate_from_analysis(analysis: Dict[str, Any], user: Optiona
 
 
 def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WATCH_RECHECK_LIMIT) -> Dict[str, Any]:
-    now = now_utc()
+    now = utcnow_naive()
     q = WatchCandidate.query.filter_by(status='ACTIVE')
     if user is not None:
         q = q.filter_by(user_id=int(getattr(user, 'id', 0) or 0))
     rows = q.order_by(WatchCandidate.last_seen_at.desc()).limit(max(1, limit)).all()
     summary = {'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': [], 'top_blockers_by_count': []}
     blockers = {}
+    ranked_by_symbol = {}
+    try:
+        result = run_scan(user=user)
+        ranked_by_symbol = {str(c.get('symbol') or '').upper(): c for c in (result.get('ranked') or [])}
+    except Exception:
+        summary['errors_count'] += 1
     for row in rows:
         if row.expires_at and row.expires_at <= now:
             row.status = 'EXPIRED'; summary['expired_count'] += 1; continue
         summary['checked_count'] += 1
         try:
-            result = run_scan(user=user)
-            candidates = (result.get('ranked') or [])
-            match = next((c for c in candidates if str(c.get('symbol') or '').upper() == row.symbol), None)
+            match = ranked_by_symbol.get(str(row.symbol or '').upper())
             if not match:
-                row.promotion_attempt_count += 1; continue
+                row.promotion_attempt_count += 1
+                row.last_recheck_at = now
+                continue
             for k, v in _watch_payload_from_analysis(match).items(): setattr(row, k, v)
             row.last_recheck_at = now; row.last_seen_at = now; row.promotion_attempt_count += 1
             dec = str(match.get('decision') or '')
@@ -2983,3 +2998,15 @@ def normalize_skip_reason_code(reason: str) -> str:
     if text.startswith('VIX Volatility Spike'):
         return 'VIX_CIRCUIT_BREAKER'
     return text.upper().replace(' ', '_').replace('-', '_').replace('.', '')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Scanner utilities')
+    parser.add_argument('--recheck-watch', action='store_true', help='Recheck active WATCH candidates')
+    args = parser.parse_args()
+
+    if args.recheck_watch:
+        from app import app
+        with app.app_context():
+            summary = recheck_active_watch_candidates()
+            print(json.dumps(summary, indent=2, default=str))
