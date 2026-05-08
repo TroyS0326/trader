@@ -226,6 +226,7 @@ def test_report_exposes_latest_scan_diagnostics_and_stale_detection(monkeypatch)
     assert report["latest_candidate_count_raw"] == 7
     assert report["latest_top_5_candidates_by_score"] == ["AAPL"]
     assert report["latest_scan_has_new_diagnostics"] is True
+    assert "latest_bar_data_requested_symbols_count" in report
 
 
 def test_report_marks_missing_scan_attribution_version_as_old(monkeypatch):
@@ -267,6 +268,27 @@ def test_report_mixed_attribution_ages_and_warning(monkeypatch):
     assert isinstance(report["latest_attributed_scan_age_seconds"], int)
     assert isinstance(report["latest_unattributed_scan_age_seconds"], int)
     assert report["attribution_warning"] is True
+
+
+def test_report_marks_bar_data_starvation_as_primary_blocker(monkeypatch):
+    row = {"id": 500, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({
+        "user_id": 9,
+        "scan_attribution_version": 1,
+        "scan_diagnostics": {
+            "bar_data_requested_symbols_count": 10,
+            "missing_daily_bars_symbols": ["A", "B", "C", "D", "E", "F"],
+            "missing_minute_bars_symbols": ["A", "B", "C", "D", "E", "F"],
+            "asset_filter_rejection_counts": {},
+        },
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP"}
+    })}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["primary_blocker_summary"] == "BAR_DATA_STARVATION"
+    assert "Investigate Alpaca bar data coverage" in report["recommended_next_action"]
     assert "UNATTRIBUTED_RECENT_SCANS" in report["scanner_starvation_flags"]
 
 

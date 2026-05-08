@@ -18,6 +18,8 @@ sys.modules.setdefault('apscheduler.triggers', types.SimpleNamespace())
 sys.modules.setdefault('apscheduler.triggers.cron', aps_cron)
 
 import scanner_service
+import scanner
+from datetime import datetime, timedelta, timezone
 
 
 def test_dispatch_blocked_does_not_call_celery(monkeypatch):
@@ -314,3 +316,35 @@ def test_central_cycle_skips_invalid_shared_payload_before_fanout(monkeypatch):
     monkeypatch.setattr(scanner_service.app, 'app_context', lambda: Ctx())
     scanner_service.run_central_scan_cycle('bad_cycle')
     assert called['fanout'] == 0
+
+
+def test_fill_missing_bars_individually_merges_success(monkeypatch):
+    now = datetime.now(timezone.utc)
+    bars_map = {"AAPL": [{"c": 1}]}
+
+    def fake_get_bars(symbols, timeframe, start, end, limit, feed='iex'):
+        sym = symbols[0]
+        return {sym: [{"c": 10}]} if sym == "MSFT" else {sym: []}
+
+    monkeypatch.setattr(scanner, "get_bars", fake_get_bars)
+    result = scanner.fill_missing_bars_individually(["MSFT", "TSLA"], bars_map, "1Min", now - timedelta(days=1), now, 100, "iex")
+    assert result["individual_bar_retry_attempted_count"] == 2
+    assert result["individual_bar_retry_success_count"] == 1
+    assert bars_map["MSFT"] == [{"c": 10}]
+    assert "TSLA" in result["individual_bar_retry_failed_symbols"]
+
+
+def test_fill_missing_bars_individually_exception_does_not_crash(monkeypatch):
+    now = datetime.now(timezone.utc)
+    bars_map = {}
+
+    def fake_get_bars(symbols, timeframe, start, end, limit, feed='iex'):
+        if symbols[0] == "FAIL":
+            raise RuntimeError("boom")
+        return {symbols[0]: []}
+
+    monkeypatch.setattr(scanner, "get_bars", fake_get_bars)
+    result = scanner.fill_missing_bars_individually(["FAIL"], bars_map, "1Day", now - timedelta(days=5), now, 50, "iex")
+    assert result["individual_bar_retry_attempted_count"] == 1
+    assert result["individual_bar_retry_success_count"] == 0
+    assert result["individual_bar_retry_failed_symbols"] == ["FAIL"]

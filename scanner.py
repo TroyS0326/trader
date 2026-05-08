@@ -1688,6 +1688,32 @@ def update_dynamic_orb_state_from_market_data() -> Dict[str, Any]:
         logger.warning("Dynamic ORB state update failed in scan: %s", exc)
         return dynamic_orb.build_dynamic_orb_state(1.0, 1.0)
 
+
+INDIVIDUAL_BAR_RETRY_CAP = 25
+
+
+def fill_missing_bars_individually(symbols: List[str], bars_map: Dict[str, List[Dict[str, Any]]], timeframe: str, start: datetime, end: datetime, limit: int, feed: str) -> Dict[str, Any]:
+    attempted = 0
+    success = 0
+    failed_symbols: List[str] = []
+    for symbol in symbols[:INDIVIDUAL_BAR_RETRY_CAP]:
+        attempted += 1
+        try:
+            symbol_bars = get_bars([symbol], timeframe, start, end, limit, feed=feed).get(symbol, [])
+            if symbol_bars:
+                bars_map[symbol] = symbol_bars
+                success += 1
+            else:
+                failed_symbols.append(symbol)
+        except Exception:
+            failed_symbols.append(symbol)
+            logger.exception("Individual bar retry failed for %s timeframe=%s", symbol, timeframe)
+    return {
+        'individual_bar_retry_attempted_count': attempted,
+        'individual_bar_retry_success_count': success,
+        'individual_bar_retry_failed_symbols': failed_symbols,
+    }
+
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -1725,14 +1751,69 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     symbols_removed_by_user_filters = [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols + fallback_candidates)) if s not in symbols]
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
+    asset_filter_rejections = []
+    asset_metadata_by_symbol: Dict[str, Dict[str, Any]] = {}
+    filtered_symbols = []
+    for symbol in symbols:
+        asset = get_alpaca_asset(symbol)
+        profile = get_company_profile(symbol)
+        classification = classify_asset(
+            symbol, asset, profile,
+            platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
+            user_flags={'biotech': bool(getattr(user, 'allow_biotech', True)), 'etf': bool(getattr(user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(user, 'allow_crypto_etfs', True)), 'options': bool(getattr(user, 'allow_options_trading', False))}
+        )
+        is_warrant_like = symbol.endswith('W') or symbol.endswith('WS') or ('warrant' in str((asset or {}).get('name', '')).lower())
+        is_etf_or_leveraged_etf = classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF', 'LEVERAGED_ETF', 'INVERSE_ETF'}
+        is_supported_equity_candidate = classification.get('asset_type') in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK'} and bool(asset.get('tradable'))
+        meta = {
+            'asset_classification': classification.get('asset_type'),
+            'tradable': bool(asset.get('tradable')),
+            'exchange': asset.get('exchange'),
+            'easy_to_borrow': asset.get('easy_to_borrow'),
+            'is_warrant_like': is_warrant_like,
+            'is_etf_or_leveraged_etf': is_etf_or_leveraged_etf,
+            'is_supported_equity_candidate': is_supported_equity_candidate,
+        }
+        asset_metadata_by_symbol[symbol] = meta
+        reason = None
+        if not asset:
+            reason = 'MISSING_ASSET_METADATA'
+        elif not asset.get('tradable'):
+            reason = 'NOT_TRADABLE'
+        elif is_warrant_like:
+            reason = 'WARRANT_OR_RIGHT'
+        elif classification.get('asset_type') == 'LEVERAGED_ETF' and not LEVERAGED_ETF_TRADING_ENABLED:
+            reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
+        elif classification.get('asset_type') == 'INVERSE_ETF' and not INVERSE_ETF_TRADING_ENABLED:
+            reason = 'ETF_BLOCKED_BY_SETTINGS'
+        elif classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF'} and not ETF_TRADING_ENABLED:
+            reason = 'ETF_BLOCKED_BY_SETTINGS'
+        elif classification.get('asset_type') not in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK', 'BROAD_ETF', 'CRYPTO_ETF', 'LEVERAGED_ETF', 'INVERSE_ETF'}:
+            reason = 'UNSUPPORTED_ASSET_TYPE'
+        if reason:
+            asset_filter_rejections.append({'symbol': symbol, 'reason': reason, **meta})
+            continue
+        filtered_symbols.append(symbol)
+    symbols = filtered_symbols
     snapshots = get_snapshots(symbols, feed=feed)
     quotes = get_latest_quotes(symbols, feed=feed)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
     sector_snapshots = get_snapshots([s for s in sector_symbols if s not in symbols], feed=feed)
     sector_snapshots.update({k: v for k, v in snapshots.items() if k in sector_symbols})
     end = now_utc()
-    daily_bars_map = get_bars(symbols, '1Day', end - timedelta(days=400), end, 400, feed=feed)
-    minute_bars_map = get_bars(symbols, '1Min', end - timedelta(days=3), end, 1000, feed=feed)
+    daily_start = end - timedelta(days=400)
+    intraday_start = end - timedelta(days=3)
+    daily_limit = 400
+    intraday_limit = 1000
+    daily_bars_map = get_bars(symbols, '1Day', daily_start, end, daily_limit, feed=feed)
+    minute_bars_map = get_bars(symbols, '1Min', intraday_start, end, intraday_limit, feed=feed)
+    missing_daily = [s for s in symbols if not daily_bars_map.get(s)]
+    missing_minute = [s for s in symbols if not minute_bars_map.get(s)]
+    symbols_with_market_data = [s for s in symbols if snapshots.get(s) or quotes.get(s)]
+    retry_daily = fill_missing_bars_individually([s for s in missing_daily if s in symbols_with_market_data], daily_bars_map, '1Day', daily_start, end, daily_limit, feed)
+    retry_minute = fill_missing_bars_individually([s for s in missing_minute if s in symbols_with_market_data], minute_bars_map, '1Min', intraday_start, end, intraday_limit, feed)
+    missing_daily = [s for s in symbols if not daily_bars_map.get(s)]
+    missing_minute = [s for s in symbols if not minute_bars_map.get(s)]
 
     spy_snap = snapshots.get('SPY', {})
     spy_prev = safe_num(spy_snap.get('prevDailyBar', {}).get('c')) or 1
@@ -1765,8 +1846,21 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             rejection_events.append({'symbol': symbol, 'stage': 'price_volume_filter', 'reason': 'PRICE_TOO_HIGH', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
             _scanner_debug("SKIP: %s price too high.", symbol)
             continue
-        if not snapshot or not daily_bars or not minute_bars:
-            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_MARKET_DATA', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
+        if not quote:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_QUOTE', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
+            continue
+        if not snapshot:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_SNAPSHOT', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
+            continue
+        if not daily_bars and not minute_bars:
+            reason = 'BAR_DATA_RETRY_FAILED' if symbol in (retry_daily['individual_bar_retry_failed_symbols'] + retry_minute['individual_bar_retry_failed_symbols']) else 'MISSING_DAILY_AND_MINUTE_BARS'
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': reason, 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
+            continue
+        if not daily_bars:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_DAILY_BARS', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
+            continue
+        if not minute_bars:
+            rejection_events.append({'symbol': symbol, 'stage': 'analysis_input', 'reason': 'MISSING_MINUTE_BARS', 'price': current_price, 'dollar_volume': None, 'spread_pct': None, 'source': 'scan_loop'})
             _scanner_debug("SKIP: %s missing Alpaca data.", symbol)
             continue
 
@@ -1827,7 +1921,10 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     top_5 = []
     for r in ranked[:5]:
         d = r.get('details', {})
-        top_5.append({'symbol': r.get('symbol'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'premarket_dollar_volume': d.get('required_premarket_dollar_volume'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
+        actual_pmdv = d.get('premarket_dollar_volume')
+        required_pmdv = d.get('required_premarket_dollar_volume')
+        gap = (actual_pmdv - required_pmdv) if isinstance(actual_pmdv, (int, float)) and isinstance(required_pmdv, (int, float)) else None
+        top_5.append({'symbol': r.get('symbol'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'skip_reason_codes': d.get('skip_reason_codes') or []})
     chart_pack = get_stock_chart_pack(best['symbol'], user=user)
     valid_candidates = [r for r in ranked if r.get('setup_grade') in {'A+', 'A'}]
     market_call = 'NO TRADE TODAY'
@@ -1848,8 +1945,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         'debug_summary': {'total_symbols_scanned': len(symbols), 'total_symbols_accepted': len(ranked), 'total_symbols_rejected': len(rejected_candidates)},
         'scan_diagnostics': {
             'candidate_count_raw': candidate_count_raw,
+            'candidate_count_primary_raw': candidate_count_raw,
             'candidate_count_after_dedupe': candidate_count_after_dedupe,
+            'candidate_count_primary_after_dedupe': candidate_count_after_dedupe,
             'candidate_count_after_user_filters': candidate_count_after_user_filters,
+            'candidate_count_final_before_analysis': len(symbols),
             'candidate_count_after_price_volume_filters': len(analyzed_symbols),
             'candidate_symbols_sample': symbols[:20],
             'analyzed_symbols': analyzed_symbols,
@@ -1882,6 +1982,23 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'latest_top_5_raw_candidates_before_filters': [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols))[:5]],
             'latest_top_5_rejected_candidates': [r.get('symbol') for r in rejection_events[:5]],
             'latest_final_analyzed_count': len(analyzed_symbols),
+            'bar_data_requested_symbols_count': len(symbols),
+            'daily_bars_returned_symbols_count': len([s for s in symbols if daily_bars_map.get(s)]),
+            'minute_bars_returned_symbols_count': len([s for s in symbols if minute_bars_map.get(s)]),
+            'missing_daily_bars_symbols': missing_daily[:50],
+            'missing_minute_bars_symbols': missing_minute[:50],
+            'missing_snapshot_symbols': [s for s in symbols if not snapshots.get(s)][:50],
+            'missing_quote_symbols': [s for s in symbols if not quotes.get(s)][:50],
+            'symbols_with_snapshot_but_no_bars': [s for s in symbols if snapshots.get(s) and (not daily_bars_map.get(s) or not minute_bars_map.get(s))][:50],
+            'data_feed_used': feed,
+            'bar_fetch_time_window': {'daily_start': daily_start.isoformat(), 'daily_end': end.isoformat(), 'intraday_start': intraday_start.isoformat(), 'intraday_end': end.isoformat()},
+            'bar_fetch_limit_daily': daily_limit,
+            'bar_fetch_limit_intraday': intraday_limit,
+            'individual_bar_retry_attempted_count': retry_daily['individual_bar_retry_attempted_count'] + retry_minute['individual_bar_retry_attempted_count'],
+            'individual_bar_retry_success_count': retry_daily['individual_bar_retry_success_count'] + retry_minute['individual_bar_retry_success_count'],
+            'individual_bar_retry_failed_symbols': list(dict.fromkeys(retry_daily['individual_bar_retry_failed_symbols'] + retry_minute['individual_bar_retry_failed_symbols'])),
+            'asset_filter_rejection_counts': {k: len([r for r in asset_filter_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_filter_rejections}},
+            'asset_filter_rejection_samples': asset_filter_rejections[:20],
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,
