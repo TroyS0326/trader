@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
+import os
 
-EXECUTABLE_DECISIONS = {"BUY NOW", "A+", "A", "BUY"}
 BEST_PICK_KEYS = ("best_pick", "best", "top_pick")
+
+
+def decision_allowlist_from_env() -> set[str]:
+    raw = os.getenv("CENTRAL_SCANNER_EXECUTE_DECISIONS", "BUY NOW,A+,A")
+    parsed = {item.strip().upper() for item in raw.split(",") if item.strip()}
+    return parsed or {"BUY NOW", "A+", "A"}
 
 
 def _to_float(value: Any) -> float | None:
@@ -60,7 +66,7 @@ def validate_scan_payload_contract(result: Dict[str, Any]) -> Dict[str, Any]:
     qty_int = _to_int(normalized.get("qty"))
     qty_valid = bool(qty_int is not None and qty_int >= 1)
 
-    decision_is_executable = decision_raw in EXECUTABLE_DECISIONS
+    decision_is_executable = decision_raw in decision_allowlist_from_env()
     if decision_raw and not decision_is_executable:
         notes.append(f"Decision {decision_raw!r} is not executable.")
 

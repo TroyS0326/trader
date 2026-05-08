@@ -387,7 +387,6 @@ def password_hash_fingerprint(user: User) -> str:
 def generate_password_reset_token(user: User) -> str:
     serializer = get_password_reset_serializer()
 
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'user_id': user.id,
         'email': user.email,
@@ -473,7 +472,6 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
     full_name = (user.full_name or '').strip()
     first_name = full_name.split(' ')[0] if full_name else 'there'
 
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'sender': {
             'name': getattr(config, 'BREVO_SENDER_NAME', 'XeanVI Security'),
@@ -540,7 +538,6 @@ def add_signup_user_to_brevo(user):
     full_name = (user.full_name or '').strip()
     first_name = full_name.split(' ')[0] if full_name else ''
 
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'email': user.email,
         'attributes': {
@@ -611,7 +608,6 @@ def update_brevo_contact_attributes(user, attributes: dict) -> bool:
         "api-key": api_key,
     }
 
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         "attributes": safe_attributes,
     }
@@ -2909,7 +2905,6 @@ def alpaca_callback():
 
     # Use the centralized OAuth token endpoint
     token_url = "https://api.alpaca.markets/oauth/token"
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -3049,7 +3044,6 @@ def api_execution_readiness():
         elif diag.get('active_mode') == 'live':
             diag['live_execution_ready'] = False
 
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'active_mode': diag.get('active_mode', getattr(current_user, 'trading_mode', 'paper')),
         'execution_ready': diag.get('execution_ready'),
@@ -3258,7 +3252,6 @@ def api_debug_symbol(symbol: str):
     rejected = prev <= 0 or not classification.get('tradable_by_xeanvi', False)
     reason = 'missing_prev_close' if prev <= 0 else classification.get('rejection_reason')
     rejection_reasons = [reason] if reason else list(classification.get('rejection_reasons') or [])
-    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'symbol': symbol, 'asset_type': classification.get('asset_type'), 'asset_type_reason': classification.get('asset_type_reason'),
         'platform_allowed': classification.get('platform_allowed'), 'user_allowed': classification.get('user_allowed'),

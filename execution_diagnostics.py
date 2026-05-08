@@ -147,8 +147,9 @@ def _evaluate_mode_readiness(user: Any, scan_payload: Dict[str, Any], mode: str)
     trading_mode = mode
 
     best_pick = extract_best_pick(scan_payload)
-    decision = str(best_pick.get("decision") or best_pick.get("setup_grade") or "").upper().strip()
-    order_fields = extract_order_fields(best_pick)
+    contract = validate_scan_payload_contract(scan_payload if isinstance(scan_payload, dict) else {})
+    decision = str(contract.get("decision") or "").upper().strip()
+    order_fields = contract.get("normalized_order_fields") if not contract.get("missing_order_fields") else None
     qty = (order_fields or {}).get("qty")
 
     if not exec_enabled:

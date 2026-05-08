@@ -110,3 +110,49 @@ def test_alpaca_login_missing_config_flashes_and_redirects_onboarding(monkeypatc
         response = app_module.alpaca_login.__wrapped__()
         assert response.status_code == 302
         assert response.location.endswith('/onboarding')
+
+
+def test_password_reset_and_brevo_helpers_do_not_reference_scanner_diag(monkeypatch):
+    user = SimpleNamespace(id=7, email='user@example.com', full_name='Jane Doe', password_hash='hash', subscription_status='pro')
+
+    class Resp:
+        def __init__(self, status_code=202, text='ok'):
+            self.status_code = status_code
+            self.text = text
+        def json(self):
+            return {'access_token': 'token'}
+
+    monkeypatch.setenv('BREVO_API_KEY', 'k')
+    monkeypatch.setenv('BREVO_RESET_PASSWORD_TEMPLATE_ID', '123')
+    monkeypatch.setattr(app_module.requests, 'post', lambda *a, **k: Resp())
+    monkeypatch.setattr(app_module.requests, 'put', lambda *a, **k: Resp(200))
+
+    token = app_module.generate_password_reset_token(user)
+    assert isinstance(token, str) and token
+    assert app_module.send_password_reset_email(user, 'https://x/reset') is True
+    assert app_module.add_signup_user_to_brevo(user) in {True, False}
+    assert app_module.update_brevo_contact_attributes(user, {'foo': 'bar'}) is True
+
+
+def test_alpaca_callback_path_no_nameerror(monkeypatch):
+    user = _user(id=123, onboarding_completed=True, alpaca_paper_access_token='paper', alpaca_paper_account_id='acct')
+    monkeypatch.setattr(app_module, 'current_user', user)
+    monkeypatch.setattr(app_module, 'detect_and_store_alpaca_connection', lambda *a, **k: {'paper_connected': True, 'live_connected': False})
+    monkeypatch.setattr(app_module, 'onboarding_requirements_met', lambda *a, **k: True)
+    monkeypatch.setattr(app_module, 'update_brevo_contact_attributes', lambda *a, **k: True)
+    monkeypatch.setattr(app_module.db.session, 'commit', lambda: None)
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {'access_token': 'tok'}
+
+    monkeypatch.setattr(app_module.requests, 'post', lambda *a, **k: Resp())
+
+    with app_module.app.test_request_context('/alpaca/callback?state=ok&code=abc'):
+        from flask import session
+        session['oauth_state'] = 'ok'
+        session['alpaca_oauth_user_id'] = 123
+        session['alpaca_oauth_env'] = 'paper'
+        resp = app_module.alpaca_callback.__wrapped__()
+        assert resp.status_code == 302
