@@ -140,7 +140,7 @@ def test_run_scan_raises_diagnostic_when_asset_filter_empties_candidates(monkeyp
     monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
-    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None, candidate_source_map=None: symbols)
     monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {'AAPL': {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}}})
     monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {'AAPL': {'ap': 10}})
     monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
@@ -157,11 +157,11 @@ def test_run_scan_degrades_when_all_asset_metadata_lookups_fail(monkeypatch):
     monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
-    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None, candidate_source_map=None: symbols)
     monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
     monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
     monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
-    def _asset_diag(symbol, user=None):
+    def _asset_diag(symbol, user=None, source=None):
         return {}, {'symbol': symbol, 'endpoint_used': 'x', 'auth_source': 'server_api_key', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401', 'response_text_short': 'unauthorized', 'used_fallback': False}
     monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', _asset_diag)
     monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
@@ -186,11 +186,11 @@ def test_run_scan_degraded_mode_still_blocks_warrant_like_symbols(monkeypatch):
     monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
     monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
-    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None, candidate_source_map=None: symbols)
     monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
     monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
     monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
-    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', lambda symbol, user=None: ({}, {'symbol': symbol, 'endpoint_used': 'x', 'auth_source': 'server_api_key', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401', 'response_text_short': 'unauthorized', 'used_fallback': False}))
+    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', lambda symbol, user=None, source=None: ({}, {'symbol': symbol, 'endpoint_used': 'x', 'auth_source': 'server_api_key', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401', 'response_text_short': 'unauthorized', 'used_fallback': False}))
     monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
     monkeypatch.setattr(scanner, 'fill_missing_bars_individually', lambda *a, **k: {'individual_bar_retry_attempted_count':0,'individual_bar_retry_success_count':0,'individual_bar_retry_failed_symbols':[]})
     monkeypatch.setattr(scanner, 'analyze_symbol', lambda symbol, *a, **k: {'symbol': symbol, 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'scores': {'catalyst': 0}, 'score_total': 0, 'details': {'open_relative_strength': {'edge': 0}, 'liquidity': {'spread': 0}, 'skip_reason_codes': []}})
@@ -220,3 +220,27 @@ def test_get_alpaca_asset_with_diagnostics_401(monkeypatch):
     assert diag['failure_reason'] == 'HTTP_401'
     assert diag['ok'] is False
     assert len(diag['response_text_short']) <= 180
+
+
+def test_get_alpaca_asset_with_diagnostics_defaults_source_unknown():
+    _, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL')
+    assert diag['source'] == 'unknown'
+
+
+def test_get_alpaca_asset_with_diagnostics_uses_explicit_source():
+    _, diag = scanner.get_alpaca_asset_with_diagnostics('AAPL', source='fallback_market_candidates')
+    assert diag['source'] == 'fallback_market_candidates'
+
+
+def test_apply_user_symbol_filters_works_without_candidate_source_map():
+    out = scanner.apply_user_symbol_filters(['AAPL'], snapshots={}, quotes={}, user=None)
+    assert out == ['AAPL']
+
+
+def test_apply_user_symbol_filters_candidate_source_map_tags_snapshot(monkeypatch):
+    user = type('U', (), {'exclude_penny_stocks': False, 'exclude_biotech': False, 'esg_fossil_fuels': False, 'esg_weapons': False, 'esg_tobacco': False})()
+    snapshots = {'AAPL': {'minuteBar': {'c': 10}}}
+    quotes = {'AAPL': {'ap': 10}}
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    out = scanner.apply_user_symbol_filters(['AAPL'], snapshots=snapshots, quotes=quotes, user=user, candidate_source_map={'AAPL': 'momentum_breakout'})
+    assert out == ['AAPL']
