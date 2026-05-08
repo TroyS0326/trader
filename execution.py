@@ -112,8 +112,8 @@ class SaaSExecutionManager:
             return
 
         with app.app_context():
-            from models import User
-            user = User.query.get(user_id)
+            from models import db, User
+            user = db.session.get(User, user_id)
             trade = get_trade_by_target1_id(order_id, user_id=user_id)
             if not trade:
                 return

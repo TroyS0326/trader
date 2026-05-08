@@ -530,7 +530,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                     rejection_reasons[str(reason)] += 1
 
         diag = None
-        effective_user = user if user is not None else (User.query.get(uid) if uid else None)
+        effective_user = user if user is not None else (db.session.get(User, uid) if uid else None)
         if effective_user:
             diag = evaluate_execution_readiness(effective_user, scan)
             for reason in diag.get("active_mode_blocked_reasons", []):
@@ -917,7 +917,7 @@ def main() -> None:
     args = parser.parse_args()
     from app import app
     with app.app_context():
-        user = User.query.get(args.user_id) if args.user_id else None
+        user = db.session.get(User, args.user_id) if args.user_id else None
         report = build_scanner_effectiveness_report(user=user, limit=max(1, args.limit))
         print(json.dumps(report, indent=2, default=str))
 

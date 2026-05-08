@@ -109,7 +109,7 @@ def test_admin_user_recovery_detail_actions_and_logging(monkeypatch):
     assert 'token-value' not in reset_page
 
     with app_module.app.app_context():
-        before = User.query.get(uid)
+        before = db.session.get(User, uid)
         original_subscription_status = before.subscription_status
         original_subscription_plan = before.subscription_plan
         original_customer = before.stripe_customer_id
@@ -119,7 +119,7 @@ def test_admin_user_recovery_detail_actions_and_logging(monkeypatch):
 
     c.post(f'/admin/user-recovery/{uid}/clear-onboarding')
     with app_module.app.app_context():
-        u = User.query.get(uid)
+        u = db.session.get(User, uid)
         assert not u.onboarding_completed and not u.paper_bankroll_set and not u.first_scan_completed
         assert not u.scan_preview_completed and not u.playbook_reviewed and not u.transparency_reviewed
         assert not u.broker_connection_started
@@ -132,13 +132,13 @@ def test_admin_user_recovery_detail_actions_and_logging(monkeypatch):
 
     c.post(f'/admin/user-recovery/{uid}/mark-onboarding-complete')
     with app_module.app.app_context():
-        u = User.query.get(uid)
+        u = db.session.get(User, uid)
         assert u.onboarding_completed and u.paper_bankroll_set and u.first_scan_completed
         assert u.scan_preview_completed and u.playbook_reviewed and u.transparency_reviewed
         assert u.broker_connection_started is True
 
     with app_module.app.app_context():
-        u = User.query.get(uid)
+        u = db.session.get(User, uid)
         u.alpaca_paper_account_id = None
         u.alpaca_live_account_id = None
         u._alpaca_paper_access_token = None
@@ -148,16 +148,16 @@ def test_admin_user_recovery_detail_actions_and_logging(monkeypatch):
 
     c.post(f'/admin/user-recovery/{uid}/mark-onboarding-complete')
     with app_module.app.app_context():
-        assert User.query.get(uid).broker_connection_started is False
+        assert db.session.get(User, uid).broker_connection_started is False
 
     for status in ('free', 'pro', 'canceled', 'past_due'):
         c.post(f'/admin/user-recovery/{uid}/set-subscription-status', data={'subscription_status': status})
         with app_module.app.app_context():
-            assert User.query.get(uid).subscription_status == status
+            assert db.session.get(User, uid).subscription_status == status
 
     c.post(f'/admin/user-recovery/{uid}/set-subscription-status', data={'subscription_status': 'bad'})
     with app_module.app.app_context():
-        assert User.query.get(uid).subscription_status == 'past_due'
+        assert db.session.get(User, uid).subscription_status == 'past_due'
 
     with app_module.app.app_context():
         audit_events = UserEvent.query.filter(UserEvent.event_name.like('admin_user_recovery.%')).all()

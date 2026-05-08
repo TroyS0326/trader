@@ -96,7 +96,7 @@ def test_edit_draft_publish_non_500_and_no_new_row(monkeypatch):
 
     with app_module.app.app_context():
         assert BlogPost.query.count() == before
-        post = BlogPost.query.get(post_id)
+        post = db.session.get(BlogPost, post_id)
         assert post.status == 'published'
         assert post.published_at is not None
         assert post.og_image == '/img.jpg'
@@ -129,7 +129,7 @@ def test_changing_slug_to_other_post_slug_handled_safely(monkeypatch):
     assert rv.status_code in (301, 302)
 
     with app_module.app.app_context():
-        updated = BlogPost.query.get(p1_id)
+        updated = db.session.get(BlogPost, p1_id)
         assert updated.slug != 'two'
         assert updated.slug.startswith('two')
 
