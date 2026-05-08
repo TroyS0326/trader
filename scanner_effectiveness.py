@@ -61,6 +61,10 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         if key in scan_diag:
             safe_scan_diag[key] = scan_diag.get(key)
 
+    enriched_dt = _parse_dt((latest_enriched_scan or {}).get("created_at") or (latest_enriched_scan or {}).get("timestamp"))
+    latest_enriched_scan_age_seconds = int((now_utc - enriched_dt.astimezone(timezone.utc)).total_seconds()) if enriched_dt else None
+    stale_scan_warning = bool(watch_snapshot.get("active_watch_candidate_count",0) > 0 and not latest_enriched_scan)
+
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -253,6 +257,17 @@ def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
     }
 
 
+
+
+def _is_enriched_scan(scan: Dict[str, Any], user: Optional[Any] = None) -> bool:
+    if not isinstance(scan, dict):
+        return False
+    if user is not None and int(scan.get("user_id") or 0) != int(user.id):
+        return False
+    if int(scan.get("scan_attribution_version") or 0) < 1:
+        return False
+    return isinstance(scan.get("scan_diagnostics"), dict) and bool(scan.get("scan_diagnostics"))
+
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
     watch_snapshot = _watch_snapshot(user=user)
     scans, latest_by_user = _load_scans(user=user, limit=limit)
@@ -267,6 +282,8 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         all_scans.append(v)
         seen.add(key)
 
+    latest_enriched_scan = next((scan for scan in all_scans if _is_enriched_scan(scan, user=user)), None)
+    latest_scan = latest_enriched_scan or (all_scans[0] if all_scans else {})
     decision_counts: Counter = Counter()
     missing_order_field_counts: Counter = Counter()
     blocked_reason_counts: Counter = Counter()
@@ -440,7 +457,6 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         else:
             latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
 
-    latest_scan = all_scans[0] if all_scans else {}
     latest_diag = latest_scan.get("scan_diagnostics") if isinstance(latest_scan.get("scan_diagnostics"), dict) else {}
     latest_attr_version = latest_scan.get("scan_attribution_version")
     attr_version_counts: Counter = Counter(str(scan.get("scan_attribution_version")) for scan in all_scans)
@@ -479,7 +495,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     }
     recommended_next_action = "Rerun scanner_effectiveness and inspect scan_diagnostics/opening_range diagnostics for dominant symbols."
     if not has_new_diag:
-        recommended_next_action = "Run a fresh manual scan or wait for the next central scan after deploying latest code, then rerun scanner_effectiveness."
+        recommended_next_action = "Run or persist a fresh attributed user scan; WATCH subsystem is current but scan history is stale."
     elif latest_diag.get("executable_candidate_count", 0) > 0 and (latest_scan.get("best_pick") or {}).get("decision") == "SKIP":
         recommended_next_action = "Investigate best-pick ranking bug."
     elif repeated_best_pick_warning and isinstance(latest_candidate_count_after_dedupe, int) and latest_candidate_count_after_dedupe <= 3:
@@ -549,6 +565,13 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "scans_by_user_count": dict(scans_by_user_count),
         "source_counts": dict(source_counts),
         "latest_scan_age_seconds": latest_age,
+        "latest_enriched_scan_age_seconds": latest_enriched_scan_age_seconds,
+        "latest_enriched_scan_source": (latest_enriched_scan or {}).get("_source"),
+        "latest_enriched_scan_id": (latest_enriched_scan or {}).get("scan_id") or (latest_enriched_scan or {}).get("db_scan_id"),
+        "latest_enriched_scan_user_id": (latest_enriched_scan or {}).get("user_id"),
+        "latest_enriched_scan_has_diagnostics": bool((latest_enriched_scan or {}).get("scan_diagnostics")),
+        "stale_scan_warning": stale_scan_warning,
+        "stale_scan_warning_reason": "NO_ENRICHED_ATTRIBUTED_SCAN" if stale_scan_warning else None,
         "best_pick_present_count": best_pick_present_count,
         "executable_payload_ready_count": executable_payload_ready_count,
         "decision_counts": dict(decision_counts),
@@ -649,6 +672,11 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_downgraded_watch_candidates": watch_snapshot.get("latest_downgraded_watch_candidates", []),
         "latest_rejected_watch_candidates": watch_snapshot.get("latest_rejected_watch_candidates", []),
         "latest_watch_recheck_summary": watch_snapshot.get("latest_watch_recheck_summary"),
+        "latest_watch_recheck_summary_global": watch_snapshot.get("latest_watch_recheck_summary"),
+        "latest_watch_recheck_summary_for_user": watch_snapshot.get("latest_watch_recheck_summary") if user is not None else None,
+        "latest_watch_recheck_summary_effective": watch_snapshot.get("latest_watch_recheck_summary"),
+        "latest_watch_recheck_summary_age_seconds": None,
+        "latest_watch_recheck_summary_source": "user" if user is not None and watch_snapshot.get("latest_watch_recheck_summary") else ("global" if watch_snapshot.get("latest_watch_recheck_summary") else "missing"),
         "watch_promoted_count_today": watch_snapshot.get("watch_promoted_count_today", 0),
         "watch_expired_count_today": watch_snapshot.get("watch_expired_count_today", 0),
         "watch_top_blockers": watch_snapshot.get("watch_top_blockers", []),
@@ -656,7 +684,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "best_active_watch_missing_confirmations": watch_snapshot.get("best_active_watch_missing_confirmations", []),
         "sample_recent_failures": failures,
         "primary_blocker_summary": primary_blocker_summary,
-        "recommended_next_action": recommended_next_action,
+        "recommended_next_action": ("Active WATCH candidate exists; continue rechecking until missing confirmations clear. Persist a fresh attributed scan to refresh scan diagnostics." if watch_snapshot.get("active_watch_candidate_count",0) > 0 else recommended_next_action),
         "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
     }
