@@ -397,6 +397,17 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
 
     latest_candidate_count_after_dedupe = latest_diag.get("candidate_count_after_dedupe")
+    missing_daily = latest_diag.get("missing_daily_bars_symbols") or []
+    missing_minute = latest_diag.get("missing_minute_bars_symbols") or []
+    bars_requested = int(latest_diag.get("bar_data_requested_symbols_count") or 0)
+    asset_filter_rejections = latest_diag.get("asset_filter_rejection_counts") or {}
+    unsupported_assets = sum(int(v or 0) for k, v in asset_filter_rejections.items() if k in {"UNSUPPORTED_ASSET_TYPE", "WARRANT_OR_RIGHT", "ETF_BLOCKED_BY_SETTINGS", "LEVERAGED_ETF_BLOCKED_BY_SETTINGS", "NOT_TRADABLE", "MISSING_ASSET_METADATA"})
+    data_starvation_summary = {
+        "bars_requested": bars_requested,
+        "missing_daily_count": len(missing_daily),
+        "missing_minute_count": len(missing_minute),
+        "missing_any_bar_count": len(set(missing_daily + missing_minute)),
+    }
     recommended_next_action = "Rerun scanner_effectiveness and inspect scan_diagnostics/opening_range diagnostics for dominant symbols."
     if not has_new_diag:
         recommended_next_action = "Run a fresh manual scan or wait for the next central scan after deploying latest code, then rerun scanner_effectiveness."
@@ -408,6 +419,14 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         recommended_next_action = "Investigate ranking logic and top candidate quality."
     elif any((s.get("opening_range_complete") is False and s.get("opening_range_bar_count") == 0 and isinstance(s.get("latest_bar_timestamp_et"), str) and isinstance(s.get("opening_range_end_et"), str)) for s in failures):
         recommended_next_action = "Investigate Alpaca intraday bars/feed/window filtering for missing opening-range bars."
+
+    primary_blocker_summary = starvation_flags[0] if starvation_flags else "NONE"
+    if bars_requested > 0 and len(set(missing_daily + missing_minute)) >= max(3, int(bars_requested * 0.5)):
+        primary_blocker_summary = "BAR_DATA_STARVATION"
+        recommended_next_action = "Investigate Alpaca bar data coverage/feed or per-symbol bar fetch failures."
+    elif unsupported_assets >= max(3, int((bars_requested or 1) * 0.5)):
+        primary_blocker_summary = "CANDIDATE_SOURCE_LOW_QUALITY"
+        recommended_next_action = "Improve candidate source filtering before analysis."
 
     return {
         "total_scans_analyzed": len(all_scans),
@@ -450,6 +469,10 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_candidate_count_after_dedupe": latest_diag.get("candidate_count_after_dedupe"),
         "latest_candidate_count_after_user_filters": latest_diag.get("candidate_count_after_user_filters"),
         "latest_candidate_count_after_price_volume_filters": latest_diag.get("candidate_count_after_price_volume_filters"),
+        "latest_candidate_count_primary_raw": latest_diag.get("candidate_count_primary_raw"),
+        "latest_candidate_count_primary_after_dedupe": latest_diag.get("candidate_count_primary_after_dedupe"),
+        "latest_candidate_count_after_fallback": latest_diag.get("candidate_count_after_fallback"),
+        "latest_candidate_count_final_before_analysis": latest_diag.get("candidate_count_final_before_analysis"),
         "latest_analyzed_symbols": latest_diag.get("analyzed_symbols"),
         "latest_candidate_symbols_sample": latest_diag.get("candidate_symbols_sample"),
         "latest_top_5_candidates_by_score": latest_diag.get("top_5_candidates_by_score"),
@@ -465,8 +488,19 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "scan_attribution_version_counts": dict(attr_version_counts),
         "latest_scan_has_new_diagnostics": has_new_diag,
         "latest_scan_missing_new_diagnostics_reason": missing_diag_reason,
+        "latest_bar_data_requested_symbols_count": latest_diag.get("bar_data_requested_symbols_count"),
+        "latest_daily_bars_returned_symbols_count": latest_diag.get("daily_bars_returned_symbols_count"),
+        "latest_minute_bars_returned_symbols_count": latest_diag.get("minute_bars_returned_symbols_count"),
+        "latest_missing_daily_bars_symbols": latest_diag.get("missing_daily_bars_symbols"),
+        "latest_missing_minute_bars_symbols": latest_diag.get("missing_minute_bars_symbols"),
+        "latest_symbols_with_snapshot_but_no_bars": latest_diag.get("symbols_with_snapshot_but_no_bars"),
+        "latest_individual_bar_retry_attempted_count": latest_diag.get("individual_bar_retry_attempted_count"),
+        "latest_individual_bar_retry_success_count": latest_diag.get("individual_bar_retry_success_count"),
+        "latest_individual_bar_retry_failed_symbols": latest_diag.get("individual_bar_retry_failed_symbols"),
+        "latest_asset_filter_rejection_counts": latest_diag.get("asset_filter_rejection_counts"),
+        "latest_data_starvation_summary": data_starvation_summary,
         "sample_recent_failures": failures,
-        "primary_blocker_summary": starvation_flags[0] if starvation_flags else "NONE",
+        "primary_blocker_summary": primary_blocker_summary,
         "recommended_next_action": recommended_next_action,
         "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
