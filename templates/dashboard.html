@@ -574,10 +574,10 @@
                         <div class="scanner-kv"><div class="label">Reconnect reason</div><div class="scanner-value" id="scanner-reconnect-reason">—</div></div>
                         <div id="scanner-reconnect-reason-code" class="scanner-muted"></div>
                         <div class="scanner-kv"><div class="label">Degraded mode</div><div class="scanner-value" id="scanner-degraded-mode">—</div></div>
-                        <div id="scanner-reconnect-cta" class="scanner-reconnect-card">
+                        <div id="scanner-alpaca-reconnect-card" class="scanner-reconnect-card">
                             <div style="font-weight: 700; color: var(--warning); margin-bottom: 6px;">Alpaca reconnect recommended</div>
-                            <div class="scanner-reconnect-copy">Your Alpaca authorization is unauthorized for metadata checks. XeanVI is using server metadata fallback for validation. Trading rules are unchanged.</div>
-                            <a class="scanner-reconnect-disclosure-link" href="/broker-integration">Before reconnecting, review Alpaca authorization terms.</a>
+                            <div id="scanner-alpaca-reconnect-copy" class="scanner-reconnect-copy">Your Alpaca authorization is unauthorized for metadata checks. XeanVI is using server metadata fallback for validation. Trading rules are unchanged.</div>
+                            <a id="scanner-alpaca-reconnect-disclosure-link" class="scanner-reconnect-disclosure-link" href="/broker-integration">Before reconnecting, review Alpaca authorization terms.</a>
                             <a id="scanner-alpaca-reconnect-link" href="{{ url_for('alpaca_login', env='paper') }}" class="scanner-reconnect-cta">
                                 <i class="fas fa-link"></i> <span id="scanner-reconnect-label">Reconnect Alpaca Paper</span>
                             </a>
@@ -1024,7 +1024,7 @@
             document.getElementById('scanner-reconnect-reason-code').textContent = reconnectCode || '';
             const reconnectEnv = (report.alpaca_reconnect_env || report.trading_mode || 'paper').toLowerCase() === 'live' ? 'live' : 'paper';
             const reconnectUrl = report.alpaca_reconnect_url || `/alpaca/login?env=${reconnectEnv}`;
-            const reconnectCtaEl = document.getElementById('scanner-reconnect-cta');
+            const reconnectCtaEl = document.getElementById('scanner-alpaca-reconnect-card');
             const reconnectLinkEl = document.getElementById('scanner-alpaca-reconnect-link');
             const reconnectLabelEl = document.getElementById('scanner-reconnect-label');
             const noReconnectEl = document.getElementById('scanner-no-reconnect-needed');

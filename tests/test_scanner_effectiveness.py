@@ -683,7 +683,7 @@ def test_scanner_effectiveness_reconnect_url_uses_live_mode(monkeypatch):
 
 def test_dashboard_template_has_reconnect_disclosure_link_and_no_trade_cta_in_reconnect_block():
     src = Path("templates/dashboard.html").read_text()
-    block = src[src.index('id="scanner-reconnect-cta"'):src.index('id="scanner-no-reconnect-needed"')]
+    block = src[src.index('id="scanner-alpaca-reconnect-card"'):src.index('id="scanner-no-reconnect-needed"')]
     assert '/broker-integration' in block
     assert 'review Alpaca authorization terms' in block
     assert 'Buy' not in block and 'Execute' not in block and 'Trade now' not in block
