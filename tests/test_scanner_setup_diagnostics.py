@@ -506,3 +506,17 @@ def test_get_alpaca_asset_with_diagnostics_no_secret_leak(monkeypatch):
     rendered = str(diag)
     assert 'APCA-API-SECRET-KEY' not in rendered
     assert 'Authorization' not in rendered
+
+
+def test_empty_symbol_fetchers_short_circuit_without_network(monkeypatch):
+    called = {'count': 0}
+
+    def _boom(*args, **kwargs):
+        called['count'] += 1
+        raise AssertionError('_get_json should not be called for empty symbols')
+
+    monkeypatch.setattr(scanner, '_get_json', _boom)
+    assert scanner.get_snapshots([]) == {}
+    assert scanner.get_latest_quotes([]) == {}
+    assert scanner.get_bars([], '1Day', scanner.now_utc(), scanner.now_utc(), 10) == {}
+    assert called['count'] == 0

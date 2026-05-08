@@ -490,3 +490,13 @@ def test_scanner_effectiveness_exposes_legacy_unattributed_counts(monkeypatch):
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["legacy_unattributed_scan_count"] == 1
     assert report["ignored_unattributed_scan_count"] >= 1
+
+
+def test_scanner_and_effectiveness_import_together_without_cycle():
+    import importlib
+    import scanner as scanner_module
+    import scanner_effectiveness as scanner_eff_module
+
+    importlib.reload(scanner_module)
+    importlib.reload(scanner_eff_module)
+    assert hasattr(scanner_module, 'normalize_skip_reason_code')
