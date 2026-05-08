@@ -262,6 +262,8 @@ def maybe_store_realized_pnl(trade: Trade) -> None:
 
 
 def insert_scan(payload: Dict[str, Any]) -> int:
+    if payload.get('report_user_id') and not payload.get('user_id'):
+        payload['user_id'] = payload.get('report_user_id')
     best = payload.get('best_pick', {})
     scan = Scan(
         created_at=utc_now(),

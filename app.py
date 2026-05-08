@@ -3120,6 +3120,11 @@ def api_scan():
             'no_buy_before_et': config.NO_BUY_BEFORE_ET,
         }
         result['risk_controls'] = risk_controls
+        result["user_id"] = current_user.id
+        result["report_user_id"] = current_user.id
+        result["trading_mode"] = getattr(current_user, "trading_mode", "paper")
+        result["subscription_status"] = getattr(current_user, "subscription_status", "free")
+        result["scan_source"] = "dashboard_manual"
         scan_id = insert_scan(result)
         result['scan_id'] = scan_id
         if not current_user.first_scan_completed:
