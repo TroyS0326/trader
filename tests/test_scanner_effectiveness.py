@@ -199,6 +199,47 @@ def test_safe_scan_view_is_single_scan_only():
     assert "scanner_starvation_flags" not in view
 
 
+def test_safe_scan_view_synthesizes_skip_reason_codes_from_old_scan():
+    view = scanner_effectiveness._safe_scan_view({
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP", "details": {"skip_reasons": ["Opening range is not complete."], "skip_reason": "Spread is too wide."}}
+    })
+    assert view["skip_reason_codes"] == ["OPENING_RANGE_NOT_COMPLETE", "SPREAD_TOO_WIDE"]
+
+
+def test_safe_scan_view_includes_or_diagnostics_when_present():
+    view = scanner_effectiveness._safe_scan_view({
+        "best_pick": {"symbol": "AAPL", "details": {"opening_range_bar_count": 20, "latest_bar_timestamp_et": "2026-01-01T10:00:00-05:00", "or_high": 10.5, "breakout_confirmed_reason": "BREAKOUT_NOT_CONFIRMED"}}
+    })
+    assert view["opening_range_bar_count"] == 20
+    assert view["latest_bar_timestamp_et"]
+    assert view["or_high"] == 10.5
+    assert view["breakout_confirmed_reason"] == "BREAKOUT_NOT_CONFIRMED"
+
+
+def test_report_exposes_latest_scan_diagnostics_and_stale_detection(monkeypatch):
+    row = {"id": 60, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 9, "scan_attribution_version": 1, "scan_diagnostics": {"candidate_count_raw": 7, "top_5_candidates_by_score": ["AAPL"], "executable_candidate_count": 1}, "best_pick": {"symbol": "AAPL", "decision": "SKIP"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_candidate_count_raw"] == 7
+    assert report["latest_top_5_candidates_by_score"] == ["AAPL"]
+    assert report["latest_scan_has_new_diagnostics"] is True
+
+
+def test_report_marks_missing_scan_attribution_version_as_old(monkeypatch):
+    row = {"id": 61, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 9, "best_pick": {"symbol": "AAPL", "decision": "SKIP"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_scan_has_new_diagnostics"] is False
+    assert report["latest_scan_missing_new_diagnostics_reason"] in {"SCAN_ATTRIBUTION_VERSION_MISSING", "OLD_SCAN_PAYLOAD"}
+    assert report["recommended_next_action"].startswith("Run a fresh manual scan")
+
+
 def test_report_empty_scans_has_expected_report_level_fields(monkeypatch):
     monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [])
     _set_redis(monkeypatch, {})
@@ -244,3 +285,11 @@ def test_analyze_symbol_assigns_skip_reason_codes_before_result_build():
     assert assign_idx != -1
     assert details_idx != -1
     assert assign_idx < details_idx
+
+
+def test_analyze_symbol_persists_or_diagnostics_in_details_source():
+    import inspect
+    src = inspect.getsource(scanner.analyze_symbol)
+    assert "'opening_range_bar_count': or_stats.get('opening_range_bar_count')" in src
+    assert "'latest_bar_timestamp_et': or_stats.get('latest_bar_timestamp_et')" in src
+    assert "'breakout_confirmed_reason': or_stats.get('breakout_confirmed_reason')" in src
