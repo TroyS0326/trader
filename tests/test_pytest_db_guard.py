@@ -34,3 +34,13 @@ def test_pytest_guard_rejects_production_db_path(tmp_path):
 
     assert result.returncode != 0
     assert "Refusing to run tests against production DB." in (result.stdout + result.stderr)
+
+
+
+def test_conftest_safety_guards_present():
+    conftest_text = Path(__file__).resolve().parents[1].joinpath('tests', 'conftest.py').read_text()
+    assert 'sys.path.insert(0, str(ROOT))' in conftest_text
+    assert 'PROD_DB_PATH = "/var/www/stock/trader/stock/veteran_trades.db"' in conftest_text
+    assert 'def _block_network_calls()' in conftest_text
+    assert 'socket.create_connection' in conftest_text
+    assert 'def _runtime_production_db_guard()' in conftest_text
