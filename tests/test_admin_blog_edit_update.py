@@ -10,6 +10,19 @@ for k in ['SECRET_KEY','TOKEN_ENCRYPTION_KEY','ALPACA_CLIENT_ID','ALPACA_CLIENT_
     os.environ.setdefault(k, 'test')
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
+import types
+
+if 'redis' not in sys.modules:
+    redis_stub = types.SimpleNamespace(
+        from_url=lambda *args, **kwargs: types.SimpleNamespace(ping=lambda: True),
+        Redis=object,
+    )
+    sys.modules['redis'] = redis_stub
+if 'requests' not in sys.modules:
+    sys.modules['requests'] = types.SimpleNamespace(get=lambda *a, **k: None, post=lambda *a, **k: None)
+if 'stripe' not in sys.modules:
+    sys.modules['stripe'] = types.SimpleNamespace(api_key='test')
+
 import app as app_module
 from models import db, User, BlogPost
 
