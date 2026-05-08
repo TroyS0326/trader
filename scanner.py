@@ -1512,6 +1512,11 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     execution_eligibility_reason = "Decision is executable under current CENTRAL_SCANNER_EXECUTE_DECISIONS allowlist."
     if decision not in executable_decisions:
         execution_eligibility_reason = "Decision is non-executable under current CENTRAL_SCANNER_EXECUTE_DECISIONS allowlist."
+    skip_reason_codes = []
+    for reason in skip_reasons:
+        code = normalize_skip_reason_code(reason)
+        if code not in skip_reason_codes:
+            skip_reason_codes.append(code)
 
     notes = []
     if or_stats.get('or_high'):
@@ -1892,4 +1897,3 @@ def normalize_skip_reason_code(reason: str) -> str:
     if text.startswith('VIX Volatility Spike'):
         return 'VIX_CIRCUIT_BREAKER'
     return text.upper().replace(' ', '_').replace('-', '_').replace('.', '')
-    skip_reason_codes = [normalize_skip_reason_code(r) for r in skip_reasons]
