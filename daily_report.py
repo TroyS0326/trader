@@ -251,11 +251,11 @@ def run_daily_reports(report_date: date, send: bool, user_id=None, send_all=Fals
             db.session.add(log)
         else:
             log = existing
-        if log.status == 'sent':
+        if result_status == 'sent':
             out['sent'] += 1
-        elif log.status in {'failed'}:
+        elif result_status == 'failed':
             out['failed'] += 1
-        elif log.status == 'dry_run':
+        elif result_status == 'dry_run':
             out['dry_run'] += 1
         else:
             out['skipped'] += 1
