@@ -19,7 +19,6 @@ from models import db, User, Scan, WatchCandidate, ScoreTriplet, SymbolMarketSta
 from db import insert_scan
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
-from scanner_effectiveness import normalize_scan_record, _parse_dt
 
 from feature_store import store
 import dynamic_orb
@@ -441,7 +440,7 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
 def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
     if not symbols:
         logger.debug("Skipping get_snapshots() because symbols list is empty.")
-        result = {}
+        return {}
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/snapshots',
         params={'symbols': ','.join(symbols), 'feed': feed},
@@ -3308,13 +3307,26 @@ if __name__ == '__main__':
             unattributed_count = 0
             marked_legacy_count = 0
             for row in rows:
-                payload = normalize_scan_record({'id': row.id, 'created_at': row.created_at, 'best_symbol': row.best_symbol, 'best_decision': row.best_decision, 'payload_json': row.payload_json})
+                payload = {}
+                if isinstance(row.payload_json, str) and row.payload_json.strip():
+                    try:
+                        parsed_payload = json.loads(row.payload_json)
+                        if isinstance(parsed_payload, dict):
+                            payload = parsed_payload
+                    except Exception:
+                        payload = {}
+                payload.setdefault('id', row.id)
+                payload.setdefault('created_at', row.created_at.isoformat() if isinstance(row.created_at, datetime) else row.created_at)
+                payload.setdefault('best_symbol', row.best_symbol)
+                payload.setdefault('best_decision', row.best_decision)
                 if int(payload.get('user_id') or 0) > 0 or int(payload.get('scan_attribution_version') or 0) >= 1:
                     continue
                 unattributed_count += 1
-                created = _parse_dt(payload.get('created_at') or payload.get('timestamp'))
-                if created is not None and created.astimezone(timezone.utc) > cutoff:
-                    continue
+                created = row.created_at
+                if isinstance(created, datetime):
+                    created_utc = created if created.tzinfo is not None else created.replace(tzinfo=timezone.utc)
+                    if created_utc.astimezone(timezone.utc) > cutoff:
+                        continue
                 legacy_flags = payload.get('legacy_flags') if isinstance(payload.get('legacy_flags'), dict) else {}
                 if legacy_flags.get('unattributed_scan_legacy'):
                     continue

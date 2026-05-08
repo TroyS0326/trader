@@ -196,10 +196,15 @@ def test_scanner_source_contains_cli_attribution_guardrail():
 def test_mark_unattributed_legacy_command_has_defined_dependencies():
     src = Path('scanner.py').read_text()
     assert 'from models import db, User, Scan' in src
-    assert 'from scanner_effectiveness import normalize_scan_record, _parse_dt' in src
+    assert 'from scanner_effectiveness import normalize_scan_record, _parse_dt' not in src
 
 
 def test_run_scan_finalizes_with_helper_and_no_direct_attribution_return():
     src = Path('scanner.py').read_text()
     assert 'def _finalize_scan_result' in src
     assert "return _finalize_scan_result(result, user=user, source='run_scan')" in src
+
+
+def test_scanner_module_does_not_top_level_import_scanner_effectiveness():
+    src = Path('scanner.py').read_text()
+    assert 'from scanner_effectiveness import' not in src
