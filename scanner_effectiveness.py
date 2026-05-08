@@ -398,12 +398,18 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
 
     dashboard_scope_used = "latest_scan"
     current_dashboard_summary = latest_scan_summary
-    if recent_15m_summary["count"] > 0:
+    has_recent_15m = recent_15m_summary["count"] > 0
+    has_recent_60m = recent_60m_summary["count"] > 0
+    has_recent_operational_scans = has_recent_15m or has_recent_60m
+    recent_operational_scan_window_used = "none"
+    if has_recent_15m:
         dashboard_scope_used = "recent_15m"
         current_dashboard_summary = recent_15m_summary
-    elif recent_60m_summary["count"] > 0:
+        recent_operational_scan_window_used = "recent_15m"
+    elif has_recent_60m:
         dashboard_scope_used = "recent_60m"
         current_dashboard_summary = recent_60m_summary
+        recent_operational_scan_window_used = "recent_60m"
 
     if latest_enriched_scan_user:
         latest_scan = latest_enriched_scan_user
@@ -852,9 +858,11 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "operational_scans_recent_15m_count": len(recent_operational_scans_15m),
         "operational_scans_recent_60m_count": len(recent_operational_scans_60m),
         "operational_scans_current_day_count": len(current_day_operational_scans),
+        "has_recent_operational_scans": has_recent_operational_scans,
+        "recent_operational_scan_window_used": recent_operational_scan_window_used,
         "recommended_next_action": (
             "No recent attributed scans; run a fresh user scan."
-            if current_dashboard_summary.get("count", 0) == 0
+            if not has_recent_operational_scans
             else ("Active WATCH candidate exists; continue rechecking until missing confirmations clear."
                   if watch_snapshot.get("active_watch_candidate_count", 0) > 0 and int(current_dashboard_summary.get("executable_payload_ready_count", 0)) == 0
                   else recommended_next_action)
