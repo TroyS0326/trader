@@ -419,11 +419,13 @@ def test_scanner_effectiveness_exposes_news_evidence_scoring_summary(monkeypatch
 def test_scanner_effectiveness_exposes_watch_diagnostics(monkeypatch):
     row = {"id": 1, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"scan_id": "s-1", "user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
     monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
-    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 2, "latest_watch_candidates": [{"symbol": "RXT"}], "latest_watch_recheck_summary": None, "watch_promoted_count_today": 1, "watch_expired_count_today": 1, "watch_top_blockers": [["VWAP_TREND_NOT_ALIGNED", 2]], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 2, "latest_watch_candidates": [{"symbol": "RXT"}], "downgraded_watch_candidate_count": 3, "rejected_watch_candidate_count": 1, "latest_downgraded_watch_candidates": [{"symbol": "NVDA"}], "latest_rejected_watch_candidates": [{"symbol": "BITO"}], "latest_watch_recheck_summary": None, "watch_promoted_count_today": 1, "watch_expired_count_today": 1, "watch_top_blockers": [["VWAP_TREND_NOT_ALIGNED", 2]], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
     with scanner_effectiveness.app.app_context() if hasattr(scanner_effectiveness, 'app') else __import__('contextlib').nullcontext():
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["active_watch_candidate_count"] == 2
     assert report["best_active_watch_symbol"] == "RXT"
+    assert report["downgraded_watch_candidate_count"] == 3
+    assert report["latest_downgraded_watch_candidates"][0]["symbol"] == "NVDA"
 
 
 def test_report_has_watch_top_level_fields_when_scan_diagnostics_empty(monkeypatch):
