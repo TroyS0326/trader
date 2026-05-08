@@ -347,6 +347,9 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
 
 
 def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
+    if not symbols:
+        logger.debug("Skipping get_snapshots() because symbols list is empty.")
+        return {}
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/snapshots',
         params={'symbols': ','.join(symbols), 'feed': feed},
@@ -356,6 +359,9 @@ def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
 
 
 def get_latest_quotes(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
+    if not symbols:
+        logger.debug("Skipping get_latest_quotes() because symbols list is empty.")
+        return {}
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/quotes/latest',
         params={'symbols': ','.join(symbols), 'feed': feed},
@@ -372,6 +378,9 @@ def get_bars(
     limit: int,
     feed: str = 'iex',
 ) -> Dict[str, List[Dict[str, Any]]]:
+    if not symbols:
+        logger.debug("Skipping get_bars() because symbols list is empty. timeframe=%s", timeframe)
+        return {}
     data = _get_json(
         f'{ALPACA_DATA_BASE}/v2/stocks/bars',
         params={
@@ -448,7 +457,7 @@ def get_company_profile(symbol: str) -> Dict[str, Any]:
 
 def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
     try:
-        payload = _get_json(f'{ALPACA_DATA_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
+        payload = _get_json(f'{config.ALPACA_PAPER_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
         return payload if isinstance(payload, dict) else {}
     except requests.RequestException:
         return {}
@@ -1751,11 +1760,19 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     symbols_removed_by_user_filters = [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols + fallback_candidates)) if s not in symbols]
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
+    candidate_count_before_asset_filter = len(symbols)
     asset_filter_rejections = []
     asset_metadata_by_symbol: Dict[str, Dict[str, Any]] = {}
     filtered_symbols = []
+    asset_metadata_failure_count = 0
+    asset_metadata_success_count = 0
+    asset_metadata_endpoint_used = f'{config.ALPACA_PAPER_BASE}/v2/assets/{{symbol}}'
     for symbol in symbols:
         asset = get_alpaca_asset(symbol)
+        if asset:
+            asset_metadata_success_count += 1
+        else:
+            asset_metadata_failure_count += 1
         profile = get_company_profile(symbol)
         classification = classify_asset(
             symbol, asset, profile,
@@ -1795,6 +1812,46 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             continue
         filtered_symbols.append(symbol)
     symbols = filtered_symbols
+    candidate_count_after_asset_filter = len(symbols)
+    asset_filter_rejection_counts = {
+        k: len([r for r in asset_filter_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_filter_rejections}
+    }
+    asset_filter_removed_symbols = [r.get('symbol') for r in asset_filter_rejections]
+    asset_metadata_all_failed = candidate_count_before_asset_filter > 0 and asset_metadata_success_count == 0
+    if asset_metadata_all_failed:
+        logger.error(
+            "Asset metadata lookup failed for all candidates before snapshots.",
+            extra={
+                'candidate_count_before_asset_filter': candidate_count_before_asset_filter,
+                'candidate_count_after_asset_filter': candidate_count_after_asset_filter,
+                'asset_filter_rejection_counts': asset_filter_rejection_counts,
+                'asset_filter_rejection_samples': asset_filter_rejections[:20],
+                'asset_filter_removed_symbols': asset_filter_removed_symbols[:100],
+                'asset_filter_empty_reason': 'ASSET_METADATA_LOOKUP_FAILED_FOR_ALL_CANDIDATES',
+                'asset_metadata_failure_count': asset_metadata_failure_count,
+                'asset_metadata_success_count': asset_metadata_success_count,
+                'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
+                'asset_metadata_all_failed': asset_metadata_all_failed,
+            },
+        )
+        raise ScanError("Asset metadata lookup failed for all candidates; check Alpaca trading assets endpoint/config.")
+    if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
+        logger.error(
+            "No symbols remained after asset quality filtering.",
+            extra={
+                'candidate_count_before_asset_filter': candidate_count_before_asset_filter,
+                'candidate_count_after_asset_filter': candidate_count_after_asset_filter,
+                'asset_filter_rejection_counts': asset_filter_rejection_counts,
+                'asset_filter_rejection_samples': asset_filter_rejections[:20],
+                'asset_filter_removed_symbols': asset_filter_removed_symbols[:100],
+                'asset_filter_empty_reason': 'ALL_CANDIDATES_REJECTED_BY_ASSET_FILTER',
+                'asset_metadata_failure_count': asset_metadata_failure_count,
+                'asset_metadata_success_count': asset_metadata_success_count,
+                'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
+                'asset_metadata_all_failed': asset_metadata_all_failed,
+            },
+        )
+        raise ScanError("No symbols remained after asset quality filtering.")
     snapshots = get_snapshots(symbols, feed=feed)
     quotes = get_latest_quotes(symbols, feed=feed)
     sector_symbols = ['SPY', 'SMH', 'XLK', 'XLF', 'XLV', 'XLY', 'XLC', 'XLI', 'XLE', 'XLU', 'XLRE', 'XLB', 'XBI', 'KBE']
@@ -1997,8 +2054,16 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'individual_bar_retry_attempted_count': retry_daily['individual_bar_retry_attempted_count'] + retry_minute['individual_bar_retry_attempted_count'],
             'individual_bar_retry_success_count': retry_daily['individual_bar_retry_success_count'] + retry_minute['individual_bar_retry_success_count'],
             'individual_bar_retry_failed_symbols': list(dict.fromkeys(retry_daily['individual_bar_retry_failed_symbols'] + retry_minute['individual_bar_retry_failed_symbols'])),
-            'asset_filter_rejection_counts': {k: len([r for r in asset_filter_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_filter_rejections}},
+            'asset_filter_rejection_counts': asset_filter_rejection_counts,
             'asset_filter_rejection_samples': asset_filter_rejections[:20],
+            'candidate_count_before_asset_filter': candidate_count_before_asset_filter,
+            'candidate_count_after_asset_filter': candidate_count_after_asset_filter,
+            'asset_filter_removed_symbols': asset_filter_removed_symbols,
+            'asset_filter_empty_reason': None,
+            'asset_metadata_failure_count': asset_metadata_failure_count,
+            'asset_metadata_success_count': asset_metadata_success_count,
+            'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
+            'asset_metadata_all_failed': asset_metadata_all_failed,
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,

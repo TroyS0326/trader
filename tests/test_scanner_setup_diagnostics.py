@@ -7,6 +7,7 @@ sys.modules.setdefault('requests', SimpleNamespace())
 sys.modules.setdefault('dotenv', SimpleNamespace(load_dotenv=lambda *a, **k: None))
 
 import scanner
+import pytest
 
 
 def test_build_setup_grade_diagnostics_reports_no_trade_failures():
@@ -90,3 +91,57 @@ def test_opening_range_missing_too_many_bars(monkeypatch):
     stats=scanner.get_opening_range_stats(bars)
     assert stats['opening_range_complete'] is False
     assert stats['opening_range_complete_reason'] == 'MISSING_TOO_MANY_OR_BARS'
+
+
+def test_data_helpers_skip_empty_symbols_without_http(monkeypatch):
+    calls = {'count': 0}
+    monkeypatch.setattr(scanner, '_get_json', lambda *a, **k: calls.__setitem__('count', calls['count'] + 1) or {})
+    assert scanner.get_snapshots([]) == {}
+    assert scanner.get_latest_quotes([]) == {}
+    assert scanner.get_bars([], '1Day', scanner.now_utc(), scanner.now_utc(), 10) == {}
+    assert calls['count'] == 0
+
+
+def test_get_alpaca_asset_uses_trading_base(monkeypatch):
+    captured = {}
+    def _fake_get_json(url, **kwargs):
+        captured['url'] = url
+        return {'symbol': 'AAPL', 'tradable': True}
+    monkeypatch.setattr(scanner, '_get_json', _fake_get_json)
+    payload = scanner.get_alpaca_asset('AAPL')
+    assert payload['symbol'] == 'AAPL'
+    assert captured['url'].startswith(f"{scanner.config.ALPACA_PAPER_BASE}/v2/assets/")
+
+
+def test_run_scan_raises_diagnostic_when_asset_filter_empties_candidates(monkeypatch):
+    monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
+    monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
+    monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['AAPL'])
+    monkeypatch.setattr(scanner, 'get_momentum_breakout_universe', lambda user=None: ([], []))
+    monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {'AAPL': {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}}})
+    monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {'AAPL': {'ap': 10}})
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(scanner, 'get_alpaca_asset', lambda symbol: {'name': 'Bad Asset', 'tradable': False})
+    with pytest.raises(scanner.ScanError, match='No symbols remained after asset quality filtering'):
+        scanner.run_scan()
+
+
+def test_run_scan_raises_diagnostic_when_all_asset_metadata_lookups_fail(monkeypatch):
+    monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
+    monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
+    monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['AAPL', 'MSFT'])
+    monkeypatch.setattr(scanner, 'get_momentum_breakout_universe', lambda user=None: ([], []))
+    monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(scanner, 'get_alpaca_asset', lambda symbol: {})
+    with pytest.raises(scanner.ScanError, match='Asset metadata lookup failed for all candidates'):
+        scanner.run_scan()
