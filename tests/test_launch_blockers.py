@@ -153,3 +153,9 @@ def test_watch_candidate_is_imported_and_migrated():
     assert 'from models import BlogPost, BlogPublishingPlan, User, UserEvent, StripeEvent, Trade, DailyReportEmailLog, WatchCandidate' in source
     fn = source[source.index('def ensure_schema_migrations()'):source.index('ensure_db_initialized()')]
     assert 'WatchCandidate.__table__.create(bind=db.engine, checkfirst=True)' in fn
+
+def test_run_scan_user_attribution_helper_sets_version():
+    src = Path("scanner.py").read_text()
+    assert "def apply_scan_attribution" in src
+    assert "scan_attribution_version" in src
+    assert "return apply_scan_attribution(result, user=user, source='run_scan')" in src

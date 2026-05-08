@@ -439,3 +439,17 @@ def test_report_has_watch_top_level_fields_when_scan_diagnostics_empty(monkeypat
     assert report["active_watch_candidate_count"] == 1
     assert report["latest_watch_candidates"][0]["symbol"] == "RXT"
     assert report["latest_watch_recheck_summary"]["checked_count"] == 7
+
+def test_safe_scan_view_source_has_no_undefined_enriched_vars():
+    src = Path(scanner_effectiveness.__file__).read_text()
+    fn = src[src.index("def _safe_scan_view"):src.index("def normalize_scan_record")]
+    assert "latest_enriched_scan" not in fn
+    assert "watch_snapshot" not in fn
+    assert "now_utc" not in fn
+
+
+def test_build_report_source_has_stale_scan_calculation():
+    src = Path(scanner_effectiveness.__file__).read_text()
+    fn = src[src.index("def build_scanner_effectiveness_report"):src.index("def main(")]
+    assert "latest_enriched_scan_age_seconds" in fn
+    assert "stale_scan_warning" in fn

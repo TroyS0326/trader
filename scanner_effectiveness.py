@@ -61,10 +61,6 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         if key in scan_diag:
             safe_scan_diag[key] = scan_diag.get(key)
 
-    enriched_dt = _parse_dt((latest_enriched_scan or {}).get("created_at") or (latest_enriched_scan or {}).get("timestamp"))
-    latest_enriched_scan_age_seconds = int((now_utc - enriched_dt.astimezone(timezone.utc)).total_seconds()) if enriched_dt else None
-    stale_scan_warning = bool(watch_snapshot.get("active_watch_candidate_count",0) > 0 and not latest_enriched_scan)
-
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -284,6 +280,11 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
 
     latest_enriched_scan = next((scan for scan in all_scans if _is_enriched_scan(scan, user=user)), None)
     latest_scan = latest_enriched_scan or (all_scans[0] if all_scans else {})
+    now_utc = datetime.now(timezone.utc)
+    enriched_dt = _parse_dt((latest_enriched_scan or {}).get('created_at') or (latest_enriched_scan or {}).get('timestamp'))
+    latest_enriched_scan_age_seconds = int((now_utc - enriched_dt.astimezone(timezone.utc)).total_seconds()) if enriched_dt else None
+    stale_scan_warning = bool(watch_snapshot.get('active_watch_candidate_count', 0) > 0 and not latest_enriched_scan)
+    stale_scan_warning_reason = 'NO_ENRICHED_ATTRIBUTED_SCAN' if stale_scan_warning else None
     decision_counts: Counter = Counter()
     missing_order_field_counts: Counter = Counter()
     blocked_reason_counts: Counter = Counter()
@@ -571,7 +572,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_enriched_scan_user_id": (latest_enriched_scan or {}).get("user_id"),
         "latest_enriched_scan_has_diagnostics": bool((latest_enriched_scan or {}).get("scan_diagnostics")),
         "stale_scan_warning": stale_scan_warning,
-        "stale_scan_warning_reason": "NO_ENRICHED_ATTRIBUTED_SCAN" if stale_scan_warning else None,
+        "stale_scan_warning_reason": stale_scan_warning_reason,
         "best_pick_present_count": best_pick_present_count,
         "executable_payload_ready_count": executable_payload_ready_count,
         "decision_counts": dict(decision_counts),
