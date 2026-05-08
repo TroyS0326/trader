@@ -47,7 +47,15 @@ def _get_best_pick(result: Dict[str, Any]) -> Tuple[Dict[str, Any], str | None, 
 
 
 def validate_scan_payload_contract(result: Dict[str, Any]) -> Dict[str, Any]:
-    best_pick, key_used, notes = _get_best_pick(result or {})
+    safe_result = result or {}
+    pre_notes: List[str] = []
+    for key in ("payload_shape_notes", "_payload_shape_notes"):
+        candidate = safe_result.get(key) if isinstance(safe_result, dict) else None
+        if isinstance(candidate, list):
+            pre_notes.extend([item for item in candidate if isinstance(item, str)])
+
+    best_pick, key_used, notes = _get_best_pick(safe_result)
+    notes = list(dict.fromkeys([*pre_notes, *notes]))
     has_best_pick = bool(best_pick)
 
     normalized = {
@@ -72,6 +80,8 @@ def validate_scan_payload_contract(result: Dict[str, Any]) -> Dict[str, Any]:
 
     if not qty_valid:
         notes.append("qty missing/invalid or below 1.")
+
+    notes = list(dict.fromkeys([n for n in notes if isinstance(n, str)]))
 
     normalized_order_fields = {
         "symbol": str(normalized.get("symbol") or "").upper().strip() or None,
