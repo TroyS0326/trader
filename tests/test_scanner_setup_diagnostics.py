@@ -258,6 +258,48 @@ def test_get_news_catalyst_map_returns_headline_evidence(monkeypatch):
     out = scanner.get_news_catalyst_map(['AAPL'])
     assert out['AAPL']['headline_count'] == 1
     assert out['AAPL']['headline_samples']
+    assert out['AAPL']['qualifies_as_news_catalyst'] is True
+
+
+def test_get_news_catalyst_map_no_headlines_not_qualified(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert out['AAPL']['news_lookup_status'] == 'NO_NEWS_FOUND'
+    assert out['AAPL']['qualifies_as_news_catalyst'] is False
+
+
+def test_get_news_catalyst_map_extracts_headline_from_dict(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [{'headline': 'FDA approval for AAPL', 'datetime': scanner.now_utc().timestamp()}])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert out['AAPL']['headline_samples'][0] == 'FDA approval for AAPL'
+    assert '{' not in out['AAPL']['headline_samples'][0]
+    assert 'contract' not in out['AAPL']['headline_samples'][0].lower()
+
+
+def test_get_news_catalyst_map_latest_age_from_datetime(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'now_utc', lambda: scanner.datetime(2026, 5, 8, 13, 40, tzinfo=scanner.timezone.utc))
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [{'headline': 'AAPL contract win', 'datetime': scanner.datetime(2026, 5, 8, 13, 30, tzinfo=scanner.timezone.utc).timestamp()}])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert out['AAPL']['latest_headline_age_minutes'] == 10.0
+
+
+def test_get_news_catalyst_map_keyword_hits(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [{'headline': 'AAPL wins major contract and FDA approval'}])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert 'contract' in out['AAPL']['positive_terms']
+    assert 'approval' in out['AAPL']['positive_terms']
+
+
+def test_get_news_catalyst_map_negative_terms(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [{'headline': 'AAPL announces offering and reverse split'}])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert 'offering' in out['AAPL']['negative_terms']
+    assert 'reverse split' in out['AAPL']['negative_terms']
 
 
 def test_build_catalyst_diagnostics_news_not_no_news():
@@ -291,3 +333,31 @@ def test_run_scan_degraded_mode_blocks_known_etf_symbols(monkeypatch):
     monkeypatch.setattr(scanner, 'get_stock_chart_pack', lambda *a, **k: {})
     out = scanner.run_scan()
     assert out['scan_diagnostics']['asset_metadata_degraded_rejection_counts'].get('LEVERAGED_ETF_BLOCKED_BY_SETTINGS', 0) >= 1
+
+
+def test_run_scan_only_tags_qualified_news_catalyst(monkeypatch):
+    monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
+    monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
+    monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['AAPL'])
+    monkeypatch.setattr(scanner, 'get_momentum_breakout_universe', lambda user=None: ([], []))
+    monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_news_catalyst_map', lambda symbols, per_symbol=1: {
+        'AAPL': {'symbol': 'AAPL', 'headline_count': 0, 'news_lookup_status': 'NO_NEWS_FOUND', 'qualifies_as_news_catalyst': False, 'headline_samples': [], 'keywords_hit': []},
+        'MSFT': {'symbol': 'MSFT', 'headline_count': 1, 'news_lookup_status': 'FOUND', 'qualifies_as_news_catalyst': True, 'headline_samples': ['MSFT contract'], 'keywords_hit': ['contract']},
+    })
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None, candidate_source_map=None: symbols)
+    monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', lambda symbol, user=None, source=None: ({'tradable': True, 'fractionable': True, 'class': 'us_equity'}, {'ok': True, 'symbol': symbol}))
+    monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
+    monkeypatch.setattr(scanner, 'fill_missing_bars_individually', lambda *a, **k: {'individual_bar_retry_attempted_count':0,'individual_bar_retry_success_count':0,'individual_bar_retry_failed_symbols':[]})
+    monkeypatch.setattr(scanner, 'analyze_symbol', lambda symbol, *a, **k: {'symbol': symbol, 'source': 'news_catalyst' if symbol == 'MSFT' else 'orb_primary', 'sources': ['news_catalyst'] if symbol == 'MSFT' else ['orb_primary'], 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'scores': {'catalyst': 2}, 'score_total': 0, 'details': {'open_relative_strength': {'edge': 0}, 'liquidity': {'spread': 0}, 'catalyst': {'catalyst_missing_reason': 'NO_NEWS_FOUND'}, 'skip_reason_codes': []}})
+    monkeypatch.setattr(scanner, 'get_stock_chart_pack', lambda *a, **k: {})
+    out = scanner.run_scan()
+    diag = out['scan_diagnostics']
+    assert diag['source_candidate_counts']['news_catalyst'] == 1
+    assert 'AAPL' not in diag['news_catalyst_symbols_sample']
+    assert 'AAPL' in diag['news_catalyst_nonqualifying_symbols_sample']
