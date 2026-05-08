@@ -1353,6 +1353,9 @@ def logout():
 
 
 def user_has_alpaca_paper_connection(user: User) -> bool:
+    # Keep this strict to avoid false positives from active-mode legacy accessors.
+    # Legacy single-token users should reconnect through onboarding so paper/live
+    # tokens are separated explicitly.
     return bool(
         getattr(user, 'alpaca_paper_account_id', None)
         or getattr(user, 'alpaca_paper_access_token', None)
@@ -1367,7 +1370,16 @@ def user_has_alpaca_live_connection(user: User) -> bool:
 
 
 def live_mode_unlocked(user: User) -> bool:
-    return bool(getattr(user, 'onboarding_completed', False) and user_has_alpaca_live_connection(user))
+    return bool(onboarding_requirements_met(user) and user_has_alpaca_live_connection(user))
+
+
+def onboarding_requirements_met(user: User) -> bool:
+    return bool(
+        user_has_alpaca_paper_connection(user)
+        and user_has_alpaca_live_connection(user)
+        and getattr(user, 'paper_bankroll_set', False)
+        and (getattr(user, 'paper_bankroll', 0) or 0) > 0
+    )
 
 
 
@@ -1911,8 +1923,8 @@ def onboarding():
         current_user.trading_mode = 'paper'
         current_user.paper_bankroll = starting_bankroll
         current_user.bankroll = starting_bankroll
-        current_user.onboarding_completed = bool(user_has_alpaca_paper_connection(current_user) and user_has_alpaca_live_connection(current_user) and starting_bankroll > 0)
         current_user.paper_bankroll_set = starting_bankroll > 0
+        current_user.onboarding_completed = onboarding_requirements_met(current_user)
         db.session.commit()
         track_user_event('onboarding_completed', user=current_user, context={'starting_bankroll': starting_bankroll})
 
@@ -1939,6 +1951,7 @@ def settings():
         else:
             current_user.paper_bankroll = new_bankroll
             current_user.paper_bankroll_set = new_bankroll > 0
+            current_user.onboarding_completed = onboarding_requirements_met(current_user)
         current_user.sync_legacy_bankroll_from_active_mode()
         refresh_interval = int(request.form.get('refresh_interval', 30000))
         current_user.refresh_interval = (
@@ -2826,11 +2839,14 @@ def update_mode():
         }), 403
 
     # Ensure broker is connected for Paper mode
+    if current_user.trading_mode == 'live' and not user_has_alpaca_live_connection(current_user):
+        current_user.trading_mode = 'paper'
+
     if new_mode == 'paper' and not user_has_alpaca_paper_connection(current_user):
         return jsonify({
             'ok': False,
             'status': 'error',
-            'message': 'PAPER_BROKER_LINK_REQUIRED: Connect your Alpaca Paper account first.'
+            'message': 'Connect Alpaca Paper in onboarding before enabling PAPER mode.'
         }), 400
 
     # Ensure broker is connected for Live mode
@@ -2911,11 +2927,7 @@ def alpaca_callback():
             session.pop('alpaca_oauth_env', None)
 
             connection_result = detect_and_store_alpaca_connection(current_user, token, env=oauth_env)
-            current_user.onboarding_completed = bool(
-                user_has_alpaca_paper_connection(current_user)
-                and user_has_alpaca_live_connection(current_user)
-                and current_user.paper_bankroll_set
-            )
+            current_user.onboarding_completed = onboarding_requirements_met(current_user)
             db.session.commit()
 
             connected_parts = []
@@ -2975,11 +2987,8 @@ def alpaca_logout():
         current_user.alpaca_paper_access_token = None
         current_user.alpaca_paper_account_id = None
         current_user.paper_bankroll = 0.0
-    current_user.onboarding_completed = bool(
-        user_has_alpaca_paper_connection(current_user)
-        and user_has_alpaca_live_connection(current_user)
-        and current_user.paper_bankroll_set
-    )
+        current_user.paper_bankroll_set = False
+    current_user.onboarding_completed = onboarding_requirements_met(current_user)
     current_user.sync_legacy_bankroll_from_active_mode()
     db.session.commit()
     flash(f"Alpaca {env} account disconnected.", 'success')
