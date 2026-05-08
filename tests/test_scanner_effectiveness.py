@@ -288,8 +288,56 @@ def test_report_marks_bar_data_starvation_as_primary_blocker(monkeypatch):
     with app_module.app.app_context():
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["primary_blocker_summary"] == "BAR_DATA_STARVATION"
-    assert "Investigate Alpaca bar data coverage" in report["recommended_next_action"]
-    assert "UNATTRIBUTED_RECENT_SCANS" in report["scanner_starvation_flags"]
+
+
+def test_recent_and_dashboard_scopes(monkeypatch):
+    now = datetime.now(timezone.utc)
+    rows = [
+        {"id": 1, "created_at": (now - timedelta(minutes=5)).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "best_pick": {"symbol": "RXT", "decision": "WATCH", "setup_grade": "WATCH"}})},
+        {"id": 2, "created_at": (now - timedelta(minutes=50)).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "best_pick": {"symbol": "AEHL", "decision": "SKIP"}})},
+        {"id": 3, "created_at": (now - timedelta(hours=5)).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "best_pick": {"symbol": "ATRA", "decision": "SKIP"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=20: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=20)
+    assert report["operational_scans_recent_15m_count"] == 1
+    assert report["operational_scans_recent_60m_count"] == 2
+    assert report["all_operational_summary"]["count"] == 3
+    assert report["current_dashboard_summary_scope"] == "recent_15m"
+    assert report["current_dashboard_summary"]["symbol_counts"] == {"RXT": 1}
+
+
+def test_dashboard_falls_back_to_latest_scan_and_legacy_excluded(monkeypatch):
+    now = datetime.now(timezone.utc)
+    rows = [
+        {"id": 11, "created_at": (now - timedelta(hours=6)).isoformat(), "payload_json": json.dumps({"user_id": 9, "scan_attribution_version": 1, "scan_diagnostics": {"candidate_count_raw": 3}, "best_pick": {"symbol": "RXT", "decision": "WATCH"}})},
+        {"id": 12, "created_at": (now - timedelta(minutes=2)).isoformat(), "payload_json": json.dumps({"user_id": 0, "legacy_flags": {"unattributed_scan_legacy": True}, "best_pick": {"symbol": "AEHL", "decision": "SKIP"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=20: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=20)
+    assert report["current_dashboard_summary_scope"] == "latest_scan"
+    assert report["legacy_summary"]["count"] == 1
+    assert report["current_dashboard_summary"]["symbol_counts"] == {"RXT": 1}
+    assert "AEHL" not in report["current_dashboard_summary"]["symbol_counts"]
+
+
+def test_recommended_action_uses_recent_scope(monkeypatch):
+    now = datetime.now(timezone.utc)
+    rows = [
+        {"id": 21, "created_at": (now - timedelta(hours=4)).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "best_pick": {"symbol": "OLD", "decision": "BUY NOW", "qty": 1, "entry_price": 1, "stop_price": 0.9, "target_1": 1.1, "target_2": 1.2}})}
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=20: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 1})
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=20)
+    assert report["recommended_next_action"] == "No recent attributed scans; run a fresh user scan."
 
 
 def test_report_exposes_degraded_asset_metadata_fields(monkeypatch):

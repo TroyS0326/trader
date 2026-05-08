@@ -4,6 +4,7 @@ import argparse
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, Iterable, List, Optional
 
 from db import get_recent_scans
@@ -11,6 +12,7 @@ from execution_diagnostics import evaluate_execution_readiness
 from models import User, WatchCandidate
 from scan_contract import validate_scan_payload_contract
 from scanner import normalize_skip_reason_code
+from config import RECENT_SCAN_WINDOW_MINUTES_15, RECENT_SCAN_WINDOW_MINUTES_60
 
 
 def _parse_dt(value: Any) -> Optional[datetime]:
@@ -275,6 +277,58 @@ def _is_legacy_unattributed_scan(scan: Dict[str, Any]) -> bool:
     return bool(flags.get("unattributed_scan_legacy"))
 
 
+def build_scan_aggregate_summary(scans: List[Dict[str, Any]]) -> Dict[str, Any]:
+    decision_counts: Counter = Counter()
+    symbol_counts: Counter = Counter()
+    setup_grade_counts: Counter = Counter()
+    skip_reason_code_counts: Counter = Counter()
+    non_exec_symbols: Counter = Counter()
+    executable_payload_ready_count = 0
+    best_pick_present_count = 0
+
+    latest_dt: Optional[datetime] = None
+    latest_safe: Dict[str, Any] = {}
+    for scan in scans:
+        contract = validate_scan_payload_contract(scan if isinstance(scan, dict) else {})
+        safe = _safe_scan_view(scan)
+        decision = contract.get("decision") or "blank/missing"
+        decision_counts[decision] += 1
+        symbol = (contract.get("normalized_order_fields") or {}).get("symbol") or "UNKNOWN"
+        symbol_counts[symbol] += 1
+        best_pick = scan.get("best_pick") if isinstance(scan.get("best_pick"), dict) else {}
+        setup_grade_counts[str(best_pick.get("setup_grade") or "").strip() or "UNKNOWN"] += 1
+        for code in safe.get("skip_reason_codes") or []:
+            skip_reason_code_counts[str(code)] += 1
+        if contract.get("has_best_pick"):
+            best_pick_present_count += 1
+        if contract.get("executable_payload_ready"):
+            executable_payload_ready_count += 1
+        else:
+            non_exec_symbols[safe.get("symbol") or "UNKNOWN"] += 1
+        dt = _parse_dt(scan.get("created_at") or scan.get("timestamp"))
+        if dt and (latest_dt is None or dt.astimezone(timezone.utc) > latest_dt):
+            latest_dt = dt.astimezone(timezone.utc)
+            latest_safe = safe
+
+    primary_blocker = "NONE"
+    if scans and executable_payload_ready_count == 0:
+        primary_blocker = "NO_EXECUTABLE_CANDIDATES"
+    return {
+        "count": len(scans),
+        "decision_counts": dict(decision_counts),
+        "symbol_counts": dict(symbol_counts),
+        "setup_grade_counts": dict(setup_grade_counts),
+        "skip_reason_code_counts": dict(skip_reason_code_counts),
+        "top_non_executable_symbols": non_exec_symbols.most_common(10),
+        "executable_payload_ready_count": executable_payload_ready_count,
+        "best_pick_present_count": best_pick_present_count,
+        "primary_blocker_summary": primary_blocker,
+        "latest_symbol": latest_safe.get("symbol"),
+        "latest_decision": latest_safe.get("decision"),
+        "latest_setup_grade": latest_safe.get("setup_grade"),
+    }
+
+
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
     watch_snapshot = _watch_snapshot(user=user)
     scans, latest_by_user = _load_scans(user=user, limit=limit)
@@ -315,6 +369,42 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         operational_scans = [scan for scan in unattributed_scans if not _is_legacy_unattributed_scan(scan)] or list(unattributed_scans)
         current_report_uses_unattributed_scan = True
 
+    now_utc = datetime.now(timezone.utc)
+    et_now = now_utc.astimezone(ZoneInfo("America/New_York"))
+    recent_15_cutoff = now_utc.timestamp() - (RECENT_SCAN_WINDOW_MINUTES_15 * 60)
+    recent_60_cutoff = now_utc.timestamp() - (RECENT_SCAN_WINDOW_MINUTES_60 * 60)
+
+    def _scan_unix(scan: dict) -> Optional[float]:
+        dt = _parse_dt(scan.get("created_at") or scan.get("timestamp"))
+        return dt.astimezone(timezone.utc).timestamp() if dt else None
+
+    all_operational_scans = list(operational_scans)
+    recent_operational_scans_15m = [s for s in operational_scans if (_scan_unix(s) or 0) >= recent_15_cutoff]
+    recent_operational_scans_60m = [s for s in operational_scans if (_scan_unix(s) or 0) >= recent_60_cutoff]
+    current_day_operational_scans = []
+    for s in operational_scans:
+        dt = _parse_dt(s.get("created_at") or s.get("timestamp"))
+        if dt and dt.astimezone(ZoneInfo("America/New_York")).date() == et_now.date():
+            current_day_operational_scans.append(s)
+    latest_enriched_scan_only = [latest_enriched_scan] if latest_enriched_scan else []
+    legacy_scans = list(legacy_unattributed_scans)
+
+    latest_scan_summary = build_scan_aggregate_summary(latest_enriched_scan_only)
+    recent_15m_summary = build_scan_aggregate_summary(recent_operational_scans_15m)
+    recent_60m_summary = build_scan_aggregate_summary(recent_operational_scans_60m)
+    current_day_summary = build_scan_aggregate_summary(current_day_operational_scans)
+    all_operational_summary = build_scan_aggregate_summary(all_operational_scans)
+    legacy_summary = build_scan_aggregate_summary(legacy_scans)
+
+    dashboard_scope_used = "latest_scan"
+    current_dashboard_summary = latest_scan_summary
+    if recent_15m_summary["count"] > 0:
+        dashboard_scope_used = "recent_15m"
+        current_dashboard_summary = recent_15m_summary
+    elif recent_60m_summary["count"] > 0:
+        dashboard_scope_used = "recent_60m"
+        current_dashboard_summary = recent_60m_summary
+
     if latest_enriched_scan_user:
         latest_scan = latest_enriched_scan_user
         current_report_scan_scope = "attributed_user"
@@ -333,7 +423,6 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     else:
         latest_scan = all_scans[0] if all_scans else {}
         current_report_scan_scope = "legacy_unattributed_fallback"
-    now_utc = datetime.now(timezone.utc)
     enriched_dt = _parse_dt((latest_enriched_scan or {}).get('created_at') or (latest_enriched_scan or {}).get('timestamp'))
     latest_enriched_scan_age_seconds = int((now_utc - enriched_dt.astimezone(timezone.utc)).total_seconds()) if enriched_dt else None
     stale_scan_warning = bool(watch_snapshot.get('active_watch_candidate_count', 0) > 0 and not latest_enriched_scan)
@@ -750,7 +839,26 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "best_active_watch_missing_confirmations": watch_snapshot.get("best_active_watch_missing_confirmations", []),
         "sample_recent_failures": failures,
         "primary_blocker_summary": primary_blocker_summary,
-        "recommended_next_action": ("Active WATCH candidate exists; continue rechecking until missing confirmations clear." if watch_snapshot.get("active_watch_candidate_count",0) > 0 and executable_payload_ready_count == 0 else recommended_next_action),
+        "latest_scan_summary": latest_scan_summary,
+        "recent_15m_summary": recent_15m_summary,
+        "recent_60m_summary": recent_60m_summary,
+        "current_day_summary": current_day_summary,
+        "all_operational_summary": all_operational_summary,
+        "legacy_summary": legacy_summary,
+        "current_dashboard_summary_scope": dashboard_scope_used,
+        "dashboard_scope_used": dashboard_scope_used,
+        "current_dashboard_summary": current_dashboard_summary,
+        "operational_scope_used_for_top_level": "all_operational",
+        "operational_scans_recent_15m_count": len(recent_operational_scans_15m),
+        "operational_scans_recent_60m_count": len(recent_operational_scans_60m),
+        "operational_scans_current_day_count": len(current_day_operational_scans),
+        "recommended_next_action": (
+            "No recent attributed scans; run a fresh user scan."
+            if current_dashboard_summary.get("count", 0) == 0
+            else ("Active WATCH candidate exists; continue rechecking until missing confirmations clear."
+                  if watch_snapshot.get("active_watch_candidate_count", 0) > 0 and int(current_dashboard_summary.get("executable_payload_ready_count", 0)) == 0
+                  else recommended_next_action)
+        ),
         "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
     }
