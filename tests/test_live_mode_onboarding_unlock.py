@@ -74,6 +74,31 @@ def test_update_mode_rejects_live_when_not_unlocked(monkeypatch):
         assert payload['message'] == 'Connect Alpaca Live in onboarding before enabling LIVE mode.'
 
 
+def test_update_mode_rejects_live_and_persists_stale_live_correction(monkeypatch):
+    sync_calls = []
+    commit_calls = []
+    user = _user(
+        trading_mode='live',
+        alpaca_live_access_token=None,
+        alpaca_live_account_id=None,
+        onboarding_completed=False,
+        paper_bankroll_set=False,
+        sync_legacy_bankroll_from_active_mode=lambda: sync_calls.append('sync'),
+    )
+
+    with app_module.app.test_request_context('/api/update_mode', method='POST', json={'trading_mode': 'live'}):
+        monkeypatch.setattr(app_module, 'current_user', user)
+        monkeypatch.setattr(app_module.db.session, 'commit', lambda: commit_calls.append('commit'))
+        response, status = app_module.update_mode.__wrapped__()
+        assert status == 400
+        payload = response.get_json()
+        assert payload['ok'] is False
+        assert payload['message'] == 'Connect Alpaca Live in onboarding before enabling LIVE mode.'
+        assert user.trading_mode == 'paper'
+        assert sync_calls == ['sync']
+        assert commit_calls == ['commit']
+
+
 def test_update_mode_rejects_paper_when_disconnected(monkeypatch):
     user = _user(alpaca_paper_access_token=None, alpaca_paper_account_id=None, onboarding_completed=False)
 

@@ -2841,6 +2841,8 @@ def update_mode():
     # Ensure broker is connected for Paper mode
     if current_user.trading_mode == 'live' and not user_has_alpaca_live_connection(current_user):
         current_user.trading_mode = 'paper'
+        current_user.sync_legacy_bankroll_from_active_mode()
+        db.session.commit()
 
     if new_mode == 'paper' and not user_has_alpaca_paper_connection(current_user):
         return jsonify({
