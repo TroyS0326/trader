@@ -233,7 +233,22 @@ def get_unusual_relvol(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
 def get_news_catalyst_map(candidates: List[str], per_symbol: int = 1) -> Dict[str, Dict[str, Any]]:
     out: Dict[str, Dict[str, Any]] = {}
     if not FINNHUB_API_KEY:
-        return {}
+        for symbol in candidates[: max(6, min(len(candidates), SCAN_CANDIDATE_LIMIT))]:
+            out[symbol] = {
+                'symbol': symbol,
+                'headline_count': 0,
+                'recent_headline_count': 0,
+                'latest_headline_age_minutes': None,
+                'headline_samples': [],
+                'keywords_hit': [],
+                'positive_terms': [],
+                'negative_terms': [],
+                'news_source': 'finnhub',
+                'news_lookup_status': 'FINNHUB_KEY_MISSING',
+                'raw_news_count': 0,
+                'qualifies_as_news_catalyst': False,
+            }
+        return out
     for symbol in candidates[: max(6, min(len(candidates), SCAN_CANDIDATE_LIMIT))]:
         try:
             headlines = get_company_news(symbol, lookback_days=1)
@@ -250,21 +265,49 @@ def get_news_catalyst_map(candidates: List[str], per_symbol: int = 1) -> Dict[st
                 'news_source': 'finnhub',
                 'news_lookup_status': 'API_ERROR',
                 'raw_news_count': 0,
+                'qualifies_as_news_catalyst': False,
             }
             continue
-        samples = [_truncate_headline(x) for x in (headlines or [])[:3]]
+        if not isinstance(headlines, list):
+            out[symbol] = {
+                'symbol': symbol,
+                'headline_count': 0,
+                'recent_headline_count': 0,
+                'latest_headline_age_minutes': None,
+                'headline_samples': [],
+                'keywords_hit': [],
+                'positive_terms': [],
+                'negative_terms': [],
+                'news_source': 'finnhub',
+                'news_lookup_status': 'INVALID_RESPONSE',
+                'raw_news_count': 0,
+                'qualifies_as_news_catalyst': False,
+            }
+            continue
+        extracted = [_extract_news_headline(item) for item in headlines]
+        clean_headlines = [h for h in extracted if h]
+        samples = [_truncate_headline(h) for h in clean_headlines[:3]]
+        keyword_diag = _extract_news_keywords(clean_headlines)
+        timestamps = [ts for ts in [_extract_news_timestamp(item) for item in headlines] if ts is not None]
+        latest_age_minutes = None
+        if timestamps:
+            newest = max(timestamps)
+            latest_age_minutes = max(0.0, round((now_utc() - newest).total_seconds() / 60.0, 2))
+        news_lookup_status = 'FOUND' if clean_headlines else 'NO_NEWS_FOUND'
+        qualifies = bool(len(clean_headlines) >= per_symbol and news_lookup_status == 'FOUND')
         out[symbol] = {
             'symbol': symbol,
-            'headline_count': len(headlines),
-            'recent_headline_count': len(headlines),
-            'latest_headline_age_minutes': 0 if headlines else None,
+            'headline_count': len(clean_headlines),
+            'recent_headline_count': len(clean_headlines),
+            'latest_headline_age_minutes': latest_age_minutes,
             'headline_samples': samples,
-            'keywords_hit': [],
-            'positive_terms': [],
-            'negative_terms': [],
+            'keywords_hit': keyword_diag['keywords_hit'],
+            'positive_terms': keyword_diag['positive_terms'],
+            'negative_terms': keyword_diag['negative_terms'],
             'news_source': 'finnhub',
-            'news_lookup_status': 'FOUND' if len(headlines) >= per_symbol else 'NO_NEWS_FOUND',
+            'news_lookup_status': news_lookup_status,
             'raw_news_count': len(headlines),
+            'qualifies_as_news_catalyst': qualifies,
         }
     return out
 
@@ -1536,6 +1579,47 @@ def _truncate_headline(text: Any, max_len: int = 140) -> str:
     return head[: max_len - 1].rstrip() + '…'
 
 
+def _extract_news_headline(item: Any) -> str:
+    if isinstance(item, dict):
+        value = item.get('headline') or item.get('summary') or ''
+        return str(value).strip()
+    if isinstance(item, str):
+        return item.strip()
+    return ''
+
+
+def _extract_news_timestamp(item: Any) -> Optional[datetime]:
+    if not isinstance(item, dict):
+        return None
+    for field in ('datetime', 'time'):
+        value = item.get(field)
+        if isinstance(value, (int, float)) and value > 0:
+            try:
+                return datetime.fromtimestamp(float(value), tz=timezone.utc)
+            except Exception:
+                pass
+    published_at = item.get('published_at')
+    if isinstance(published_at, str) and published_at.strip():
+        try:
+            return datetime.fromisoformat(published_at.replace('Z', '+00:00')).astimezone(timezone.utc)
+        except Exception:
+            return None
+    return None
+
+
+def _extract_news_keywords(headlines: List[str]) -> Dict[str, List[str]]:
+    positive = ['fda', 'approval', 'contract', 'partnership', 'merger', 'acquisition', 'earnings', 'guidance', 'revenue', 'buyout', 'patent', 'trial', 'phase', 'launch', 'order', 'ai', 'offering closed', 'debt reduction', 'upgrade']
+    negative = ['offering', 'dilution', 'bankruptcy', 'delisting', 'investigation', 'downgrade', 'reverse split', 'layoffs', 'subpoena']
+    joined = " ".join([str(h or '').lower() for h in headlines if str(h or '').strip()])
+    pos_hits = [term for term in positive if term in joined]
+    neg_hits = [term for term in negative if term in joined]
+    return {
+        'keywords_hit': sorted(set(pos_hits + neg_hits)),
+        'positive_terms': sorted(set(pos_hits)),
+        'negative_terms': sorted(set(neg_hits)),
+    }
+
+
 def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict[str, Any]) -> Dict[str, Any]:
     headline_count = int(ml_features.get('headline_count', 0) or 0)
     recent_count = int(ml_features.get('recent_headline_count', headline_count) or 0)
@@ -1559,14 +1643,18 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
         missing_reason = 'FEATURE_STORE_MISSING_FIELDS_WITH_NEWS_FALLBACK' if catalyst_meta.get('news_lookup_status') in {'FOUND'} else 'FEATURE_STORE_MISSING_FIELDS'
     elif headline_count <= 0 and float(ml_features.get('p_success', 0.5) or 0.5) == 0.5:
         missing_reason = 'FEATURE_STORE_BASELINE_ONLY'
+    lookup_status = str(ml_features.get('news_lookup_status') or '')
+    qualifies = bool(ml_features.get('qualifies_as_news_catalyst'))
     if headline_count <= 0:
         missing_reason = 'NO_NEWS_FOUND'
     elif latest_age is not None and latest_age > 240:
         missing_reason = 'NEWS_TOO_OLD'
     elif not keywords:
         missing_reason = 'NO_KEYWORDS_HIT'
+    elif not qualifies:
+        missing_reason = 'NO_KEYWORDS_HIT'
 
-    if bool(ml_features.get('news_api_error')):
+    if bool(ml_features.get('news_api_error')) or lookup_status in {'API_ERROR', 'INVALID_RESPONSE', 'FINNHUB_KEY_MISSING'}:
         missing_reason = 'SOURCE_UNAVAILABLE'
     if bool(ml_features.get('ai_validation_unavailable')):
         missing_reason = 'AI_VALIDATION_UNAVAILABLE'
@@ -1649,10 +1737,10 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
 
     ml_features = store.get_symbol_features(symbol)
     if news_catalyst:
-        for key in ('headline_count', 'recent_headline_count', 'latest_headline_age_minutes', 'headline_samples', 'keywords_hit', 'positive_terms', 'negative_terms'):
+        for key in ('headline_count', 'recent_headline_count', 'latest_headline_age_minutes', 'headline_samples', 'keywords_hit', 'positive_terms', 'negative_terms', 'news_lookup_status', 'qualifies_as_news_catalyst'):
             if key in news_catalyst:
                 ml_features[key] = news_catalyst.get(key)
-        if news_catalyst.get('news_lookup_status') == 'API_ERROR':
+        if news_catalyst.get('news_lookup_status') in {'API_ERROR', 'INVALID_RESPONSE', 'FINNHUB_KEY_MISSING'}:
             ml_features['news_api_error'] = True
     p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
@@ -2062,7 +2150,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     for sym in momentum_symbols:
         candidate_sources_map.setdefault(sym, []).append('momentum_breakout')
     news_catalyst_map = get_news_catalyst_map(symbols or get_market_candidates(SCAN_CANDIDATE_LIMIT))
-    news_catalyst_symbols = list(news_catalyst_map.keys())
+    news_catalyst_symbols = [sym for sym, payload in news_catalyst_map.items() if bool(payload.get('qualifies_as_news_catalyst'))]
+    news_catalyst_checked_symbols = list(news_catalyst_map.keys())
+    news_catalyst_nonqualifying_symbols = [sym for sym in news_catalyst_checked_symbols if sym not in set(news_catalyst_symbols)]
     source_candidate_counts['news_catalyst'] = len(news_catalyst_symbols)
     news_only_added = 0
     for sym in news_catalyst_symbols:
@@ -2513,6 +2603,23 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'momentum_breakout_rejection_counts': {},
             'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20], 'orb_primary': orb_symbols[:20], 'momentum_breakout': momentum_symbols[:20]},
             'news_catalyst_symbols_sample': news_catalyst_symbols[:20],
+            'news_catalyst_checked_symbols_sample': news_catalyst_checked_symbols[:20],
+            'news_catalyst_nonqualifying_symbols_sample': news_catalyst_nonqualifying_symbols[:20],
+            'news_catalyst_checked_count': len(news_catalyst_checked_symbols),
+            'news_catalyst_qualified_count': len(news_catalyst_symbols),
+            'news_catalyst_no_news_count': len([p for p in news_catalyst_map.values() if p.get('news_lookup_status') == 'NO_NEWS_FOUND']),
+            'news_catalyst_api_error_count': len([p for p in news_catalyst_map.values() if p.get('news_lookup_status') in {'API_ERROR', 'INVALID_RESPONSE', 'FINNHUB_KEY_MISSING'}]),
+            'news_catalyst_evidence_sample': [
+                {
+                    'symbol': p.get('symbol'),
+                    'headline_count': p.get('headline_count'),
+                    'news_lookup_status': p.get('news_lookup_status'),
+                    'qualifies_as_news_catalyst': p.get('qualifies_as_news_catalyst'),
+                    'headline_samples': p.get('headline_samples') or [],
+                    'keywords_hit': p.get('keywords_hit') or [],
+                }
+                for p in list(news_catalyst_map.values())[:10]
+            ],
             'news_catalyst_raw_count': len(news_catalyst_symbols),
             'news_catalyst_added_to_universe_count': news_only_added,
             'news_catalyst_not_analyzed_symbols': [s for s in news_catalyst_symbols if s not in analyzed_symbols][:50],
