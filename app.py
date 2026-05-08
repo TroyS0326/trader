@@ -1356,9 +1356,18 @@ def user_has_alpaca_paper_connection(user: User) -> bool:
     return bool(
         getattr(user, 'alpaca_paper_account_id', None)
         or getattr(user, 'alpaca_paper_access_token', None)
-        or getattr(user, 'alpaca_access_token', None)
     )
 
+
+def user_has_alpaca_live_connection(user: User) -> bool:
+    return bool(
+        getattr(user, 'alpaca_live_account_id', None)
+        or getattr(user, 'alpaca_live_access_token', None)
+    )
+
+
+def live_mode_unlocked(user: User) -> bool:
+    return bool(getattr(user, 'onboarding_completed', False) and user_has_alpaca_live_connection(user))
 
 
 
@@ -1497,12 +1506,12 @@ def get_user_setup_checklist(user: User) -> dict:
 
     live_item = {
         'field': 'alpaca_live_connected',
-        'label': 'Optional: Connect Alpaca Live Account',
+        'label': 'Connect Alpaca Live Account',
         'short_label': 'Alpaca Live',
         'description': 'Connect a live account only after paper-mode setup and checklist steps are complete. Live broker-connected workflows involve real capital.',
         'completed': bool(getattr(user, 'alpaca_live_account_id', None) or getattr(user, 'alpaca_live_access_token', None)),
-        'required': False,
-        'optional': True,
+        'required': True,
+        'optional': False,
         'url': url_for('onboarding'),
         'action_label': 'Connect Live Account',
         'completed_action_label': 'Review Live Connection',
@@ -1511,12 +1520,11 @@ def get_user_setup_checklist(user: User) -> dict:
     }
 
     items = list(required_items)
-    total_required = sum(1 for item in required_items if item['required'])
-    completed_required = sum(1 for item in required_items if item['required'] and item['completed'])
+    items.append(live_item)
+    total_required = sum(1 for item in items if item['required'])
+    completed_required = sum(1 for item in items if item['required'] and item['completed'])
     percent_complete = int(round((completed_required / total_required) * 100)) if total_required else 0
     core_complete = completed_required == total_required
-    if core_complete:
-        items.append(live_item)
     return {
         'items': items,
         'completed_required': completed_required,
@@ -1903,12 +1911,15 @@ def onboarding():
         current_user.trading_mode = 'paper'
         current_user.paper_bankroll = starting_bankroll
         current_user.bankroll = starting_bankroll
-        current_user.onboarding_completed = True
+        current_user.onboarding_completed = bool(user_has_alpaca_paper_connection(current_user) and user_has_alpaca_live_connection(current_user) and starting_bankroll > 0)
         current_user.paper_bankroll_set = starting_bankroll > 0
         db.session.commit()
         track_user_event('onboarding_completed', user=current_user, context={'starting_bankroll': starting_bankroll})
 
-        flash('Paper-mode risk setup saved.', 'success')
+        if current_user.onboarding_completed:
+            flash('Onboarding complete. Paper and Live accounts are connected.', 'success')
+        else:
+            flash('Paper-mode risk setup saved. Connect Alpaca Live to finish onboarding and unlock LIVE mode.', 'success')
         return redirect(url_for('setup_checklist'))
 
     return render_template(
@@ -1946,13 +1957,19 @@ def settings():
         flash('Settings and Risk Parameters saved successfully.', 'success')
         return redirect(url_for('dashboard'))
 
-    return render_template('settings.html', current_user=current_user)
+    return render_template(
+        'settings.html',
+        current_user=current_user,
+        paper_connected=user_has_alpaca_paper_connection(current_user),
+        live_connected=user_has_alpaca_live_connection(current_user),
+        live_unlocked=live_mode_unlocked(current_user),
+    )
 
 @app.route('/alpaca/login')
 @login_required
 def alpaca_login():
     oauth_env = (request.args.get('env') or 'paper').strip().lower()
-    if oauth_env != 'paper':
+    if oauth_env not in {'paper', 'live'}:
         oauth_env = 'paper'
 
     client_id = app.config.get('ALPACA_CLIENT_ID')
@@ -2817,15 +2834,16 @@ def update_mode():
         }), 400
 
     # Ensure broker is connected for Live mode
-    if new_mode == 'live' and not current_user.alpaca_live_access_token:
+    if new_mode == 'live' and not live_mode_unlocked(current_user):
         return jsonify({
             'ok': False,
             'status': 'error',
-            'message': 'LIVE_BROKER_LINK_REQUIRED: Connect your Alpaca Live account first.'
+            'message': 'Connect Alpaca Live in onboarding before enabling LIVE mode.'
         }), 400
 
     # Save the mode FIRST. This is the most important part.
     current_user.trading_mode = new_mode
+    current_user.sync_legacy_bankroll_from_active_mode()
     db.session.commit()
 
     try:
@@ -2887,11 +2905,18 @@ def alpaca_callback():
         data = response.json()
         if 'access_token' in data:
             token = data['access_token']
+            oauth_env = (session.get('alpaca_oauth_env') or 'paper').strip().lower()
             session.pop('oauth_state', None)
             session.pop('alpaca_oauth_user_id', None)
             session.pop('alpaca_oauth_env', None)
 
-            connection_result = detect_and_store_alpaca_connection(current_user, token)
+            connection_result = detect_and_store_alpaca_connection(current_user, token, env=oauth_env)
+            current_user.onboarding_completed = bool(
+                user_has_alpaca_paper_connection(current_user)
+                and user_has_alpaca_live_connection(current_user)
+                and current_user.paper_bankroll_set
+            )
+            db.session.commit()
 
             connected_parts = []
             if connection_result.get("paper_connected"):
@@ -2937,18 +2962,28 @@ def sandbox_callback():
 @app.route('/alpaca/logout')
 @login_required
 def alpaca_logout():
-    current_user.alpaca_paper_access_token = None
-    current_user.alpaca_live_access_token = None
-    current_user.alpaca_paper_account_id = None
-    current_user.alpaca_live_account_id = None
-    current_user._alpaca_access_token = None
-    current_user.alpaca_account_id = None
-    current_user.paper_bankroll = 0.0
-    current_user.live_bankroll = 0.0
-    current_user.bankroll = 0.0
+    env = (request.args.get('env') or 'paper').strip().lower()
+    if env not in {'paper', 'live'}:
+        env = 'paper'
+    if env == 'live':
+        current_user.alpaca_live_access_token = None
+        current_user.alpaca_live_account_id = None
+        current_user.live_bankroll = 0.0
+        if current_user.trading_mode == 'live':
+            current_user.trading_mode = 'paper'
+    else:
+        current_user.alpaca_paper_access_token = None
+        current_user.alpaca_paper_account_id = None
+        current_user.paper_bankroll = 0.0
+    current_user.onboarding_completed = bool(
+        user_has_alpaca_paper_connection(current_user)
+        and user_has_alpaca_live_connection(current_user)
+        and current_user.paper_bankroll_set
+    )
+    current_user.sync_legacy_bankroll_from_active_mode()
     db.session.commit()
-    flash('Alpaca accounts disconnected.', 'success')
-    return redirect(url_for('dashboard'))
+    flash(f"Alpaca {env} account disconnected.", 'success')
+    return redirect(url_for('settings'))
 
 
 

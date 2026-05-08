@@ -14,7 +14,7 @@
 <main style="max-width: 760px; margin: 2.5rem auto; padding: 0 1rem; display:grid; gap:1rem;">
     <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
         <h1 style="margin: 0 0 0.5rem;">Connect Alpaca Paper Account</h1>
-        <p style="margin: 0 0 1rem; color: var(--text-muted);">XeanVI uses Alpaca’s paper trading environment for paper-mode order routing. Connect your Alpaca paper account first so the system can place and monitor paper orders before any live workflow is considered.</p>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">Paper mode is a safe test environment. Connect your Alpaca paper account first so XeanVI can route and monitor test orders before any live workflow is considered.</p>
 
         {% if current_user.alpaca_paper_access_token or current_user.alpaca_paper_account_id %}
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Paper account connected.</p>
@@ -49,14 +49,16 @@
     </section>
 
     <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
-        <h2 style="margin: 0 0 0.5rem;">Optional: Connect Alpaca Live Account</h2>
-        <p style="margin: 0 0 0.85rem; color: var(--text-muted);">Connect a live broker only after paper-mode order routing has been tested with your user-defined rules and risk controls.</p>
+        <h2 style="margin: 0 0 0.5rem;">Connect Alpaca Live Account</h2>
+        <p style="margin: 0 0 0.85rem; color: var(--text-muted);">Live mode uses real capital. Connect your Alpaca live account only when you are ready.</p>
         <p style="margin: 0 0 1rem; color: var(--warning); font-size: 0.92rem;">Live broker-connected workflows involve real capital. Only connect a live account after testing your rules in paper mode and understanding the risks.</p>
         {% if current_user.alpaca_live_access_token or current_user.alpaca_live_account_id %}
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Live account connected.</p>
             <p style="margin:0.35rem 0 0; color: var(--text-muted); font-size: 0.9rem;">You can manage live broker-connected workflows from account settings.</p>
         {% else %}
-            <p style="margin:0; color: var(--text-muted); font-size: 0.9rem;">Live OAuth connection is coming next. For now, complete paper setup and use settings when live connection becomes available.</p>
+            <a href="{{ url_for('alpaca_login', env='live') }}" class="btn btn-secondary" style="margin-top: 0.5rem; display: inline-flex;">
+                <i class="fas fa-link"></i>&nbsp;Connect Alpaca Live Account
+            </a>
         {% endif %}
     </section>
 

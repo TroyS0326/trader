@@ -18,6 +18,10 @@ def _user(**overrides):
         broker_connection_started=False,
         alpaca_paper_access_token=None,
         alpaca_paper_account_id=None,
+        alpaca_live_access_token=None,
+        alpaca_live_account_id=None,
+        paper_bankroll_set=False,
+        trading_mode='paper',
     )
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -63,6 +67,23 @@ def test_alpaca_login_redirects_to_authorize_with_paper_env(monkeypatch):
         assert query.get('redirect_uri') == [app_module.app.config['ALPACA_REDIRECT_URI']]
         assert query.get('env') == ['paper']
         assert query.get('state') and query['state'][0]
+
+
+def test_alpaca_login_accepts_live_env(monkeypatch):
+    user = _user()
+    with app_module.app.test_request_context('/alpaca/login?env=live'):
+        monkeypatch.setattr(app_module, 'current_user', user)
+        monkeypatch.setattr(app_module, 'track_user_event', lambda *args, **kwargs: None)
+        monkeypatch.setattr(app_module.db.session, 'commit', lambda: None)
+        response = app_module.alpaca_login.__wrapped__()
+        query = parse_qs(urlparse(response.location).query)
+        assert query.get('env') == ['live']
+
+
+def test_live_mode_unlocked_requires_onboarding_and_live_connection():
+    assert app_module.live_mode_unlocked(_user(onboarding_completed=False, alpaca_live_access_token='x')) is False
+    assert app_module.live_mode_unlocked(_user(onboarding_completed=True, alpaca_live_access_token=None)) is False
+    assert app_module.live_mode_unlocked(_user(onboarding_completed=True, alpaca_live_access_token='x')) is True
 
 
 def test_alpaca_login_missing_config_flashes_and_redirects_onboarding(monkeypatch):

@@ -164,26 +164,43 @@
 
             <div class="logic-row">
                 <div class="logic-info">
-                    <div class="logic-label">STATUS:
-                        {% if current_user.alpaca_access_token %}
+                    <div class="logic-label">Paper Account:
+                        {% if paper_connected %}
                             <span style="color: var(--accent-blue);">CONNECTED</span>
                         {% else %}
-                            <span style="color: var(--warning);">NOT_LINKED</span>
+                            <span style="color: var(--warning);">NOT CONNECTED</span>
                         {% endif %}
                     </div>
-                    <div class="logic-desc">Broker status is shown here. Broker authorization is available in onboarding once core checklist steps are complete.</div>
+                    <div class="logic-label">Live Account:
+                        {% if live_unlocked %}
+                            <span style="color: var(--success);">CONNECTED / UNLOCKED</span>
+                        {% elif not current_user.onboarding_completed %}
+                            <span style="color: var(--warning);">LOCKED</span>
+                        {% elif live_connected %}
+                            <span style="color: var(--warning);">NOT CONNECTED</span>
+                        {% else %}
+                            <span style="color: var(--warning);">NOT CONNECTED</span>
+                        {% endif %}
+                    </div>
+                    <div class="logic-desc">Paper = safe test environment. Live = real capital and unlocks only after onboarding is fully completed.</div>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    {% if current_user.alpaca_access_token %}
-                    <a href="{{ url_for('alpaca_logout') }}" class="btn btn-secondary" style="font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">
-                        <i class="fas fa-unlink"></i> Disconnect
+                    {% if paper_connected %}
+                    <a href="{{ url_for('alpaca_logout', env='paper') }}" class="btn btn-secondary" style="font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">
+                        <i class="fas fa-unlink"></i> Disconnect Paper
                     </a>
-                    {% else %}
-                    <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 350px;">Alpaca paper connection is managed through onboarding.</div>
+                    {% endif %}
+                    {% if live_connected %}
+                    <a href="{{ url_for('alpaca_logout', env='live') }}" class="btn btn-secondary" style="font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">
+                        <i class="fas fa-unlink"></i> Disconnect Live
+                    </a>
+                    {% endif %}
+                    {% if (not live_unlocked) or (not paper_connected) %}
                     <a href="{{ url_for('onboarding') }}" class="btn btn-secondary" style="font-size: 0.8rem;">
                         <i class="fas fa-route"></i> Open Onboarding
                     </a>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 350px;">Finish Onboarding / Connect Live Alpaca.</div>
                     {% endif %}
                 </div>
             </div>

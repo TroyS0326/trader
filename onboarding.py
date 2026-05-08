@@ -60,12 +60,11 @@ def _fetch_account_payload(token: str, url: str):
     return None
 
 
-def detect_and_store_alpaca_connection(user, token: str) -> dict:
+def detect_and_store_alpaca_connection(user, token: str, env: str = "paper") -> dict:
     """
     Called after OAuth callback.
 
-    It tests the returned OAuth token against both Alpaca Paper and Alpaca Live.
-    Whichever account endpoint accepts the token gets stored in the matching slot.
+    It tests the returned OAuth token against the selected Alpaca environment only.
     """
     result = {
         "paper_connected": False,
@@ -76,7 +75,11 @@ def detect_and_store_alpaca_connection(user, token: str) -> dict:
         "live_equity": None,
     }
 
-    paper_data = _fetch_account_payload(token, PAPER_ACCOUNT_URL)
+    selected_env = (env or "paper").strip().lower()
+    if selected_env not in {"paper", "live"}:
+        selected_env = "paper"
+
+    paper_data = _fetch_account_payload(token, PAPER_ACCOUNT_URL) if selected_env == "paper" else None
     if paper_data:
         user.alpaca_paper_access_token = token
         user.alpaca_paper_account_id = paper_data.get("id") or paper_data.get("account_id")
@@ -85,7 +88,7 @@ def detect_and_store_alpaca_connection(user, token: str) -> dict:
         result["paper_account_id"] = user.alpaca_paper_account_id
         result["paper_equity"] = user.paper_bankroll
 
-    live_data = _fetch_account_payload(token, LIVE_ACCOUNT_URL)
+    live_data = _fetch_account_payload(token, LIVE_ACCOUNT_URL) if selected_env == "live" else None
     if live_data:
         user.alpaca_live_access_token = token
         user.alpaca_live_account_id = live_data.get("id") or live_data.get("account_id")
