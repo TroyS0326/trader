@@ -120,16 +120,20 @@ def test_calculate_premarket_dollar_volume_window_and_sum():
         _mk_bar('2026-05-08T13:40:00+00:00', c=100, v=5),  # 09:40 ET ignore
     ]
     out = scanner.calculate_premarket_dollar_volume("ABC", bars, {}, required_premarket_dollar_volume=100)
+    assert isinstance(out, dict)
     assert out["actual_premarket_dollar_volume"] == 140
     assert out["premarket_bar_count"] == 2
+    assert out["premarket_data_available"] is True
     assert out["premarket_dollar_volume_passed"] is True
 
 
 def test_calculate_premarket_dollar_volume_unavailable_reason():
-    bars = [_mk_bar('2026-05-08T14:00:00+00:00', c=10, v=10)]
+    bars = []
     out = scanner.calculate_premarket_dollar_volume("ABC", bars, {}, required_premarket_dollar_volume=100)
+    assert isinstance(out, dict)
     assert out["actual_premarket_dollar_volume"] is None
-    assert out["premarket_data_unavailable_reason"] == "NO_PREMARKET_BARS_IN_WINDOW"
+    assert out["premarket_data_available"] is False
+    assert out["premarket_data_unavailable_reason"] == "NO_MINUTE_BARS"
 
 
 def test_run_scan_raises_diagnostic_when_asset_filter_empties_candidates(monkeypatch):

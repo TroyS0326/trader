@@ -760,6 +760,7 @@ def calculate_premarket_dollar_volume(symbol: str, minute_bars: List[Dict[str, A
         'premarket_dollar_volume_gap': gap,
         'premarket_dollar_volume_passed': passed,
     }
+    return result
 
 
 def to_chart_bars(bars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
