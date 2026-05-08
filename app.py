@@ -1946,6 +1946,7 @@ def onboarding():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    scanner_health = build_scanner_effectiveness_report(user=current_user, limit=1)
     if request.method == 'POST':
         # 1. Update Core Settings
         new_bankroll = float(request.form.get('bankroll', 0.0))
@@ -1979,6 +1980,7 @@ def settings():
         paper_connected=user_has_alpaca_paper_connection(current_user),
         live_connected=user_has_alpaca_live_connection(current_user),
         live_unlocked=live_mode_unlocked(current_user),
+        scanner_health=scanner_health,
     )
 
 @app.route('/alpaca/login')

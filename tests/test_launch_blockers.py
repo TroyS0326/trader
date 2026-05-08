@@ -159,3 +159,10 @@ def test_run_scan_user_attribution_helper_sets_version():
     assert "def apply_scan_attribution" in src
     assert "scan_attribution_version" in src
     assert "return _finalize_scan_result(result, user=user, source='run_scan')" in src
+
+
+def test_settings_template_includes_reconnect_disclosure_hooks():
+    src = Path("templates/settings.html").read_text()
+    assert "scanner_health.latest_alpaca_asset_metadata_reconnect_required" in src
+    assert "Reconnect required" in src
+    assert "partials/alpaca_authorization_disclosure.html" in src
