@@ -61,3 +61,13 @@ def test_watch_remains_non_executable(monkeypatch):
     monkeypatch.delenv('CENTRAL_SCANNER_EXECUTE_DECISIONS', raising=False)
     r = validate_scan_payload_contract({'best_pick': {'symbol': 'AAPL', 'decision': 'WATCH', 'qty': 2, 'entry_price': 10, 'stop_price': 9, 'target_1': 11, 'target_2': 12}})
     assert r['decision_is_executable'] is False
+
+
+def test_top_level_payload_shape_notes_are_preserved():
+    result = validate_scan_payload_contract({"payload_shape_notes": ["PAYLOAD_JSON_MISSING_OR_INVALID"]})
+    assert "PAYLOAD_JSON_MISSING_OR_INVALID" in result["payload_shape_notes"]
+
+
+def test_internal_payload_shape_notes_are_preserved_and_deduped():
+    result = validate_scan_payload_contract({"payload_shape_notes": ["PAYLOAD_JSON_MISSING_OR_INVALID"], "_payload_shape_notes": ["PAYLOAD_JSON_MISSING_OR_INVALID", 123]})
+    assert result["payload_shape_notes"].count("PAYLOAD_JSON_MISSING_OR_INVALID") == 1

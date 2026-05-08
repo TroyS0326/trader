@@ -91,13 +91,14 @@ def normalize_scan_record(record: dict) -> dict:
 
 def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, dict]]:
     scans = list(get_recent_scans(limit=max(limit * 3, limit)) or [])
+    normalized_scans = [normalize_scan_record(scan) for scan in scans]
     from app import redis_client
     scans_by_user: dict[int, dict] = {}
 
     if user is not None:
         user_ids = [int(user.id)]
     else:
-        user_ids = sorted({int((normalize_scan_record(s).get("user_id") or 0)) for s in scans if int((normalize_scan_record(s).get("user_id") or 0)) > 0})
+        user_ids = sorted({int(s.get("user_id") or 0) for s in normalized_scans if int(s.get("user_id") or 0) > 0})
 
     for uid in user_ids:
         try:
@@ -113,8 +114,7 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
             continue
 
     filtered: list[dict] = []
-    for scan in scans:
-        normalized = normalize_scan_record(scan)
+    for normalized in normalized_scans:
         uid = int(normalized.get("user_id") or 0)
         if user is not None and uid != int(user.id):
             continue
