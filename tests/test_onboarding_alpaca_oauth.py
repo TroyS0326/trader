@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import re
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import os
 import types
@@ -21,6 +22,17 @@ if 'stripe' not in sys.modules:
     sys.modules['stripe'] = types.SimpleNamespace(api_key='test')
 
 import app as app_module
+
+REQUIRED_DISCLOSURE_TEXT = (
+    "By allowing XeanVI to access your Alpaca account, you are granting XeanVI access to your account information "
+    "and authorization to place transactions at your direction. Alpaca does not warrant or guarantee that XeanVI "
+    "will work as advertised or expected. Before authorizing, learn more about XeanVI."
+)
+
+
+def _normalize_rendered_text(html: str) -> str:
+    without_tags = re.sub(r"<[^>]+>", " ", html)
+    return " ".join(without_tags.split())
 
 
 def _user(**overrides):
@@ -50,6 +62,39 @@ def test_onboarding_template_removes_logout_warning_and_uses_paper_oauth_link(mo
     assert 'Open Alpaca Logout' not in html
     assert 'Connect Alpaca Paper Account' in html
     assert '/alpaca/login?env=paper' in html
+
+
+def test_onboarding_disclosure_present_before_both_connect_ctas_when_disconnected(monkeypatch):
+    user = _user()
+
+    with app_module.app.test_request_context('/onboarding'):
+        monkeypatch.setattr(app_module, 'current_user', user)
+        html = app_module.render_template('onboarding.html', current_user=user, setup_checklist={})
+
+    normalized = _normalize_rendered_text(html)
+    assert REQUIRED_DISCLOSURE_TEXT in normalized
+    legacy_wording = 'authorization to place transactions in your account at your ' + 'direction'
+    assert legacy_wording not in normalized
+
+    assert html.count('class="alpaca-auth-disclosure"') == 2
+    paper_idx = html.index('/alpaca/login?env=paper')
+    live_idx = html.index('/alpaca/login?env=live')
+
+    first_disclosure_idx = html.index('class="alpaca-auth-disclosure"')
+    second_disclosure_idx = html.index('class="alpaca-auth-disclosure"', first_disclosure_idx + 1)
+    assert first_disclosure_idx < paper_idx
+    assert second_disclosure_idx < live_idx
+
+
+def test_onboarding_live_disclosure_hidden_when_live_already_connected(monkeypatch):
+    user = _user(alpaca_live_access_token='live-token')
+
+    with app_module.app.test_request_context('/onboarding'):
+        monkeypatch.setattr(app_module, 'current_user', user)
+        html = app_module.render_template('onboarding.html', current_user=user, setup_checklist={})
+
+    assert html.count('class="alpaca-auth-disclosure"') == 1
+    assert '/alpaca/login?env=live' not in html
 
 
 def test_alpaca_login_redirects_to_authorize_with_paper_env(monkeypatch):
