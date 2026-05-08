@@ -32,26 +32,6 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
     contract = validate_scan_payload_contract(scan if isinstance(scan, dict) else {})
     best = (scan.get("best_pick") or scan.get("best") or scan.get("top_pick") or {}) if isinstance(scan, dict) else {}
     normalized = contract.get("normalized_order_fields") or {}
-    latest_attr_age = None
-    latest_unattr_age = None
-    now_utc = datetime.now(timezone.utc)
-    for payload in all_scans:
-        dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
-        if not dt:
-            continue
-        age = int((now_utc - dt.astimezone(timezone.utc)).total_seconds())
-        if int(payload.get("user_id") or 0) > 0:
-            latest_attr_age = age if latest_attr_age is None else min(latest_attr_age, age)
-        else:
-            latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
-
-    starvation_flags=[]
-    if repeated_best_pick_warning:
-        starvation_flags.append("DOMINANT_SYMBOL_STUCK")
-    if executable_payload_ready_count == 0:
-        starvation_flags.append("NO_EXECUTABLE_CANDIDATES")
-    if unattributed_scan_count > 0 and (latest_unattr_age is not None and latest_unattr_age < 7200):
-        starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
 
     return {
         "source": scan.get("_source"),
@@ -333,6 +313,26 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         for key in sorted(component_score_totals.keys())
         if component_score_counts.get(key)
     }
+    latest_attr_age = None
+    latest_unattr_age = None
+    now_utc = datetime.now(timezone.utc)
+    for payload in all_scans:
+        dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
+        if not dt:
+            continue
+        age = int((now_utc - dt.astimezone(timezone.utc)).total_seconds())
+        if int(payload.get("user_id") or 0) > 0:
+            latest_attr_age = age if latest_attr_age is None else min(latest_attr_age, age)
+        else:
+            latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
+
+    starvation_flags = []
+    if repeated_best_pick_warning:
+        starvation_flags.append("DOMINANT_SYMBOL_STUCK")
+    if executable_payload_ready_count == 0:
+        starvation_flags.append("NO_EXECUTABLE_CANDIDATES")
+    if unattributed_scan_count > 0 and (latest_unattr_age is not None and latest_unattr_age < 7200):
+        starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
 
     return {
         "total_scans_analyzed": len(all_scans),

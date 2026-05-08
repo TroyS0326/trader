@@ -11,6 +11,7 @@ sys.modules.setdefault('stripe', SimpleNamespace(api_key=''))
 sys.modules.setdefault('dotenv', SimpleNamespace(load_dotenv=lambda *a, **k: None))
 
 import scanner_effectiveness
+import scanner
 import app as app_module
 
 
@@ -189,3 +190,57 @@ def test_effectiveness_detects_dominant_symbol(monkeypatch):
     assert report["dominant_symbol_warning"] is True
     assert report["dominant_symbol"] == "ATRA"
     assert report["same_symbol_count"] == 9
+
+
+def test_safe_scan_view_is_single_scan_only():
+    view = scanner_effectiveness._safe_scan_view({"best_pick": {"symbol": "AAPL", "decision": "WATCH"}})
+    assert view["symbol"] == "AAPL"
+    assert "latest_attributed_scan_age_seconds" not in view
+    assert "scanner_starvation_flags" not in view
+
+
+def test_report_empty_scans_has_expected_report_level_fields(monkeypatch):
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["total_scans_analyzed"] == 0
+    assert report["latest_attributed_scan_age_seconds"] is None
+    assert report["latest_unattributed_scan_age_seconds"] is None
+    assert isinstance(report["scanner_starvation_flags"], list)
+    assert report["primary_blocker_summary"] in {"NONE", "NO_EXECUTABLE_CANDIDATES"}
+
+
+def test_report_mixed_attribution_ages_and_warning(monkeypatch):
+    now = datetime.now(timezone.utc)
+    rows = [
+        {"id": 1, "created_at": (now - timedelta(seconds=45)).isoformat(), "payload_json": json.dumps({"user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "SKIP"}})},
+        {"id": 2, "created_at": (now - timedelta(seconds=30)).isoformat(), "payload_json": json.dumps({"user_id": 0, "best_pick": {"symbol": "MSFT", "decision": "SKIP"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert isinstance(report["latest_attributed_scan_age_seconds"], int)
+    assert isinstance(report["latest_unattributed_scan_age_seconds"], int)
+    assert report["attribution_warning"] is True
+    assert "UNATTRIBUTED_RECENT_SCANS" in report["scanner_starvation_flags"]
+
+
+def test_normalize_skip_reason_code_mappings():
+    assert scanner.normalize_skip_reason_code("Opening range is not complete.") == "OPENING_RANGE_NOT_COMPLETE"
+    assert scanner.normalize_skip_reason_code("Opening-range breakout is not confirmed yet.") == "OPENING_RANGE_BREAKOUT_NOT_CONFIRMED"
+    assert scanner.normalize_skip_reason_code("Spread is too wide.") == "SPREAD_TOO_WIDE"
+    assert scanner.normalize_skip_reason_code("Premarket dollar volume is too light for this setup right now.") == "PREMARKET_DOLLAR_VOLUME_TOO_LIGHT"
+
+
+def test_analyze_symbol_assigns_skip_reason_codes_before_result_build():
+    import inspect
+    src = inspect.getsource(scanner.analyze_symbol)
+    assign_idx = src.find("skip_reason_codes = []")
+    details_idx = src.find("'skip_reason_codes': skip_reason_codes")
+    assert assign_idx != -1
+    assert details_idx != -1
+    assert assign_idx < details_idx
