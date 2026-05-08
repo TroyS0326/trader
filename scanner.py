@@ -102,7 +102,7 @@ def now_utc() -> datetime:
 
 
 def utcnow_naive() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def now_et() -> datetime:
@@ -523,9 +523,9 @@ def has_positive_mtf_vwap_trend(minute_bars: List[Dict[str, Any]], chunk_size: i
 def get_company_news(symbol: str, lookback_days: Optional[int] = None) -> List[Dict[str, Any]]:
     if not FINNHUB_API_KEY:
         return []
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     if lookback_days is None:
-        lookback_days = 3 if datetime.utcnow().weekday() == 0 else 1
+        lookback_days = 3 if datetime.now(timezone.utc).weekday() == 0 else 1
     start = today - timedelta(days=lookback_days)
     try:
         payload = _get_json(
@@ -2339,7 +2339,7 @@ def recheck_active_watch_candidates_for_all_users(limit_per_user: int = WATCH_RE
         'total_downgraded_skip_count': 0, 'total_expired_count': 0, 'total_errors_count': 0,
     }
     for user_id in user_ids:
-        user = User.query.get(int(user_id))
+        user = db.session.get(User, int(user_id))
         if user is None:
             continue
         summary = recheck_active_watch_candidates(user=user, limit=limit_per_user)
@@ -3360,7 +3360,7 @@ if __name__ == '__main__':
         with app.app_context():
             user = None
             if args.user_id:
-                user = User.query.get(int(args.user_id))
+                user = db.session.get(User, int(args.user_id))
                 if user is None:
                     raise SystemExit(f"User not found: {args.user_id}")
             result = run_scan(user=user)
@@ -3398,7 +3398,7 @@ if __name__ == '__main__':
         from app import app
         with app.app_context():
             if args.user_id:
-                user = User.query.get(int(args.user_id))
+                user = db.session.get(User, int(args.user_id))
                 if user is None:
                     raise SystemExit(f"User not found: {args.user_id}")
                 summary = recheck_active_watch_candidates(user=user)
@@ -3411,7 +3411,7 @@ if __name__ == '__main__':
         from app import app
         with app.app_context():
             if args.user_id:
-                user = User.query.get(int(args.user_id))
+                user = db.session.get(User, int(args.user_id))
                 if user is None:
                     raise SystemExit(f"User not found: {args.user_id}")
                 summary = normalize_watch_candidate_statuses(user=user)

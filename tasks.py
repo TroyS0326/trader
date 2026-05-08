@@ -51,7 +51,7 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
     Updated to utilize the modern `place_managed_entry_order` from broker.py.
     """
     with _db_app.app_context():
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         # Target only upgraded accounts for automated execution
         if not user or user.subscription_status != 'pro':
             return f'User {user_id} inactive or non-PRO. Trade aborted.'

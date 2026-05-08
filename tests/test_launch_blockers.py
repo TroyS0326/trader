@@ -84,7 +84,7 @@ def test_stripe_webhook_behaviors(monkeypatch):
         assert code == 200
     with app_module.app.app_context():
         assert StripeEvent.query.filter_by(event_id='evt_1').count() == 1
-        assert User.query.get(uid).subscription_status == 'pro'
+        assert db.session.get(User, uid).subscription_status == 'pro'
 
     with app_module.app.test_request_context('/api/stripe-webhook', method='POST', data=json.dumps(evt), headers={'Stripe-Signature': 'sig'}):
         _, code = app_module.stripe_webhook()

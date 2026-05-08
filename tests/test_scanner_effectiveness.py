@@ -28,7 +28,37 @@ def _set_redis(monkeypatch, mapping):
 
 
 def _stub_user_query(monkeypatch):
-    monkeypatch.setattr(scanner_effectiveness.User, "query", SimpleNamespace(get=lambda uid: SimpleNamespace(id=uid, trading_mode='paper', subscription_status='pro', alpaca_paper_account_id='x', paper_bankroll_set=True, paper_bankroll=100, onboarding_completed=True, playbook_reviewed=True, transparency_reviewed=True, broker_connection_started=True)))
+    monkeypatch.setattr(
+        scanner_effectiveness.db.session,
+        "get",
+        lambda model, uid: SimpleNamespace(
+            id=uid,
+            trading_mode='paper',
+            subscription_status='pro',
+            alpaca_paper_account_id='x',
+            paper_bankroll_set=True,
+            paper_bankroll=100,
+            onboarding_completed=True,
+            playbook_reviewed=True,
+            transparency_reviewed=True,
+            broker_connection_started=True,
+        ) if model is scanner_effectiveness.User else None,
+    )
+
+
+def test_source_no_query_get_or_datetime_utcnow_in_target_files():
+    query_get_marker = ".query" + ".get("
+    for path in ("scanner.py", "scanner_effectiveness.py", "app.py"):
+        src = Path(path).read_text()
+        assert query_get_marker not in src
+    for path in ("scanner.py", "scanner_effectiveness.py", "app.py"):
+        src = Path(path).read_text()
+        assert "datetime.utcnow(" not in src
+
+
+def test_utcnow_naive_returns_naive_datetime():
+    dt = scanner.utcnow_naive()
+    assert dt.tzinfo is None
 
 
 def test_db_payload_json_best_pick_counted(monkeypatch):

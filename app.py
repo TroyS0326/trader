@@ -10,7 +10,7 @@ import stripe
 from urllib.parse import urlencode, urlparse
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import inspect, text, or_
 from sqlalchemy.exc import IntegrityError
 from zoneinfo import ZoneInfo
@@ -196,7 +196,7 @@ def inject_template_flags():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 def ensure_db_initialized() -> None:
@@ -424,7 +424,7 @@ def verify_password_reset_token(token: str):
     if not user_id or not email or not pwd_fingerprint:
         return None
 
-    user = User.query.get(int(user_id))
+    user = db.session.get(User, int(user_id))
 
     if not user:
         return None
@@ -1254,7 +1254,7 @@ def sitemap_xml():
             links.append((f"{base_url}{path}", datetime.now().strftime('%Y-%m-%d')))
     blog_posts = BlogPost.query.filter_by(status='published').order_by(BlogPost.updated_at.desc()).all()
     for post in blog_posts:
-        lastmod_dt = post.updated_at or post.published_at or post.created_at or datetime.utcnow()
+        lastmod_dt = post.updated_at or post.published_at or post.created_at or datetime.now(timezone.utc)
         links.append((f"{base_url}/blog/{post.slug}", lastmod_dt.strftime('%Y-%m-%d')))
 
     # Build the XML structure
@@ -1823,7 +1823,7 @@ def stripe_webhook():
         if subscription_id:
             user = User.query.filter_by(stripe_subscription_id=subscription_id).first()
         if not user and metadata_user_id:
-            user = User.query.get(int(metadata_user_id)) if str(metadata_user_id).isdigit() else None
+            user = db.session.get(User, int(metadata_user_id)) if str(metadata_user_id).isdigit() else None
         if not user and customer_id:
             user = User.query.filter_by(stripe_customer_id=customer_id).first()
         return user
@@ -2418,7 +2418,7 @@ def admin_blog_new():
             featured_image_caption=form_data['featured_image_caption'] or None,
         )
         if requested_status == 'published' and not post.published_at:
-            post.published_at = datetime.utcnow()
+            post.published_at = datetime.now(timezone.utc)
         db.session.add(post)
         db.session.commit()
         warned = False
@@ -2448,7 +2448,7 @@ def admin_blog_generate_draft():
         except (TypeError, ValueError):
             flash('Invalid blog draft reference.', 'error')
             return redirect(url_for('admin_blog_list'))
-        post = BlogPost.query.get(post_id)
+        post = db.session.get(BlogPost, post_id)
         if not post:
             flash('Blog draft not found.', 'error')
             return redirect(url_for('admin_blog_list'))
@@ -2532,7 +2532,7 @@ def admin_blog_generate_draft():
 def admin_blog_delete(post_id):
     if not is_admin_user():
         return ("Forbidden", 403)
-    post = BlogPost.query.get(post_id)
+    post = db.session.get(BlogPost, post_id)
     if not post:
         flash('Blog post not found.', 'error')
         return redirect(url_for('admin_blog_list'))
@@ -2754,8 +2754,8 @@ def admin_blog_edit(post_id):
         post.featured_image_alt = form_data['featured_image_alt'] or None
         post.featured_image_caption = form_data['featured_image_caption'] or None
         if prev_status != 'published' and post.status == 'published' and not post.published_at:
-            post.published_at = datetime.utcnow()
-        post.updated_at = datetime.utcnow()
+            post.published_at = datetime.now(timezone.utc)
+        post.updated_at = datetime.now(timezone.utc)
         try:
             db.session.commit()
         except IntegrityError as exc:
@@ -2816,7 +2816,7 @@ def admin_blog_unpublish(post_id):
         return ("Forbidden", 403)
     post = BlogPost.query.get_or_404(post_id)
     post.status = 'draft'
-    post.updated_at = datetime.utcnow()
+    post.updated_at = datetime.now(timezone.utc)
     db.session.commit()
     flash('Post moved to draft.', 'success')
     return redirect(url_for('admin_blog_edit', post_id=post.id))

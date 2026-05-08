@@ -44,13 +44,13 @@ def test_blog_rhythm_routes(monkeypatch):
     c.post('/admin/blog-rhythm/add', data={'title':''})
     c.post(f'/admin/blog-rhythm/{p.id}/update', data={'status':'queued'})
     with app_module.app.app_context():
-        assert BlogPublishingPlan.query.get(p.id).status == 'queued'
+        assert db.session.get(BlogPublishingPlan, p.id).status == 'queued'
     c.post(f'/admin/blog-rhythm/{p.id}/update', data={'status':'bad'})
     with app_module.app.app_context():
-        assert BlogPublishingPlan.query.get(p.id).status == 'queued'
+        assert db.session.get(BlogPublishingPlan, p.id).status == 'queued'
     c.post(f'/admin/blog-rhythm/{p.id}/create-draft')
     with app_module.app.app_context():
-        p2 = BlogPublishingPlan.query.get(p.id); post = BlogPost.query.get(p2.related_blog_post_id)
+        p2 = db.session.get(BlogPublishingPlan, p.id); post = db.session.get(BlogPost, p2.related_blog_post_id)
         assert post.status == 'draft'
         before = BlogPost.query.count()
     c.post(f'/admin/blog-rhythm/{p.id}/create-draft')
@@ -98,8 +98,8 @@ def test_create_draft_ai_failure_creates_placeholder(monkeypatch):
     rv = c.post(f'/admin/blog-rhythm/{plan_id}/create-draft', follow_redirects=True)
     assert rv.status_code == 200
     with app_module.app.app_context():
-        plan = BlogPublishingPlan.query.get(plan_id)
-        post = BlogPost.query.get(plan.related_blog_post_id)
+        plan = db.session.get(BlogPublishingPlan, plan_id)
+        post = db.session.get(BlogPost, plan.related_blog_post_id)
         assert post.status == 'draft'
         assert 'Draft placeholder' in post.body_html
 
@@ -126,8 +126,8 @@ def test_create_draft_never_autopublishes(monkeypatch):
     c = app_module.app.test_client(); _login(c, admin_id)
     c.post(f'/admin/blog-rhythm/{plan_id}/create-draft')
     with app_module.app.app_context():
-        plan = BlogPublishingPlan.query.get(plan_id)
-        post = BlogPost.query.get(plan.related_blog_post_id)
+        plan = db.session.get(BlogPublishingPlan, plan_id)
+        post = db.session.get(BlogPost, plan.related_blog_post_id)
         assert post.status == 'draft'
         assert plan.status != 'published'
 
