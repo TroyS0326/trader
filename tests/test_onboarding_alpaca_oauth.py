@@ -2,11 +2,23 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import os
+import types
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
 for k in ["SECRET_KEY","TOKEN_ENCRYPTION_KEY","ALPACA_CLIENT_ID","ALPACA_CLIENT_SECRET","ALPACA_REDIRECT_URI","FINNHUB_API_KEY","GEMINI_API_KEY"]:
     os.environ.setdefault(k, "secure-value")
+
+if 'redis' not in sys.modules:
+    redis_stub = types.SimpleNamespace(
+        Redis=types.SimpleNamespace(from_url=lambda *a, **k: types.SimpleNamespace()),
+        from_url=lambda *a, **k: types.SimpleNamespace(),
+    )
+    sys.modules['redis'] = redis_stub
+if 'requests' not in sys.modules:
+    sys.modules['requests'] = types.SimpleNamespace(get=lambda *a, **k: None, post=lambda *a, **k: None)
+if 'stripe' not in sys.modules:
+    sys.modules['stripe'] = types.SimpleNamespace(api_key='test')
 
 import app as app_module
 
@@ -83,7 +95,7 @@ def test_alpaca_login_accepts_live_env(monkeypatch):
 def test_live_mode_unlocked_requires_onboarding_and_live_connection():
     assert app_module.live_mode_unlocked(_user(onboarding_completed=False, alpaca_live_access_token='x')) is False
     assert app_module.live_mode_unlocked(_user(onboarding_completed=True, alpaca_live_access_token=None)) is False
-    assert app_module.live_mode_unlocked(_user(onboarding_completed=True, alpaca_live_access_token='x')) is True
+    assert app_module.live_mode_unlocked(_user(onboarding_completed=True, alpaca_live_access_token='x', alpaca_paper_access_token='p', paper_bankroll_set=True, paper_bankroll=1000.0)) is True
 
 
 def test_alpaca_login_missing_config_flashes_and_redirects_onboarding(monkeypatch):

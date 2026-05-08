@@ -168,16 +168,14 @@
                         {% if paper_connected %}
                             <span style="color: var(--accent-blue);">CONNECTED</span>
                         {% else %}
-                            <span style="color: var(--warning);">NOT CONNECTED</span>
+                            <span style="color: var(--warning);">NOT CONNECTED — REQUIRED</span>
                         {% endif %}
                     </div>
                     <div class="logic-label">Live Account:
                         {% if live_unlocked %}
                             <span style="color: var(--success);">CONNECTED / UNLOCKED</span>
-                        {% elif not current_user.onboarding_completed %}
-                            <span style="color: var(--warning);">LOCKED</span>
                         {% elif live_connected %}
-                            <span style="color: var(--warning);">NOT CONNECTED</span>
+                            <span style="color: var(--warning);">CONNECTED / LOCKED — FINISH ONBOARDING</span>
                         {% else %}
                             <span style="color: var(--warning);">NOT CONNECTED</span>
                         {% endif %}
