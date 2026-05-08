@@ -10,6 +10,7 @@ from db import get_recent_scans
 from execution_diagnostics import evaluate_execution_readiness
 from models import User
 from scan_contract import validate_scan_payload_contract
+from scanner import normalize_skip_reason_code
 
 
 def _parse_dt(value: Any) -> Optional[datetime]:
@@ -31,6 +32,27 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
     contract = validate_scan_payload_contract(scan if isinstance(scan, dict) else {})
     best = (scan.get("best_pick") or scan.get("best") or scan.get("top_pick") or {}) if isinstance(scan, dict) else {}
     normalized = contract.get("normalized_order_fields") or {}
+    latest_attr_age = None
+    latest_unattr_age = None
+    now_utc = datetime.now(timezone.utc)
+    for payload in all_scans:
+        dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
+        if not dt:
+            continue
+        age = int((now_utc - dt.astimezone(timezone.utc)).total_seconds())
+        if int(payload.get("user_id") or 0) > 0:
+            latest_attr_age = age if latest_attr_age is None else min(latest_attr_age, age)
+        else:
+            latest_unattr_age = age if latest_unattr_age is None else min(latest_unattr_age, age)
+
+    starvation_flags=[]
+    if repeated_best_pick_warning:
+        starvation_flags.append("DOMINANT_SYMBOL_STUCK")
+    if executable_payload_ready_count == 0:
+        starvation_flags.append("NO_EXECUTABLE_CANDIDATES")
+    if unattributed_scan_count > 0 and (latest_unattr_age is not None and latest_unattr_age < 7200):
+        starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
+
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
@@ -59,6 +81,7 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         "breakout_confirmed": best.get("breakout_confirmed"),
         "component_scores": best.get("scores") or {},
         "blocked_reason_codes": [],
+        "skip_reason_codes": (best.get("details") or {}).get("skip_reason_codes") or [],
     }
 
 
@@ -164,6 +187,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     scans_by_user_count: dict[int, int] = defaultdict(int)
     source_counts: Counter = Counter()
     skip_reason_counts: Counter = Counter()
+    skip_reason_code_counts: Counter = Counter()
     setup_grade_counts: Counter = Counter()
     score_total_buckets: Counter = Counter()
     component_score_totals: defaultdict[str, float] = defaultdict(float)
@@ -210,8 +234,13 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         single_skip_reason = str(details.get("skip_reason") or "").strip()
         if single_skip_reason and single_skip_reason not in deduped_skip_reasons:
             deduped_skip_reasons.append(single_skip_reason)
+        deduped_codes=[]
         for reason in deduped_skip_reasons:
             skip_reason_counts[reason] += 1
+            code = normalize_skip_reason_code(reason)
+            if code not in deduped_codes:
+                deduped_codes.append(code)
+                skip_reason_code_counts[code] += 1
         component_scores = best_pick.get("scores") if isinstance(best_pick.get("scores"), dict) else {}
         for key, value in component_scores.items():
             if isinstance(value, (int, float)):
@@ -282,6 +311,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     repeated_best_pick_warning = False
     latest_dominant_symbol_decisions: list[str] = []
     latest_dominant_symbol_skip_reasons: list[str] = []
+    latest_dominant_symbol_skip_reason_codes: list[str] = []
     if symbol_counts:
         dominant_symbol, same_symbol_count = symbol_counts.most_common(1)[0]
         if all_scans:
@@ -294,6 +324,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                     latest_dominant_symbol_decisions.append(safe["decision"])
                 for reason in safe.get("skip_reasons") or []:
                     latest_dominant_symbol_skip_reasons.append(str(reason))
+                    latest_dominant_symbol_skip_reason_codes.append(normalize_skip_reason_code(str(reason)))
                 if len(latest_dominant_symbol_decisions) >= 10 and len(latest_dominant_symbol_skip_reasons) >= 20:
                     break
 
@@ -316,6 +347,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "qty_below_one_count": qty_below_one_count,
         "symbol_counts": dict(symbol_counts),
         "skip_reason_counts": dict(skip_reason_counts),
+        "skip_reason_code_counts": dict(skip_reason_code_counts),
         "setup_grade_counts": dict(setup_grade_counts),
         "score_total_buckets": dict(score_total_buckets),
         "component_score_averages": component_score_averages,
@@ -325,6 +357,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "user_context_missing_count": int(blocked_reason_counts.get("USER_CONTEXT_MISSING", 0)),
         "attributed_scan_count": attributed_scan_count,
         "unattributed_scan_count": unattributed_scan_count,
+        "latest_attributed_scan_age_seconds": latest_attr_age,
+        "latest_unattributed_scan_age_seconds": latest_unattr_age,
+        "attribution_warning": bool(unattributed_scan_count > 0 and latest_unattr_age is not None and latest_unattr_age < 7200),
         "dominant_symbol_warning": repeated_best_pick_warning,
         "repeated_best_pick_warning": repeated_best_pick_warning,
         "dominant_symbol": dominant_symbol,
@@ -332,9 +367,13 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "same_symbol_count": same_symbol_count,
         "latest_dominant_symbol_decisions": latest_dominant_symbol_decisions[:10],
         "latest_dominant_symbol_skip_reasons": latest_dominant_symbol_skip_reasons[:20],
+        "latest_dominant_symbol_skip_reason_codes": latest_dominant_symbol_skip_reason_codes[:20],
         "scan_contract_failure_counts": dict(scan_contract_failure_counts),
         "top_rejection_reasons": dict(rejection_reasons.most_common(20)),
         "sample_recent_failures": failures,
+        "primary_blocker_summary": starvation_flags[0] if starvation_flags else "NONE",
+        "recommended_next_action": "Rerun scanner_effectiveness and inspect scan_diagnostics/opening_range diagnostics for dominant symbols.",
+        "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
     }
 
