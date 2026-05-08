@@ -15,8 +15,9 @@ from app import app, redis_client
 from db import insert_scan
 from execution_guard import approve_scan_for_user
 from models import User
-from scanner import buy_window_open, run_scan
+from scanner import run_scan
 from daily_report import run_daily_reports
+from execution_diagnostics import evaluate_execution_readiness
 
 logger = logging.getLogger("scanner_service")
 logging.basicConfig(
@@ -58,93 +59,39 @@ def _run_scan_for_user(user: Any) -> Dict[str, Any]:
     return run_scan()
 
 
-def _onboarding_complete(user: Any) -> bool:
-    # first_scan_completed and scan_preview_completed are intentionally not required
-    # because those flags can depend on scanner-driven workflows.
-    required_flags = (
-        "onboarding_completed",
-        "paper_bankroll_set",
-        "playbook_reviewed",
-        "transparency_reviewed",
-        "broker_connection_started",
-    )
-    return all(bool(getattr(user, flag, False)) for flag in required_flags)
-
-
-def _extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    required = ("symbol", "qty", "entry_price", "stop_price", "target_1", "target_2")
-    if any(best_pick.get(k) in (None, "") for k in required):
-        return None
-    try:
-        symbol = str(best_pick.get("symbol", "")).upper().strip()
-        qty = int(float(best_pick.get("qty")))
-        entry_price = float(best_pick.get("entry_price"))
-        stop_price = float(best_pick.get("stop_price"))
-        target_1 = float(best_pick.get("target_1"))
-        target_2 = float(best_pick.get("target_2"))
-    except (TypeError, ValueError):
-        logger.warning("Execution skipped: invalid numeric order field payload=%r", best_pick)
-        return None
-
-    if qty < 1:
-        logger.info("Execution skipped: qty below 1 for symbol=%s qty=%s", symbol, qty)
-        return None
-
-    return {
-        "symbol": symbol,
-        "qty": qty,
-        "entry_price": entry_price,
-        "stop_price": stop_price,
-        "target_1": target_1,
-        "target_2": target_2,
-    }
-
 
 def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> None:
-    if not _env_bool("CENTRAL_SCANNER_EXECUTION_ENABLED", False):
-        logger.info("Execution disabled globally. user_id=%s", user.id)
-        return
-    if str(getattr(user, "subscription_status", "free") or "free").strip().lower() != "pro":
-        logger.info("Execution skipped non-pro user. user_id=%s", user.id)
-        return
-    if not getattr(user, "alpaca_access_token", None):
-        logger.info("Execution skipped no active Alpaca token. user_id=%s", user.id)
-        return
-    if _env_bool("CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING", True) and not _onboarding_complete(user):
-        logger.info("Execution skipped onboarding incomplete. user_id=%s", user.id)
-        return
-    if not buy_window_open():
-        logger.info("Execution skipped: buy window closed. user_id=%s", user.id)
-        return
+    diag = evaluate_execution_readiness(user, scan_payload)
+    base_ctx = {
+        "user_id": getattr(user, "id", None),
+        "scan_id": scan_payload.get("scan_id"),
+        "trading_mode": diag.get("trading_mode"),
+        "symbol": diag.get("symbol"),
+        "decision": diag.get("decision"),
+        "qty": diag.get("qty"),
+    }
 
-    best_pick = scan_payload.get("best_pick") or {}
-    decision = str(best_pick.get("decision") or best_pick.get("setup_grade") or "").upper().strip()
-    if decision not in _decision_allowlist():
-        logger.info("Execution skipped decision not eligible. user_id=%s decision=%s", user.id, decision)
-        return
-
-    if str(getattr(user, "trading_mode", "paper") or "paper").strip().lower() == "live" and not _env_bool("CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED", False):
-        logger.warning("Execution skipped: live mode disabled globally. user_id=%s", user.id)
-        return
-
-    order_fields = _extract_order_fields(best_pick)
-    if not order_fields:
-        logger.info("Execution skipped: missing order fields. user_id=%s", user.id)
+    if not diag.get("execution_ready"):
+        for reason in diag.get("blocked_reasons", []):
+            logger.info("Execution skipped. reason=%s ctx=%s", reason.get("code"), base_ctx)
         return
 
     from tasks import execute_user_trade_task
+    best_pick = (scan_payload.get("best_pick") or scan_payload.get("best") or scan_payload.get("top_pick") or {})
+    target_1 = best_pick.get("target_1", best_pick.get("target_1_price"))
+    target_2 = best_pick.get("target_2", best_pick.get("target_2_price"))
 
     execute_user_trade_task.delay(
         user.id,
         scan_payload.get("scan_id"),
-        order_fields["symbol"],
-        order_fields["qty"],
-        order_fields["entry_price"],
-        order_fields["stop_price"],
-        order_fields["target_1"],
-        order_fields["target_2"],
+        diag["symbol"],
+        diag["qty"],
+        float(best_pick.get("entry_price")),
+        float(best_pick.get("stop_price")),
+        float(target_1),
+        float(target_2),
     )
-    logger.warning("Execution task dispatched. user_id=%s symbol=%s", user.id, order_fields["symbol"])
+    logger.warning("Execution task dispatched. ctx=%s", base_ctx)
 
 
 def _eligible_users() -> Iterable[Any]:
@@ -243,6 +190,13 @@ def _build_scheduler() -> BackgroundScheduler:
     return scheduler
 
 
+def diagnose_execution_readiness() -> None:
+    with app.app_context():
+        for user in _eligible_users():
+            diag = evaluate_execution_readiness(user, {})
+            logger.info("Execution readiness user_id=%s ready=%s reasons=%s mode=%s", user.id, diag["execution_ready"], [r["code"] for r in diag["blocked_reasons"]], diag["trading_mode"])
+
+
 def main() -> None:
     if not _env_bool("CENTRAL_SCANNER_ENABLED", True):
         logger.warning("CENTRAL_SCANNER_ENABLED=0. Exiting.")
@@ -264,4 +218,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--diagnose', action='store_true', help='Print execution readiness diagnostics without dispatching trades')
+    args = parser.parse_args()
+    if args.diagnose:
+        diagnose_execution_readiness()
+    else:
+        main()
