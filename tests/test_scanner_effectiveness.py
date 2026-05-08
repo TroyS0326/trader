@@ -397,3 +397,21 @@ def test_catalyst_score_baseline_reason_and_no_news_diagnostics_in_source():
     assert "catalyst_score_baseline_reason" in src
     assert "catalyst_missing_reason" in src
     assert "UNKNOWN_BASELINE_REASON" in src
+
+def test_scanner_effectiveness_exposes_news_evidence_scoring_summary(monkeypatch):
+    row = {"id": 101, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({
+        "user_id": 9, "scan_attribution_version": 1,
+        "scan_diagnostics": {
+            "latest_news_evidence_scoring_summary": {"qualified_news_symbols": ["RXT"], "news_symbols_adjusted_count": 1},
+            "latest_news_catalyst_score_blockers": [{"symbol": "RXT", "catalyst_score": 2}],
+            "top_5_candidates_by_score": [{"symbol": "RXT", "catalyst_positive_terms": ["ai"], "catalyst_score_components": {"keyword_boost": 0.12}}],
+        },
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP"}
+    })}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_news_evidence_scoring_summary"]["qualified_news_symbols"] == ["RXT"]
+    assert report["latest_news_catalyst_score_blockers"][0]["symbol"] == "RXT"

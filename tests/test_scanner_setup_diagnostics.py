@@ -361,3 +361,46 @@ def test_run_scan_only_tags_qualified_news_catalyst(monkeypatch):
     assert diag['source_candidate_counts']['news_catalyst'] == 1
     assert 'AAPL' not in diag['news_catalyst_symbols_sample']
     assert 'AAPL' in diag['news_catalyst_nonqualifying_symbols_sample']
+
+def test_news_evidence_fallback_positive_terms_adjusts_keyword_and_psuccess():
+    feats = {
+        'headline_count': 27,
+        'qualifies_as_news_catalyst': True,
+        'positive_terms': ['ai', 'earnings', 'guidance', 'partnership'],
+        'negative_terms': [],
+        'keyword_boost': 0.0,
+        'p_success': 0.5,
+    }
+    out = scanner._apply_news_evidence_fallback_features(dict(feats), feats)
+    assert out['keyword_boost'] > 0
+    assert out['p_success'] > 0.5
+    assert out['catalyst_score_input_source'] in {'news_evidence_fallback', 'feature_store_plus_news_evidence'}
+
+
+def test_news_evidence_fallback_negative_terms_reduce_or_cap_boost():
+    feats = {
+        'headline_count': 5,
+        'qualifies_as_news_catalyst': True,
+        'positive_terms': ['partnership'],
+        'negative_terms': ['offering', 'dilution'],
+        'keyword_boost': 0.0,
+        'p_success': 0.5,
+    }
+    out = scanner._apply_news_evidence_fallback_features(dict(feats), feats)
+    assert out['keyword_boost'] <= 0
+    assert out['catalyst_negative_risk'] is True
+
+
+def test_catalyst_missing_reason_not_unknown_when_headlines_and_positive_terms():
+    feats = {
+        'headline_count': 10,
+        'recent_headline_count': 10,
+        'latest_headline_age_minutes': 70,
+        'keywords_hit': ['ai', 'earnings'],
+        'positive_terms': ['ai', 'earnings'],
+        'negative_terms': [],
+        'qualifies_as_news_catalyst': True,
+    }
+    diag = scanner._build_catalyst_diagnostics(feats, {'model': 'm', 'reason': 'r'})
+    assert diag['catalyst_missing_reason'] != 'UNKNOWN'
+    assert diag['catalyst_missing_reason'] in {'CATALYST_EVIDENCE_PRESENT', None}

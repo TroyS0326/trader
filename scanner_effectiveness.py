@@ -454,6 +454,19 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
             latest_source_quality_warning = f"{src} produced analyzed candidates but all were SKIP."
             if src == 'fallback_market_candidates':
                 recommended_next_action = "Improve primary candidate discovery; fallback is driving weak candidates."
+    news_summary = latest_diag.get('latest_news_evidence_scoring_summary') if isinstance(latest_diag, dict) else {}
+    if isinstance(news_summary, dict) and news_summary:
+        qualified_news = news_summary.get('qualified_news_symbols') or []
+        adjusted_count = int(news_summary.get('news_symbols_adjusted_count') or 0)
+        still_baseline = news_summary.get('still_baseline_after_news_symbols') or []
+        positive_symbols = news_summary.get('positive_keyword_symbols') or []
+        if qualified_news and adjusted_count == 0 and len(still_baseline) == len(qualified_news):
+            recommended_next_action = 'News evidence is reaching scanner but not materially improving catalyst score; review catalyst scoring inputs/model fallback.'
+        if positive_symbols:
+            top5 = latest_diag.get('top_5_candidates_by_score') or []
+            pos_zero = [x for x in top5 if (x.get('catalyst_positive_terms') or []) and float(((x.get('catalyst_score_components') or {}).get('keyword_boost') or 0.0)) == 0.0]
+            if pos_zero:
+                recommended_next_action = 'Positive catalyst keywords are detected but keyword_boost remains zero; connect keyword evidence to scoring.'
     if isinstance(catalyst_baseline_reason_counts, dict) and catalyst_baseline_reason_counts:
         dominant_baseline = max(catalyst_baseline_reason_counts.items(), key=lambda kv: int(kv[1] or 0))[0]
         if dominant_baseline in {'FEATURE_STORE_BASELINE_ONLY', 'BASELINE_ONLY_NO_NEWS'}:
@@ -514,6 +527,8 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_source_quality_warning": latest_source_quality_warning,
         "latest_catalyst_baseline_reason_counts": catalyst_baseline_reason_counts,
         "latest_catalyst_missing_reason_counts": catalyst_missing_reason_counts,
+        "latest_news_evidence_scoring_summary": latest_diag.get("latest_news_evidence_scoring_summary"),
+        "latest_news_catalyst_score_blockers": latest_diag.get("latest_news_catalyst_score_blockers"),
         "latest_catalyst_feature_store_hit_count": latest_diag.get("latest_catalyst_feature_store_hit_count"),
         "latest_catalyst_feature_store_missing_count": latest_diag.get("latest_catalyst_feature_store_missing_count"),
         "latest_premarket_data_unavailable_count": latest_diag.get("latest_premarket_data_unavailable_count"),
