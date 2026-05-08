@@ -138,9 +138,18 @@ def test_execution_readiness_endpoint_no_secrets_and_no_recent_scan(monkeypatch)
         assert 'secret' not in as_json
         assert 'paper-secret' not in as_json
         assert 'live-secret' not in as_json
-        codes = {r['code'] for r in data['latest_scan_evaluation']['blocked_reasons']}
-        assert 'NO_RECENT_SCAN' in codes
+        latest_codes = {r['code'] for r in data['latest_scan_evaluation']['blocked_reasons']}
+        active_codes = {r['code'] for r in data['active_mode_blocked_reasons']}
+        paper_codes = {r['code'] for r in data['paper_blocked_reasons']}
+        live_codes = {r['code'] for r in data['live_blocked_reasons']}
+        assert 'NO_RECENT_SCAN' in latest_codes
+        assert 'NO_RECENT_SCAN' in active_codes
+        assert 'NO_RECENT_SCAN' in paper_codes
+        assert 'NO_RECENT_SCAN' in live_codes
         assert data['latest_scan_evaluation']['execution_ready'] is False
+        assert data['execution_ready'] is False
+        assert data['paper_setup_ready'] == data['paper_execution_ready']
+        assert data['live_onboarding_ready'] == data['live_execution_ready']
         assert 'paper_execution_ready' in data
         assert 'live_execution_ready' in data
         assert 'paper_blocked_reasons' in data

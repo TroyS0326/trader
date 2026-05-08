@@ -3027,8 +3027,21 @@ def api_execution_readiness():
 
     diag = evaluate_execution_readiness(current_user, latest_payload)
     if no_recent_scan:
-        diag['blocked_reasons'].append({'code': 'NO_RECENT_SCAN', 'message': 'No recent scan found for current user.'})
+        no_scan_reason = {'code': 'NO_RECENT_SCAN', 'message': 'No recent scan found for current user.'}
+
+        def _append_reason_once(reason_list):
+            if not any((r or {}).get('code') == no_scan_reason['code'] for r in reason_list):
+                reason_list.append(no_scan_reason)
+
+        _append_reason_once(diag['blocked_reasons'])
+        _append_reason_once(diag.setdefault('active_mode_blocked_reasons', []))
+        _append_reason_once(diag.setdefault('paper_blocked_reasons', []))
+        _append_reason_once(diag.setdefault('live_blocked_reasons', []))
         diag['execution_ready'] = False
+        if diag.get('active_mode') == 'paper':
+            diag['paper_execution_ready'] = False
+        elif diag.get('active_mode') == 'live':
+            diag['live_execution_ready'] = False
 
     payload = {
         'active_mode': diag.get('active_mode', getattr(current_user, 'trading_mode', 'paper')),
@@ -3046,6 +3059,8 @@ def api_execution_readiness():
         'has_live_token': bool(getattr(current_user, 'alpaca_live_access_token', None)),
         'has_active_alpaca_token': bool(getattr(current_user, 'alpaca_access_token', None)),
         'onboarding_complete': onboarding_complete(current_user),
+        'paper_setup_ready': bool(diag.get('paper_execution_ready')),
+        'live_onboarding_ready': bool(diag.get('live_execution_ready')),
         'buy_window_open': diag.get('buy_window_open'),
         'decision_allowlist': sorted(decision_allowlist()),
         'latest_scan_evaluation': diag,
