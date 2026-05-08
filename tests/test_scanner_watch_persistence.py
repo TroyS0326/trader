@@ -72,3 +72,40 @@ def test_recheck_watch_cli_flag_present_and_safe_json_printer():
     src = Path('scanner.py').read_text()
     assert '--recheck-watch' in src
     assert 'json.dumps(summary, indent=2, default=str)' in src
+
+
+def test_recheck_summary_exposes_no_execution_flags(monkeypatch):
+    rows = [DummyRow('AAA', datetime.utcnow())]
+    monkeypatch.setattr(scanner.WatchCandidate, 'query', DummyQuery(rows))
+    monkeypatch.setattr(scanner, 'run_scan', lambda user=None: {'ranked': []})
+    monkeypatch.setattr(scanner.db.session, 'commit', lambda: None)
+    monkeypatch.setattr(scanner, '_persist_watch_recheck_summary', lambda *args, **kwargs: None)
+    summary = scanner.recheck_active_watch_candidates(user=type('U', (), {'id': 1})(), limit=10)
+    assert summary['execution_attempted'] is False
+    assert summary['execution_path_called'] is False
+
+
+def test_recheck_none_delegates_to_all_users(monkeypatch):
+    monkeypatch.setattr(scanner, 'recheck_active_watch_candidates_for_all_users', lambda limit_per_user=25: {'total_users_checked': 1})
+    out = scanner.recheck_active_watch_candidates(user=None, limit=25)
+    assert out['total_users_checked'] == 1
+
+
+def test_recheck_cli_user_and_all_users_flags_present():
+    src = Path('scanner.py').read_text()
+    assert '--user-id' in src
+    assert '--all-users' in src
+
+
+def test_all_user_recheck_groups_by_user(monkeypatch):
+    class DistinctQ:
+        def filter(self, *args, **kwargs): return self
+        def distinct(self): return self
+        def all(self): return [(1,), (2,), (None,)]
+    monkeypatch.setattr(scanner.db.session, 'query', lambda *args, **kwargs: DistinctQ())
+    monkeypatch.setattr(scanner.User, 'query', type('Q', (), {'get': staticmethod(lambda uid: type('U', (), {'id': uid})())})())
+    monkeypatch.setattr(scanner, 'recheck_active_watch_candidates', lambda user=None, limit=25: {'checked_count': 1, 'promoted_count': 0, 'still_watch_count': 1, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': ['RXT'], 'top_blockers_by_count': [['VWAP_TREND_NOT_ALIGNED', 1]], 'execution_attempted': False, 'execution_path_called': False})
+    monkeypatch.setattr(scanner, '_persist_watch_recheck_summary', lambda *args, **kwargs: None)
+    out = scanner.recheck_active_watch_candidates_for_all_users(limit_per_user=5)
+    assert out['total_users_checked'] == 2
+    assert out['total_checked_count'] == 2
