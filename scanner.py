@@ -254,8 +254,6 @@ def apply_user_symbol_filters(
         return symbols
 
     filtered: List[str] = []
-    asset_metadata_degraded_allowed_symbols: List[str] = []
-    asset_metadata_degraded_rejections: List[Dict[str, Any]] = []
     for symbol in symbols:
         if symbol == 'SPY':
             filtered.append(symbol)
@@ -1826,6 +1824,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         raise ScanError('No symbols remained after applying your personalization and ESG filters.')
     candidate_count_before_asset_filter = len(symbols)
     asset_filter_rejections = []
+    asset_metadata_degraded_allowed_symbols: List[str] = []
+    asset_metadata_degraded_rejections: List[Dict[str, Any]] = []
     asset_metadata_by_symbol: Dict[str, Dict[str, Any]] = {}
     filtered_symbols = []
     asset_metadata_failure_count = 0

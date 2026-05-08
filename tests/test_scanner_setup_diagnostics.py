@@ -183,6 +183,12 @@ def test_run_scan_degraded_mode_still_blocks_warrant_like_symbols(monkeypatch):
     assert diag['asset_metadata_degraded_rejection_counts']['WARRANT_OR_RIGHT'] == 1
 
 
+def test_apply_user_symbol_filters_has_no_degraded_mode_locals():
+    local_names = set(scanner.apply_user_symbol_filters.__code__.co_varnames)
+    assert 'asset_metadata_degraded_allowed_symbols' not in local_names
+    assert 'asset_metadata_degraded_rejections' not in local_names
+
+
 def test_get_alpaca_asset_with_diagnostics_401(monkeypatch):
     class Resp:
         status_code = 401
