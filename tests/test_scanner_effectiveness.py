@@ -453,3 +453,14 @@ def test_build_report_source_has_stale_scan_calculation():
     fn = src[src.index("def build_scanner_effectiveness_report"):src.index("def main(")]
     assert "latest_enriched_scan_age_seconds" in fn
     assert "stale_scan_warning" in fn
+
+def test_report_exposes_asset_metadata_reconnect_fields(monkeypatch):
+    row = {"id": 80, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 9, "scan_diagnostics": {"alpaca_user_oauth_asset_metadata_health": "unauthorized", "alpaca_asset_metadata_reconnect_required": True, "alpaca_asset_metadata_reconnect_reason": "USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA", "alpaca_asset_metadata_server_fallback_success_count": 2, "asset_metadata_degraded_mode": False}, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_alpaca_user_oauth_asset_metadata_health"] == "unauthorized"
+    assert report["latest_alpaca_asset_metadata_reconnect_required"] is True
+    assert "server metadata fallback" in report["recommended_next_action"]

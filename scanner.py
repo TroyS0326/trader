@@ -573,47 +573,98 @@ def get_alpaca_asset_with_diagnostics(
     token = None
     if user is not None:
         token = getattr(user, 'alpaca_live_access_token', None) or getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_access_token', None)
-    auth_source = 'user_oauth_token' if token else ('server_api_key' if ALPACA_API_KEY and ALPACA_API_SECRET else 'none')
-    endpoint_used = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
+    attempts = []
+    user_endpoint = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
+
+    def _attempt(endpoint: str, auth_source: str, headers: Dict[str, str]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        attempt = {
+            'endpoint_used': endpoint,
+            'auth_source': auth_source,
+            'status_code': None,
+            'ok': False,
+            'failure_reason': None,
+            'response_text_short': '',
+        }
+        try:
+            resp = requests.get(endpoint, headers=headers, timeout=TIMEOUT)
+            attempt['status_code'] = resp.status_code
+            attempt['response_text_short'] = (resp.text or '')[:180]
+            if resp.status_code >= 400:
+                attempt['failure_reason'] = _asset_failure_reason(resp.status_code)
+                return {}, attempt
+            payload = resp.json()
+            if not isinstance(payload, dict) or not payload:
+                attempt['failure_reason'] = _asset_failure_reason(resp.status_code, payload=payload)
+                return {}, attempt
+            attempt['ok'] = True
+            return payload, attempt
+        except requests.RequestException as exc:
+            attempt['failure_reason'] = _asset_failure_reason(None, error=exc)
+            attempt['response_text_short'] = str(exc)[:180]
+            return {}, attempt
+        except ValueError:
+            attempt['failure_reason'] = 'INVALID_RESPONSE'
+            return {}, attempt
+
+    methods = []
+    if token:
+        methods.append((user_endpoint, 'user_oauth_token', {'accept': 'application/json', 'Authorization': f'Bearer {token}'}))
+    paper_key = os.getenv('ALPACA_PAPER_API_KEY', '').strip() or ALPACA_API_KEY
+    paper_secret = os.getenv('ALPACA_PAPER_API_SECRET', '').strip() or ALPACA_API_SECRET
+    live_key = os.getenv('ALPACA_LIVE_API_KEY', '').strip()
+    live_secret = os.getenv('ALPACA_LIVE_API_SECRET', '').strip()
+    if paper_key and paper_secret:
+        methods.append((f"{config.ALPACA_PAPER_BASE}/v2/assets/{symbol}", 'server_paper_api_key', {'accept': 'application/json', 'APCA-API-KEY-ID': paper_key, 'APCA-API-SECRET-KEY': paper_secret}))
+    if live_key and live_secret:
+        methods.append((f"{getattr(config, 'ALPACA_LIVE_BASE', 'https://api.alpaca.markets')}/v2/assets/{symbol}", 'server_live_api_key', {'accept': 'application/json', 'APCA-API-KEY-ID': live_key, 'APCA-API-SECRET-KEY': live_secret}))
+    elif ALPACA_API_KEY and ALPACA_API_SECRET:
+        methods.append((f"{getattr(config, 'ALPACA_LIVE_BASE', 'https://api.alpaca.markets')}/v2/assets/{symbol}", 'server_live_api_key', {'accept': 'application/json', 'APCA-API-KEY-ID': ALPACA_API_KEY, 'APCA-API-SECRET-KEY': ALPACA_API_SECRET}))
+    if not methods:
+        methods.append((user_endpoint, 'none', {'accept': 'application/json'}))
+
+    final_payload = {}
+    for endpoint, auth_source, headers in methods:
+        payload, attempt = _attempt(endpoint, auth_source, headers)
+        attempts.append(attempt)
+        if payload:
+            final_payload = payload
+            break
+
+    first_user = next((a for a in attempts if a.get('auth_source') == 'user_oauth_token'), None)
+    if token and first_user and first_user.get('ok'):
+        token_health, token_reason = 'valid', 'SERVER_KEYS_SUCCEEDED'
+    elif token and first_user and first_user.get('status_code') == 401:
+        token_health, token_reason = 'unauthorized', 'USER_OAUTH_HTTP_401'
+    elif token and first_user and first_user.get('status_code') == 403:
+        token_health, token_reason = 'unauthorized', 'USER_OAUTH_HTTP_403'
+    elif not token:
+        token_health, token_reason = 'missing', 'USER_OAUTH_MISSING'
+    else:
+        token_health, token_reason = 'unknown', 'UNKNOWN'
+
+    final_attempt = next((a for a in reversed(attempts) if a.get('ok')), attempts[-1])
+    used_fallback = bool(final_attempt.get('ok') and final_attempt.get('auth_source') != 'user_oauth_token' and any(a.get('auth_source') == 'user_oauth_token' for a in attempts))
     diag = {
         'symbol': symbol,
         'source': source or 'unknown',
-        'endpoint_used': endpoint_used,
-        'auth_source': auth_source,
-        'status_code': None,
-        'ok': False,
-        'failure_reason': None,
-        'response_text_short': '',
-        'used_fallback': False,
+        'attempts': attempts,
+        'endpoint_used': final_attempt.get('endpoint_used') or user_endpoint,
+        'auth_source': final_attempt.get('auth_source') or 'none',
+        'final_endpoint_used': final_attempt.get('endpoint_used') or user_endpoint,
+        'final_auth_source': final_attempt.get('auth_source') or 'none',
+        'status_code': final_attempt.get('status_code'),
+        'ok': bool(final_attempt.get('ok')),
+        'failure_reason': final_attempt.get('failure_reason'),
+        'response_text_short': (final_attempt.get('response_text_short') or '')[:180],
+        'used_fallback': used_fallback,
+        'token_health': token_health,
+        'token_health_reason': 'SERVER_KEYS_SUCCEEDED' if used_fallback else token_reason,
     }
-    headers = {'accept': 'application/json'}
-    if token:
-        headers['Authorization'] = f'Bearer {token}'
-    elif ALPACA_API_KEY and ALPACA_API_SECRET:
-        headers.update(_alpaca_headers())
-    else:
-        diag['failure_reason'] = 'REQUEST_EXCEPTION'
-        return {}, diag
-    try:
-        resp = requests.get(endpoint_used, headers=headers, timeout=TIMEOUT)
-        diag['status_code'] = resp.status_code
-        diag['response_text_short'] = (resp.text or '')[:180]
-        if resp.status_code >= 400:
-            diag['failure_reason'] = _asset_failure_reason(resp.status_code)
-            return {}, diag
-        payload = resp.json()
-        if not isinstance(payload, dict) or not payload:
-            diag['failure_reason'] = _asset_failure_reason(resp.status_code, payload=payload)
-            return {}, diag
-        diag['ok'] = True
-        return payload, diag
-    except requests.RequestException as exc:
-        diag['failure_reason'] = _asset_failure_reason(None, error=exc)
-        diag['response_text_short'] = str(exc)[:180]
-        return {}, diag
-    except ValueError:
-        diag['failure_reason'] = 'INVALID_RESPONSE'
-        return {}, diag
+    if final_payload:
+        return final_payload, diag
+    if diag['token_health_reason'] == 'UNKNOWN' and attempts:
+        diag['token_health_reason'] = 'ALL_AUTH_METHODS_FAILED'
+    return {}, diag
 
 
 def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
@@ -2532,6 +2583,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     asset_metadata_endpoint_used = f'{config.ALPACA_ASSETS_BASE}/v2/assets/{{symbol}}'
     asset_metadata_failure_reason_counts: Dict[str, int] = {}
     asset_metadata_failure_samples: List[Dict[str, Any]] = []
+    asset_metadata_user_oauth_failure_count = 0
+    asset_metadata_server_fallback_success_count = 0
+    asset_metadata_server_fallback_failure_count = 0
+    alpaca_user_oauth_asset_metadata_checked_count = 0
+    alpaca_user_oauth_asset_metadata_unauthorized_count = 0
     asset_metadata_all_failed = False
     auth_or_config_failures = {'HTTP_401', 'HTTP_403', 'HTTP_429', 'HTTP_5XX', 'REQUEST_EXCEPTION'}
     asset_metadata_global_failure = False
@@ -2546,6 +2602,18 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         )
         asset_lookup[symbol] = asset
         asset_metadata_endpoint_used = asset_diag.get('endpoint_used') or asset_metadata_endpoint_used
+        attempts = asset_diag.get('attempts') or []
+        user_attempt = next((a for a in attempts if a.get('auth_source') == 'user_oauth_token'), None)
+        if user_attempt:
+            alpaca_user_oauth_asset_metadata_checked_count += 1
+            if user_attempt.get('status_code') in {401, 403}:
+                alpaca_user_oauth_asset_metadata_unauthorized_count += 1
+                asset_metadata_user_oauth_failure_count += 1
+        if asset_diag.get('used_fallback'):
+            if asset:
+                asset_metadata_server_fallback_success_count += 1
+            else:
+                asset_metadata_server_fallback_failure_count += 1
         if asset:
             asset_metadata_success_count += 1
         else:
@@ -2559,6 +2627,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         key in auth_or_config_failures for key in asset_metadata_failure_reason_counts.keys()
     )
     asset_metadata_degraded_mode = asset_metadata_global_failure
+    if asset_metadata_server_fallback_success_count > 0 and asset_metadata_success_count > 0:
+        asset_metadata_global_failure = False
+        asset_metadata_degraded_mode = False
     for symbol in symbols:
         asset = asset_lookup.get(symbol, {})
         profile = get_company_profile(symbol)
@@ -2660,6 +2731,17 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'asset_metadata_degraded_allowed_symbols': asset_metadata_degraded_allowed_symbols[:100],
             'asset_metadata_degraded_rejection_counts': asset_metadata_degraded_rejection_counts,
             'asset_metadata_degraded_rejection_samples': asset_metadata_degraded_rejections[:20],
+            'asset_metadata_user_oauth_failure_count': asset_metadata_user_oauth_failure_count,
+            'asset_metadata_server_fallback_success_count': asset_metadata_server_fallback_success_count,
+            'asset_metadata_server_fallback_failure_count': asset_metadata_server_fallback_failure_count,
+            'alpaca_user_oauth_asset_metadata_checked_count': alpaca_user_oauth_asset_metadata_checked_count,
+            'alpaca_user_oauth_asset_metadata_unauthorized_count': alpaca_user_oauth_asset_metadata_unauthorized_count,
+            'alpaca_user_oauth_asset_metadata_health': ('missing' if alpaca_user_oauth_asset_metadata_checked_count == 0 else ('unauthorized' if alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count else 'healthy')),
+            'alpaca_asset_metadata_server_fallback_used_count': asset_metadata_server_fallback_success_count + asset_metadata_server_fallback_failure_count,
+            'alpaca_asset_metadata_server_fallback_success_count': asset_metadata_server_fallback_success_count,
+            'alpaca_asset_metadata_server_fallback_failure_count': asset_metadata_server_fallback_failure_count,
+            'alpaca_asset_metadata_reconnect_required': bool(alpaca_user_oauth_asset_metadata_checked_count > 0 and alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count),
+            'alpaca_asset_metadata_reconnect_reason': ('USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA' if alpaca_user_oauth_asset_metadata_checked_count > 0 and alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count else None),
             },
         )
         raise ScanError("No symbols remained after asset quality filtering.")
@@ -3046,6 +3128,17 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'asset_metadata_degraded_allowed_symbols': asset_metadata_degraded_allowed_symbols[:100],
             'asset_metadata_degraded_rejection_counts': asset_metadata_degraded_rejection_counts,
             'asset_metadata_degraded_rejection_samples': asset_metadata_degraded_rejections[:20],
+            'asset_metadata_user_oauth_failure_count': asset_metadata_user_oauth_failure_count,
+            'asset_metadata_server_fallback_success_count': asset_metadata_server_fallback_success_count,
+            'asset_metadata_server_fallback_failure_count': asset_metadata_server_fallback_failure_count,
+            'alpaca_user_oauth_asset_metadata_checked_count': alpaca_user_oauth_asset_metadata_checked_count,
+            'alpaca_user_oauth_asset_metadata_unauthorized_count': alpaca_user_oauth_asset_metadata_unauthorized_count,
+            'alpaca_user_oauth_asset_metadata_health': ('missing' if alpaca_user_oauth_asset_metadata_checked_count == 0 else ('unauthorized' if alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count else 'healthy')),
+            'alpaca_asset_metadata_server_fallback_used_count': asset_metadata_server_fallback_success_count + asset_metadata_server_fallback_failure_count,
+            'alpaca_asset_metadata_server_fallback_success_count': asset_metadata_server_fallback_success_count,
+            'alpaca_asset_metadata_server_fallback_failure_count': asset_metadata_server_fallback_failure_count,
+            'alpaca_asset_metadata_reconnect_required': bool(alpaca_user_oauth_asset_metadata_checked_count > 0 and alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count),
+            'alpaca_asset_metadata_reconnect_reason': ('USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA' if alpaca_user_oauth_asset_metadata_checked_count > 0 and alpaca_user_oauth_asset_metadata_checked_count == alpaca_user_oauth_asset_metadata_unauthorized_count else None),
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,
