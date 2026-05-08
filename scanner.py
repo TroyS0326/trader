@@ -259,7 +259,8 @@ def apply_user_symbol_filters(
             filtered.append(symbol)
             continue
 
-        snapshot = snapshots.get(symbol, {})
+        snapshot = dict(snapshots.get(symbol, {}) or {})
+        snapshot['_candidate_source'] = candidate_source_map.get(symbol, 'unknown')
         quote = quotes.get(symbol, {})
         daily = snapshot.get('dailyBar', {})
         minute = snapshot.get('minuteBar', {})
@@ -482,6 +483,7 @@ def get_alpaca_asset_with_diagnostics(symbol: str, user: Optional[Any] = None) -
     endpoint_used = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
     diag = {
         'symbol': symbol,
+        'source': snapshot.get('_candidate_source', 'unknown'),
         'endpoint_used': endpoint_used,
         'auth_source': auth_source,
         'status_code': None,
@@ -648,6 +650,7 @@ def calculate_premarket_dollar_volume(symbol: str, minute_bars: List[Dict[str, A
     gap = None if actual is None or required_premarket_dollar_volume is None else round(actual - required_premarket_dollar_volume, 2)
     return {
         'symbol': symbol,
+        'source': snapshot.get('_candidate_source', 'unknown'),
         'actual_premarket_dollar_volume': actual,
         'premarket_bar_count': len(bars_in_window),
         'premarket_volume': round(total_volume, 2),
@@ -1481,6 +1484,73 @@ def calculate_position_size(
     }
 
 
+
+
+def _truncate_headline(text: Any, max_len: int = 140) -> str:
+    head = str(text or '').strip()
+    if len(head) <= max_len:
+        return head
+    return head[: max_len - 1].rstrip() + '…'
+
+
+def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict[str, Any]) -> Dict[str, Any]:
+    headline_count = int(ml_features.get('headline_count', 0) or 0)
+    recent_count = int(ml_features.get('recent_headline_count', headline_count) or 0)
+    latest_age = ml_features.get('latest_headline_age_minutes')
+    latest_age = float(latest_age) if isinstance(latest_age, (int, float)) else None
+    keywords = ml_features.get('keywords_hit') or []
+    if not isinstance(keywords, list):
+        keywords = []
+    positive_terms = ml_features.get('positive_terms') or []
+    negative_terms = ml_features.get('negative_terms') or []
+    samples = ml_features.get('headline_samples') or ml_features.get('headlines') or []
+    if not isinstance(samples, list):
+        samples = []
+    samples = [_truncate_headline(h) for h in samples[:3] if str(h or '').strip()]
+
+    missing_reason = 'UNKNOWN'
+    if headline_count <= 0:
+        missing_reason = 'NO_NEWS_FOUND'
+    elif latest_age is not None and latest_age > 240:
+        missing_reason = 'NEWS_TOO_OLD'
+    elif not keywords:
+        missing_reason = 'NO_KEYWORDS_HIT'
+
+    if bool(ml_features.get('news_api_error')):
+        missing_reason = 'NEWS_API_ERROR'
+    if bool(ml_features.get('ai_validation_unavailable')):
+        missing_reason = 'AI_VALIDATION_UNAVAILABLE'
+
+    return {
+        'catalyst_source': catalyst_meta.get('model') or 'unknown',
+        'catalyst_headline_count': headline_count,
+        'catalyst_recent_headline_count': recent_count,
+        'catalyst_latest_headline_age_minutes': latest_age,
+        'catalyst_keywords_hit': keywords,
+        'catalyst_strength_reason': catalyst_meta.get('reason') or 'No catalyst strength reason provided.',
+        'catalyst_missing_reason': missing_reason,
+        'catalyst_positive_terms': positive_terms if isinstance(positive_terms, list) else [],
+        'catalyst_negative_terms': negative_terms if isinstance(negative_terms, list) else [],
+        'catalyst_is_fresh': bool(latest_age is not None and latest_age <= 240),
+        'catalyst_confidence': catalyst_meta.get('confidence') or 'unavailable',
+        'catalyst_headline_samples': samples,
+    }
+
+
+def _baseline_catalyst_reason(catalyst_score: int, cat_diag: Dict[str, Any]) -> Optional[str]:
+    if catalyst_score != 2:
+        return None
+    miss = cat_diag.get('catalyst_missing_reason')
+    if miss in {'NO_NEWS_FOUND', 'NEWS_TOO_OLD', 'NO_KEYWORDS_HIT'}:
+        return 'BASELINE_ONLY_NO_NEWS' if miss == 'NO_NEWS_FOUND' else 'BASELINE_ONLY_WEAK_NEWS'
+    if miss in {'AI_VALIDATION_UNAVAILABLE'}:
+        return 'BASELINE_ONLY_NO_AI_CONFIRMATION'
+    if miss in {'NEWS_API_ERROR'}:
+        return 'SOURCE_UNAVAILABLE'
+    if cat_diag.get('catalyst_is_fresh'):
+        return 'FRESH_BUT_NOT_STRONG'
+    return 'BASELINE_ONLY_WEAK_NEWS'
+
 def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any], feed_used: Optional[str] = None) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
@@ -1525,7 +1595,17 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         'confidence': 'medium',
         'reason': 'Loaded from pre-market feature store.',
     }
+    catalyst_diag = _build_catalyst_diagnostics(ml_features, catalyst_meta)
+    catalyst_baseline_reason = _baseline_catalyst_reason(catalyst_score, catalyst_diag)
     liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
+    liquidity_failure_codes = []
+    if liquidity_meta.get('wide_spread_block'):
+        liquidity_failure_codes.append('WIDE_SPREAD')
+    if pmv_diag.get('actual_premarket_dollar_volume') is None:
+        liquidity_failure_codes.append('PREMARKET_VOLUME_UNAVAILABLE')
+    elif premarket_notional < required_premarket_notional:
+        liquidity_failure_codes.append('PREMARKET_DOLLAR_VOLUME_TOO_LIGHT')
+    liquidity_meta.update({'max_allowed_spread_pct': MAX_SPREAD_PCT, 'required_premarket_dollar_volume': round(required_premarket_notional, 2), 'actual_premarket_dollar_volume': round(premarket_notional, 2) if premarket_notional else premarket_notional, 'liquidity_failure_codes': liquidity_failure_codes, 'liquidity_score_reason': f"score={liquidity_score}; spread={liquidity_meta.get('spread_pct')} vs max={MAX_SPREAD_PCT}; premarket=${round(premarket_notional,2) if premarket_notional is not None else 'n/a'}"})
     daily_score, daily_meta = score_daily_alignment(current_price, daily_bars)
     sector_symbol = choose_sector_etf(profile, symbol)
     sector_snapshot = sector_snapshots.get(sector_symbol, {})
@@ -1537,6 +1617,16 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     orb_meta = detect_orb(minute_bars, OPENING_RANGE_START_ET, OPENING_RANGE_END_ET)
     open_rs_score, open_rs_meta = score_relative_strength_open(minute_bars, spy_minute_bars)
     vwap_score, vwap_meta = score_vwap_hold_reclaim(minute_bars)
+    session_bars = filter_bars_for_today_session(minute_bars)
+    vwap_5m_slope = None
+    if len(session_bars) >= 10:
+        first = calc_vwap(session_bars[-10:-5])
+        last = calc_vwap(session_bars[-5:])
+        vwap_5m_slope = round(last - first, 6)
+    vwap_now = safe_num(vwap_meta.get('vwap'))
+    price_vs_vwap_pct = round(((current_price - vwap_now) / vwap_now) * 100.0, 4) if current_price and vwap_now else None
+    vwap_reason = 'VWAP trend aligned.' if mtf_aligned else '5-minute VWAP trend is not aligned.'
+    vwap_meta.update({'vwap_trend_aligned': bool(mtf_aligned), 'vwap_trend_reason': vwap_reason, 'vwap_5m_slope': vwap_5m_slope, 'price_vs_vwap_pct': price_vs_vwap_pct, 'vwap_reclaim_confirmed': bool(vwap_meta.get('reclaimed_vwap')), 'vwap_hold_bars_count': int(vwap_meta.get('holds_last5', 0) or 0)})
     pullback_score, pullback_meta = score_first_pullback_quality(minute_bars, or_stats)
     entry_score, entry_meta = score_entry_quality(current_price, daily_bars, minute_bars, or_stats, vwap_meta, pullback_meta)
     confirm_score, confirm_meta = score_opening_range_confirmation(current_price, or_stats, vwap_meta)
@@ -1749,7 +1839,7 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
         score_models=ScoreTriplet(**model_scores).to_dict(),
         scores=component_scores,
         details={
-            'catalyst': catalyst_meta,
+            'catalyst': {**catalyst_meta, **catalyst_diag, 'catalyst_score': catalyst_score, 'catalyst_score_baseline_reason': catalyst_baseline_reason, 'catalyst_score_floor_applied': bool(catalyst_score == 2), 'catalyst_score_components': {'p_success': round(float(p_success), 4), 'sentiment_score': round(float(sentiment), 4), 'keyword_boost': round(float(keyword_boost), 4)}},
             'liquidity': liquidity_meta,
             'daily_chart_alignment': daily_meta,
             'sector_sympathy': sector_meta,
@@ -1887,6 +1977,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         'momentum_breakout': len(momentum_symbols),
     }
     symbols = list(dict.fromkeys(orb_symbols + momentum_symbols))
+    candidate_source_map = {sym: 'orb_primary' for sym in orb_symbols}
+    for sym in momentum_symbols:
+        candidate_source_map[sym] = 'momentum_breakout'
     candidate_count_raw = len(orb_symbols + momentum_symbols)
     candidate_count_after_dedupe = len(symbols)
     fallback_used = False
@@ -1898,6 +1991,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         fallback_used = True
         fallback_reason = 'CANDIDATE_UNIVERSE_TOO_SMALL'
         symbols = list(dict.fromkeys(symbols + fallback_candidates))
+        for sym in fallback_candidates:
+            candidate_source_map.setdefault(sym, 'fallback_market_candidates')
     if not symbols:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
@@ -2072,7 +2167,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             continue
         daily_bars = daily_bars_map.get(symbol, [])
         minute_bars = minute_bars_map.get(symbol, [])
-        snapshot = snapshots.get(symbol, {})
+        snapshot = dict(snapshots.get(symbol, {}) or {})
+        snapshot['_candidate_source'] = candidate_source_map.get(symbol, 'unknown')
         quote = quotes.get(symbol, {})
         ask = safe_num(quote.get('ap'))
         minute_close = safe_num(snapshot.get('minuteBar', {}).get('c'))
@@ -2166,7 +2262,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         actual_pmdv = d.get('premarket_dollar_volume')
         required_pmdv = d.get('required_premarket_dollar_volume')
         gap = (actual_pmdv - required_pmdv) if isinstance(actual_pmdv, (int, float)) and isinstance(required_pmdv, (int, float)) else None
-        top_5.append({'symbol': r.get('symbol'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'skip_reason_codes': d.get('skip_reason_codes') or []})
+        top_5.append({'symbol': r.get('symbol'), 'source': r.get('source', 'unknown'), 'decision': r.get('decision'), 'setup_grade': r.get('setup_grade'), 'score_total': r.get('score_total'), 'liquidity_score': (r.get('scores') or {}).get('liquidity'), 'liquidity_score_reason': (d.get('liquidity') or {}).get('liquidity_score_reason'), 'liquidity_failure_codes': (d.get('liquidity') or {}).get('liquidity_failure_codes') or [], 'catalyst_score': (r.get('scores') or {}).get('catalyst'), 'catalyst_source': (d.get('catalyst') or {}).get('catalyst_source', 'unknown'), 'catalyst_strength_reason': (d.get('catalyst') or {}).get('catalyst_strength_reason'), 'open_relative_strength': (d.get('open_relative_strength') or {}).get('edge'), 'spread_pct': d.get('spread_pct'), 'actual_premarket_dollar_volume': actual_pmdv, 'required_premarket_dollar_volume': required_pmdv, 'premarket_dollar_volume_gap': gap, 'premarket_dollar_volume_passed': bool(actual_pmdv is not None and required_pmdv is not None and actual_pmdv >= required_pmdv), 'vwap_trend_aligned': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_aligned'), 'vwap_trend_reason': (d.get('vwap_hold_reclaim') or {}).get('vwap_trend_reason'), 'price_vs_vwap_pct': (d.get('vwap_hold_reclaim') or {}).get('price_vs_vwap_pct'), 'skip_reason_codes': d.get('skip_reason_codes') or []})
     premarket_unavailable_symbols = [r.get('symbol') for r in ranked if (r.get('details') or {}).get('premarket_data_available') is False]
     premarket_too_light_symbols = [r.get('symbol') for r in ranked if 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT' in ((r.get('details') or {}).get('skip_reason_codes') or [])]
     premarket_passed_count = len([r for r in ranked if bool((r.get('details') or {}).get('premarket_dollar_volume_passed'))])
@@ -2207,6 +2303,33 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'latest_premarket_data_unavailable_count': len(premarket_unavailable_symbols),
             'latest_premarket_volume_unavailable_symbols': premarket_unavailable_symbols[:20],
             'latest_premarket_volume_too_light_symbols': premarket_too_light_symbols[:20],
+            'latest_catalyst_score_summary': {
+                'symbols_checked': len(ranked),
+                'average_catalyst_score': round(sum(float((r.get('scores') or {}).get('catalyst', 0) or 0) for r in ranked) / max(1, len(ranked)), 3),
+                'score_counts': {str(i): len([r for r in ranked if int((r.get('scores') or {}).get('catalyst', 0) or 0) == i]) for i in range(1, 6)},
+                'source_counts': {str((r.get('details') or {}).get('catalyst', {}).get('catalyst_source', 'unknown')): len([x for x in ranked if (x.get('details') or {}).get('catalyst', {}).get('catalyst_source', 'unknown') == (r.get('details') or {}).get('catalyst', {}).get('catalyst_source', 'unknown')]) for r in ranked[:5]},
+                'missing_reason_counts': {str((r.get('details') or {}).get('catalyst', {}).get('catalyst_missing_reason', 'UNKNOWN')): len([x for x in ranked if (x.get('details') or {}).get('catalyst', {}).get('catalyst_missing_reason', 'UNKNOWN') == (r.get('details') or {}).get('catalyst', {}).get('catalyst_missing_reason', 'UNKNOWN')]) for r in ranked[:5]},
+                'confidence_counts': {str((r.get('details') or {}).get('catalyst', {}).get('catalyst_confidence', 'unavailable')): len([x for x in ranked if (x.get('details') or {}).get('catalyst', {}).get('catalyst_confidence', 'unavailable') == (r.get('details') or {}).get('catalyst', {}).get('catalyst_confidence', 'unavailable')]) for r in ranked[:5]},
+            },
+            'latest_weak_catalyst_symbols': [r.get('symbol') for r in ranked if int((r.get('scores') or {}).get('catalyst', 0) or 0) <= 2][:20],
+            'latest_vwap_alignment_summary': {
+                'aligned_count': len([r for r in ranked if bool((r.get('details') or {}).get('vwap_hold_reclaim', {}).get('vwap_trend_aligned'))]),
+                'not_aligned_count': len([r for r in ranked if not bool((r.get('details') or {}).get('vwap_hold_reclaim', {}).get('vwap_trend_aligned'))]),
+                'common_reasons': [((r.get('details') or {}).get('vwap_hold_reclaim', {}).get('vwap_trend_reason') or 'unknown') for r in ranked[:5]],
+            },
+            'latest_liquidity_failure_summary': {
+                'low_liquidity_count': len([r for r in ranked if int((r.get('scores') or {}).get('liquidity', 0) or 0) <= 2]),
+                'wide_spread_count': len([r for r in ranked if 'WIDE_SPREAD' in ((r.get('details') or {}).get('liquidity', {}).get('liquidity_failure_codes') or [])]),
+                'low_premarket_dollar_volume_count': len([r for r in ranked if 'PREMARKET_DOLLAR_VOLUME_TOO_LIGHT' in ((r.get('details') or {}).get('liquidity', {}).get('liquidity_failure_codes') or [])]),
+                'unavailable_premarket_volume_count': len([r for r in ranked if 'PREMARKET_VOLUME_UNAVAILABLE' in ((r.get('details') or {}).get('liquidity', {}).get('liquidity_failure_codes') or [])]),
+            },
+            'latest_candidate_quality_summary': {
+                'analyzed_count': len(ranked),
+                'executable_count': len(executable_candidates),
+                'watch_count': len(watch_candidates),
+                'skip_count': len(skip_candidates),
+                'primary_quality_blockers': sorted([(code, len([r for r in ranked if code in ((r.get('details') or {}).get('skip_reason_codes') or [])])) for code in {c for rr in ranked for c in ((rr.get('details') or {}).get('skip_reason_codes') or [])}], key=lambda x: x[1], reverse=True)[:10],
+            },
             'latest_premarket_volume_summary': {
                 'symbols_checked': len(ranked),
                 'available_count': len(ranked) - len(premarket_unavailable_symbols),
@@ -2224,7 +2347,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'best_pick_selection_reason': best_pick_selection_reason,
             'scanner_starvation_flags': starvation_flags,
             'source_candidate_counts': source_candidate_counts,
-            'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20]},
+            'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20], 'orb_primary': orb_symbols[:20], 'momentum_breakout': momentum_symbols[:20]},
+            'top_candidates_by_source': {src: [x.get('symbol') for x in ranked if x.get('source', 'unknown') == src][:5] for src in sorted(set([x.get('source', 'unknown') for x in ranked]))},
+            'rejected_candidate_source_counts': {src: len([r for r in rejection_events if r.get('source') == src]) for src in sorted(set([r.get('source','unknown') for r in rejection_events]))},
+            'final_analyzed_symbols_with_source': [{'symbol': x.get('symbol'), 'source': x.get('source', 'unknown')} for x in ranked],
+            'best_pick_source': best.get('source', 'unknown'),
             'candidate_rejection_counts': {k: len([r for r in rejection_events if r.get('stage') == k]) for k in {r.get('stage') for r in rejection_events}},
             'candidate_rejection_samples': rejection_events[:20],
             'gatekeeper_rejection_counts': {},

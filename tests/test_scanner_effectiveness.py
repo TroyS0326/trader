@@ -353,3 +353,41 @@ def test_analyze_symbol_persists_or_diagnostics_in_details_source():
     assert "'opening_range_bar_count': or_stats.get('opening_range_bar_count')" in src
     assert "'latest_bar_timestamp_et': or_stats.get('latest_bar_timestamp_et')" in src
     assert "'breakout_confirmed_reason': or_stats.get('breakout_confirmed_reason')" in src
+
+def test_scanner_effectiveness_exposes_new_quality_summaries(monkeypatch):
+    row = {"id": 99, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({
+        "user_id": 9, "scan_attribution_version": 1,
+        "scan_diagnostics": {
+            "latest_catalyst_score_summary": {"symbols_checked": 2, "average_catalyst_score": 2.0},
+            "latest_vwap_alignment_summary": {"aligned_count": 0, "not_aligned_count": 2},
+            "latest_liquidity_failure_summary": {"low_liquidity_count": 2, "wide_spread_count": 1},
+            "latest_candidate_quality_summary": {"analyzed_count": 2, "skip_count": 2},
+        },
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP"}
+    })}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_catalyst_score_summary"]["symbols_checked"] == 2
+    assert report["latest_vwap_alignment_summary"]["not_aligned_count"] == 2
+    assert report["latest_liquidity_failure_summary"]["low_liquidity_count"] == 2
+
+
+def test_scanner_top5_and_catalyst_diag_fields_present_in_source():
+    import inspect
+    src = inspect.getsource(scanner.run_scan)
+    assert "'catalyst_source'" in src
+    assert "'catalyst_strength_reason'" in src
+    assert "'vwap_trend_aligned'" in src
+    assert "'vwap_trend_reason'" in src
+    assert "'liquidity_score_reason'" in src
+    assert "'liquidity_failure_codes'" in src
+
+
+def test_catalyst_score_baseline_reason_and_no_news_diagnostics_in_source():
+    import inspect
+    src = inspect.getsource(scanner.analyze_symbol)
+    assert "catalyst_score_baseline_reason" in src
+    assert "catalyst_missing_reason" in src
