@@ -737,10 +737,26 @@ XeanVI is software for trading workflow automation, scanning, execution assistan
 - Automatic execution is disabled unless `CENTRAL_SCANNER_EXECUTION_ENABLED=1`.
 - Live execution also requires `CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED=1`.
 
+### Required production services
+
+All of these must be running for automated execution to work end-to-end:
+
+1. Web app (`app.py` via Gunicorn/systemd)
+2. Redis broker/backend
+3. Celery worker (`tasks.execute_user_trade_task` consumer)
+4. Central scanner service (`scanner_service.py` scheduler)
+5. Execution/fill listener (`execution.py`) for post-fill management + kill switch
+
+If `CENTRAL_SCANNER_EXECUTION_ENABLED` is not `1`, the scanner will still run but **no buy tasks are dispatched**.
+If trading mode is LIVE, `CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED` must also be `1`.
+
 ### Run in production
 
 ```bash
 python scanner_service.py
+python scanner_service.py --diagnose
+celery -A tasks.celery_app worker --loglevel=INFO
+python execution.py
 ```
 
 ### Example systemd unit

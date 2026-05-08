@@ -2999,6 +2999,52 @@ def alpaca_logout():
 
 
 
+
+@app.route('/api/execution-readiness')
+@login_required
+def api_execution_readiness():
+    from execution_diagnostics import evaluate_execution_readiness, decision_allowlist, env_bool, onboarding_complete
+
+    latest_payload = None
+    no_recent_scan = False
+    try:
+        raw = redis_client.get(f'latest_scan:{current_user.id}')
+        if raw:
+            latest_payload = json.loads(raw)
+    except Exception:
+        latest_payload = None
+
+    if latest_payload is None:
+        scans = get_recent_scans() or []
+        for scan in scans:
+            if int(scan.get('user_id') or 0) == int(current_user.id):
+                latest_payload = scan
+                break
+
+    if latest_payload is None:
+        no_recent_scan = True
+        latest_payload = {}
+
+    diag = evaluate_execution_readiness(current_user, latest_payload)
+    if no_recent_scan:
+        diag['blocked_reasons'].append({'code': 'NO_RECENT_SCAN', 'message': 'No recent scan found for current user.'})
+
+    payload = {
+        'execution_enabled': env_bool('CENTRAL_SCANNER_EXECUTION_ENABLED', False),
+        'live_execution_enabled': env_bool('CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED', False),
+        'user_is_pro': str(getattr(current_user, 'subscription_status', 'free')).lower() == 'pro',
+        'trading_mode': getattr(current_user, 'trading_mode', 'paper'),
+        'has_paper_token': bool(getattr(current_user, 'alpaca_paper_access_token', None)),
+        'has_live_token': bool(getattr(current_user, 'alpaca_live_access_token', None)),
+        'has_active_alpaca_token': bool(getattr(current_user, 'alpaca_access_token', None)),
+        'onboarding_complete': onboarding_complete(current_user),
+        'buy_window_open': diag.get('buy_window_open'),
+        'decision_allowlist': sorted(decision_allowlist()),
+        'latest_scan_evaluation': diag,
+    }
+    return ok(payload)
+
+
 @app.route('/api/runtime-health')
 def api_runtime_health():
     websocket_upgrade_header = (request.headers.get('Upgrade') or '').lower()
