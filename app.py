@@ -3086,6 +3086,12 @@ def api_scanner_effectiveness():
     return ok(report)
 
 
+@app.route('/api/scanner/effectiveness')
+@login_required
+def api_scanner_effectiveness_v2():
+    return api_scanner_effectiveness()
+
+
 @app.route('/api/runtime-health')
 def api_runtime_health():
     websocket_upgrade_header = (request.headers.get('Upgrade') or '').lower()
