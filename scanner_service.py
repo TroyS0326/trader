@@ -166,6 +166,11 @@ def run_central_scan_cycle(cycle_name: str) -> None:
                     logger.warning("Scan returned non-dict. user_id=%s", user.id)
                     continue
 
+                result["user_id"] = user.id
+                result["report_user_id"] = user.id
+                result["trading_mode"] = getattr(user, "trading_mode", "paper")
+                result["subscription_status"] = getattr(user, "subscription_status", "free")
+
                 scan_id = insert_scan(result)
                 result["scan_id"] = scan_id
                 approve_scan_for_user(redis_client, user, result)

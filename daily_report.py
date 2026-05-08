@@ -77,6 +77,8 @@ def generate_daily_report(user: User, report_date: date):
     for s in all_scans:
         payload = _parse_json(s.payload_json)
         payload_user_id = payload.get('user_id')
+        if payload_user_id is None:
+            payload_user_id = payload.get('report_user_id')
         if payload_user_id is None and isinstance(payload.get('user'), dict):
             payload_user_id = payload.get('user', {}).get('id')
         if str(payload_user_id) != str(user.id):
@@ -218,6 +220,7 @@ def run_daily_reports(report_date: date, send: bool, user_id=None, send_all=Fals
     if not user_id and not send_all and not (config.DAILY_REPORT_SEND_TO_PRO_USERS or config.DAILY_REPORT_SEND_TO_FREE_USERS):
         logger.info('daily_report summary users_considered=0 reason=no_user_types_enabled')
     for user in users:
+        existing = None
         try:
             out['attempted'] += 1
             existing = DailyReportEmailLog.query.filter_by(user_id=user.id, report_date=report_date.isoformat()).first()
@@ -237,12 +240,17 @@ def run_daily_reports(report_date: date, send: bool, user_id=None, send_all=Fals
         except Exception as exc:
             result = {'status': 'failed', 'reason': 'report_generation_exception', 'raw': str(exc)[:250]}
 
-        log = existing or DailyReportEmailLog(user_id=user.id, report_date=report_date.isoformat(), email=(config.DAILY_REPORT_TEST_RECIPIENT or user.email), status=result.get('status','skipped'))
-        log.status = result.get('status', 'skipped')
-        log.reason = result.get('reason')
-        log.brevo_message_id = result.get('brevo_message_id')
-        log.raw_json = json.dumps(result)
-        db.session.add(log)
+        result_status = result.get('status', 'skipped')
+        can_update_existing = (not existing) or existing.status != 'sent' or result_status == 'sent'
+        if can_update_existing:
+            log = existing or DailyReportEmailLog(user_id=user.id, report_date=report_date.isoformat(), email=(config.DAILY_REPORT_TEST_RECIPIENT or user.email), status=result_status)
+            log.status = result_status
+            log.reason = result.get('reason')
+            log.brevo_message_id = result.get('brevo_message_id')
+            log.raw_json = json.dumps(result)
+            db.session.add(log)
+        else:
+            log = existing
         if log.status == 'sent':
             out['sent'] += 1
         elif log.status in {'failed'}:
