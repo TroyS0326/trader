@@ -53,6 +53,8 @@ ALPACA_REDIRECT_URI = require_env('ALPACA_REDIRECT_URI').strip()
 ALPACA_API_KEY = os.getenv('ALPACA_API_KEY', '').strip()
 ALPACA_API_SECRET = os.getenv('ALPACA_API_SECRET', '').strip()
 ALPACA_PAPER_BASE = 'https://paper-api.alpaca.markets'
+ALPACA_TRADING_BASE = os.getenv('ALPACA_TRADING_BASE', ALPACA_PAPER_BASE).strip() or ALPACA_PAPER_BASE
+ALPACA_ASSETS_BASE = os.getenv('ALPACA_ASSETS_BASE', ALPACA_TRADING_BASE).strip() or ALPACA_TRADING_BASE
 ALPACA_DATA_BASE = 'https://data.alpaca.markets'
 ALPACA_DATA_FEED = os.getenv('ALPACA_DATA_FEED', 'iex').strip().lower()
 if ALPACA_DATA_FEED not in {'iex', 'sip'}:

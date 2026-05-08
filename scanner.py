@@ -455,12 +455,74 @@ def get_company_profile(symbol: str) -> Dict[str, Any]:
     except requests.RequestException:
         return {}
 
-def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
+
+def _asset_failure_reason(status_code: int | None, error: Exception | None = None, payload: Any = None) -> str:
+    if error is not None:
+        return 'REQUEST_EXCEPTION'
+    if status_code == 401:
+        return 'HTTP_401'
+    if status_code == 403:
+        return 'HTTP_403'
+    if status_code == 404:
+        return 'HTTP_404'
+    if status_code == 429:
+        return 'HTTP_429'
+    if status_code is not None and status_code >= 500:
+        return 'HTTP_5XX'
+    if payload in ({}, None, ''):
+        return 'EMPTY_RESPONSE'
+    return 'INVALID_RESPONSE'
+
+
+def get_alpaca_asset_with_diagnostics(symbol: str, user: Optional[Any] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    token = None
+    if user is not None:
+        token = getattr(user, 'alpaca_live_access_token', None) or getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_access_token', None)
+    auth_source = 'user_oauth_token' if token else ('server_api_key' if ALPACA_API_KEY and ALPACA_API_SECRET else 'none')
+    endpoint_used = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
+    diag = {
+        'symbol': symbol,
+        'endpoint_used': endpoint_used,
+        'auth_source': auth_source,
+        'status_code': None,
+        'ok': False,
+        'failure_reason': None,
+        'response_text_short': '',
+        'used_fallback': False,
+    }
+    headers = {'accept': 'application/json'}
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    elif ALPACA_API_KEY and ALPACA_API_SECRET:
+        headers.update(_alpaca_headers())
+    else:
+        diag['failure_reason'] = 'REQUEST_EXCEPTION'
+        return {}, diag
     try:
-        payload = _get_json(f'{config.ALPACA_PAPER_BASE}/v2/assets/{symbol}', headers=_alpaca_headers())
-        return payload if isinstance(payload, dict) else {}
-    except requests.RequestException:
-        return {}
+        resp = requests.get(endpoint_used, headers=headers, timeout=TIMEOUT)
+        diag['status_code'] = resp.status_code
+        diag['response_text_short'] = (resp.text or '')[:180]
+        if resp.status_code >= 400:
+            diag['failure_reason'] = _asset_failure_reason(resp.status_code)
+            return {}, diag
+        payload = resp.json()
+        if not isinstance(payload, dict) or not payload:
+            diag['failure_reason'] = _asset_failure_reason(resp.status_code, payload=payload)
+            return {}, diag
+        diag['ok'] = True
+        return payload, diag
+    except requests.RequestException as exc:
+        diag['failure_reason'] = _asset_failure_reason(None, error=exc)
+        diag['response_text_short'] = str(exc)[:180]
+        return {}, diag
+    except ValueError:
+        diag['failure_reason'] = 'INVALID_RESPONSE'
+        return {}, diag
+
+
+def get_alpaca_asset(symbol: str) -> Dict[str, Any]:
+    payload, _ = get_alpaca_asset_with_diagnostics(symbol)
+    return payload
 
 
 def extract_float_shares(profile: Dict[str, Any], asset: Dict[str, Any]) -> float:
@@ -1766,13 +1828,33 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     filtered_symbols = []
     asset_metadata_failure_count = 0
     asset_metadata_success_count = 0
-    asset_metadata_endpoint_used = f'{config.ALPACA_PAPER_BASE}/v2/assets/{{symbol}}'
+    asset_metadata_endpoint_used = f'{config.ALPACA_ASSETS_BASE}/v2/assets/{{symbol}}'
+    asset_metadata_failure_reason_counts: Dict[str, int] = {}
+    asset_metadata_failure_samples: List[Dict[str, Any]] = []
+    asset_metadata_all_failed = False
+    auth_or_config_failures = {'HTTP_401', 'HTTP_403', 'HTTP_429', 'HTTP_5XX', 'REQUEST_EXCEPTION'}
+    asset_metadata_global_failure = False
+    asset_metadata_degraded_mode = False
+    asset_lookup: Dict[str, Dict[str, Any]] = {}
     for symbol in symbols:
-        asset = get_alpaca_asset(symbol)
+        asset, asset_diag = get_alpaca_asset_with_diagnostics(symbol, user=user)
+        asset_lookup[symbol] = asset
+        asset_metadata_endpoint_used = asset_diag.get('endpoint_used') or asset_metadata_endpoint_used
         if asset:
             asset_metadata_success_count += 1
         else:
             asset_metadata_failure_count += 1
+            reason = asset_diag.get('failure_reason') or 'INVALID_RESPONSE'
+            asset_metadata_failure_reason_counts[reason] = asset_metadata_failure_reason_counts.get(reason, 0) + 1
+            if len(asset_metadata_failure_samples) < 20:
+                asset_metadata_failure_samples.append(asset_diag)
+    asset_metadata_all_failed = candidate_count_before_asset_filter > 0 and asset_metadata_success_count == 0
+    asset_metadata_global_failure = asset_metadata_all_failed and bool(asset_metadata_failure_reason_counts) and all(
+        key in auth_or_config_failures for key in asset_metadata_failure_reason_counts.keys()
+    )
+    asset_metadata_degraded_mode = asset_metadata_global_failure
+    for symbol in symbols:
+        asset = asset_lookup.get(symbol, {})
         profile = get_company_profile(symbol)
         classification = classify_asset(
             symbol, asset, profile,
@@ -1793,7 +1875,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         }
         asset_metadata_by_symbol[symbol] = meta
         reason = None
-        if not asset:
+        if not asset and not asset_metadata_degraded_mode:
             reason = 'MISSING_ASSET_METADATA'
         elif not asset.get('tradable'):
             reason = 'NOT_TRADABLE'
@@ -1817,24 +1899,6 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         k: len([r for r in asset_filter_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_filter_rejections}
     }
     asset_filter_removed_symbols = [r.get('symbol') for r in asset_filter_rejections]
-    asset_metadata_all_failed = candidate_count_before_asset_filter > 0 and asset_metadata_success_count == 0
-    if asset_metadata_all_failed:
-        logger.error(
-            "Asset metadata lookup failed for all candidates before snapshots.",
-            extra={
-                'candidate_count_before_asset_filter': candidate_count_before_asset_filter,
-                'candidate_count_after_asset_filter': candidate_count_after_asset_filter,
-                'asset_filter_rejection_counts': asset_filter_rejection_counts,
-                'asset_filter_rejection_samples': asset_filter_rejections[:20],
-                'asset_filter_removed_symbols': asset_filter_removed_symbols[:100],
-                'asset_filter_empty_reason': 'ASSET_METADATA_LOOKUP_FAILED_FOR_ALL_CANDIDATES',
-                'asset_metadata_failure_count': asset_metadata_failure_count,
-                'asset_metadata_success_count': asset_metadata_success_count,
-                'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
-                'asset_metadata_all_failed': asset_metadata_all_failed,
-            },
-        )
-        raise ScanError("Asset metadata lookup failed for all candidates; check Alpaca trading assets endpoint/config.")
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
         logger.error(
             "No symbols remained after asset quality filtering.",
@@ -1849,6 +1913,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
                 'asset_metadata_success_count': asset_metadata_success_count,
                 'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
                 'asset_metadata_all_failed': asset_metadata_all_failed,
+            'asset_metadata_requested_count': candidate_count_before_asset_filter,
+            'asset_metadata_global_failure': asset_metadata_global_failure,
+            'asset_metadata_degraded_mode': asset_metadata_degraded_mode,
+            'asset_metadata_failure_reason_counts': asset_metadata_failure_reason_counts,
+            'asset_metadata_failure_samples': asset_metadata_failure_samples,
             },
         )
         raise ScanError("No symbols remained after asset quality filtering.")
@@ -1972,6 +2041,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     skip_candidates = [r for r in ranked if r.get('decision') == 'SKIP']
     best_pick_selection_reason = 'HIGHEST_RANKED_CANDIDATE'
     starvation_flags = []
+    if asset_metadata_degraded_mode:
+        starvation_flags.append('ASSET_METADATA_DEGRADED_MODE')
     if executable_candidates and best.get('decision') == 'SKIP':
         starvation_flags.append('BEST_PICK_IGNORED_EXECUTABLE_CANDIDATE')
         best_pick_selection_reason = 'POTENTIAL_RANKING_BUG_SKIP_OVER_EXECUTABLE'
@@ -2064,6 +2135,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'asset_metadata_success_count': asset_metadata_success_count,
             'asset_metadata_endpoint_used': asset_metadata_endpoint_used,
             'asset_metadata_all_failed': asset_metadata_all_failed,
+            'asset_metadata_requested_count': candidate_count_before_asset_filter,
+            'asset_metadata_global_failure': asset_metadata_global_failure,
+            'asset_metadata_degraded_mode': asset_metadata_degraded_mode,
+            'asset_metadata_failure_reason_counts': asset_metadata_failure_reason_counts,
+            'asset_metadata_failure_samples': asset_metadata_failure_samples,
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,
@@ -2084,6 +2160,17 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         },
     }
 
+
+
+
+def debug_asset_metadata_lookup(symbols: List[str], user: Optional[Any] = None) -> List[Dict[str, Any]]:
+    rows = []
+    for symbol in symbols:
+        _, diag = get_alpaca_asset_with_diagnostics(symbol, user=user)
+        row = {k: diag.get(k) for k in ('symbol', 'endpoint_used', 'auth_source', 'ok', 'status_code', 'failure_reason', 'response_text_short')}
+        rows.append(row)
+        logger.info("asset_lookup symbol=%s endpoint=%s auth=%s ok=%s status=%s reason=%s response=%s", row['symbol'], row['endpoint_used'], row['auth_source'], row['ok'], row['status_code'], row['failure_reason'], row['response_text_short'])
+    return rows
 
 def get_momentum_breakout_universe(limit: Optional[int] = None, user: Optional[Any] = None) -> Tuple[List[str], List[Dict[str, Any]]]:
     limit = limit or MOMENTUM_SCAN_CANDIDATE_LIMIT
