@@ -296,6 +296,25 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     legacy_unattributed_scans = [scan for scan in unattributed_scans if _is_legacy_unattributed_scan(scan)]
     ignored_unattributed_scans = [scan for scan in unattributed_scans if _is_legacy_unattributed_scan(scan) or latest_enriched_scan_user or latest_enriched_scan_any_user]
     latest_enriched_scan = latest_enriched_scan_user or latest_enriched_scan_any_user
+
+    operational_scans: list[dict] = []
+    for scan in all_scans:
+        if _is_legacy_unattributed_scan(scan):
+            continue
+        uid = int(scan.get("user_id") or 0)
+        attr_v = int(scan.get("scan_attribution_version") or 0)
+        if user is not None and uid == int(user.id) and attr_v >= 1:
+            operational_scans.append(scan)
+        elif user is None and uid > 0 and attr_v >= 1:
+            operational_scans.append(scan)
+        elif scan.get("_source") == "redis_latest" and uid > 0 and attr_v >= 1:
+            operational_scans.append(scan)
+
+    current_report_uses_unattributed_scan = False
+    if not operational_scans and unattributed_scans:
+        operational_scans = [scan for scan in unattributed_scans if not _is_legacy_unattributed_scan(scan)] or list(unattributed_scans)
+        current_report_uses_unattributed_scan = True
+
     if latest_enriched_scan_user:
         latest_scan = latest_enriched_scan_user
         current_report_scan_scope = "attributed_user"
@@ -305,6 +324,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     elif latest_redis_user_scan:
         latest_scan = latest_redis_user_scan
         current_report_scan_scope = "redis_latest"
+    elif operational_scans:
+        latest_scan = operational_scans[0]
+        current_report_scan_scope = "attributed_user" if user is not None else "attributed_any_user"
     elif unattributed_scans:
         latest_scan = unattributed_scans[0]
         current_report_scan_scope = "legacy_unattributed_fallback"
@@ -342,7 +364,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     attributed_scan_count = 0
     unattributed_scan_count = 0
 
-    for scan in all_scans:
+    for scan in operational_scans:
         uid = int(scan.get("user_id") or 0)
         source_counts[str(scan.get("_source") or "unknown")] += 1
         if uid:
@@ -438,9 +460,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
                 failures.append(safe_view)
 
     latest_age = None
-    if all_scans:
+    if operational_scans:
         dts = []
-        for payload in all_scans:
+        for payload in operational_scans:
             dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
             if dt:
                 dts.append(dt)
@@ -457,10 +479,10 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     latest_dominant_symbol_skip_reason_codes: list[str] = []
     if symbol_counts:
         dominant_symbol, same_symbol_count = symbol_counts.most_common(1)[0]
-        if all_scans:
-            dominant_symbol_pct = round((same_symbol_count / len(all_scans)) * 100, 2)
+        if operational_scans:
+            dominant_symbol_pct = round((same_symbol_count / len(operational_scans)) * 100, 2)
         repeated_best_pick_warning = dominant_symbol_pct > 80.0
-        for scan in all_scans:
+        for scan in operational_scans:
             safe = _safe_scan_view(scan)
             if safe.get("symbol") == dominant_symbol:
                 if safe.get("decision"):
@@ -479,7 +501,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     latest_attr_age = None
     latest_unattr_age = None
     now_utc = datetime.now(timezone.utc)
-    for payload in all_scans:
+    for payload in operational_scans:
         dt = _parse_dt(payload.get("created_at") or payload.get("timestamp"))
         if not dt:
             continue
@@ -491,10 +513,10 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
 
     latest_diag = latest_scan.get("scan_diagnostics") if isinstance(latest_scan.get("scan_diagnostics"), dict) else {}
     latest_attr_version = latest_scan.get("scan_attribution_version")
-    attr_version_counts: Counter = Counter(str(scan.get("scan_attribution_version")) for scan in all_scans)
+    attr_version_counts: Counter = Counter(str(scan.get("scan_attribution_version")) for scan in operational_scans)
     has_new_diag = False
     missing_diag_reason = "NO_SCANS"
-    if all_scans:
+    if operational_scans:
         if latest_attr_version is None:
             missing_diag_reason = "SCAN_ATTRIBUTION_VERSION_MISSING"
         elif int(latest_attr_version) < 1:
@@ -508,7 +530,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
     starvation_flags = []
     if repeated_best_pick_warning:
         starvation_flags.append("DOMINANT_SYMBOL_STUCK")
-    if executable_payload_ready_count == 0:
+    if executable_payload_ready_count == 0 and operational_scans:
         starvation_flags.append("NO_EXECUTABLE_CANDIDATES")
     if unattributed_scan_count > 0 and (latest_unattr_age is not None and latest_unattr_age < 7200):
         starvation_flags.append("UNATTRIBUTED_RECENT_SCANS")
@@ -593,7 +615,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         recommended_next_action = "Fix candidate source propagation before tuning strategy."
 
     return {
-        "total_scans_analyzed": len(all_scans),
+        "total_scans_loaded_count": len(all_scans),
+        "total_scans_analyzed": len(operational_scans),
+        "operational_scans_analyzed": len(operational_scans),
         "scans_by_user_count": dict(scans_by_user_count),
         "source_counts": dict(source_counts),
         "latest_scan_age_seconds": latest_age,
@@ -626,7 +650,9 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_unattributed_scan_age_seconds": latest_unattr_age,
         "legacy_unattributed_scan_count": len(legacy_unattributed_scans),
         "ignored_unattributed_scan_count": len(ignored_unattributed_scans),
-        "current_report_uses_unattributed_scan": current_report_scan_scope == "legacy_unattributed_fallback",
+        "ignored_unattributed_symbols_sample": sorted({str((scan.get("best_pick") or {}).get("symbol") or "").upper() for scan in ignored_unattributed_scans if isinstance(scan, dict)})[:10],
+        "legacy_unattributed_symbols_sample": sorted({str((scan.get("best_pick") or {}).get("symbol") or "").upper() for scan in legacy_unattributed_scans if isinstance(scan, dict)})[:10],
+        "current_report_uses_unattributed_scan": current_report_uses_unattributed_scan,
         "current_report_scan_scope": current_report_scan_scope,
         "attribution_warning": bool(unattributed_scan_count > 0 and latest_unattr_age is not None and latest_unattr_age < 7200),
         "dominant_symbol_warning": repeated_best_pick_warning,
@@ -724,7 +750,7 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "best_active_watch_missing_confirmations": watch_snapshot.get("best_active_watch_missing_confirmations", []),
         "sample_recent_failures": failures,
         "primary_blocker_summary": primary_blocker_summary,
-        "recommended_next_action": ("Active WATCH candidate exists; continue rechecking until missing confirmations clear. Persist a fresh attributed scan to refresh scan diagnostics." if watch_snapshot.get("active_watch_candidate_count",0) > 0 else recommended_next_action),
+        "recommended_next_action": ("Active WATCH candidate exists; continue rechecking until missing confirmations clear." if watch_snapshot.get("active_watch_candidate_count",0) > 0 and executable_payload_ready_count == 0 else recommended_next_action),
         "scanner_starvation_flags": starvation_flags,
         "sample_recent_executable_payloads": executable_samples,
     }

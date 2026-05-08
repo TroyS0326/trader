@@ -500,3 +500,46 @@ def test_scanner_and_effectiveness_import_together_without_cycle():
     importlib.reload(scanner_module)
     importlib.reload(scanner_eff_module)
     assert hasattr(scanner_module, 'normalize_skip_reason_code')
+
+def test_operational_excludes_legacy_unattributed_from_aggregates(monkeypatch):
+    rows = [
+        {"id": 1, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "scan_diagnostics": {"candidate_count_raw": 1}, "best_pick": {"symbol": "RXT", "decision": "WATCH"}})},
+        {"id": 2, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 0, "scan_attribution_version": 0, "legacy_flags": {"unattributed_scan_legacy": True}, "best_pick": {"symbol": "AEHL", "decision": "SKIP"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["total_scans_loaded_count"] == 2
+    assert report["total_scans_analyzed"] == 1
+    assert report["decision_counts"] == {"WATCH": 1}
+    assert report["symbol_counts"] == {"RXT": 1}
+    assert report["legacy_unattributed_scan_count"] == 1
+    assert report["ignored_unattributed_scan_count"] >= 1
+    assert report["current_report_scan_scope"] == "attributed_any_user"
+
+
+def test_legacy_fallback_scope_when_no_attributed(monkeypatch):
+    rows = [
+        {"id": 2, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 0, "scan_attribution_version": 0, "best_pick": {"symbol": "AEHL", "decision": "SKIP"}})},
+    ]
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: rows)
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["current_report_scan_scope"] == "legacy_unattributed_fallback"
+    assert report["current_report_uses_unattributed_scan"] is True
+    assert report["total_scans_analyzed"] == 1
+
+
+def test_recommended_action_active_watch_no_executable(monkeypatch):
+    row = {"id": 60, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 9, "scan_attribution_version": 1, "scan_diagnostics": {"candidate_count_raw": 1}, "best_pick": {"symbol": "RXT", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 1, "latest_watch_candidates": []})
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["recommended_next_action"] == "Active WATCH candidate exists; continue rechecking until missing confirmations clear."
