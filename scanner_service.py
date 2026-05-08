@@ -77,6 +77,28 @@ def run_shared_market_scan() -> Dict[str, Any]:
     return result
 
 
+
+
+def _pick_is_allowed_for_user(user: Any, pick: Dict[str, Any]) -> bool:
+    symbol = str((pick or {}).get("symbol") or "").upper().strip()
+    if not symbol:
+        return False
+
+    if bool(getattr(user, "exclude_penny_stocks", True)):
+        price = pick.get("entry_price", pick.get("current_price", pick.get("price", 0)))
+        try:
+            if float(price) > 0 and float(price) < 5.0:
+                return False
+        except (TypeError, ValueError):
+            pass
+
+    if bool(getattr(user, "exclude_biotech", False)):
+        industry = str(pick.get("industry") or pick.get("sector") or "").lower()
+        if any(k in industry for k in ("biotech", "biotechnology", "pharmaceutical")):
+            return False
+
+    return True
+
 def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[str, Any]:
     """Build a user-specific scan payload from a shared market scan result."""
     result = dict(shared_scan or {})
@@ -86,6 +108,15 @@ def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[st
     result["subscription_status"] = getattr(user, "subscription_status", "free")
     result["scan_source"] = "central_scanner"
     result["scan_attribution_version"] = 1
+
+    # Preserve user-level exclusion safety without re-running the expensive market scan.
+    watchlist = [item for item in (result.get("watchlist") or []) if isinstance(item, dict) and _pick_is_allowed_for_user(user, item)]
+    result["watchlist"] = watchlist
+
+    best_pick = result.get("best_pick") or {}
+    if not isinstance(best_pick, dict) or not _pick_is_allowed_for_user(user, best_pick):
+        result["best_pick"] = watchlist[0] if watchlist else {}
+
     return result
 
 
@@ -159,6 +190,9 @@ def run_central_scan_cycle(cycle_name: str) -> None:
         logger.info("Eligible users loaded count=%s", len(users))
 
         shared_scan = run_shared_market_scan()
+        if not isinstance(shared_scan, dict):
+            logger.warning("Shared scan returned invalid payload type=%s; skipping cycle before fan-out", type(shared_scan).__name__)
+            return
         fan_out_scan_to_users(shared_scan, users)
 
 
