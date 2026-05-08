@@ -116,3 +116,16 @@ def test_paper_and_live_readiness_split(monkeypatch):
     d = evaluate_execution_readiness(_user(trading_mode='paper', onboarding_completed=False, alpaca_live_access_token=None, alpaca_live_account_id=None), _payload())
     assert d['paper_execution_ready'] is True
     assert d['live_execution_ready'] is False
+
+
+def test_setup_and_onboarding_readiness_independent_from_execution_gates(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '0')
+    monkeypatch.setenv('CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED', '0')
+    monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: False)
+    d = evaluate_execution_readiness(_user(trading_mode='paper', onboarding_completed=False, alpaca_live_access_token=None, alpaca_live_account_id=None), _payload(decision='WAIT'))
+    assert d['paper_setup_ready'] is True
+    assert d['paper_execution_ready'] is False
+    assert d['live_onboarding_ready'] is False
+    assert d['live_execution_ready'] is False
+
