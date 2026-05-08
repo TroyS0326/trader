@@ -61,7 +61,6 @@ def _safe_scan_view(scan: Dict[str, Any]) -> Dict[str, Any]:
         if key in scan_diag:
             safe_scan_diag[key] = scan_diag.get(key)
 
-    watch_diag = _watch_snapshot(user=user)
     return {
         "source": scan.get("_source"),
         "db_scan_id": scan.get("db_scan_id"),
