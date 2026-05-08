@@ -18,6 +18,7 @@ from models import User
 from scanner import run_scan
 from daily_report import run_daily_reports
 from execution_diagnostics import evaluate_execution_readiness
+from scan_contract import validate_scan_payload_contract
 import json
 from db import get_recent_scans
 
@@ -112,6 +113,8 @@ def run_central_scan_cycle(cycle_name: str) -> None:
         for user in users:
             try:
                 result = _run_scan_for_user(user)
+                contract_diag = validate_scan_payload_contract(result if isinstance(result, dict) else {})
+                logger.info("Scan contract user_id=%s has_best_pick=%s key=%s executable_ready=%s missing=%s decision=%s qty_valid=%s notes=%s", getattr(user, "id", None), contract_diag.get("has_best_pick"), contract_diag.get("best_pick_key_used"), contract_diag.get("executable_payload_ready"), contract_diag.get("missing_order_fields"), contract_diag.get("decision"), contract_diag.get("qty_valid"), contract_diag.get("payload_shape_notes"))
                 if not isinstance(result, dict):
                     logger.warning("Scan returned non-dict. user_id=%s", user.id)
                     continue
@@ -220,8 +223,9 @@ def diagnose_execution_readiness() -> None:
                 paper_reasons.append("NO_RECENT_SCAN")
                 live_reasons.append("NO_RECENT_SCAN")
                 active_reasons.append("NO_RECENT_SCAN")
+            contract_diag = diag.get("scan_contract") or validate_scan_payload_contract(latest_payload if isinstance(latest_payload, dict) else {})
             logger.info(
-                "Execution readiness user_id=%s active_mode=%s paper_ready=%s live_ready=%s active_ready=%s paper_reason_codes=%s live_reason_codes=%s active_reason_codes=%s symbol=%s decision=%s qty=%s scan_id=%s",
+                "Execution readiness user_id=%s active_mode=%s paper_ready=%s live_ready=%s active_ready=%s paper_reason_codes=%s live_reason_codes=%s active_reason_codes=%s symbol=%s decision=%s qty=%s scan_id=%s contract=%s",
                 user.id,
                 diag.get("active_mode", diag.get("trading_mode")),
                 diag.get("paper_execution_ready"),
@@ -234,6 +238,7 @@ def diagnose_execution_readiness() -> None:
                 diag.get("decision"),
                 diag.get("qty"),
                 latest_payload.get("scan_id"),
+                contract_diag,
             )
 
 

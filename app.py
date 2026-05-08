@@ -44,6 +44,7 @@ from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_as
 from asset_classifier import classify_asset
 from dynamic_orb import get_latest_dynamic_orb_state
 from watchlist import watchlist_manager
+from scan_contract import validate_scan_payload_contract
 from explainability import generate_trade_thesis
 from blog_ai import generate_blog_draft
 from blog_ai_fixes import apply_ai_seo_cleanup
@@ -386,6 +387,7 @@ def password_hash_fingerprint(user: User) -> str:
 def generate_password_reset_token(user: User) -> str:
     serializer = get_password_reset_serializer()
 
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'user_id': user.id,
         'email': user.email,
@@ -471,6 +473,7 @@ def send_password_reset_email(user: User, reset_url: str) -> bool:
     full_name = (user.full_name or '').strip()
     first_name = full_name.split(' ')[0] if full_name else 'there'
 
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'sender': {
             'name': getattr(config, 'BREVO_SENDER_NAME', 'XeanVI Security'),
@@ -537,6 +540,7 @@ def add_signup_user_to_brevo(user):
     full_name = (user.full_name or '').strip()
     first_name = full_name.split(' ')[0] if full_name else ''
 
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'email': user.email,
         'attributes': {
@@ -607,6 +611,7 @@ def update_brevo_contact_attributes(user, attributes: dict) -> bool:
         "api-key": api_key,
     }
 
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         "attributes": safe_attributes,
     }
@@ -2904,6 +2909,7 @@ def alpaca_callback():
 
     # Use the centralized OAuth token endpoint
     token_url = "https://api.alpaca.markets/oauth/token"
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -3043,6 +3049,7 @@ def api_execution_readiness():
         elif diag.get('active_mode') == 'live':
             diag['live_execution_ready'] = False
 
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'active_mode': diag.get('active_mode', getattr(current_user, 'trading_mode', 'paper')),
         'execution_ready': diag.get('execution_ready'),
@@ -3066,6 +3073,7 @@ def api_execution_readiness():
         'buy_window_open': diag.get('buy_window_open'),
         'decision_allowlist': sorted(decision_allowlist()),
         'latest_scan_evaluation': diag,
+        'scan_contract': contract_diag,
     }
     return ok(payload)
 
@@ -3089,6 +3097,8 @@ def api_scan():
         # Sync bankroll before scanning so risk sizing uses current account equity.
         fetch_and_sync_bankroll(current_user)
         result = run_scan(current_user)
+        contract_diag = validate_scan_payload_contract(result if isinstance(result, dict) else {})
+        logger.info('Scan contract user_id=%s has_best_pick=%s key=%s executable_ready=%s missing=%s decision=%s qty_valid=%s notes=%s', current_user.id, contract_diag.get('has_best_pick'), contract_diag.get('best_pick_key_used'), contract_diag.get('executable_payload_ready'), contract_diag.get('missing_order_fields'), contract_diag.get('decision'), contract_diag.get('qty_valid'), contract_diag.get('payload_shape_notes'))
         try:
             result["dynamic_orb_state"] = get_latest_dynamic_orb_state()
         except Exception as exc:
@@ -3248,6 +3258,7 @@ def api_debug_symbol(symbol: str):
     rejected = prev <= 0 or not classification.get('tradable_by_xeanvi', False)
     reason = 'missing_prev_close' if prev <= 0 else classification.get('rejection_reason')
     rejection_reasons = [reason] if reason else list(classification.get('rejection_reasons') or [])
+    contract_diag = diag.get('scan_contract') or validate_scan_payload_contract(latest_payload)
     payload = {
         'symbol': symbol, 'asset_type': classification.get('asset_type'), 'asset_type_reason': classification.get('asset_type_reason'),
         'platform_allowed': classification.get('platform_allowed'), 'user_allowed': classification.get('user_allowed'),

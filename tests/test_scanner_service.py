@@ -159,3 +159,18 @@ def test_execution_readiness_endpoint_no_secrets_and_no_recent_scan(monkeypatch)
         assert 'paper_blocked_reasons' in data
         assert 'live_blocked_reasons' in data
         assert 'active_mode_blocked_reasons' in data
+
+
+def test_diagnose_logs_contract_diagnostics(monkeypatch):
+    logs = []
+    monkeypatch.setattr(scanner_service, "_eligible_users", lambda: [SimpleNamespace(id=1)])
+    monkeypatch.setattr(scanner_service.redis_client, "get", lambda *a, **k: json.dumps({"best_pick": {"symbol": "AAPL", "decision": "WATCH", "qty": 0}}))
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: {"execution_ready": False, "paper_execution_ready": False, "live_execution_ready": False, "blocked_reasons": [], "paper_blocked_reasons": [], "live_blocked_reasons": [], "active_mode_blocked_reasons": [], "symbol": "AAPL", "decision": "WATCH", "qty": 0})
+    monkeypatch.setattr(scanner_service.logger, "info", lambda msg, *args: logs.append((msg, args)))
+
+    class Ctx:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    monkeypatch.setattr(scanner_service.app, "app_context", lambda: Ctx())
+    scanner_service.diagnose_execution_readiness()
+    assert any("contract=" in m for m, _ in logs)
