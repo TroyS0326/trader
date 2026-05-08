@@ -63,6 +63,53 @@ def _run_scan_for_user(user: Any) -> Dict[str, Any]:
     return run_scan()
 
 
+def run_shared_market_scan() -> Dict[str, Any]:
+    """
+    Run the expensive market-wide scanner exactly once per central scan cycle.
+
+    IMPORTANT:
+    Do not call this function inside a per-user loop. User-specific adaptations
+    must happen in personalize_scan_for_user().
+    """
+    logger.info("Shared market scan started")
+    result = _run_scan_for_user(user=None)
+    logger.info("Shared market scan finished")
+    return result
+
+
+def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a user-specific scan payload from a shared market scan result."""
+    result = dict(shared_scan or {})
+    result["user_id"] = user.id
+    result["report_user_id"] = user.id
+    result["trading_mode"] = getattr(user, "trading_mode", "paper")
+    result["subscription_status"] = getattr(user, "subscription_status", "free")
+    result["scan_source"] = "central_scanner"
+    result["scan_attribution_version"] = 1
+    return result
+
+
+def fan_out_scan_to_users(shared_scan: Dict[str, Any], users: Iterable[Any]) -> None:
+    users = list(users)
+    logger.info("Fan-out starting for eligible users count=%s", len(users))
+    for user in users:
+        try:
+            result = personalize_scan_for_user(user, shared_scan)
+            contract_diag = validate_scan_payload_contract(result if isinstance(result, dict) else {})
+            logger.info("Scan contract user_id=%s has_best_pick=%s key=%s executable_ready=%s missing=%s decision=%s qty_valid=%s notes=%s", getattr(user, "id", None), contract_diag.get("has_best_pick"), contract_diag.get("best_pick_key_used"), contract_diag.get("executable_payload_ready"), contract_diag.get("missing_order_fields"), contract_diag.get("decision"), contract_diag.get("qty_valid"), contract_diag.get("payload_shape_notes"))
+            if not isinstance(result, dict):
+                logger.warning("Scan returned non-dict. user_id=%s", user.id)
+                continue
+
+            scan_id = insert_scan(result)
+            result["scan_id"] = scan_id
+            approve_scan_for_user(redis_client, user, result)
+            logger.info("Scan approved for user. user_id=%s scan_id=%s", user.id, scan_id)
+
+            _dispatch_execution_if_allowed(user, result)
+        except Exception:
+            logger.exception("Central scanner cycle user failure. user_id=%s", getattr(user, "id", None))
+
 
 def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> None:
     diag = evaluate_execution_readiness(user, scan_payload)
@@ -111,30 +158,8 @@ def run_central_scan_cycle(cycle_name: str) -> None:
         users = list(_eligible_users())
         logger.info("Eligible users loaded count=%s", len(users))
 
-        for user in users:
-            try:
-                result = _run_scan_for_user(user)
-                contract_diag = validate_scan_payload_contract(result if isinstance(result, dict) else {})
-                logger.info("Scan contract user_id=%s has_best_pick=%s key=%s executable_ready=%s missing=%s decision=%s qty_valid=%s notes=%s", getattr(user, "id", None), contract_diag.get("has_best_pick"), contract_diag.get("best_pick_key_used"), contract_diag.get("executable_payload_ready"), contract_diag.get("missing_order_fields"), contract_diag.get("decision"), contract_diag.get("qty_valid"), contract_diag.get("payload_shape_notes"))
-                if not isinstance(result, dict):
-                    logger.warning("Scan returned non-dict. user_id=%s", user.id)
-                    continue
-
-                result["user_id"] = user.id
-                result["report_user_id"] = user.id
-                result["trading_mode"] = getattr(user, "trading_mode", "paper")
-                result["subscription_status"] = getattr(user, "subscription_status", "free")
-                result["scan_source"] = "central_scanner"
-                result["scan_attribution_version"] = 1
-
-                scan_id = insert_scan(result)
-                result["scan_id"] = scan_id
-                approve_scan_for_user(redis_client, user, result)
-                logger.info("Scan approved for user. user_id=%s scan_id=%s", user.id, scan_id)
-
-                _dispatch_execution_if_allowed(user, result)
-            except Exception:
-                logger.exception("Central scanner cycle user failure. user_id=%s", getattr(user, "id", None))
+        shared_scan = run_shared_market_scan()
+        fan_out_scan_to_users(shared_scan, users)
 
 
 def _handle_shutdown(signum, _frame):

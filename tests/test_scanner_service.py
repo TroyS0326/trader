@@ -174,3 +174,59 @@ def test_diagnose_logs_contract_diagnostics(monkeypatch):
     monkeypatch.setattr(scanner_service.app, "app_context", lambda: Ctx())
     scanner_service.diagnose_execution_readiness()
     assert any("contract=" in m for m, _ in logs)
+
+
+def test_central_cycle_runs_shared_scan_once_and_fans_out(monkeypatch):
+    users = [SimpleNamespace(id=i, trading_mode='paper', subscription_status='pro') for i in range(1, 251)]
+    calls = {'shared': 0, 'insert': 0, 'approved': 0, 'dispatch': 0}
+
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: users)
+    monkeypatch.setattr(scanner_service, 'run_shared_market_scan', lambda: calls.__setitem__('shared', calls['shared'] + 1) or {'best_pick': {'symbol': 'AAPL', 'decision': 'BUY NOW', 'qty': 1, 'entry_price': 100, 'stop_price': 99, 'target_1': 101, 'target_2': 102}})
+    monkeypatch.setattr(scanner_service, 'insert_scan', lambda payload: calls.__setitem__('insert', calls['insert'] + 1) or calls['insert'])
+    monkeypatch.setattr(scanner_service, 'approve_scan_for_user', lambda *a, **k: calls.__setitem__('approved', calls['approved'] + 1))
+    monkeypatch.setattr(scanner_service, '_dispatch_execution_if_allowed', lambda *a, **k: calls.__setitem__('dispatch', calls['dispatch'] + 1))
+
+    class Ctx:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    monkeypatch.setattr(scanner_service.app, 'app_context', lambda: Ctx())
+    scanner_service.run_central_scan_cycle('test_cycle')
+
+    assert calls['shared'] == 1
+    assert calls['insert'] == 250
+    assert calls['approved'] == 250
+    assert calls['dispatch'] == 250
+
+
+def test_fan_out_dispatches_only_execution_ready_users(monkeypatch):
+    users = [SimpleNamespace(id=1, trading_mode='paper', subscription_status='pro'), SimpleNamespace(id=2, trading_mode='paper', subscription_status='pro')]
+    calls = []
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            calls.append(args[0])
+
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    monkeypatch.setattr(scanner_service, 'insert_scan', lambda payload: payload['user_id'])
+    monkeypatch.setattr(scanner_service, 'approve_scan_for_user', lambda *a, **k: None)
+
+    def fake_eval(user, *_):
+        ready = user.id == 1
+        return {
+            'execution_ready': ready,
+            'active_mode_blocked_reasons': [] if ready else [{'code': 'NOT_READY'}],
+            'blocked_reasons': [] if ready else [{'code': 'NOT_READY'}],
+            'trading_mode': 'paper',
+            'symbol': 'AAPL',
+            'decision': 'BUY NOW',
+            'qty': 1,
+            'order_fields': {'symbol': 'AAPL', 'qty': 1, 'entry_price': 100.0, 'stop_price': 99.0, 'target_1': 101.0, 'target_2': 102.0} if ready else None,
+        }
+
+    monkeypatch.setattr(scanner_service, 'evaluate_execution_readiness', fake_eval)
+    scanner_service.fan_out_scan_to_users({'best_pick': {'symbol': 'AAPL', 'decision': 'BUY NOW', 'qty': 1, 'entry_price': 100, 'stop_price': 99, 'target_1': 101, 'target_2': 102}}, users)
+
+    assert calls == [1]
+
