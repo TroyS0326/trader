@@ -13,9 +13,17 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import types
 
 if 'redis' not in sys.modules:
+    class _FakeRedisClient:
+        def ping(self):
+            return True
+
+    class _FakeRedis:
+        @staticmethod
+        def from_url(*args, **kwargs):
+            return _FakeRedisClient()
+
     redis_stub = types.SimpleNamespace(
-        from_url=lambda *args, **kwargs: types.SimpleNamespace(ping=lambda: True),
-        Redis=object,
+        Redis=_FakeRedis,
     )
     sys.modules['redis'] = redis_stub
 if 'requests' not in sys.modules:
@@ -124,3 +132,44 @@ def test_changing_slug_to_other_post_slug_handled_safely(monkeypatch):
         updated = BlogPost.query.get(p1_id)
         assert updated.slug != 'two'
         assert updated.slug.startswith('two')
+
+
+def test_new_blog_publish_no_nameerror(monkeypatch):
+    admin_id = _reset(monkeypatch)
+    c = app_module.app.test_client(); _login(c, admin_id)
+    rv = c.post('/admin/blog/new', data=_post_data(title='New Publish', slug='new-publish', action='publish'), follow_redirects=False)
+    assert rv.status_code in (301, 302)
+
+
+def test_new_blog_save_draft_no_nameerror(monkeypatch):
+    admin_id = _reset(monkeypatch)
+    c = app_module.app.test_client(); _login(c, admin_id)
+    rv = c.post('/admin/blog/new', data=_post_data(title='New Draft', slug='new-draft', action='save_draft'), follow_redirects=False)
+    assert rv.status_code in (301, 302)
+
+
+def test_new_blog_helper_failures_do_not_crash(monkeypatch):
+    admin_id = _reset(monkeypatch)
+    monkeypatch.setattr(app_module, 'analyze_blog_post_seo', lambda **kwargs: (_ for _ in ()).throw(Exception('seo fail')))
+    monkeypatch.setattr(app_module, 'analyze_human_quality', lambda **kwargs: (_ for _ in ()).throw(Exception('hq fail')))
+    monkeypatch.setattr(app_module, 'suggest_internal_links', lambda **kwargs: (_ for _ in ()).throw(Exception('links fail')))
+    monkeypatch.setattr(app_module, 'generate_image_alt_caption', lambda **kwargs: (_ for _ in ()).throw(Exception('img fail')))
+    c = app_module.app.test_client(); _login(c, admin_id)
+    rv = c.post('/admin/blog/new', data=_post_data(title='Helpers Fail', slug='helpers-fail', action='publish'), follow_redirects=False)
+    assert rv.status_code in (301, 302)
+
+
+def test_edit_blog_helper_failures_do_not_crash(monkeypatch):
+    admin_id = _reset(monkeypatch)
+    with app_module.app.app_context():
+        p = BlogPost(title='Edit Fails', slug='edit-fails', body_html='<p>x</p>', status='draft')
+        db.session.add(p)
+        db.session.commit()
+        post_id = p.id
+    monkeypatch.setattr(app_module, 'analyze_blog_post_seo', lambda **kwargs: (_ for _ in ()).throw(Exception('seo fail')))
+    monkeypatch.setattr(app_module, 'analyze_human_quality', lambda **kwargs: (_ for _ in ()).throw(Exception('hq fail')))
+    monkeypatch.setattr(app_module, 'suggest_internal_links', lambda **kwargs: (_ for _ in ()).throw(Exception('links fail')))
+    monkeypatch.setattr(app_module, 'generate_image_alt_caption', lambda **kwargs: (_ for _ in ()).throw(Exception('img fail')))
+    c = app_module.app.test_client(); _login(c, admin_id)
+    rv = c.post(f'/admin/blog/{post_id}/edit', data=_post_data(slug='edit-fails', title='Edit Fails', action='publish'), follow_redirects=False)
+    assert rv.status_code in (301, 302)
