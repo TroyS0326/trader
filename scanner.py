@@ -15,7 +15,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 from decision import regime_trade_decision, momentum_trade_decision
 from filters import passes_hard_gatekeeper
 from indicators import calc_rvol as indicators_calc_rvol, calc_spread_pct, calc_trend_efficiency as indicators_calc_trend_efficiency, calc_value_area
-from models import db, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
+from models import db, User, WatchCandidate, ScoreTriplet, SymbolMarketStats, ComponentScores, WatchPanelDef, SymbolAnalysisResult
 from setups import detect_orb
 from utils import filter_bars_for_today_session, filter_bars_in_et_window, safe_num
 
@@ -2249,13 +2249,65 @@ def upsert_watch_candidate_from_analysis(analysis: Dict[str, Any], user: Optiona
     db.session.commit()
 
 
+def _persist_watch_recheck_summary(summary: Dict[str, Any], user_id: Optional[int] = None) -> None:
+    try:
+        from app import redis_client
+        key = "latest_watch_recheck_summary" if not user_id else f"latest_watch_recheck_summary:user:{int(user_id)}"
+        payload = dict(summary or {})
+        payload["timestamp"] = now_utc().isoformat()
+        redis_client.set(key, json.dumps(payload, default=str), ex=60 * 60 * 24)
+    except Exception as exc:
+        logger.warning("Failed to persist watch recheck summary to Redis: %s", exc)
+
+
+def recheck_active_watch_candidates_for_all_users(limit_per_user: int = WATCH_RECHECK_LIMIT) -> Dict[str, Any]:
+    user_ids = [uid for (uid,) in db.session.query(WatchCandidate.user_id).filter(WatchCandidate.status == 'ACTIVE', WatchCandidate.user_id.isnot(None)).distinct().all() if uid]
+    blockers = {}
+    user_summaries: Dict[str, Dict[str, Any]] = {}
+    promoted_symbols_by_user: Dict[str, List[str]] = {}
+    still_watch_symbols_by_user: Dict[str, List[str]] = {}
+    totals = {
+        'total_users_checked': 0, 'total_checked_count': 0, 'total_promoted_count': 0, 'total_still_watch_count': 0,
+        'total_downgraded_skip_count': 0, 'total_expired_count': 0, 'total_errors_count': 0,
+    }
+    for user_id in user_ids:
+        user = User.query.get(int(user_id))
+        if user is None:
+            continue
+        summary = recheck_active_watch_candidates(user=user, limit=limit_per_user)
+        key = str(int(user_id))
+        user_summaries[key] = summary
+        promoted_symbols_by_user[key] = list(summary.get('promoted_symbols') or [])
+        still_watch_symbols_by_user[key] = list(summary.get('still_watch_symbols') or [])
+        totals['total_users_checked'] += 1
+        totals['total_checked_count'] += int(summary.get('checked_count') or 0)
+        totals['total_promoted_count'] += int(summary.get('promoted_count') or 0)
+        totals['total_still_watch_count'] += int(summary.get('still_watch_count') or 0)
+        totals['total_downgraded_skip_count'] += int(summary.get('downgraded_skip_count') or 0)
+        totals['total_expired_count'] += int(summary.get('expired_count') or 0)
+        totals['total_errors_count'] += int(summary.get('errors_count') or 0)
+        for code, count in (summary.get('top_blockers_by_count') or []):
+            blockers[str(code)] = blockers.get(str(code), 0) + int(count or 0)
+    aggregate = {
+        **totals,
+        'user_summaries': user_summaries,
+        'promoted_symbols_by_user': promoted_symbols_by_user,
+        'still_watch_symbols_by_user': still_watch_symbols_by_user,
+        'top_blockers_by_count': sorted(blockers.items(), key=lambda x: x[1], reverse=True)[:10],
+        'execution_attempted': False,
+        'execution_path_called': False,
+    }
+    _persist_watch_recheck_summary(aggregate)
+    return aggregate
+
+
 def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WATCH_RECHECK_LIMIT) -> Dict[str, Any]:
+    if user is None:
+        return recheck_active_watch_candidates_for_all_users(limit_per_user=limit)
     now = utcnow_naive()
-    q = WatchCandidate.query.filter_by(status='ACTIVE')
-    if user is not None:
-        q = q.filter_by(user_id=int(getattr(user, 'id', 0) or 0))
+    q = WatchCandidate.query.filter_by(status='ACTIVE', user_id=int(getattr(user, 'id', 0) or 0))
     rows = q.order_by(WatchCandidate.last_seen_at.desc()).limit(max(1, limit)).all()
-    summary = {'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': [], 'top_blockers_by_count': []}
+    summary = {'checked_count': 0, 'promoted_count': 0, 'still_watch_count': 0, 'downgraded_skip_count': 0, 'expired_count': 0, 'errors_count': 0, 'promoted_symbols': [], 'still_watch_symbols': [], 'top_blockers_by_count': [], 'execution_attempted': False, 'execution_path_called': False}
     blockers = {}
     ranked_by_symbol = {}
     try:
@@ -2289,7 +2341,10 @@ def recheck_active_watch_candidates(user: Optional[Any] = None, limit: int = WAT
             summary['errors_count'] += 1
     db.session.commit()
     summary['top_blockers_by_count']=sorted(blockers.items(), key=lambda x:x[1], reverse=True)[:10]
+    _persist_watch_recheck_summary(summary, user_id=int(getattr(user, 'id', 0) or 0))
     return summary
+
+
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -3003,10 +3058,20 @@ def normalize_skip_reason_code(reason: str) -> str:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scanner utilities')
     parser.add_argument('--recheck-watch', action='store_true', help='Recheck active WATCH candidates')
+    parser.add_argument('--user-id', type=int, default=None, help='Recheck WATCH for a specific user id')
+    parser.add_argument('--all-users', action='store_true', help='Recheck WATCH for all users with active WATCH candidates')
     args = parser.parse_args()
 
     if args.recheck_watch:
         from app import app
         with app.app_context():
-            summary = recheck_active_watch_candidates()
+            if args.user_id:
+                user = User.query.get(int(args.user_id))
+                if user is None:
+                    raise SystemExit(f"User not found: {args.user_id}")
+                summary = recheck_active_watch_candidates(user=user)
+            elif args.all_users:
+                summary = recheck_active_watch_candidates_for_all_users(limit_per_user=WATCH_RECHECK_LIMIT)
+            else:
+                summary = recheck_active_watch_candidates_for_all_users(limit_per_user=WATCH_RECHECK_LIMIT)
             print(json.dumps(summary, indent=2, default=str))
