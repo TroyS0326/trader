@@ -154,3 +154,22 @@ def test_normalize_keeps_watch_active(monkeypatch):
     out = scanner.normalize_watch_candidate_statuses(user=type('U', (), {'id': 1})())
     assert row.status == 'ACTIVE'
     assert out['kept_active_count'] == 1
+
+def test_alpaca_headers_returns_dict(monkeypatch):
+    monkeypatch.setattr(scanner, "ALPACA_API_KEY", "k")
+    monkeypatch.setattr(scanner, "ALPACA_API_SECRET", "s")
+    headers = scanner._alpaca_headers()
+    assert isinstance(headers, dict)
+    assert headers["APCA-API-KEY-ID"] == "k"
+
+
+def test_run_scan_cli_flags_and_persist_call_present():
+    src = Path("scanner.py").read_text()
+    assert "--run-scan" in src
+    assert "--user-id" in src
+    assert "--persist" in src
+    assert "persist_scan_result(result, user=user, source='manual_terminal_scan')" in src
+
+
+def test_persist_scan_result_exists():
+    assert hasattr(scanner, "persist_scan_result")

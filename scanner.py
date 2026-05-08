@@ -128,6 +128,7 @@ def _alpaca_headers() -> Dict[str, str]:
         'APCA-API-KEY-ID': ALPACA_API_KEY,
         'APCA-API-SECRET-KEY': ALPACA_API_SECRET,
     }
+    return result
 
 
 def _get_json(url: str, params: Dict[str, Any] | None = None, headers: Dict[str, str] | None = None) -> Any:
@@ -741,7 +742,7 @@ def calculate_premarket_dollar_volume(symbol: str, minute_bars: List[Dict[str, A
         unavailable_reason = 'FEED_DOES_NOT_INCLUDE_EXTENDED_HOURS'
     passed = bool(actual is not None and required_premarket_dollar_volume is not None and actual >= required_premarket_dollar_volume)
     gap = None if actual is None or required_premarket_dollar_volume is None else round(actual - required_premarket_dollar_volume, 2)
-    return {
+    result = {
         'symbol': symbol,
         'source': snapshot.get('_candidate_source', 'unknown'),
         'actual_premarket_dollar_volume': actual,
@@ -2400,6 +2401,60 @@ def normalize_watch_candidate_statuses(user: Optional[Any] = None) -> Dict[str, 
     return out
 
 
+
+
+def apply_scan_attribution(result: Dict[str, Any], user: Optional[Any] = None, source: str = "run_scan") -> Dict[str, Any]:
+    payload = result if isinstance(result, dict) else {}
+    user_id = int(getattr(user, 'id', 0) or 0) if user is not None else 0
+    payload['user_id'] = user_id or None
+    payload['report_user_id'] = user_id or None
+    payload['active_mode'] = getattr(user, 'active_mode', None) if user is not None else None
+    payload['trading_mode'] = getattr(user, 'trading_mode', None) if user is not None else None
+    payload['subscription_status'] = getattr(user, 'subscription_status', None) if user is not None else None
+    payload['scan_source'] = source if user_id else 'global_or_unattributed_scan'
+    payload['scan_attribution_version'] = 1 if user_id else 0
+    payload.setdefault('scanner_now_et', now_et().isoformat())
+    if payload.get('data_feed_used') and not payload.get('feed_used'):
+        payload['feed_used'] = payload.get('data_feed_used')
+    if isinstance(payload.get('best_pick'), dict):
+        details = payload['best_pick'].setdefault('details', {})
+        if isinstance(details, dict):
+            details.setdefault('scanner_now_et', payload.get('scanner_now_et'))
+            if payload.get('feed_used'):
+                details.setdefault('feed_used', payload.get('feed_used'))
+    return payload
+
+
+def persist_scan_result(result: Dict[str, Any], user: Optional[Any] = None, source: str = "manual_terminal_scan") -> Dict[str, Any]:
+    payload = dict(result) if isinstance(result, dict) else {}
+    if not payload:
+        return {'persisted': False, 'error': 'result must be a dict'}
+    payload = apply_scan_attribution(payload, user=user, source=source)
+    payload.setdefault('scan_diagnostics', payload.get('scan_diagnostics') if isinstance(payload.get('scan_diagnostics'), dict) else {})
+    response = {
+        'persisted': False,
+        'scan_id': None,
+        'db_scan_id': None,
+        'user_id': payload.get('user_id'),
+        'symbol': ((payload.get('best_pick') or {}).get('symbol')),
+        'decision': ((payload.get('best_pick') or {}).get('decision')),
+        'setup_grade': ((payload.get('best_pick') or {}).get('setup_grade')),
+        'scan_attribution_version': payload.get('scan_attribution_version'),
+        'has_scan_diagnostics': bool(payload.get('scan_diagnostics')),
+    }
+    try:
+        scan_id = insert_scan(payload)
+        response.update({'persisted': True, 'scan_id': scan_id, 'db_scan_id': scan_id})
+        uid = payload.get('user_id')
+        if uid:
+            try:
+                from app import redis_client
+                redis_client.set(f'latest_scan:{int(uid)}', json.dumps(payload, default=str), ex=60 * 60 * 24)
+            except Exception as exc:
+                logger.warning('Failed to cache latest scan in Redis: %s', exc)
+    except Exception as exc:
+        response['error'] = str(exc)
+    return response
 def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     try:
         update_dynamic_orb_state_from_market_data()
@@ -3009,8 +3064,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'market_internals_block_enabled': MARKET_INTERNALS_BLOCK_ENABLED,
         },
     }
-
-
+    return apply_scan_attribution(result, user=user, source='run_scan')
 
 
 def debug_asset_metadata_lookup(
