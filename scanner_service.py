@@ -1,5 +1,6 @@
 import inspect
 import logging
+from datetime import datetime
 import os
 import signal
 import time
@@ -15,6 +16,7 @@ from db import insert_scan
 from execution_guard import approve_scan_for_user
 from models import User
 from scanner import buy_window_open, run_scan
+from daily_report import run_daily_reports
 
 logger = logging.getLogger("scanner_service")
 logging.basicConfig(
@@ -180,6 +182,19 @@ def _handle_shutdown(signum, _frame):
     _SHOULD_RUN = False
 
 
+
+
+def run_daily_paper_report_job() -> None:
+    if not config.DAILY_REPORT_EMAIL_ENABLED:
+        logger.info('Daily report email disabled via DAILY_REPORT_EMAIL_ENABLED=0')
+        return
+    report_date = datetime.now(ZoneInfo(config.TIMEZONE_LABEL)).date()
+    if config.DAILY_REPORT_SKIP_WEEKENDS and report_date.weekday() >= 5:
+        logger.info('Daily report skipped weekend for %s', report_date.isoformat())
+        return
+    with app.app_context():
+        run_daily_reports(report_date, send=True, send_all=False, dry_run=config.DAILY_REPORT_DRY_RUN)
+
 def _build_scheduler() -> BackgroundScheduler:
     tz = ZoneInfo(config.TIMEZONE_LABEL)
     scheduler = BackgroundScheduler(timezone=tz)
@@ -207,6 +222,14 @@ def _build_scheduler() -> BackgroundScheduler:
         CronTrigger(day_of_week="mon-fri", hour="10-15", minute="*/5", timezone=tz),
         kwargs={"cycle_name": "market_funnel"},
         id="market_funnel",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_daily_paper_report_job,
+        CronTrigger(day_of_week="mon-fri", hour=17, minute=0, timezone=tz),
+        id="daily_paper_report_email",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

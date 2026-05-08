@@ -372,6 +372,24 @@ class MarketRegime(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
+
+
+class DailyReportEmailLog(db.Model):
+    __tablename__ = 'daily_report_email_logs'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'report_date', name='uq_daily_report_user_date'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    report_date = db.Column(db.String(20), nullable=False, index=True)
+    email = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    brevo_message_id = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    raw_json = db.Column(db.Text, nullable=True)
+
 class UserEvent(db.Model):
     __tablename__ = 'user_events'
     id = db.Column(db.Integer, primary_key=True)

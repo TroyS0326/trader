@@ -788,3 +788,40 @@ Production database env (required):
 `DATABASE_URL=postgresql+psycopg://xeanvi_user:strong_password@127.0.0.1:5432/xeanvi`
 
 Local development can fall back to SQLite only when `DATABASE_URL` is not set and `FLASK_ENV` is not `production`.
+
+## Daily Paper-Trading Report Card
+
+XeanVI can send a personalized daily paper-trading performance report card to each eligible user at **5:00 PM America/New_York (weekdays)**, about one hour after normal U.S. market close.
+
+### What it includes
+- Daily trade count, wins/losses/breakeven/open
+- Win rate, realized P&L, average/best risk-reward, max drawdown
+- Rule-discipline and execution-support scoring
+- Top setup summary and deterministic next-day playbook improvement note
+
+### Required env vars
+- `BREVO_API_KEY`
+- `BREVO_SENDER_EMAIL`
+- `BREVO_SENDER_NAME`
+- `BREVO_DAILY_REPORT_TEMPLATE_ID` (numeric Brevo transactional template)
+
+### Feature flags
+- `DAILY_REPORT_EMAIL_ENABLED=0|1`
+- `DAILY_REPORT_SEND_TO_PRO_USERS=0|1`
+- `DAILY_REPORT_SEND_TO_FREE_USERS=0|1`
+- `DAILY_REPORT_REQUIRE_ACTIVITY=0|1`
+- `DAILY_REPORT_SKIP_WEEKENDS=0|1`
+- `DAILY_REPORT_DRY_RUN=0|1`
+- `DAILY_REPORT_TEST_RECIPIENT=`
+
+### Brevo template params
+Use `{{params.*}}` with: `first_name`, `report_date`, `summary_headline`, `trades_taken_count`, `wins_count`, `losses_count`, `breakeven_count`, `open_or_pending_count`, `win_rate_percent`, `total_realized_pnl`, `average_risk_reward`, `best_risk_reward`, `max_drawdown`, `discipline_score`, `risk_score`, `execution_score`, `mistakes_blocked`, `trades_skipped_and_why`, `best_setup_of_day`, `playbook_improvement_tomorrow`, `app_url`, `support_email`.
+
+### CLI usage
+- Dry run single user: `python daily_report.py --date YYYY-MM-DD --user-id 123 --dry-run`
+- Send single user: `python daily_report.py --date YYYY-MM-DD --send --user-id 123`
+- Send all eligible users dry run: `python daily_report.py --date YYYY-MM-DD --send-all --dry-run`
+- Force resend: add `--force`
+
+### Safety disclaimer
+XeanVI is trading workflow and execution-support software. This report is for educational and performance-review purposes only and is not financial advice. Trading involves risk and past performance does not guarantee future results.
