@@ -153,7 +153,34 @@ def test_run_scan_degrades_when_all_asset_metadata_lookups_fail(monkeypatch):
     diag = out['scan_diagnostics']
     assert diag['asset_metadata_degraded_mode'] is True
     assert diag['asset_metadata_global_failure'] is True
+    assert diag['asset_metadata_degraded_allowed_count'] == 2
+    assert set(diag['asset_metadata_degraded_allowed_symbols']) == {'AAPL', 'MSFT'}
+    assert diag['asset_metadata_degraded_rejection_counts'] == {}
     assert 'ASSET_METADATA_DEGRADED_MODE' in diag['scanner_starvation_flags']
+
+
+def test_run_scan_degraded_mode_still_blocks_warrant_like_symbols(monkeypatch):
+    monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
+    monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
+    monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['ABCWS', 'AAPL'])
+    monkeypatch.setattr(scanner, 'get_momentum_breakout_universe', lambda user=None: ([], []))
+    monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None: symbols)
+    monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', lambda symbol, user=None: ({}, {'symbol': symbol, 'endpoint_used': 'x', 'auth_source': 'server_api_key', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401', 'response_text_short': 'unauthorized', 'used_fallback': False}))
+    monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
+    monkeypatch.setattr(scanner, 'fill_missing_bars_individually', lambda *a, **k: {'individual_bar_retry_attempted_count':0,'individual_bar_retry_success_count':0,'individual_bar_retry_failed_symbols':[]})
+    monkeypatch.setattr(scanner, 'analyze_symbol', lambda symbol, *a, **k: {'symbol': symbol, 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'scores': {'catalyst': 0}, 'score_total': 0, 'details': {'open_relative_strength': {'edge': 0}, 'liquidity': {'spread': 0}, 'skip_reason_codes': []}})
+    monkeypatch.setattr(scanner, 'get_stock_chart_pack', lambda *a, **k: {})
+    out = scanner.run_scan()
+    diag = out['scan_diagnostics']
+    assert diag['asset_metadata_degraded_allowed_count'] == 1
+    assert diag['asset_metadata_degraded_allowed_symbols'] == ['AAPL']
+    assert diag['asset_metadata_degraded_rejection_counts']['WARRANT_OR_RIGHT'] == 1
 
 
 def test_get_alpaca_asset_with_diagnostics_401(monkeypatch):

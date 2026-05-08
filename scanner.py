@@ -254,6 +254,8 @@ def apply_user_symbol_filters(
         return symbols
 
     filtered: List[str] = []
+    asset_metadata_degraded_allowed_symbols: List[str] = []
+    asset_metadata_degraded_rejections: List[Dict[str, Any]] = []
     for symbol in symbols:
         if symbol == 'SPY':
             filtered.append(symbol)
@@ -1861,34 +1863,54 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
             user_flags={'biotech': bool(getattr(user, 'allow_biotech', True)), 'etf': bool(getattr(user, 'allow_etf_trading', True)), 'leveraged_etf': bool(getattr(user, 'allow_leveraged_etfs', False)), 'inverse_etf': bool(getattr(user, 'allow_inverse_etfs', False)), 'crypto_etf': bool(getattr(user, 'allow_crypto_etfs', True)), 'options': bool(getattr(user, 'allow_options_trading', False))}
         )
-        is_warrant_like = symbol.endswith('W') or symbol.endswith('WS') or ('warrant' in str((asset or {}).get('name', '')).lower())
+        symbol_upper = str(symbol or '').upper()
+        profile_text = f"{(profile or {}).get('name', '')} {(profile or {}).get('description', '')}".lower()
+        is_warrant_symbol = symbol_upper.endswith(('W', 'WS', 'WT', 'WSA', 'WSB', 'R', 'RT')) or symbol_upper in {'R', 'RT'}
+        is_warrant_like = is_warrant_symbol or ('warrant' in str((asset or {}).get('name', '')).lower()) or ('warrant' in profile_text) or (' right' in profile_text)
         is_etf_or_leveraged_etf = classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF', 'LEVERAGED_ETF', 'INVERSE_ETF'}
-        is_supported_equity_candidate = classification.get('asset_type') in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK'} and bool(asset.get('tradable'))
+        has_asset_metadata = bool(asset)
+        is_supported_equity_candidate = classification.get('asset_type') in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK'} and (bool(asset.get('tradable')) if has_asset_metadata else False)
         meta = {
             'asset_classification': classification.get('asset_type'),
             'tradable': bool(asset.get('tradable')),
             'exchange': asset.get('exchange'),
             'easy_to_borrow': asset.get('easy_to_borrow'),
+            'asset_metadata_unavailable_degraded': bool(asset_metadata_degraded_mode and not has_asset_metadata),
             'is_warrant_like': is_warrant_like,
             'is_etf_or_leveraged_etf': is_etf_or_leveraged_etf,
             'is_supported_equity_candidate': is_supported_equity_candidate,
         }
         asset_metadata_by_symbol[symbol] = meta
         reason = None
-        if not asset and not asset_metadata_degraded_mode:
+        if has_asset_metadata:
+            if not asset.get('tradable'):
+                reason = 'NOT_TRADABLE'
+            elif is_warrant_like:
+                reason = 'WARRANT_OR_RIGHT'
+            elif classification.get('asset_type') == 'LEVERAGED_ETF' and not LEVERAGED_ETF_TRADING_ENABLED:
+                reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
+            elif classification.get('asset_type') == 'INVERSE_ETF' and not INVERSE_ETF_TRADING_ENABLED:
+                reason = 'ETF_BLOCKED_BY_SETTINGS'
+            elif classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF'} and not ETF_TRADING_ENABLED:
+                reason = 'ETF_BLOCKED_BY_SETTINGS'
+            elif classification.get('asset_type') not in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK', 'BROAD_ETF', 'CRYPTO_ETF', 'LEVERAGED_ETF', 'INVERSE_ETF'}:
+                reason = 'UNSUPPORTED_ASSET_TYPE'
+        elif asset_metadata_degraded_mode:
+            if is_warrant_like:
+                reason = 'WARRANT_OR_RIGHT'
+            elif classification.get('asset_type') == 'LEVERAGED_ETF' and not LEVERAGED_ETF_TRADING_ENABLED:
+                reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
+            elif classification.get('asset_type') == 'INVERSE_ETF' and not INVERSE_ETF_TRADING_ENABLED:
+                reason = 'ETF_BLOCKED_BY_SETTINGS'
+            elif classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF'} and not ETF_TRADING_ENABLED:
+                reason = 'ETF_BLOCKED_BY_SETTINGS'
+            if reason:
+                asset_metadata_degraded_rejections.append({'symbol': symbol, 'reason': reason})
+            else:
+                asset_metadata_degraded_allowed_symbols.append(symbol)
+                logger.info("Asset metadata degraded mode active; allowing symbol through metadata filter using conservative symbol/profile checks.", extra={'symbol': symbol})
+        else:
             reason = 'MISSING_ASSET_METADATA'
-        elif not asset.get('tradable'):
-            reason = 'NOT_TRADABLE'
-        elif is_warrant_like:
-            reason = 'WARRANT_OR_RIGHT'
-        elif classification.get('asset_type') == 'LEVERAGED_ETF' and not LEVERAGED_ETF_TRADING_ENABLED:
-            reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
-        elif classification.get('asset_type') == 'INVERSE_ETF' and not INVERSE_ETF_TRADING_ENABLED:
-            reason = 'ETF_BLOCKED_BY_SETTINGS'
-        elif classification.get('asset_type') in {'BROAD_ETF', 'CRYPTO_ETF'} and not ETF_TRADING_ENABLED:
-            reason = 'ETF_BLOCKED_BY_SETTINGS'
-        elif classification.get('asset_type') not in {'COMMON_STOCK', 'LOW_FLOAT_MOMENTUM_STOCK', 'BROAD_ETF', 'CRYPTO_ETF', 'LEVERAGED_ETF', 'INVERSE_ETF'}:
-            reason = 'UNSUPPORTED_ASSET_TYPE'
         if reason:
             asset_filter_rejections.append({'symbol': symbol, 'reason': reason, **meta})
             continue
@@ -1897,6 +1919,9 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     candidate_count_after_asset_filter = len(symbols)
     asset_filter_rejection_counts = {
         k: len([r for r in asset_filter_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_filter_rejections}
+    }
+    asset_metadata_degraded_rejection_counts = {
+        k: len([r for r in asset_metadata_degraded_rejections if r.get('reason') == k]) for k in {r.get('reason') for r in asset_metadata_degraded_rejections}
     }
     asset_filter_removed_symbols = [r.get('symbol') for r in asset_filter_rejections]
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
@@ -1918,6 +1943,10 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'asset_metadata_degraded_mode': asset_metadata_degraded_mode,
             'asset_metadata_failure_reason_counts': asset_metadata_failure_reason_counts,
             'asset_metadata_failure_samples': asset_metadata_failure_samples,
+            'asset_metadata_degraded_allowed_count': len(asset_metadata_degraded_allowed_symbols),
+            'asset_metadata_degraded_allowed_symbols': asset_metadata_degraded_allowed_symbols[:100],
+            'asset_metadata_degraded_rejection_counts': asset_metadata_degraded_rejection_counts,
+            'asset_metadata_degraded_rejection_samples': asset_metadata_degraded_rejections[:20],
             },
         )
         raise ScanError("No symbols remained after asset quality filtering.")
@@ -2140,6 +2169,10 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'asset_metadata_degraded_mode': asset_metadata_degraded_mode,
             'asset_metadata_failure_reason_counts': asset_metadata_failure_reason_counts,
             'asset_metadata_failure_samples': asset_metadata_failure_samples,
+            'asset_metadata_degraded_allowed_count': len(asset_metadata_degraded_allowed_symbols),
+            'asset_metadata_degraded_allowed_symbols': asset_metadata_degraded_allowed_symbols[:100],
+            'asset_metadata_degraded_rejection_counts': asset_metadata_degraded_rejection_counts,
+            'asset_metadata_degraded_rejection_samples': asset_metadata_degraded_rejections[:20],
         },
         'momentum_mode_enabled': MOMENTUM_BREAKOUT_MODE_ENABLED,
         'data_feed_used': feed,

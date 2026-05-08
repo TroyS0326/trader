@@ -292,6 +292,29 @@ def test_report_marks_bar_data_starvation_as_primary_blocker(monkeypatch):
     assert "UNATTRIBUTED_RECENT_SCANS" in report["scanner_starvation_flags"]
 
 
+def test_report_exposes_degraded_asset_metadata_fields(monkeypatch):
+    row = {"id": 501, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({
+        "user_id": 9,
+        "scan_attribution_version": 1,
+        "scan_diagnostics": {
+            "asset_filter_rejection_counts": {},
+            "asset_metadata_degraded_allowed_count": 2,
+            "asset_metadata_degraded_allowed_symbols": ["AAPL", "MSFT"],
+            "asset_metadata_degraded_rejection_counts": {"WARRANT_OR_RIGHT": 1},
+            "asset_metadata_degraded_rejection_samples": [{"symbol": "ABCWS", "reason": "WARRANT_OR_RIGHT"}],
+        },
+        "best_pick": {"symbol": "AAPL", "decision": "SKIP"}
+    })}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["latest_asset_metadata_degraded_allowed_count"] == 2
+    assert report["latest_asset_metadata_degraded_allowed_symbols"] == ["AAPL", "MSFT"]
+    assert report["latest_asset_metadata_degraded_rejection_counts"] == {"WARRANT_OR_RIGHT": 1}
+
+
 def test_normalize_skip_reason_code_mappings():
     assert scanner.normalize_skip_reason_code("Opening range is not complete.") == "OPENING_RANGE_NOT_COMPLETE"
     assert scanner.normalize_skip_reason_code("Opening-range breakout is not confirmed yet.") == "OPENING_RANGE_BREAKOUT_NOT_CONFIRMED"
