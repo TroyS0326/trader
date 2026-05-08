@@ -250,3 +250,44 @@ def test_source_priority_prefers_news_then_momentum_then_orb():
     assert scanner._select_primary_source(['orb_primary', 'momentum_breakout']) == 'momentum_breakout'
     assert scanner._select_primary_source(['fallback_market_candidates', 'news_catalyst']) == 'news_catalyst'
     assert scanner._select_primary_source([]) == 'unknown'
+
+
+def test_get_news_catalyst_map_returns_headline_evidence(monkeypatch):
+    monkeypatch.setattr(scanner, 'FINNHUB_API_KEY', 'x')
+    monkeypatch.setattr(scanner, 'get_company_news', lambda symbol, lookback_days=1: [f"{symbol} wins contract"])
+    out = scanner.get_news_catalyst_map(['AAPL'])
+    assert out['AAPL']['headline_count'] == 1
+    assert out['AAPL']['headline_samples']
+
+
+def test_build_catalyst_diagnostics_news_not_no_news():
+    ml = {'headline_count': 1, 'recent_headline_count': 1, 'latest_headline_age_minutes': 10, 'keywords_hit': []}
+    diag = scanner._build_catalyst_diagnostics(ml, {'reason': 'x'})
+    assert diag['catalyst_headline_count'] > 0
+    assert diag['catalyst_missing_reason'] != 'NO_NEWS_FOUND'
+
+
+def test_run_scan_degraded_mode_blocks_known_etf_symbols(monkeypatch):
+    monkeypatch.setattr(scanner, 'LEVERAGED_ETF_TRADING_ENABLED', False)
+    monkeypatch.setattr(scanner, 'ETF_TRADING_ENABLED', False)
+    monkeypatch.setattr(scanner, 'INVERSE_ETF_TRADING_ENABLED', False)
+    monkeypatch.setattr(scanner, 'CRYPTO_ETF_TRADING_ENABLED', False)
+    monkeypatch.setattr(scanner, 'update_dynamic_orb_state_from_market_data', lambda: None)
+    monkeypatch.setattr(scanner, 'resolve_data_feed', lambda user=None: 'iex')
+    monkeypatch.setattr(scanner, 'get_refined_universe', lambda user=None: ['TSLL', 'AAPL'])
+    monkeypatch.setattr(scanner, 'get_momentum_breakout_universe', lambda user=None: ([], []))
+    monkeypatch.setattr(scanner, 'get_alpaca_movers', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_premarket_leaders', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_unusual_relvol', lambda limit: [])
+    monkeypatch.setattr(scanner, 'get_news_catalyst_map', lambda symbols, per_symbol=1: {})
+    monkeypatch.setattr(scanner, 'apply_user_symbol_filters', lambda symbols, snapshots, quotes, user=None, candidate_source_map=None: symbols)
+    monkeypatch.setattr(scanner, 'get_snapshots', lambda symbols, feed='iex': {s: {'minuteBar': {'c': 10}, 'prevDailyBar': {'c': 9}} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_latest_quotes', lambda symbols, feed='iex': {s: {'ap': 10} for s in symbols})
+    monkeypatch.setattr(scanner, 'get_company_profile', lambda symbol: {})
+    monkeypatch.setattr(scanner, 'get_alpaca_asset_with_diagnostics', lambda symbol, user=None, source=None: ({}, {'symbol': symbol, 'endpoint_used': 'x', 'status_code': 401, 'ok': False, 'failure_reason': 'HTTP_401'}))
+    monkeypatch.setattr(scanner, 'get_bars', lambda symbols, *a, **k: {s: [{'t':'2026-05-08T13:30:00+00:00','o':1,'h':2,'l':1,'c':1.5,'v':1000}] for s in symbols})
+    monkeypatch.setattr(scanner, 'fill_missing_bars_individually', lambda *a, **k: {'individual_bar_retry_attempted_count':0,'individual_bar_retry_success_count':0,'individual_bar_retry_failed_symbols':[]})
+    monkeypatch.setattr(scanner, 'analyze_symbol', lambda symbol, *a, **k: {'symbol': symbol, 'decision': 'SKIP', 'setup_grade': 'NO TRADE', 'scores': {'catalyst': 2}, 'score_total': 0, 'details': {'open_relative_strength': {'edge': 0}, 'liquidity': {'spread': 0}, 'skip_reason_codes': []}})
+    monkeypatch.setattr(scanner, 'get_stock_chart_pack', lambda *a, **k: {})
+    out = scanner.run_scan()
+    assert out['scan_diagnostics']['asset_metadata_degraded_rejection_counts'].get('LEVERAGED_ETF_BLOCKED_BY_SETTINGS', 0) >= 1

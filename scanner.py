@@ -230,13 +230,50 @@ def get_unusual_relvol(limit: int = SCAN_CANDIDATE_LIMIT) -> List[str]:
     return _extract_symbols(data.get('gainers', []) if isinstance(data, dict) else [])
 
 
-def get_news_catalyst_list(candidates: List[str], per_symbol: int = 1) -> List[str]:
-    out: List[str] = []
+def get_news_catalyst_map(candidates: List[str], per_symbol: int = 1) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    if not FINNHUB_API_KEY:
+        return {}
     for symbol in candidates[: max(6, min(len(candidates), SCAN_CANDIDATE_LIMIT))]:
-        headlines = get_company_news(symbol, lookback_days=1)
-        if len(headlines) >= per_symbol:
-            out.append(symbol)
+        try:
+            headlines = get_company_news(symbol, lookback_days=1)
+        except Exception:
+            out[symbol] = {
+                'symbol': symbol,
+                'headline_count': 0,
+                'recent_headline_count': 0,
+                'latest_headline_age_minutes': None,
+                'headline_samples': [],
+                'keywords_hit': [],
+                'positive_terms': [],
+                'negative_terms': [],
+                'news_source': 'finnhub',
+                'news_lookup_status': 'API_ERROR',
+                'raw_news_count': 0,
+            }
+            continue
+        samples = [_truncate_headline(x) for x in (headlines or [])[:3]]
+        out[symbol] = {
+            'symbol': symbol,
+            'headline_count': len(headlines),
+            'recent_headline_count': len(headlines),
+            'latest_headline_age_minutes': 0 if headlines else None,
+            'headline_samples': samples,
+            'keywords_hit': [],
+            'positive_terms': [],
+            'negative_terms': [],
+            'news_source': 'finnhub',
+            'news_lookup_status': 'FOUND' if len(headlines) >= per_symbol else 'NO_NEWS_FOUND',
+            'raw_news_count': len(headlines),
+        }
     return out
+
+
+def get_news_catalyst_list(candidates: List[str], per_symbol: int = 1) -> List[str]:
+    return [
+        s for s, payload in get_news_catalyst_map(candidates, per_symbol=per_symbol).items()
+        if int(payload.get('headline_count', 0) or 0) >= per_symbol
+    ]
 
 
 def _matches_industry(industry: str, keywords: List[str]) -> bool:
@@ -1519,7 +1556,7 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
     if not feature_store_hit:
         missing_reason = 'SOURCE_UNAVAILABLE'
     elif all(k not in ml_features for k in ('headline_count', 'recent_headline_count', 'latest_headline_age_minutes', 'keywords_hit')):
-        missing_reason = 'FEATURE_STORE_MISSING_FIELDS'
+        missing_reason = 'FEATURE_STORE_MISSING_FIELDS_WITH_NEWS_FALLBACK' if catalyst_meta.get('news_lookup_status') in {'FOUND'} else 'FEATURE_STORE_MISSING_FIELDS'
     elif headline_count <= 0 and float(ml_features.get('p_success', 0.5) or 0.5) == 0.5:
         missing_reason = 'FEATURE_STORE_BASELINE_ONLY'
     if headline_count <= 0:
@@ -1530,7 +1567,7 @@ def _build_catalyst_diagnostics(ml_features: Dict[str, Any], catalyst_meta: Dict
         missing_reason = 'NO_KEYWORDS_HIT'
 
     if bool(ml_features.get('news_api_error')):
-        missing_reason = 'NEWS_API_ERROR'
+        missing_reason = 'SOURCE_UNAVAILABLE'
     if bool(ml_features.get('ai_validation_unavailable')):
         missing_reason = 'AI_VALIDATION_UNAVAILABLE'
 
@@ -1584,7 +1621,7 @@ def _select_primary_source(sources: List[str]) -> str:
     deduped = [s for s in dict.fromkeys([str(x or 'unknown') for x in sources]).keys()]
     return sorted(deduped, key=lambda x: _SOURCE_PRIORITY.get(x, 99))[0]
 
-def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any], feed_used: Optional[str] = None) -> Dict[str, Any]:
+def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any], daily_bars: List[Dict[str, Any]], minute_bars: List[Dict[str, Any]], spy_change_pct: float, profile: Dict[str, Any], asset: Dict[str, Any], spy_minute_bars: List[Dict[str, Any]], sector_snapshots: Dict[str, Any], market_internals: Dict[str, Any], feed_used: Optional[str] = None, news_catalyst: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     daily_bar = snapshot.get('dailyBar', {})
     prev_daily = snapshot.get('prevDailyBar', {})
     minute_bar = snapshot.get('minuteBar', {})
@@ -1611,6 +1648,12 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     vixy_change = get_vix_change()
 
     ml_features = store.get_symbol_features(symbol)
+    if news_catalyst:
+        for key in ('headline_count', 'recent_headline_count', 'latest_headline_age_minutes', 'headline_samples', 'keywords_hit', 'positive_terms', 'negative_terms'):
+            if key in news_catalyst:
+                ml_features[key] = news_catalyst.get(key)
+        if news_catalyst.get('news_lookup_status') == 'API_ERROR':
+            ml_features['news_api_error'] = True
     p_success = float(ml_features.get('p_success', 0.50) or 0.50)
     sentiment = float(ml_features.get('finbert_sentiment', 0.0) or 0.0)
     keyword_boost = float(ml_features.get('keyword_boost', 0.0) or 0.0)
@@ -1630,6 +1673,9 @@ def analyze_symbol(symbol: str, snapshot: Dict[str, Any], quote: Dict[str, Any],
     }
     catalyst_diag = _build_catalyst_diagnostics(ml_features, catalyst_meta)
     catalyst_baseline_reason = _baseline_catalyst_reason(catalyst_score, catalyst_diag)
+    if catalyst_score == 2 and news_catalyst and catalyst_diag.get('catalyst_headline_count', 0) > 0 and float(keyword_boost or 0.0) <= 0:
+        catalyst_baseline_reason = 'FRESH_BUT_NOT_STRONG' if catalyst_diag.get('catalyst_is_fresh') else 'BASELINE_ONLY_WEAK_NEWS'
+        catalyst_diag['catalyst_score_not_upgraded_reason'] = 'NEWS_EVIDENCE_NOT_CONNECTED_TO_MODEL'
     liquidity_score, liquidity_meta = score_float_liquidity(profile, asset, premarket_notional, day_volume, spread, atr, current_price)
     liquidity_failure_codes = []
     if liquidity_meta.get('wide_spread_block'):
@@ -2015,21 +2061,28 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         candidate_sources_map.setdefault(sym, []).append('orb_primary')
     for sym in momentum_symbols:
         candidate_sources_map.setdefault(sym, []).append('momentum_breakout')
-    news_catalyst_symbols = get_news_catalyst_list(symbols or get_market_candidates(SCAN_CANDIDATE_LIMIT))
+    news_catalyst_map = get_news_catalyst_map(symbols or get_market_candidates(SCAN_CANDIDATE_LIMIT))
+    news_catalyst_symbols = list(news_catalyst_map.keys())
     source_candidate_counts['news_catalyst'] = len(news_catalyst_symbols)
+    news_only_added = 0
     for sym in news_catalyst_symbols:
         candidate_sources_map.setdefault(sym, []).append('news_catalyst')
+        if sym not in symbols:
+            symbols.append(sym)
+            news_only_added += 1
     candidate_source_map = {sym: _select_primary_source(srcs) for sym, srcs in candidate_sources_map.items()}
     candidate_count_raw = len(orb_symbols + momentum_symbols)
     candidate_count_after_dedupe = len(symbols)
     fallback_used = False
     fallback_reason = None
+    fallback_reason_detail = None
     fallback_candidates = []
     if candidate_count_after_dedupe < 10:
         fallback_candidates = [s for s in get_market_candidates(SCAN_CANDIDATE_LIMIT) if s != 'SPY']
         source_candidate_counts['fallback_market_candidates'] = len(fallback_candidates)
         fallback_used = True
         fallback_reason = 'CANDIDATE_UNIVERSE_TOO_SMALL'
+        fallback_reason_detail = 'PRIMARY_CANDIDATES_BELOW_MINIMUM'
         symbols = list(dict.fromkeys(symbols + fallback_candidates))
         for sym in fallback_candidates:
             candidate_sources_map.setdefault(sym, []).append('fallback_market_candidates')
@@ -2065,6 +2118,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     asset_metadata_global_failure = False
     asset_metadata_degraded_mode = False
     asset_lookup: Dict[str, Dict[str, Any]] = {}
+    degraded_symbol_etf_blocklist = {'TSLL', 'TSLQ', 'TSLZ', 'TQQQ', 'SQQQ', 'SOXL', 'SOXS', 'TZA', 'TNA', 'SPXL', 'SPXS', 'UVXY', 'VIXY', 'BITO', 'BOIL', 'KOLD', 'NVDL', 'NVDX', 'NVDQ', 'NVD', 'LABU', 'LABD'}
     for symbol in symbols:
         asset, asset_diag = get_alpaca_asset_with_diagnostics(
             symbol,
@@ -2129,6 +2183,15 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         elif asset_metadata_degraded_mode:
             if is_warrant_like:
                 reason = 'WARRANT_OR_RIGHT'
+            elif symbol_upper in degraded_symbol_etf_blocklist:
+                if symbol_upper in {'SQQQ', 'SOXS', 'TZA', 'SPXS', 'TSLQ', 'TSLZ', 'NVDQ', 'LABD'} and not INVERSE_ETF_TRADING_ENABLED:
+                    reason = 'INVERSE_ETF_BLOCKED_BY_SETTINGS'
+                elif symbol_upper in {'BITO'} and not CRYPTO_ETF_TRADING_ENABLED:
+                    reason = 'CRYPTO_ETF_BLOCKED_BY_SETTINGS'
+                elif symbol_upper in {'TSLL', 'TQQQ', 'SOXL', 'TNA', 'SPXL', 'UVXY', 'VIXY', 'BOIL', 'KOLD', 'NVDL', 'NVDX', 'NVD', 'LABU'} and not LEVERAGED_ETF_TRADING_ENABLED:
+                    reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
+                elif not ETF_TRADING_ENABLED:
+                    reason = 'ETF_BLOCKED_BY_SETTINGS'
             elif classification.get('asset_type') == 'LEVERAGED_ETF' and not LEVERAGED_ETF_TRADING_ENABLED:
                 reason = 'LEVERAGED_ETF_BLOCKED_BY_SETTINGS'
             elif classification.get('asset_type') == 'INVERSE_ETF' and not INVERSE_ETF_TRADING_ENABLED:
@@ -2257,7 +2320,7 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         try:
             profile = get_company_profile(symbol)
             asset = get_alpaca_asset(symbol)
-            analysis = analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals, feed_used=feed)
+            analysis = analyze_symbol(symbol, snapshot, quote, daily_bars, minute_bars, spy_change_pct, profile, asset, spy_minute_bars, sector_snapshots, market_internals, feed_used=feed, news_catalyst=news_catalyst_map.get(symbol))
             classification = classify_asset(
                 symbol, asset, profile,
                 platform_flags={'biotech': BIOTECH_TRADING_ENABLED, 'etf': ETF_TRADING_ENABLED, 'leveraged_etf': LEVERAGED_ETF_TRADING_ENABLED, 'inverse_etf': INVERSE_ETF_TRADING_ENABLED, 'crypto_etf': CRYPTO_ETF_TRADING_ENABLED, 'options': OPTIONS_TRADING_ENABLED},
@@ -2341,8 +2404,17 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'average_liquidity_score': round(sum(float((r.get('scores') or {}).get('liquidity') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 3),
             'average_spread_pct': round(sum(float((r.get('details') or {}).get('spread_pct') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 5),
             'average_premarket_dollar_volume': round(sum(float((r.get('details') or {}).get('premarket_dollar_volume') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 2),
+            'pass_rate_to_analysis': round(len(analyzed_for_source) / max(1, source_candidate_counts.get(src, 0)), 4),
+            'avg_actual_premarket_dollar_volume': round(sum(float((r.get('details') or {}).get('premarket_dollar_volume') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 2),
+            'avg_required_premarket_dollar_volume': round(sum(float((r.get('details') or {}).get('required_premarket_dollar_volume') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 2),
+            'avg_spread_pct': round(sum(float((r.get('details') or {}).get('spread_pct') or 0) for r in analyzed_for_source) / max(1, len(analyzed_for_source)), 5),
+            'executable_rate': round(len([r for r in analyzed_for_source if r.get('decision') in {'BUY NOW', 'A+', 'A'}]) / max(1, len(analyzed_for_source)), 4),
+            'watch_rate': round(len([r for r in analyzed_for_source if r.get('decision') == 'WATCH']) / max(1, len(analyzed_for_source)), 4),
+            'skip_rate': round(len([r for r in analyzed_for_source if r.get('decision') == 'SKIP']) / max(1, len(analyzed_for_source)), 4),
             'top_symbols': [r.get('symbol') for r in analyzed_for_source[:5]],
             'primary_skip_reason_codes': sorted([(code, len([r for r in analyzed_for_source if code in ((r.get('details') or {}).get('skip_reason_codes') or [])])) for code in {c for rr in analyzed_for_source for c in ((rr.get('details') or {}).get('skip_reason_codes') or [])}], key=lambda x: x[1], reverse=True)[:5],
+            'rejection_counts_by_stage': {stage: len([e for e in rejection_events if e.get('stage') == stage and e.get('symbol') in [r.get('symbol') for r in analyzed_for_source]]) for stage in {e.get('stage') for e in rejection_events}},
+            'dominant_failure_reason': (sorted([(code, len([r for r in analyzed_for_source if code in ((r.get('details') or {}).get('skip_reason_codes') or [])])) for code in {c for rr in analyzed_for_source for c in ((rr.get('details') or {}).get('skip_reason_codes') or [])}], key=lambda x: x[1], reverse=True)[:1] or [[None, 0]])[0][0],
         }
     catalyst_baseline_reason_counts = {}
     catalyst_missing_reason_counts = {}
@@ -2433,7 +2505,18 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'best_pick_selection_reason': best_pick_selection_reason,
             'scanner_starvation_flags': starvation_flags,
             'source_candidate_counts': {src: len([sym for sym, srcs in candidate_sources_map.items() if src in srcs]) for src in sorted(set(list(source_candidate_counts.keys()) + [s for srcs in candidate_sources_map.values() for s in srcs]))},
+            'orb_primary_raw_count': len(orb_symbols),
+            'orb_primary_after_filters_count': len([s for s in symbols if 'orb_primary' in (candidate_sources_map.get(s) or [])]),
+            'orb_primary_rejection_counts': {'NO_ORB_CANDIDATES': 1 if len(orb_symbols) == 0 else 0},
+            'momentum_breakout_raw_count': len(momentum_symbols),
+            'momentum_breakout_after_filters_count': len([s for s in symbols if 'momentum_breakout' in (candidate_sources_map.get(s) or [])]),
+            'momentum_breakout_rejection_counts': {},
             'source_candidate_symbols_sample': {'fallback_market_candidates': fallback_candidates[:20], 'orb_primary': orb_symbols[:20], 'momentum_breakout': momentum_symbols[:20]},
+            'news_catalyst_symbols_sample': news_catalyst_symbols[:20],
+            'news_catalyst_raw_count': len(news_catalyst_symbols),
+            'news_catalyst_added_to_universe_count': news_only_added,
+            'news_catalyst_not_analyzed_symbols': [s for s in news_catalyst_symbols if s not in analyzed_symbols][:50],
+            'news_catalyst_rejection_reasons': {r.get('reason', 'UNKNOWN'): len([x for x in rejection_events if x.get('symbol') in set(news_catalyst_symbols) and x.get('reason') == r.get('reason')]) for r in rejection_events if r.get('symbol') in set(news_catalyst_symbols)},
             'top_candidates_by_source': {src: [x.get('symbol') for x in ranked if src in (x.get('sources') or [x.get('source', 'unknown')])][:5] for src in sorted(set([s for srcs in candidate_sources_map.values() for s in srcs]))},
             'rejected_candidate_source_counts': {src: len([r for r in rejection_events if r.get('source') == src]) for src in sorted(set([r.get('source','unknown') for r in rejection_events]))},
             'final_analyzed_symbols_with_source': [{'symbol': x.get('symbol'), 'source': x.get('source', 'unknown'), 'sources': x.get('sources') or [x.get('source', 'unknown')]} for x in ranked],
@@ -2453,6 +2536,8 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
             'final_candidate_count': len(symbols),
             'fallback_used': fallback_used,
             'fallback_reason': fallback_reason,
+            'fallback_used_reason_detail': fallback_reason_detail,
+            'primary_candidate_count_before_fallback': candidate_count_after_dedupe,
             'fallback_candidate_count': len(fallback_candidates),
             'candidate_count_after_fallback': len(symbols),
             'latest_top_5_raw_candidates_before_filters': [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols))[:5]],
