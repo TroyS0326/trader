@@ -841,3 +841,13 @@ Use `{{params.*}}` with: `first_name`, `report_date`, `summary_headline`, `trade
 
 ### Safety disclaimer
 XeanVI is trading workflow and execution-support software. This report is for educational and performance-review purposes only and is not financial advice. Trading involves risk and past performance does not guarantee future results.
+
+## Running targeted tests
+
+Use this bootstrap command sequence to install dependencies and run the targeted validation suite:
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pytest -q tests/test_scan_contract.py tests/test_execution_diagnostics.py tests/test_scanner_service.py tests/test_pytest_db_guard.py tests/test_onboarding_alpaca_oauth.py tests/test_live_mode_onboarding_unlock.py
+```
