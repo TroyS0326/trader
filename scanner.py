@@ -249,7 +249,9 @@ def apply_user_symbol_filters(
     snapshots: Dict[str, Any],
     quotes: Dict[str, Any],
     user: Optional[Any] = None,
+    candidate_source_map: Optional[Dict[str, str]] = None,
 ) -> List[str]:
+    candidate_source_map = candidate_source_map or {}
     if user is None:
         return symbols
 
@@ -475,7 +477,11 @@ def _asset_failure_reason(status_code: int | None, error: Exception | None = Non
     return 'INVALID_RESPONSE'
 
 
-def get_alpaca_asset_with_diagnostics(symbol: str, user: Optional[Any] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def get_alpaca_asset_with_diagnostics(
+    symbol: str,
+    user: Optional[Any] = None,
+    source: Optional[str] = None,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     token = None
     if user is not None:
         token = getattr(user, 'alpaca_live_access_token', None) or getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_access_token', None)
@@ -483,7 +489,7 @@ def get_alpaca_asset_with_diagnostics(symbol: str, user: Optional[Any] = None) -
     endpoint_used = f"{config.ALPACA_ASSETS_BASE}/v2/assets/{symbol}"
     diag = {
         'symbol': symbol,
-        'source': snapshot.get('_candidate_source', 'unknown'),
+        'source': source or 'unknown',
         'endpoint_used': endpoint_used,
         'auth_source': auth_source,
         'status_code': None,
@@ -1997,7 +2003,13 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
         raise ScanError('No symbols passed the refined universe gatekeeper.')
     snapshots = get_snapshots(symbols, feed=feed)
     quotes = get_latest_quotes(symbols, feed=feed)
-    symbols = apply_user_symbol_filters(symbols, snapshots, quotes, user=user)
+    symbols = apply_user_symbol_filters(
+        symbols,
+        snapshots,
+        quotes,
+        user=user,
+        candidate_source_map=candidate_source_map,
+    )
     candidate_count_after_user_filters = len(symbols)
     symbols_removed_by_user_filters = [s for s in list(dict.fromkeys(orb_symbols + momentum_symbols + fallback_candidates)) if s not in symbols]
     if not symbols or (len(symbols) == 1 and symbols[0] == 'SPY'):
@@ -2019,7 +2031,11 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
     asset_metadata_degraded_mode = False
     asset_lookup: Dict[str, Dict[str, Any]] = {}
     for symbol in symbols:
-        asset, asset_diag = get_alpaca_asset_with_diagnostics(symbol, user=user)
+        asset, asset_diag = get_alpaca_asset_with_diagnostics(
+            symbol,
+            user=user,
+            source=candidate_source_map.get(symbol, 'unknown'),
+        )
         asset_lookup[symbol] = asset
         asset_metadata_endpoint_used = asset_diag.get('endpoint_used') or asset_metadata_endpoint_used
         if asset:
@@ -2424,10 +2440,15 @@ def run_scan(user: Optional[Any] = None) -> Dict[str, Any]:
 
 
 
-def debug_asset_metadata_lookup(symbols: List[str], user: Optional[Any] = None) -> List[Dict[str, Any]]:
+def debug_asset_metadata_lookup(
+    symbols: List[str],
+    user: Optional[Any] = None,
+    source_map: Optional[Dict[str, str]] = None,
+) -> List[Dict[str, Any]]:
+    source_map = source_map or {}
     rows = []
     for symbol in symbols:
-        _, diag = get_alpaca_asset_with_diagnostics(symbol, user=user)
+        _, diag = get_alpaca_asset_with_diagnostics(symbol, user=user, source=source_map.get(symbol, 'unknown'))
         row = {k: diag.get(k) for k in ('symbol', 'endpoint_used', 'auth_source', 'ok', 'status_code', 'failure_reason', 'response_text_short')}
         rows.append(row)
         logger.info("asset_lookup symbol=%s endpoint=%s auth=%s ok=%s status=%s reason=%s response=%s", row['symbol'], row['endpoint_used'], row['auth_source'], row['ok'], row['status_code'], row['failure_reason'], row['response_text_short'])
