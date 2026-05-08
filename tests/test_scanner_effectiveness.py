@@ -623,3 +623,28 @@ def test_dashboard_template_renders_scanner_cards_and_watch_non_executable_copy(
     assert "id=\"scanner-oauth-health\"" in src
     assert "WATCH is non-executable" in src
     assert "PREMARKET_DOLLAR_VOLUME_TOO_LIGHT" in src
+
+
+def test_dashboard_template_scanner_operational_layout_hooks_present():
+    src = Path("templates/dashboard.html").read_text()
+    assert ".bottom-row > .full-width" in src
+    assert "scanner-ops-grid" in src
+    assert "scanner-metric-grid" in src
+    assert "scanner-confirmation-list" in src
+    assert "scanner-alpaca-health" in src
+
+
+def test_dashboard_js_humanizes_reconnect_and_avoids_raw_decision_json_rendering():
+    src = Path("templates/dashboard.html").read_text()
+    assert "function humanizeReconnectReason(code)" in src
+    assert "USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA" in src
+    assert "SERVER_KEYS_SUCCEEDED" in src
+    assert "HTTP_401" in src and "HTTP_403" in src
+    assert "function renderCountBadges(counts)" in src
+    assert "JSON.stringify(summary.decision_counts" not in src
+
+
+def test_dashboard_scanner_render_avoids_unescaped_innerhtml_for_backend_strings():
+    src = Path("templates/dashboard.html").read_text()
+    fn = src[src.index("function renderScannerEffectiveness") : src.index("async function refreshScannerEffectiveness")]
+    assert ".innerHTML" not in fn
