@@ -628,7 +628,14 @@
                 const result = await response.json();
 
                 if (!response.ok || result.ok === false) {
-                    alert(result.message || result.error || 'Unable to switch trading mode.');
+                    const message = result.message || result.error || 'Unable to switch trading mode.';
+                    if (message.includes('Connect Alpaca Live in onboarding')) {
+                        if (confirm(`${message}\n\nGo to onboarding now?`)) {
+                            window.location.href = '/onboarding';
+                            return;
+                        }
+                    }
+                    alert(message);
                     return;
                 }
 
