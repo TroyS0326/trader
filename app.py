@@ -2274,8 +2274,8 @@ def admin_blog_new():
             'featured_image_alt': (request.form.get('featured_image_alt') or '').strip(),
             'featured_image_caption': (request.form.get('featured_image_caption') or '').strip(),
         }
-        seo_report = _safe_seo_report({**form_data, 'title': title, 'slug': draft_slug, 'body_html': body_html}, requested_status)
-        human_quality_report = _safe_human_quality({**form_data, 'title': title, 'body_html': body_html})
+        seo_report = _safe_seo_report({**form_data, 'title': title, 'slug': draft_slug, 'body_html': body_html}, requested_status, context_label='new blog post')
+        human_quality_report = _safe_human_quality({**form_data, 'title': title, 'body_html': body_html}, context_label='new blog post')
         if action == 'apply_safe_fixes':
             fixed = apply_safe_seo_fixes(
                 title=form_data['title'],
@@ -2293,7 +2293,7 @@ def admin_blog_new():
             fixed_fields = fixed.get('fields', {})
             fixed_changes = fixed.get('changes', [])
             draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
-            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status)
+            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status, context_label='new blog post')
             needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
                 'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'no internal links', 'repeated phrase'
             ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
@@ -2308,7 +2308,7 @@ def admin_blog_new():
                     body_html=fixed_fields.get('body_html') or '',
                     target_keyword=fixed_fields.get('target_keyword') or '',
                     seo_report=seo_report,
-                    internal_link_suggestions=_safe_internal_links(fixed_fields),
+                    internal_link_suggestions=_safe_internal_links(fixed_fields, context_label='new blog post'),
                 )
                 if ai_cleanup.get('ok'):
                     fixed_fields.update(ai_cleanup.get('fields', {}))
@@ -2317,9 +2317,9 @@ def admin_blog_new():
                 elif ai_cleanup.get('error'):
                     fixed_changes.append(f"AI cleanup skipped: {ai_cleanup.get('error')}")
             draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
-            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status)
+            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status, context_label='new blog post')
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
-            internal_link_suggestions = _safe_internal_links(fixed_fields)
+            internal_link_suggestions = _safe_internal_links(fixed_fields, context_label='new blog post')
             return render_template(
                 'admin_blog_form.html',
                 post=None,
@@ -2329,15 +2329,15 @@ def admin_blog_new():
                 unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
-                human_quality_report=_safe_human_quality(fixed_fields),
+                human_quality_report=_safe_human_quality(fixed_fields, context_label='new blog post'),
             )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, context_label='new blog post')
             return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, context_label='new blog post')
             return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         slug = unique_blog_slug(slug_input or title)
@@ -2347,7 +2347,7 @@ def admin_blog_new():
             upload_result = save_blog_featured_image(upload_file, slug)
             if not upload_result.get('ok'):
                 flash(upload_result.get('error') or 'Featured image upload failed.', 'error')
-                internal_link_suggestions = _safe_internal_links(form_data)
+                internal_link_suggestions = _safe_internal_links(form_data, context_label='new blog post')
                 return render_template('admin_blog_form.html', post=None, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
             og_image_value = upload_result.get('url') or og_image_value
             flash('Featured image uploaded.', 'success')
@@ -2360,7 +2360,7 @@ def admin_blog_new():
                     body_html=body_html,
                 ) or {}
             except Exception:
-                app.logger.exception('Image metadata helper failed for blog post %s', post.id)
+                app.logger.exception('Image metadata helper failed for %s', 'new blog post')
                 flash('Image alt/caption generation is temporarily unavailable.', 'error')
                 generated_image_meta = {}
             if not form_data['featured_image_alt']:
@@ -2507,68 +2507,79 @@ def admin_blog_delete(post_id):
     flash('Blog post deleted.', 'success')
     return redirect(url_for('admin_blog_list'))
 
+
+def _blog_context_label(post_id=None, context_label=None):
+    if context_label:
+        return context_label
+    if post_id is not None:
+        return f'blog post {post_id}'
+    return 'blog post'
+
+
+def _safe_internal_links(data, post_id=None, context_label=None):
+    try:
+        return suggest_internal_links(
+            title=(data.get('title') or ''),
+            target_keyword=(data.get('target_keyword') or ''),
+            excerpt=(data.get('excerpt') or ''),
+            body_html=(data.get('body_html') or ''),
+        ) or []
+    except Exception:
+        app.logger.exception('Internal link suggestion helper failed for %s', _blog_context_label(post_id=post_id, context_label=context_label))
+        flash('Internal link suggestions are temporarily unavailable.', 'error')
+        return []
+
+
+def _safe_human_quality(data, post_id=None, context_label=None):
+    try:
+        report = analyze_human_quality(
+            title=(data.get('title') or ''),
+            excerpt=(data.get('excerpt') or ''),
+            body_html=(data.get('body_html') or ''),
+            target_keyword=(data.get('target_keyword') or ''),
+        ) or {}
+    except Exception:
+        app.logger.exception('Human quality helper failed for %s', _blog_context_label(post_id=post_id, context_label=context_label))
+        flash('Human-quality analysis is temporarily unavailable.', 'error')
+        report = {}
+    return {
+        'score': int(report.get('score') or 0),
+        'status': report.get('status') or 'unknown',
+        'warnings': report.get('warnings') or [],
+        'suggestions': report.get('suggestions') or [],
+        'strengths': report.get('strengths') or [],
+        'metrics': report.get('metrics') or {},
+    }
+
+
+def _safe_seo_report(data, status, post_id=None, context_label=None):
+    try:
+        report = analyze_blog_post_seo(
+            title=(data.get('title') or ''), slug=(data.get('slug') or ''), meta_title=(data.get('meta_title') or ''),
+            meta_description=(data.get('meta_description') or ''), excerpt=(data.get('excerpt') or ''),
+            body_html=(data.get('body_html') or ''), target_keyword=(data.get('target_keyword') or ''),
+            canonical_url=(data.get('canonical_url') or ''), status=status, og_image=(data.get('og_image') or ''),
+            featured_image_alt=(data.get('featured_image_alt') or ''),
+        ) or {}
+    except Exception:
+        app.logger.exception('SEO helper failed for %s', _blog_context_label(post_id=post_id, context_label=context_label))
+        flash('SEO analysis is temporarily unavailable.', 'error')
+        report = {}
+    return {
+        'status': report.get('status') or 'ok',
+        'score': report.get('score') if report.get('score') is not None else 0,
+        'warnings': report.get('warnings') or [],
+        'suggestions': report.get('suggestions') or [],
+        'blocking_issues': report.get('blocking_issues') or [],
+        'metrics': report.get('metrics') or {},
+    }
+
 @app.route('/admin/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_blog_edit(post_id):
     if not is_admin_user():
         return ("Forbidden", 403)
     post = BlogPost.query.get_or_404(post_id)
-
-    def _safe_internal_links(data):
-        try:
-            return suggest_internal_links(
-                title=(data.get('title') or ''),
-                target_keyword=(data.get('target_keyword') or ''),
-                excerpt=(data.get('excerpt') or ''),
-                body_html=(data.get('body_html') or ''),
-            ) or []
-        except Exception:
-            app.logger.exception('Internal link suggestion helper failed for blog post %s', post.id)
-            flash('Internal link suggestions are temporarily unavailable.', 'error')
-            return []
-
-    def _safe_human_quality(data):
-        try:
-            report = analyze_human_quality(
-                title=(data.get('title') or ''),
-                excerpt=(data.get('excerpt') or ''),
-                body_html=(data.get('body_html') or ''),
-                target_keyword=(data.get('target_keyword') or ''),
-            ) or {}
-        except Exception:
-            app.logger.exception('Human quality helper failed for blog post %s', post.id)
-            flash('Human-quality analysis is temporarily unavailable.', 'error')
-            report = {}
-        return {
-            'score': int(report.get('score') or 0),
-            'status': report.get('status') or 'unknown',
-            'warnings': report.get('warnings') or [],
-            'suggestions': report.get('suggestions') or [],
-            'strengths': report.get('strengths') or [],
-            'metrics': report.get('metrics') or {},
-        }
-
-    def _safe_seo_report(data, status):
-        try:
-            report = analyze_blog_post_seo(
-                title=(data.get('title') or ''), slug=(data.get('slug') or ''), meta_title=(data.get('meta_title') or ''),
-                meta_description=(data.get('meta_description') or ''), excerpt=(data.get('excerpt') or ''),
-                body_html=(data.get('body_html') or ''), target_keyword=(data.get('target_keyword') or ''),
-                canonical_url=(data.get('canonical_url') or ''), status=status, og_image=(data.get('og_image') or ''),
-                featured_image_alt=(data.get('featured_image_alt') or ''),
-            ) or {}
-        except Exception:
-            app.logger.exception('SEO helper failed for blog post %s', post.id)
-            flash('SEO analysis is temporarily unavailable.', 'error')
-            report = {}
-        return {
-            'status': report.get('status') or 'ok',
-            'score': report.get('score') if report.get('score') is not None else 0,
-            'warnings': report.get('warnings') or [],
-            'suggestions': report.get('suggestions') or [],
-            'blocking_issues': report.get('blocking_issues') or [],
-            'metrics': report.get('metrics') or {},
-        }
 
     if request.method == 'POST':
         action = (request.form.get('action') or '').strip().lower()
@@ -2592,8 +2603,8 @@ def admin_blog_edit(post_id):
             'featured_image_alt': (request.form.get('featured_image_alt') or '').strip(),
             'featured_image_caption': (request.form.get('featured_image_caption') or '').strip(),
         }
-        seo_report = _safe_seo_report({**form_data, 'title': title, 'slug': draft_slug, 'body_html': body_html}, requested_status)
-        human_quality_report = _safe_human_quality({**form_data, 'title': title, 'body_html': body_html})
+        seo_report = _safe_seo_report({**form_data, 'title': title, 'slug': draft_slug, 'body_html': body_html}, requested_status, post_id=post.id)
+        human_quality_report = _safe_human_quality({**form_data, 'title': title, 'body_html': body_html}, post_id=post.id)
         if action == 'apply_safe_fixes':
             fixed = apply_safe_seo_fixes(
                 title=form_data['title'],
@@ -2611,7 +2622,7 @@ def admin_blog_edit(post_id):
             fixed_fields = fixed.get('fields', {})
             fixed_changes = fixed.get('changes', [])
             draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
-            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status)
+            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status, post_id=post.id)
             needs_ai_cleanup = any(any(token in (item or '').lower() for token in [
                 'risky claim', 'target keyword is missing', 'does not reference xeanvi', 'add 1–3 relevant internal links', 'add 1-3 relevant internal links', 'no internal links', 'repeated phrase'
             ]) for item in (seo_report.get('warnings', []) + seo_report.get('suggestions', [])))
@@ -2626,7 +2637,7 @@ def admin_blog_edit(post_id):
                     body_html=fixed_fields.get('body_html') or '',
                     target_keyword=fixed_fields.get('target_keyword') or '',
                     seo_report=seo_report,
-                    internal_link_suggestions=_safe_internal_links(fixed_fields),
+                    internal_link_suggestions=_safe_internal_links(fixed_fields, post_id=post.id),
                 )
                 if ai_cleanup.get('ok'):
                     fixed_fields.update(ai_cleanup.get('fields', {}))
@@ -2635,9 +2646,9 @@ def admin_blog_edit(post_id):
                 elif ai_cleanup.get('error'):
                     fixed_changes.append(f"AI cleanup skipped: {ai_cleanup.get('error')}")
             draft_slug = fixed_fields.get('slug') or slugify_blog_title(fixed_fields.get('title') or '')
-            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status)
+            seo_report = _safe_seo_report({**fixed_fields, 'slug': draft_slug}, requested_status, post_id=post.id)
             flash('Safe SEO fixes applied. Review changes before saving or publishing.', 'success')
-            internal_link_suggestions = _safe_internal_links(fixed_fields)
+            internal_link_suggestions = _safe_internal_links(fixed_fields, post_id=post.id)
             return render_template(
                 'admin_blog_form.html',
                 post=post,
@@ -2647,15 +2658,15 @@ def admin_blog_edit(post_id):
                 unapplied_suggestions=fixed.get('unapplied_suggestions', []),
                 draft_generated=False,
                 internal_link_suggestions=internal_link_suggestions,
-                human_quality_report=_safe_human_quality(fixed_fields),
+                human_quality_report=_safe_human_quality(fixed_fields, post_id=post.id),
             )
         if action == 'check_seo':
             flash('SEO check complete. Review issues below.', 'success')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, post_id=post.id)
             return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
         if action == 'publish' and seo_report['status'] == 'blocked':
             flash('Publishing blocked. Fix the SEO/compliance issues below first.', 'error')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, post_id=post.id)
             return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
         prev_status = post.status
@@ -2669,7 +2680,7 @@ def admin_blog_edit(post_id):
                 upload_result = {'ok': False, 'error': 'Featured image upload failed unexpectedly.'}
             if not upload_result.get('ok'):
                 flash(upload_result.get('error') or 'Featured image upload failed.', 'error')
-                internal_link_suggestions = _safe_internal_links(form_data)
+                internal_link_suggestions = _safe_internal_links(form_data, post_id=post.id)
                 return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
             og_image_value = upload_result.get('url') or og_image_value
             flash('Featured image uploaded.', 'success')
@@ -2716,13 +2727,13 @@ def admin_blog_edit(post_id):
             db.session.rollback()
             app.logger.exception('Failed to update blog post %s due to integrity error', post.id)
             flash('Unable to update post. Another post may already be using this slug.', 'error')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, post_id=post.id)
             return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report), 400
         except Exception:
             db.session.rollback()
             app.logger.exception('Unexpected error while updating blog post %s', post.id)
             flash('Unexpected error while updating blog post. Please try again.', 'error')
-            internal_link_suggestions = _safe_internal_links(form_data)
+            internal_link_suggestions = _safe_internal_links(form_data, post_id=post.id)
             return render_template('admin_blog_form.html', post=post, form_data=form_data, seo_report=seo_report, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report), 500
         warned = False
         if requested_status == 'published' and seo_report.get('status') == 'needs_work':
@@ -2734,8 +2745,8 @@ def admin_blog_edit(post_id):
         if not warned:
             flash('Blog post updated.', 'success')
         return redirect(url_for('admin_blog_edit', post_id=post.id))
-    internal_link_suggestions = _safe_internal_links({'title': post.title, 'target_keyword': post.target_keyword, 'excerpt': post.excerpt, 'body_html': post.body_html})
-    human_quality_report = _safe_human_quality({'title': post.title, 'excerpt': post.excerpt, 'body_html': post.body_html, 'target_keyword': post.target_keyword})
+    internal_link_suggestions = _safe_internal_links({'title': post.title, 'target_keyword': post.target_keyword, 'excerpt': post.excerpt, 'body_html': post.body_html}, post_id=post.id)
+    human_quality_report = _safe_human_quality({'title': post.title, 'excerpt': post.excerpt, 'body_html': post.body_html, 'target_keyword': post.target_keyword}, post_id=post.id)
     return render_template('admin_blog_form.html', post=post, internal_link_suggestions=internal_link_suggestions, human_quality_report=human_quality_report)
 
 
