@@ -424,3 +424,16 @@ def test_scanner_effectiveness_exposes_watch_diagnostics(monkeypatch):
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["active_watch_candidate_count"] == 2
     assert report["best_active_watch_symbol"] == "RXT"
+
+
+def test_report_has_watch_top_level_fields_when_scan_diagnostics_empty(monkeypatch):
+    row = {"id": 999, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 1, "scan_attribution_version": 1, "scan_diagnostics": {}, "best_pick": {"symbol": "AAPL", "decision": "SKIP"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {"latest_watch_recheck_summary": json.dumps({"checked_count": 7, "execution_attempted": False})})
+    _stub_user_query(monkeypatch)
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 1, "latest_watch_candidates": [{"symbol": "RXT", "status": "ACTIVE", "missing_buy_confirmations": ["VWAP_TREND_NOT_ALIGNED"]}], "latest_watch_recheck_summary": {"checked_count": 7, "execution_attempted": False}, "watch_promoted_count_today": 0, "watch_expired_count_today": 0, "watch_top_blockers": [["VWAP_TREND_NOT_ALIGNED", 1]], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["active_watch_candidate_count"] == 1
+    assert report["latest_watch_candidates"][0]["symbol"] == "RXT"
+    assert report["latest_watch_recheck_summary"]["checked_count"] == 7

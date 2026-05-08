@@ -188,10 +188,11 @@ def _load_scans(user: Optional[Any], limit: int) -> tuple[list[dict], dict[int, 
 
 
 def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
+    from app import redis_client
     q = WatchCandidate.query
     if user is not None:
         q = q.filter_by(user_id=int(user.id))
-    active = q.filter_by(status='ACTIVE').all()
+    active = q.filter_by(status='ACTIVE').order_by(WatchCandidate.last_seen_at.desc()).all()
     today = datetime.now(timezone.utc).date()
     promoted_today = q.filter(WatchCandidate.status=='PROMOTED').all()
     expired_today = q.filter(WatchCandidate.status=='EXPIRED').all()
@@ -203,9 +204,33 @@ def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
             codes = json.loads(row.latest_skip_reason_codes_json or '[]')
         except Exception:
             pass
-        for c in codes: blockers[str(c)] += 1
-        latest.append({'symbol': row.symbol, 'missing_buy_confirmations': json.loads(row.missing_buy_confirmations_json or '[]') if row.missing_buy_confirmations_json else [], 'latest_score_total': row.latest_score_total, 'status': row.status})
+        for c in codes:
+            blockers[str(c)] += 1
+        latest.append({
+            'symbol': row.symbol,
+            'status': row.status,
+            'latest_decision': row.latest_decision,
+            'latest_setup_grade': row.latest_setup_grade,
+            'latest_score_total': row.latest_score_total,
+            'latest_catalyst_score': row.latest_catalyst_score,
+            'latest_liquidity_score': row.latest_liquidity_score,
+            'latest_vwap_score': row.latest_vwap_score,
+            'missing_buy_confirmations': json.loads(row.missing_buy_confirmations_json or '[]') if row.missing_buy_confirmations_json else [],
+            'last_seen_at': row.last_seen_at.isoformat() if row.last_seen_at else None,
+            'last_recheck_at': row.last_recheck_at.isoformat() if row.last_recheck_at else None,
+            'expires_at': row.expires_at.isoformat() if row.expires_at else None,
+            'source': row.source,
+            'sources': json.loads(row.sources_json or '[]') if row.sources_json else [],
+        })
     best = sorted(active, key=lambda r: int(r.latest_score_total or 0), reverse=True)[0] if active else None
+    summary_key = f'latest_watch_recheck_summary:user:{int(user.id)}' if user is not None else 'latest_watch_recheck_summary'
+    latest_recheck_summary = None
+    try:
+        raw = redis_client.get(summary_key)
+        if raw:
+            latest_recheck_summary = json.loads(raw)
+    except Exception:
+        latest_recheck_summary = None
     return {
         'active_watch_candidate_count': len(active),
         'latest_watch_candidates': latest,
@@ -214,9 +239,12 @@ def _watch_snapshot(user: Optional[Any] = None) -> Dict[str, Any]:
         'watch_top_blockers': blockers.most_common(10),
         'best_active_watch_symbol': best.symbol if best else None,
         'best_active_watch_missing_confirmations': json.loads(best.missing_buy_confirmations_json or '[]') if best and best.missing_buy_confirmations_json else [],
-        'latest_watch_recheck_summary': None,
+        'latest_watch_recheck_summary': latest_recheck_summary,
     }
+
+
 def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 50) -> Dict[str, Any]:
+    watch_snapshot = _watch_snapshot(user=user)
     scans, latest_by_user = _load_scans(user=user, limit=limit)
     all_scans = list(scans)
     seen: set[tuple[Any, Any]] = set()
@@ -602,6 +630,14 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
         "latest_asset_metadata_degraded_rejection_counts": latest_diag.get("asset_metadata_degraded_rejection_counts"),
         "latest_asset_metadata_degraded_rejection_samples": latest_diag.get("asset_metadata_degraded_rejection_samples"),
         "latest_data_starvation_summary": data_starvation_summary,
+        "active_watch_candidate_count": watch_snapshot.get("active_watch_candidate_count", 0),
+        "latest_watch_candidates": watch_snapshot.get("latest_watch_candidates", []),
+        "latest_watch_recheck_summary": watch_snapshot.get("latest_watch_recheck_summary"),
+        "watch_promoted_count_today": watch_snapshot.get("watch_promoted_count_today", 0),
+        "watch_expired_count_today": watch_snapshot.get("watch_expired_count_today", 0),
+        "watch_top_blockers": watch_snapshot.get("watch_top_blockers", []),
+        "best_active_watch_symbol": watch_snapshot.get("best_active_watch_symbol"),
+        "best_active_watch_missing_confirmations": watch_snapshot.get("best_active_watch_missing_confirmations", []),
         "sample_recent_failures": failures,
         "primary_blocker_summary": primary_blocker_summary,
         "recommended_next_action": recommended_next_action,
