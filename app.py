@@ -3031,6 +3031,13 @@ def api_execution_readiness():
         diag['execution_ready'] = False
 
     payload = {
+        'active_mode': diag.get('active_mode', getattr(current_user, 'trading_mode', 'paper')),
+        'execution_ready': diag.get('execution_ready'),
+        'paper_execution_ready': diag.get('paper_execution_ready'),
+        'live_execution_ready': diag.get('live_execution_ready'),
+        'paper_blocked_reasons': diag.get('paper_blocked_reasons', []),
+        'live_blocked_reasons': diag.get('live_blocked_reasons', []),
+        'active_mode_blocked_reasons': diag.get('active_mode_blocked_reasons', []),
         'execution_enabled': env_bool('CENTRAL_SCANNER_EXECUTION_ENABLED', False),
         'live_execution_enabled': env_bool('CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED', False),
         'user_is_pro': str(getattr(current_user, 'subscription_status', 'free')).lower() == 'pro',

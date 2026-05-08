@@ -74,7 +74,7 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
     }
 
     if not diag.get("execution_ready"):
-        for reason in diag.get("blocked_reasons", []):
+        for reason in diag.get("active_mode_blocked_reasons", diag.get("blocked_reasons", [])):
             logger.info("Execution skipped. reason=%s ctx=%s", reason.get("code"), base_ctx)
         return
 
@@ -213,15 +213,23 @@ def diagnose_execution_readiness() -> None:
                 latest_payload = {}
 
             diag = evaluate_execution_readiness(user, latest_payload)
-            reasons = [r["code"] for r in diag["blocked_reasons"]]
+            paper_reasons = [r["code"] for r in diag.get("paper_blocked_reasons", [])]
+            live_reasons = [r["code"] for r in diag.get("live_blocked_reasons", [])]
+            active_reasons = [r["code"] for r in diag.get("active_mode_blocked_reasons", [])]
             if not latest_payload:
-                reasons.append("NO_RECENT_SCAN")
+                paper_reasons.append("NO_RECENT_SCAN")
+                live_reasons.append("NO_RECENT_SCAN")
+                active_reasons.append("NO_RECENT_SCAN")
             logger.info(
-                "Execution readiness user_id=%s mode=%s ready=%s reasons=%s symbol=%s decision=%s qty=%s scan_id=%s",
+                "Execution readiness user_id=%s active_mode=%s paper_ready=%s live_ready=%s active_ready=%s paper_reason_codes=%s live_reason_codes=%s active_reason_codes=%s symbol=%s decision=%s qty=%s scan_id=%s",
                 user.id,
-                diag["trading_mode"],
+                diag.get("active_mode", diag.get("trading_mode")),
+                diag.get("paper_execution_ready"),
+                diag.get("live_execution_ready"),
                 diag["execution_ready"],
-                reasons,
+                paper_reasons,
+                live_reasons,
+                active_reasons,
                 diag.get("symbol"),
                 diag.get("decision"),
                 diag.get("qty"),

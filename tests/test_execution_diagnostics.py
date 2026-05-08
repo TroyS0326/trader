@@ -57,7 +57,7 @@ def test_all_other_gates(monkeypatch):
     assert 'LIVE_NOT_CONNECTED' in _codes(evaluate_execution_readiness(_user(trading_mode='live', alpaca_live_access_token=None, alpaca_live_account_id=None), _payload()))
     assert 'PAPER_BANKROLL_NOT_SET' in _codes(evaluate_execution_readiness(_user(paper_bankroll_set=False), _payload()))
     assert 'PAPER_BANKROLL_ZERO' in _codes(evaluate_execution_readiness(_user(paper_bankroll=0), _payload()))
-    assert 'ONBOARDING_NOT_COMPLETED' in _codes(evaluate_execution_readiness(_user(onboarding_completed=False), _payload()))
+    assert 'LIVE_ONBOARDING_NOT_COMPLETED' in _codes(evaluate_execution_readiness(_user(trading_mode='live', onboarding_completed=False), _payload()))
     assert 'DECISION_NOT_ELIGIBLE' in _codes(evaluate_execution_readiness(_user(), _payload(decision='WAIT')))
     assert 'MISSING_ORDER_FIELDS' in _codes(evaluate_execution_readiness(_user(), _payload(entry_price=None)))
     assert 'QTY_BELOW_1' in _codes(evaluate_execution_readiness(_user(), _payload(qty=0)))
@@ -80,3 +80,29 @@ def test_ready(monkeypatch):
     assert d['order_fields'] == {
         'symbol': 'AAPL', 'qty': 2, 'entry_price': 10.0, 'stop_price': 9.0, 'target_1': 11.0, 'target_2': 12.0,
     }
+
+
+def test_paper_ready_without_live_connection_or_onboarding(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '1')
+    monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: True)
+    d = evaluate_execution_readiness(_user(alpaca_live_access_token=None, alpaca_live_account_id=None, onboarding_completed=False, trading_mode='paper'), _payload())
+    assert d['paper_execution_ready'] is True
+    assert d['execution_ready'] is True
+
+
+def test_paper_blocked_when_token_missing(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: True)
+    d = evaluate_execution_readiness(_user(alpaca_access_token=None, alpaca_paper_access_token=None), _payload())
+    assert 'NO_ACTIVE_ALPACA_TOKEN' in _codes(d)
+
+
+def test_live_ready_only_with_live_flags(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '1')
+    monkeypatch.setenv('CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED', '1')
+    monkeypatch.setenv('CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: True)
+    d = evaluate_execution_readiness(_user(trading_mode='live', onboarding_completed=True), _payload())
+    assert d['live_execution_ready'] is True
+    assert d['execution_ready'] is True
