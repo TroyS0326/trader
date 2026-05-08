@@ -202,10 +202,16 @@ def build_scanner_effectiveness_report(user: Optional[Any] = None, limit: int = 
             bucket_floor = int(score_total // 10) * 10
             score_total_buckets[f"{bucket_floor:02d}-{bucket_floor + 9:02d}"] += 1
         details = best_pick.get("details") if isinstance(best_pick.get("details"), dict) else {}
+        deduped_skip_reasons: list[str] = []
         for reason in details.get("skip_reasons") or []:
-            skip_reason_counts[str(reason)] += 1
-        if details.get("skip_reason"):
-            skip_reason_counts[str(details.get("skip_reason"))] += 1
+            reason_text = str(reason)
+            if reason_text and reason_text not in deduped_skip_reasons:
+                deduped_skip_reasons.append(reason_text)
+        single_skip_reason = str(details.get("skip_reason") or "").strip()
+        if single_skip_reason and single_skip_reason not in deduped_skip_reasons:
+            deduped_skip_reasons.append(single_skip_reason)
+        for reason in deduped_skip_reasons:
+            skip_reason_counts[reason] += 1
         component_scores = best_pick.get("scores") if isinstance(best_pick.get("scores"), dict) else {}
         for key, value in component_scores.items():
             if isinstance(value, (int, float)):

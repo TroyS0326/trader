@@ -147,6 +147,31 @@ def test_effectiveness_aggregates_skip_reasons_and_attribution(monkeypatch):
     assert report["setup_grade_counts"]["NO TRADE"] == 1
 
 
+def test_effectiveness_skip_reason_counts_deduped_per_scan(monkeypatch):
+    row = {
+        "id": 42,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "payload_json": json.dumps({
+            "user_id": 9,
+            "best_pick": {
+                "symbol": "ATRA",
+                "decision": "SKIP",
+                "setup_grade": "NO TRADE",
+                "details": {
+                    "skip_reason": "BUY_WINDOW_CLOSED",
+                    "skip_reasons": ["BUY_WINDOW_CLOSED", "BUY_WINDOW_CLOSED", "SETUP_GRADE_NO_TRADE"],
+                },
+            },
+        }),
+    }
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["skip_reason_counts"]["BUY_WINDOW_CLOSED"] == 1
+
+
 def test_effectiveness_detects_dominant_symbol(monkeypatch):
     rows = []
     for i in range(10):
