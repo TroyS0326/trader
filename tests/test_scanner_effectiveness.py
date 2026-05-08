@@ -595,3 +595,31 @@ def test_recommended_action_active_watch_no_executable(monkeypatch):
     assert report["recommended_next_action"] == "Active WATCH candidate exists; continue rechecking until missing confirmations clear."
     assert report["has_recent_operational_scans"] is True
     assert report["recent_operational_scan_window_used"] == "recent_15m"
+
+
+def test_api_scanner_effectiveness_includes_dashboard_watch_and_health_fields(monkeypatch):
+    row = {"id": 70, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 77, "scan_attribution_version": 1, "scan_diagnostics": {"alpaca_user_oauth_asset_metadata_health": "unauthorized", "alpaca_asset_metadata_reconnect_required": True, "alpaca_asset_metadata_reconnect_reason": "USER_OAUTH_UNAUTHORIZED_FOR_ASSET_METADATA", "alpaca_asset_metadata_server_fallback_success_count": 22, "asset_metadata_degraded_mode": False}, "best_pick": {"symbol": "RXT", "decision": "WATCH", "setup_grade": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=50: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    monkeypatch.setattr(scanner_effectiveness, "_watch_snapshot", lambda user=None: {"active_watch_candidate_count": 1, "latest_watch_candidates": [{"symbol": "RXT", "status": "ACTIVE"}], "best_active_watch_symbol": "RXT", "best_active_watch_missing_confirmations": ["VWAP_TREND_NOT_ALIGNED"]})
+    user = SimpleNamespace(id=77, is_authenticated=True)
+    monkeypatch.setattr(app_module, "current_user", user)
+    monkeypatch.setattr(app_module, "is_admin_user", lambda: False)
+    with app_module.app.test_request_context('/api/scanner/effectiveness?limit=50', method='GET'):
+        payload = app_module.api_scanner_effectiveness_v2.__wrapped__().get_json()["data"]
+    assert payload["current_dashboard_summary"]["latest_symbol"] == "RXT"
+    assert payload["current_dashboard_summary"]["latest_decision"] == "WATCH"
+    assert payload["active_watch_candidate_count"] == 1
+    assert payload["best_active_watch_symbol"] == "RXT"
+    assert payload["latest_alpaca_user_oauth_asset_metadata_health"] == "unauthorized"
+    assert payload["latest_alpaca_asset_metadata_reconnect_required"] is True
+
+
+def test_dashboard_template_renders_scanner_cards_and_watch_non_executable_copy():
+    src = Path("templates/dashboard.html").read_text()
+    assert "id=\"scanner-current-decision\"" in src
+    assert "id=\"scanner-active-watch\"" in src
+    assert "id=\"scanner-oauth-health\"" in src
+    assert "WATCH is non-executable" in src
+    assert "PREMARKET_DOLLAR_VOLUME_TOO_LIGHT" in src
