@@ -163,3 +163,12 @@ def test_readiness_includes_scan_contract(monkeypatch):
     d = evaluate_execution_readiness(_user(), _payload())
     assert "scan_contract" in d
     assert d["scan_contract"]["has_best_pick"] is True
+
+
+def test_action_alias_normalized_for_decision_and_order_fields(monkeypatch):
+    monkeypatch.setenv('CENTRAL_SCANNER_EXECUTION_ENABLED', '1')
+    monkeypatch.setattr('execution_diagnostics.buy_window_open', lambda: True)
+    payload = {'best_pick': {'ticker': 'tsla', 'action': 'BUY NOW', 'shares': '2', 'entry': '100', 'stop': '95', 'target_1_price': '105', 'target_2_price': '110'}}
+    d = evaluate_execution_readiness(_user(), payload)
+    assert d['decision'] == 'BUY NOW'
+    assert d['order_fields'] == {'symbol': 'TSLA', 'qty': 2, 'entry_price': 100.0, 'stop_price': 95.0, 'target_1': 105.0, 'target_2': 110.0}
