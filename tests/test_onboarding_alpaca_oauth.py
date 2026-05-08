@@ -32,7 +32,8 @@ REQUIRED_DISCLOSURE_TEXT = (
 
 def _normalize_rendered_text(html: str) -> str:
     without_tags = re.sub(r"<[^>]+>", " ", html)
-    return " ".join(without_tags.split())
+    normalized = " ".join(without_tags.split())
+    return re.sub(r"\s+([.,;:!?])", r"\1", normalized)
 
 
 def _user(**overrides):
