@@ -146,3 +146,10 @@ def test_ensure_schema_migrations_uses_safe_boolean_defaults():
     fn = source[source.index('def ensure_schema_migrations()'):source.index('ensure_db_initialized()')]
     assert 'BOOLEAN NOT NULL DEFAULT 0' not in fn
     assert 'BOOLEAN NOT NULL DEFAULT 1' not in fn
+
+
+def test_watch_candidate_is_imported_and_migrated():
+    source = Path(app_module.__file__).read_text()
+    assert 'from models import BlogPost, BlogPublishingPlan, User, UserEvent, StripeEvent, Trade, DailyReportEmailLog, WatchCandidate' in source
+    fn = source[source.index('def ensure_schema_migrations()'):source.index('ensure_db_initialized()')]
+    assert 'WatchCandidate.__table__.create(bind=db.engine, checkfirst=True)' in fn
