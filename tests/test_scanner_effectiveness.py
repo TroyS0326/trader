@@ -338,6 +338,8 @@ def test_recommended_action_uses_recent_scope(monkeypatch):
     with app_module.app.app_context():
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=20)
     assert report["recommended_next_action"] == "No recent attributed scans; run a fresh user scan."
+    assert report["has_recent_operational_scans"] is False
+    assert report["recent_operational_scan_window_used"] == "none"
 
 
 def test_report_exposes_degraded_asset_metadata_fields(monkeypatch):
@@ -591,3 +593,5 @@ def test_recommended_action_active_watch_no_executable(monkeypatch):
     with app_module.app.app_context():
         report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
     assert report["recommended_next_action"] == "Active WATCH candidate exists; continue rechecking until missing confirmations clear."
+    assert report["has_recent_operational_scans"] is True
+    assert report["recent_operational_scan_window_used"] == "recent_15m"
