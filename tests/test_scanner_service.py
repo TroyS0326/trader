@@ -57,6 +57,62 @@ def test_dispatch_ready_calls_celery_with_diag_order_fields(monkeypatch):
     assert called['args'] == (1, 1, 'MSFT', 3, 100.0, 99.0, 101.0, 102.0)
 
 
+def test_dispatch_paper_ready_even_if_live_not_connected(monkeypatch):
+    called = {'v': False}
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            called['v'] = True
+
+    diag = {
+        'execution_ready': True,
+        'active_mode': 'paper',
+        'paper_execution_ready': True,
+        'live_execution_ready': False,
+        'active_mode_blocked_reasons': [],
+        'paper_blocked_reasons': [],
+        'live_blocked_reasons': [{'code': 'LIVE_NOT_CONNECTED'}],
+        'trading_mode': 'paper',
+        'symbol': 'AAPL',
+        'decision': 'BUY NOW',
+        'qty': 1,
+        'order_fields': {'symbol': 'AAPL', 'qty': 1, 'entry_price': 10.0, 'stop_price': 9.0, 'target_1': 11.0, 'target_2': 12.0},
+    }
+    monkeypatch.setattr(scanner_service, 'evaluate_execution_readiness', lambda *a, **k: diag)
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {'scan_id': 1, 'best_pick': {}})
+    assert called['v'] is True
+
+
+def test_dispatch_live_blocked_does_not_call_celery(monkeypatch):
+    called = {'v': False}
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            called['v'] = True
+
+    diag = {
+        'execution_ready': False,
+        'active_mode': 'live',
+        'paper_execution_ready': True,
+        'live_execution_ready': False,
+        'active_mode_blocked_reasons': [{'code': 'LIVE_NOT_CONNECTED'}],
+        'paper_blocked_reasons': [],
+        'live_blocked_reasons': [{'code': 'LIVE_NOT_CONNECTED'}],
+        'trading_mode': 'live',
+        'symbol': 'AAPL',
+        'decision': 'BUY NOW',
+        'qty': 1,
+        'order_fields': None,
+    }
+    monkeypatch.setattr(scanner_service, 'evaluate_execution_readiness', lambda *a, **k: diag)
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {'scan_id': 1, 'best_pick': {}})
+    assert called['v'] is False
+
+
 def test_execution_readiness_endpoint_no_secrets_and_no_recent_scan(monkeypatch):
     import app as app_module
 
@@ -85,3 +141,8 @@ def test_execution_readiness_endpoint_no_secrets_and_no_recent_scan(monkeypatch)
         codes = {r['code'] for r in data['latest_scan_evaluation']['blocked_reasons']}
         assert 'NO_RECENT_SCAN' in codes
         assert data['latest_scan_evaluation']['execution_ready'] is False
+        assert 'paper_execution_ready' in data
+        assert 'live_execution_ready' in data
+        assert 'paper_blocked_reasons' in data
+        assert 'live_blocked_reasons' in data
+        assert 'active_mode_blocked_reasons' in data

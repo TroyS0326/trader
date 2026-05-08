@@ -85,7 +85,7 @@ def extract_order_fields(best_pick: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return normalized
 
 
-def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dict[str, Any]:
+def _evaluate_mode_readiness(user: Any, scan_payload: Dict[str, Any], mode: str) -> Dict[str, Any]:
     reasons: List[Dict[str, str]] = []
 
     def add(code: str, message: str):
@@ -95,7 +95,7 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
     live_exec_enabled = env_bool("CENTRAL_SCANNER_LIVE_EXECUTION_ENABLED", False)
     require_onboarding = env_bool("CENTRAL_SCANNER_REQUIRE_COMPLETED_ONBOARDING", True)
     window_open = buy_window_open()
-    trading_mode = str(getattr(user, "trading_mode", "paper") or "paper").strip().lower()
+    trading_mode = mode
 
     best_pick = extract_best_pick(scan_payload)
     decision = str(best_pick.get("decision") or best_pick.get("setup_grade") or "").upper().strip()
@@ -113,8 +113,28 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         has_active_token = has_active_token or bool(getattr(user, "alpaca_live_access_token", None))
     if not has_active_token:
         add("NO_ACTIVE_ALPACA_TOKEN", "No active Alpaca token for the selected trading mode.")
-    for code in onboarding_missing_codes(user, trading_mode, require_onboarding):
-        add(code, f"Missing requirement: {code}")
+
+    if trading_mode == "paper":
+        if not user_has_alpaca_paper_connection(user):
+            add("PAPER_NOT_CONNECTED", "Missing requirement: PAPER_NOT_CONNECTED")
+        if not bool(getattr(user, "paper_bankroll_set", False)):
+            add("PAPER_BANKROLL_NOT_SET", "Missing requirement: PAPER_BANKROLL_NOT_SET")
+        if (getattr(user, "paper_bankroll", 0) or 0) <= 0:
+            add("PAPER_BANKROLL_ZERO", "Missing requirement: PAPER_BANKROLL_ZERO")
+        if hasattr(user, "playbook_reviewed") and not bool(getattr(user, "playbook_reviewed", False)):
+            add("PLAYBOOK_NOT_REVIEWED", "Missing requirement: PLAYBOOK_NOT_REVIEWED")
+        if hasattr(user, "transparency_reviewed") and not bool(getattr(user, "transparency_reviewed", False)):
+            add("TRANSPARENCY_NOT_REVIEWED", "Missing requirement: TRANSPARENCY_NOT_REVIEWED")
+        if hasattr(user, "broker_connection_started") and not bool(getattr(user, "broker_connection_started", False)):
+            add("BROKER_CONNECTION_NOT_STARTED", "Missing requirement: BROKER_CONNECTION_NOT_STARTED")
+        if any(r["code"] in {"PAPER_NOT_CONNECTED", "PAPER_BANKROLL_NOT_SET", "PAPER_BANKROLL_ZERO"} for r in reasons):
+            add("PAPER_SETUP_INCOMPLETE", "Paper execution setup is incomplete.")
+    elif trading_mode == "live":
+        if not user_has_alpaca_live_connection(user):
+            add("LIVE_NOT_CONNECTED", "Missing requirement: LIVE_NOT_CONNECTED")
+        if require_onboarding and not bool(getattr(user, "onboarding_completed", False)):
+            add("LIVE_ONBOARDING_NOT_COMPLETED", "Missing requirement: LIVE_ONBOARDING_NOT_COMPLETED")
+
     if not window_open:
         add("BUY_WINDOW_CLOSED", "Current time is before NO_BUY_BEFORE_ET.")
     if decision not in decision_allowlist():
@@ -137,4 +157,20 @@ def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dic
         "execution_enabled": exec_enabled,
         "live_execution_enabled": live_exec_enabled,
         "buy_window_open": window_open,
+    }
+
+
+def evaluate_execution_readiness(user: Any, scan_payload: Dict[str, Any]) -> Dict[str, Any]:
+    active_mode = str(getattr(user, "trading_mode", "paper") or "paper").strip().lower()
+    paper_diag = _evaluate_mode_readiness(user, scan_payload, "paper")
+    live_diag = _evaluate_mode_readiness(user, scan_payload, "live")
+    active_diag = paper_diag if active_mode == "paper" else live_diag
+    return {
+        **active_diag,
+        "active_mode": active_mode,
+        "paper_execution_ready": paper_diag["execution_ready"],
+        "live_execution_ready": live_diag["execution_ready"],
+        "paper_blocked_reasons": paper_diag["blocked_reasons"],
+        "live_blocked_reasons": live_diag["blocked_reasons"],
+        "active_mode_blocked_reasons": active_diag["blocked_reasons"],
     }
