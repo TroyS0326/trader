@@ -54,13 +54,20 @@
         <div class="hero-head">
             <div>
                 <h1 class="hero-title">XeanVI Setup Checklist</h1>
-                <p class="hero-subtitle">Complete the required setup path before using the automated paper workflow. You can reopen completed steps any time.</p>
+                <p class="hero-subtitle">Complete the required setup path before using XeanVI's automated paper workflow. Each step keeps automation tied to your rules, risk settings, broker permissions, and dashboard visibility.</p>
             </div>
             <div class="progress">
                 <strong>{{ setup_checklist.percent_complete }}% complete</strong><br>
                 {{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }} required steps
             </div>
         </div>
+    </section>
+
+
+    <section class="hero-card" style="padding: 1rem 1.2rem; margin-bottom: 1rem;">
+        <p style="margin:0 0 .5rem; font-size:.72rem; letter-spacing:.12em; font-weight:700; color:var(--accent-blue);">SETUP PATH</p>
+        <p style="margin:0; color:var(--text-main); font-size:.95rem;">Recommended path: Account → Playbook → Paper bankroll → Paper testing → Broker connection → Dashboard monitoring.</p>
+        <p style="margin:.45rem 0 0; color:var(--text-muted); font-size:.86rem;">Completed steps can be reopened any time to review settings or documentation.</p>
     </section>
 
     <section class="checklist-grid">
