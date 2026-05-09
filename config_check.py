@@ -83,6 +83,18 @@ def validate_required_production_config(strict: bool = False) -> list[str]:
     elif not database_url.startswith('postgresql+psycopg://'):
         errors.append('DATABASE_URL must be a PostgreSQL connection URL.')
 
+
+    if _value('ADMIN_DAILY_DIGEST_ENABLED', '0') == '1':
+        if _is_placeholder(_value('BREVO_API_KEY')):
+            errors.append('BREVO_API_KEY is required when ADMIN_DAILY_DIGEST_ENABLED=1.')
+        if _is_placeholder(_value('BREVO_SENDER_EMAIL')):
+            errors.append('BREVO_SENDER_EMAIL is required when ADMIN_DAILY_DIGEST_ENABLED=1.')
+        if not (_value('ADMIN_DAILY_DIGEST_RECIPIENT') or _value('ADMIN_EMAIL')):
+            errors.append('ADMIN_EMAIL or ADMIN_DAILY_DIGEST_RECIPIENT is required when ADMIN_DAILY_DIGEST_ENABLED=1.')
+        digest_template = _value('ADMIN_DAILY_DIGEST_TEMPLATE_ID')
+        if digest_template and not digest_template.isdigit():
+            errors.append('ADMIN_DAILY_DIGEST_TEMPLATE_ID must be numeric when set.')
+
     return errors
 
 

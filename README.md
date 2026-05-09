@@ -863,3 +863,26 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 pytest -q tests/test_scan_contract.py tests/test_execution_diagnostics.py tests/test_scanner_service.py tests/test_pytest_db_guard.py tests/test_onboarding_alpaca_oauth.py tests/test_live_mode_onboarding_unlock.py
 ```
+
+## Admin Daily Digest (Internal/Admin-Only)
+XeanVI supports a once-daily Brevo admin digest sent **only** to the configured admin recipient.
+
+Required env when enabled (`ADMIN_DAILY_DIGEST_ENABLED=1`):
+- `BREVO_API_KEY`
+- `BREVO_SENDER_EMAIL`
+- `ADMIN_EMAIL` or `ADMIN_DAILY_DIGEST_RECIPIENT`
+
+Optional:
+- `ADMIN_DAILY_DIGEST_TEMPLATE_ID` (numeric Brevo template id)
+- `ADMIN_DAILY_DIGEST_DRY_RUN`
+- `ADMIN_DAILY_DIGEST_SEND_HOUR_ET`
+- `ADMIN_DAILY_DIGEST_SKIP_WEEKENDS`
+
+CLI:
+- `python admin_daily_digest.py --date YYYY-MM-DD --dry-run`
+- `python admin_daily_digest.py --date YYYY-MM-DD --send`
+- `python admin_daily_digest.py --send --force`
+- `python admin_daily_digest.py --recipient admin@example.com --dry-run`
+
+Validation:
+- `python config_check.py --strict`

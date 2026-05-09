@@ -91,6 +91,13 @@ BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'support@xeanvi.com')
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'XeanVI Security')
 
 BREVO_DAILY_REPORT_TEMPLATE_ID = os.getenv('BREVO_DAILY_REPORT_TEMPLATE_ID')
+
+ADMIN_DAILY_DIGEST_ENABLED = os.getenv('ADMIN_DAILY_DIGEST_ENABLED', '0') == '1'
+ADMIN_DAILY_DIGEST_TEMPLATE_ID = os.getenv('ADMIN_DAILY_DIGEST_TEMPLATE_ID', '').strip()
+ADMIN_DAILY_DIGEST_RECIPIENT = os.getenv('ADMIN_DAILY_DIGEST_RECIPIENT', '').strip()
+ADMIN_DAILY_DIGEST_DRY_RUN = os.getenv('ADMIN_DAILY_DIGEST_DRY_RUN', '0') == '1'
+ADMIN_DAILY_DIGEST_SEND_HOUR_ET = int(os.getenv('ADMIN_DAILY_DIGEST_SEND_HOUR_ET', '18'))
+ADMIN_DAILY_DIGEST_SKIP_WEEKENDS = os.getenv('ADMIN_DAILY_DIGEST_SKIP_WEEKENDS', '0') == '1'
 DAILY_REPORT_EMAIL_ENABLED = os.getenv('DAILY_REPORT_EMAIL_ENABLED', '0') == '1'
 DAILY_REPORT_SEND_TO_FREE_USERS = os.getenv('DAILY_REPORT_SEND_TO_FREE_USERS', '0') == '1'
 DAILY_REPORT_SEND_TO_PRO_USERS = os.getenv('DAILY_REPORT_SEND_TO_PRO_USERS', '1') == '1'
@@ -142,6 +149,17 @@ def validate_brevo_config() -> list[str]:
         'BREVO_RESET_PASSWORD_TEMPLATE_ID': BREVO_RESET_PASSWORD_TEMPLATE_ID,
         'BREVO_SENDER_EMAIL': BREVO_SENDER_EMAIL,
     })
+
+def validate_admin_daily_digest_config() -> list[str]:
+    missing = _missing_values({
+        'BREVO_API_KEY': BREVO_API_KEY,
+        'BREVO_SENDER_EMAIL': BREVO_SENDER_EMAIL,
+    })
+    if not (ADMIN_DAILY_DIGEST_RECIPIENT or os.getenv('ADMIN_EMAIL', '').strip()):
+        missing.append('ADMIN_EMAIL_OR_ADMIN_DAILY_DIGEST_RECIPIENT')
+    if ADMIN_DAILY_DIGEST_TEMPLATE_ID and not ADMIN_DAILY_DIGEST_TEMPLATE_ID.isdigit():
+        missing.append('ADMIN_DAILY_DIGEST_TEMPLATE_ID')
+    return missing
 
 DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'veteran_trades.db')
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()

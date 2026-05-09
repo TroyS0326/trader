@@ -37,7 +37,7 @@ import db as trade_db
 from db import get_failed_trades_today, get_recent_scans, get_recent_trades, get_trade_by_order_id, init_db, insert_scan, insert_trade, update_trade_status
 from execution import start_engine
 from models import db
-from models import BlogPost, BlogPublishingPlan, User, UserEvent, StripeEvent, Trade, DailyReportEmailLog, WatchCandidate
+from models import BlogPost, BlogPublishingPlan, User, UserEvent, StripeEvent, Trade, DailyReportEmailLog, WatchCandidate, AdminDailyDigestEmailLog
 from onboarding import fetch_and_sync_bankroll, verify_alpaca_data_feed, detect_and_store_alpaca_connection
 from scanner import ScanError, buy_window_open, get_stock_chart_pack, now_et, run_scan, get_momentum_breakout_universe, get_snapshots, get_latest_quotes, resolve_data_feed
 from scanner import get_bars, analyze_symbol, get_company_profile, get_alpaca_asset
@@ -729,6 +729,7 @@ def ensure_schema_migrations() -> None:
     BlogPublishingPlan.__table__.create(bind=db.engine, checkfirst=True)
     StripeEvent.__table__.create(bind=db.engine, checkfirst=True)
     DailyReportEmailLog.__table__.create(bind=db.engine, checkfirst=True)
+    AdminDailyDigestEmailLog.__table__.create(bind=db.engine, checkfirst=True)
     WatchCandidate.__table__.create(bind=db.engine, checkfirst=True)
 
     with db.engine.begin() as conn:
@@ -797,6 +798,13 @@ def ensure_schema_migrations() -> None:
                 conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN broker_connection_started BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
 
             
+            if 'created_at' not in existing_columns:
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN created_at {datetime_type()}"))
+                conn.execute(text(f"UPDATE {user_table} SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
+            if 'updated_at' not in existing_columns:
+                conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN updated_at {datetime_type()}"))
+                conn.execute(text(f"UPDATE {user_table} SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL"))
+
             if 'allow_penny_stocks' not in existing_columns:
                 conn.execute(text(f"ALTER TABLE {user_table} ADD COLUMN allow_penny_stocks BOOLEAN NOT NULL DEFAULT {bool_default(False)}"))
             if 'allow_biotech' not in existing_columns:
@@ -1053,7 +1061,7 @@ def signup():
         )
         db.session.add(new_user)
         db.session.commit()
-        track_user_event('signup_completed', user=new_user, context={'plan': intended_plan or ''})
+        track_user_event('signup.completed', user=new_user, context={'plan': intended_plan or ''})
         add_signup_user_to_brevo(new_user)
         update_brevo_contact_attributes(new_user, get_user_brevo_funnel_attributes(new_user))
         login_user(new_user)
@@ -1697,7 +1705,6 @@ def create_checkout_session():
 
     try:
         stripe_customer_id = get_or_create_stripe_customer(current_user)
-        track_user_event('checkout_started', user=current_user, context={'plan': plan})
         promo_discounts = get_launch_promo_discounts(plan)
         launch_promo_value = 'two_months_for_one' if promo_discounts else 'none'
         checkout_kwargs = {
@@ -1715,6 +1722,13 @@ def create_checkout_session():
         else:
             checkout_kwargs['allow_promotion_codes'] = True
         checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
+        track_user_event('checkout.started', user=current_user, context={
+            'stripe_session_id': checkout_session.get('id'),
+            'price_id': price_id,
+            'plan': plan,
+            'source_route': '/api/create-checkout-session',
+            'created_at': datetime.utcnow().isoformat(),
+        })
         return redirect(checkout_session.url, code=303)
     except ValueError as exc:
         flash(str(exc), 'error')
@@ -1846,9 +1860,19 @@ def stripe_webhook():
                 status = (user.subscription_status or '').lower()
                 if status in {'pro'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+                    track_user_event('invoice.paid', user=user, context={'subscription_id_masked': mask_identifier(sub_id or '')})
                 elif status == 'past_due':
                     update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
-                track_user_event('checkout_completed', user=user, context={'subscription_id': subscription_id})
+                track_user_event('checkout.completed', user=user, context={'subscription_id_masked': mask_identifier(subscription_id), 'customer_id_masked': mask_identifier(obj.get('customer')), 'session_id_masked': mask_identifier(obj.get('id'))})
+
+
+        elif event_type == 'checkout.session.expired':
+            user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
+            user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
+            if user:
+                track_user_event('checkout.expired', user=user, context={'session_id_masked': mask_identifier(obj.get('id')), 'customer_id_masked': mask_identifier(obj.get('customer'))})
+            else:
+                logger.warning('checkout.session.expired received without matching user metadata_user_id=%s', user_id)
 
         elif event_type in {'customer.subscription.created', 'customer.subscription.updated'}:
             metadata_user_id = (obj.get('metadata') or {}).get('user_id')
@@ -1860,6 +1884,7 @@ def stripe_webhook():
                 status = (user.subscription_status or '').lower()
                 if status in {'pro', 'trialing'}:
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+                    track_user_event('invoice.paid', user=user, context={'subscription_id_masked': mask_identifier(sub_id or '')})
                 elif status == 'past_due':
                     update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
 
@@ -1870,6 +1895,7 @@ def stripe_webhook():
                 user.subscription_status = 'free'
                 user.subscription_cancel_at_period_end = False
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'free'})
+                track_user_event('subscription.deleted', user=user, context={'subscription_id_masked': mask_identifier(obj.get('id') or '')})
 
         elif event_type == 'invoice.payment_failed':
             sub_id = obj.get('subscription')
@@ -1879,7 +1905,7 @@ def stripe_webhook():
             if user:
                 user.subscription_status = 'past_due'
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
-                track_user_event('payment_failed', user=user, context={'subscription_id': sub_id or ''})
+                track_user_event('invoice.payment_failed', user=user, context={'subscription_id_masked': mask_identifier(sub_id or '')})
 
         elif event_type == 'invoice.paid':
             sub_id = obj.get('subscription')
@@ -1892,6 +1918,7 @@ def stripe_webhook():
                     apply_subscription_to_user(user, subscription)
                     user.subscription_status = 'pro'
                     update_brevo_contact_attributes(user, {'IS_PRO': True, 'SUBSCRIPTION_STATUS': 'pro'})
+                    track_user_event('invoice.paid', user=user, context={'subscription_id_masked': mask_identifier(sub_id or '')})
         if event_id:
             db.session.add(StripeEvent(event_id=event_id, event_type=event_type or 'unknown'))
         db.session.commit()
