@@ -176,3 +176,101 @@ def test_admin_only_recipient_payload(app_context, monkeypatch):
     assert payload["to"] == [{"email": "admin@example.com"}]
     assert "cc" not in payload
     assert "bcc" not in payload
+
+
+def test_dry_run_after_sent_does_not_downgrade(app_context, monkeypatch):
+    _configure_digest(monkeypatch)
+    monkeypatch.setattr(digest.config, "ADMIN_DAILY_DIGEST_DRY_RUN", False)
+
+    class Resp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"messageId": "sent-msg-1"}
+
+    _mock_requests_post(monkeypatch, lambda *a, **k: Resp())
+    first = digest.send_admin_daily_digest(report_date="2026-05-08", dry_run=False)
+    dry = digest.send_admin_daily_digest(report_date="2026-05-08", dry_run=True, force=False)
+    log = AdminDailyDigestEmailLog.query.one()
+
+    assert first["status"] == "sent"
+    assert dry["status"] == "skipped"
+    assert dry["reason"] == "already sent"
+    assert dry["brevo_called"] is False
+    assert AdminDailyDigestEmailLog.query.count() == 1
+    assert log.status == "sent"
+    assert log.brevo_message_id == "sent-msg-1"
+
+
+def test_new_brevo_failure_persists_failed_log(app_context, monkeypatch):
+    _configure_digest(monkeypatch)
+    monkeypatch.setattr(digest.config, "ADMIN_DAILY_DIGEST_DRY_RUN", False)
+
+    class Resp:
+        def raise_for_status(self):
+            raise RuntimeError("brevo failed")
+
+        def json(self):
+            return {}
+
+    _mock_requests_post(monkeypatch, lambda *a, **k: Resp())
+    result = digest.send_admin_daily_digest(report_date="2026-05-08", dry_run=False)
+    log = AdminDailyDigestEmailLog.query.one()
+
+    assert result["status"] == "failed"
+    assert AdminDailyDigestEmailLog.query.count() == 1
+    assert log.status == "failed"
+    assert log.reason
+    assert log.raw_json
+    assert (log.brevo_message_id or "") == ""
+
+
+def test_existing_sent_real_send_still_skips(app_context, monkeypatch):
+    _configure_digest(monkeypatch)
+    monkeypatch.setattr(digest.config, "ADMIN_DAILY_DIGEST_DRY_RUN", False)
+    calls = []
+
+    log = AdminDailyDigestEmailLog(report_date="2026-05-08", recipient_email="admin@example.com", status="sent", brevo_message_id="keep-me")
+    db.session.add(log)
+    db.session.commit()
+
+    def fake_post(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("Brevo should not be called")
+
+    _mock_requests_post(monkeypatch, fake_post)
+    out = digest.send_admin_daily_digest(report_date="2026-05-08", dry_run=False, force=False)
+    refreshed = AdminDailyDigestEmailLog.query.one()
+
+    assert out["status"] == "skipped"
+    assert out["reason"] == "already sent"
+    assert out["brevo_called"] is False
+    assert len(calls) == 0
+    assert refreshed.status == "sent"
+    assert refreshed.brevo_message_id == "keep-me"
+
+
+def test_force_after_sent_failure_updates_existing_row(app_context, monkeypatch):
+    _configure_digest(monkeypatch)
+    monkeypatch.setattr(digest.config, "ADMIN_DAILY_DIGEST_DRY_RUN", False)
+
+    log = AdminDailyDigestEmailLog(report_date="2026-05-08", recipient_email="admin@example.com", status="sent", brevo_message_id="msg-ok")
+    db.session.add(log)
+    db.session.commit()
+
+    class Resp:
+        def raise_for_status(self):
+            raise RuntimeError("forced resend failed")
+
+        def json(self):
+            return {}
+
+    _mock_requests_post(monkeypatch, lambda *a, **k: Resp())
+    out = digest.send_admin_daily_digest(report_date="2026-05-08", dry_run=False, force=True)
+    refreshed = AdminDailyDigestEmailLog.query.one()
+
+    assert out["status"] == "failed"
+    assert AdminDailyDigestEmailLog.query.count() == 1
+    assert refreshed.status == "failed"
+    assert refreshed.reason

@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import config
 from app import app
 from models import db, User, UserEvent, Trade, Scan, MarketRegime, WatchCandidate, AdminDailyDigestEmailLog
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, PendingRollbackError
 
 
 def get_report_window(report_date=None, timezone_name='America/New_York'):
@@ -57,6 +57,33 @@ def get_or_create_admin_digest_log(report_date, recipient_email):
     return log, True
 
 
+
+
+def persist_admin_digest_log_result(report_date, recipient_email, status, reason, payload, brevo_message_id=""):
+    try:
+        if not db.session.is_active:
+            db.session.rollback()
+    except (PendingRollbackError, IntegrityError):
+        db.session.rollback()
+
+    log = AdminDailyDigestEmailLog.query.filter_by(
+        report_date=report_date,
+        recipient_email=recipient_email,
+    ).first()
+    if not log:
+        log = AdminDailyDigestEmailLog(
+            report_date=report_date,
+            recipient_email=recipient_email,
+        )
+        db.session.add(log)
+
+    log.status = status
+    log.reason = reason
+    log.brevo_message_id = brevo_message_id or ''
+    log.raw_json = json.dumps(payload)
+    db.session.commit()
+    return log
+
 def send_admin_daily_digest(report_date=None, force=False, dry_run=None, recipient=None):
     dry_run = config.ADMIN_DAILY_DIGEST_DRY_RUN if dry_run is None else dry_run
     if not config.ADMIN_DAILY_DIGEST_ENABLED and not force:
@@ -66,16 +93,20 @@ def send_admin_daily_digest(report_date=None, force=False, dry_run=None, recipie
     recipient = (recipient or config.ADMIN_DAILY_DIGEST_RECIPIENT or __import__('os').getenv('ADMIN_EMAIL','')).strip()
     if not recipient:
         return {'status':'skipped','reason':'missing_recipient', 'report_date': report_date, 'recipient': '(missing)', 'brevo_called': False}
+
     payload={'sender':{'name':config.BREVO_SENDER_NAME or 'XeanVI Admin','email':config.BREVO_SENDER_EMAIL},'to':[{'email':recipient}],'params':params}
     tid = config.ADMIN_DAILY_DIGEST_TEMPLATE_ID
-    if tid and tid.isdigit(): payload['templateId']=int(tid)
-    else: payload.update({'subject':f"XeanVI Daily Admin Digest — {report_date}",'htmlContent':render_admin_digest_html(params)})
-    log, _ = get_or_create_admin_digest_log(report_date, recipient)
-    previous_status = (log.status or '').lower()
-    if not force and not dry_run and previous_status == 'sent':
-        log.reason = 'already sent'
-        db.session.commit()
+    if tid and tid.isdigit():
+        payload['templateId']=int(tid)
+    else:
+        payload.update({'subject':f"XeanVI Daily Admin Digest — {report_date}",'htmlContent':render_admin_digest_html(params)})
+
+    log = AdminDailyDigestEmailLog.query.filter_by(report_date=report_date, recipient_email=recipient).first()
+    if log and (log.status or '').lower() == 'sent' and not force:
         return {'status':'skipped','reason':'already sent', 'report_date': report_date, 'recipient': recipient, 'brevo_called': False, 'brevo_message_id': log.brevo_message_id}
+
+    if not log:
+        persist_admin_digest_log_result(report_date, recipient, 'pending', None, payload, '')
 
     status='dry_run' if dry_run else 'sent'
     msg_id=''
@@ -87,35 +118,24 @@ def send_admin_daily_digest(report_date=None, force=False, dry_run=None, recipie
             brevo_called = True
             r=requests.post('https://api.brevo.com/v3/smtp/email',headers={'accept':'application/json','api-key':config.BREVO_API_KEY,'content-type':'application/json'},json=payload,timeout=20)
             r.raise_for_status(); msg_id=(r.json() or {}).get('messageId','')
-        log.status = status
-        log.reason = reason
-        log.brevo_message_id = msg_id
-        log.raw_json = json.dumps(payload)
-        db.session.commit()
+
+        persist_admin_digest_log_result(report_date, recipient, status, reason, payload, msg_id)
         return {'status':status,'report_date': report_date,'recipient':recipient,'brevo_called': brevo_called,'brevo_message_id': msg_id,'reason': reason}
     except IntegrityError:
         db.session.rollback()
-        # Safety net for race conditions; never crash CLI from duplicate insert.
         log = AdminDailyDigestEmailLog.query.filter_by(report_date=report_date, recipient_email=recipient).first()
         if log and not force and not dry_run and (log.status or '').lower() == 'sent':
             return {'status':'skipped','reason':'already sent', 'report_date': report_date, 'recipient': recipient, 'brevo_called': False, 'brevo_message_id': log.brevo_message_id}
-        if log:
-            log.status = status
-            log.reason = reason
-            log.brevo_message_id = msg_id
-            log.raw_json = json.dumps(payload)
-            db.session.commit()
+        try:
+            persist_admin_digest_log_result(report_date, recipient, status, reason, payload, msg_id)
             return {'status': status, 'report_date': report_date, 'recipient': recipient, 'brevo_called': brevo_called, 'brevo_message_id': msg_id, 'reason': reason}
-        return {'status': 'failed', 'report_date': report_date, 'recipient': recipient, 'brevo_called': brevo_called, 'brevo_message_id': msg_id, 'reason': 'integrity_error'}
+        except Exception:
+            return {'status': 'failed', 'report_date': report_date, 'recipient': recipient, 'brevo_called': brevo_called, 'brevo_message_id': msg_id, 'reason': 'integrity_error'}
     except Exception as exc:
         db.session.rollback()
-        log = AdminDailyDigestEmailLog.query.filter_by(report_date=report_date, recipient_email=recipient).first()
-        if log:
-            log.status = 'failed'
-            log.reason = str(exc)
-            log.raw_json = json.dumps(payload)
-            db.session.commit()
-        return {'status':'failed','report_date': report_date,'recipient':recipient,'brevo_called': brevo_called,'brevo_message_id': msg_id,'reason': str(exc)}
+        err = str(exc)
+        persist_admin_digest_log_result(report_date, recipient, 'failed', err, payload, '')
+        return {'status':'failed','report_date': report_date,'recipient':recipient,'brevo_called': brevo_called,'brevo_message_id': msg_id,'reason': err}
 
 
 if __name__ == '__main__':
