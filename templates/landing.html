@@ -121,7 +121,37 @@
 
     .landing-page .hero { padding: 5rem 0 3.5rem; position: relative; overflow: hidden; border-bottom: 1px solid var(--border-color); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08) 0%, transparent 60%); }
     .landing-page .hero::before { content: none; }
-    .landing-page .hero-content { max-width: 900px; margin: 0 auto; text-align:center; }
+    .landing-page .hero-content { max-width: 900px; margin: 0; text-align: left; }
+    .landing-page .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        background: rgba(59, 130, 246, 0.12);
+        color: var(--accent-blue);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+    }
+    .landing-page .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .landing-page .hero-trust-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+    .landing-page .hero-trust-item {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.7rem;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+    }
 
     .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
 
@@ -193,7 +223,7 @@
     @media (max-width: 768px) {
         .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
         .hero { padding: 4rem 0; text-align: center; }
-        .hero-content { margin: 0 auto; }
+        .landing-page .hero-content { margin: 0 auto; text-align: center; }
         .nav-links { display: none; }
         .automation-layout { grid-template-columns: 1fr; }
         .automation-pipeline { grid-template-columns: 1fr; }
@@ -210,6 +240,7 @@
     <section class="hero">
         <div class="container grid-2">
             <div class="hero-content">
+                <div class="hero-badge">RULE-DRIVEN AUTOMATION</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
                     Automate Your Trading: Sign Up, Connect Your Broker, Click Scan
                 </h1>
@@ -218,9 +249,16 @@
                 </p>
                 
 {% include 'partials/launch_promo.html' %}
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+<div class="hero-actions">
                     <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Automating" }}</a>
                     <a href="/features" class="btn btn-secondary">See the Automation Flow</a>
+                </div>
+                <div class="hero-trust-strip" aria-label="Landing hero trust highlights">
+                    <div class="hero-trust-item">Playbook rules</div>
+                    <div class="hero-trust-item">Paper testing</div>
+                    <div class="hero-trust-item">Supported broker routing</div>
+                    <div class="hero-trust-item">Dashboard audit logs</div>
+                    <div class="hero-trust-item">No financial advice</div>
                 </div>
             </div>
 
