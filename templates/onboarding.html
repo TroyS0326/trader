@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Paper-Mode Setup | XeanVI</title>
+    <title>Paper Testing Setup | XeanVI</title>
     <meta name="robots" content="noindex, nofollow, noarchive">
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}
@@ -13,8 +13,11 @@
 
 <main style="max-width: 760px; margin: 2.5rem auto; padding: 0 1rem; display:grid; gap:1rem;">
     <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
-        <h1 style="margin: 0 0 0.5rem;">Connect Alpaca Paper Account</h1>
-        <p style="margin: 0 0 1rem; color: var(--text-muted);">Paper mode is a safe test environment. Connect your Alpaca paper account first so XeanVI can route and monitor test orders before any live workflow is considered.</p>
+        <h1 style="margin: 0 0 0.5rem;">Set Up Paper Testing First</h1>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">Connect your Alpaca paper account and set a paper bankroll so XeanVI can test rule-driven workflows before any live routing is considered.</p>
+
+        <h2 style="margin: 0 0 0.5rem;">Step 1: Connect Alpaca Paper Account</h2>
+        <p style="margin: 0 0 1rem; color: var(--text-muted);">Paper mode gives you a controlled environment to test scanning, validation, sizing, and order-routing behavior without live capital.</p>
 
         {% if current_user.alpaca_paper_access_token or current_user.alpaca_paper_account_id %}
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Paper account connected.</p>
@@ -28,8 +31,8 @@
     </section>
 
     <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
-        <h2 style="margin: 0 0 0.5rem;">Set Paper Bankroll and Risk Acknowledgment</h2>
-        <p style="margin: 0 0 1.25rem; color: var(--text-muted);">Set your starting paper bankroll and acknowledge that trading risk remains with user-defined settings and broker-connected workflows.</p>
+        <h2 style="margin: 0 0 0.5rem;">Step 2: Set Paper Bankroll & Risk Acknowledgment</h2>
+        <p style="margin: 0 0 1.25rem; color: var(--text-muted);">Your paper bankroll gives the automation a test account size for sizing calculations. Risk settings still come from the rules you define.</p>
 
         <form action="{{ url_for('onboarding') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -41,7 +44,7 @@
 
             <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom: 1.2rem;">
                 <input type="checkbox" id="risk_ack" name="risk_ack" required style="margin-top:4px;">
-                <label for="risk_ack" style="font-size: 0.9rem; color: var(--text-main); text-transform:none; letter-spacing:0;">I understand trading risk remains and accept responsibility for my user-defined settings and paper-mode order-routing workflows.</label>
+                <label for="risk_ack" style="font-size: 0.9rem; color: var(--text-main); text-transform:none; letter-spacing:0;">I understand trading risk remains my responsibility and that XeanVI follows user-defined settings, broker permissions, and paper/live workflow configuration.</label>
             </div>
 
             <button type="submit" class="btn btn-primary">Save Paper Setup</button>
@@ -49,8 +52,8 @@
     </section>
 
     <section style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem;">
-        <h2 style="margin: 0 0 0.5rem;">Connect Alpaca Live Account</h2>
-        <p style="margin: 0 0 0.85rem; color: var(--text-muted);">Live mode uses real capital. Connect your Alpaca live account only when you are ready.</p>
+        <h2 style="margin: 0 0 0.5rem;">Optional Later Step: Connect Alpaca Live Account</h2>
+        <p style="margin: 0 0 0.85rem; color: var(--text-muted);">Live mode uses real capital. Connect a live account only after paper testing your playbook and understanding the risks.</p>
         <p style="margin: 0 0 1rem; color: var(--warning); font-size: 0.92rem;">Live broker-connected workflows involve real capital. Only connect a live account after testing your rules in paper mode and understanding the risks.</p>
         {% if current_user.alpaca_live_access_token or current_user.alpaca_live_account_id %}
             <p style="margin:0; color: var(--success);"><i class="fas fa-check-circle"></i> Live account connected.</p>
@@ -66,7 +69,7 @@
 
     <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
         <a href="{{ url_for('setup_checklist') }}" class="btn btn-secondary">Back to Setup Checklist</a>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Go to Dashboard</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Open Dashboard</a>
     </div>
 </main>
 
