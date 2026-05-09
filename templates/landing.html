@@ -134,6 +134,60 @@
         text-align: center;
     }
 
+    .automation-flow-section {
+        padding: 5rem 0;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.12), transparent 40%),
+            radial-gradient(circle at 90% 85%, rgba(59, 130, 246, 0.08), transparent 35%),
+            var(--bg-card);
+        border-top: 1px solid var(--border-color);
+    }
+    .automation-header { text-align: center; margin-bottom: 3rem; }
+    .section-badge {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        background: rgba(59, 130, 246, 0.12);
+        color: var(--accent-blue);
+        font-size: 0.78rem; letter-spacing: 0.08em; font-weight: 700;
+        text-transform: uppercase; padding: 0.45rem 0.8rem; border-radius: 999px;
+        margin-bottom: 1rem;
+    }
+    .automation-subhead { max-width: 860px; margin: 0 auto; }
+    .automation-layout { display: grid; gap: 1.75rem; grid-template-columns: 2fr 1fr; align-items: start; }
+    .automation-pipeline {
+        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem;
+    }
+    .flow-step {
+        background: linear-gradient(165deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        border: 1px solid var(--border-color); border-radius: 14px; padding: 1.2rem; position: relative;
+    }
+    .flow-step::after {
+        content: "→"; position: absolute; right: -0.72rem; top: 2.25rem; color: rgba(148, 163, 184, 0.7);
+        font-size: 1rem; font-weight: 700;
+    }
+    .flow-step:last-child::after { display: none; }
+    .step-pill { display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
+    .step-number {
+        width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        background: rgba(59, 130, 246, 0.16); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--accent-blue);
+        font-size: 0.88rem; font-weight: 700;
+    }
+    .step-icon {
+        width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+        background: rgba(16, 185, 129, 0.12); color: var(--success); font-size: 0.82rem;
+    }
+    .flow-step h3 { font-size: 1.08rem; margin-bottom: 0.55rem; }
+    .flow-step p { font-size: 0.95rem; line-height: 1.55; margin: 0; color: var(--text-muted); }
+    .automation-summary {
+        background: linear-gradient(175deg, rgba(59, 130, 246, 0.09), rgba(2, 6, 23, 0.3));
+        border: 1px solid var(--border-color); border-radius: 14px; padding: 1.35rem;
+    }
+    .automation-summary h3 { font-size: 1.1rem; margin-bottom: 0.95rem; }
+    .summary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
+    .summary-list li { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-main); font-size: 0.94rem; }
+    .summary-list i { color: var(--warning); margin-top: 0.2rem; }
+    .automation-cta { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 1.2rem; }
+
     footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
     @media (max-width: 768px) {
@@ -141,6 +195,9 @@
         .hero { padding: 4rem 0; text-align: center; }
         .hero-content { margin: 0 auto; }
         .nav-links { display: none; }
+        .automation-layout { grid-template-columns: 1fr; }
+        .automation-pipeline { grid-template-columns: 1fr; }
+        .flow-step::after { display: none; }
     }
 </style>
 </head>
@@ -194,54 +251,52 @@
         </div>
     </section>
 
-    <section style="padding: 5rem 0; background-color: var(--bg-card); border-top: 1px solid var(--border-color);">
+    <section class="automation-flow-section">
         <div class="container">
-            <div style="text-align: center; margin-bottom: 4rem;">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Automation Works</h2>
-                <p style="max-width: 740px; margin: 0 auto;">
-                    A simple path from setup to rule-driven automation: signup, onboarding, broker connection, and scanning. You define the rules. XeanVI follows them.
+            <div class="automation-header">
+                <div class="section-badge"><i class="fas fa-diagram-project" aria-hidden="true"></i>RULE-DRIVEN AUTOMATION</div>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Turns Your Playbook Into Automated Execution</h2>
+                <p class="automation-subhead">
+                    Define your rules once, complete onboarding, connect your supported broker, then launch scans that validate setups, calculate size, can prepare bracket orders, and log every action around your risk controls.
                 </p>
             </div>
-            <div class="grid-3">
-                <article style="text-align: center; padding: 2rem;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
-                        1
+            <div class="automation-layout">
+                <div class="automation-pipeline">
+                    <article class="flow-step">
+                        <div class="step-pill"><span class="step-number">01</span><span class="step-icon"><i class="fas fa-sliders" aria-hidden="true"></i></span></div>
+                        <h3>Build Your Playbook</h3>
+                        <p>Complete onboarding, then define your setup rules, risk limits, sizing preferences, and trade criteria so automation follows your plan.</p>
+                    </article>
+                    <article class="flow-step">
+                        <div class="step-pill"><span class="step-number">02</span><span class="step-icon"><i class="fas fa-link" aria-hidden="true"></i></span></div>
+                        <h3>Connect Broker Access</h3>
+                        <p>Connect a supported broker and authorize API permissions in <a href="/broker-integration" style="color: var(--accent-blue);">Broker Integration</a>. Funds remain at your broker and you control permissions.</p>
+                    </article>
+                    <article class="flow-step">
+                        <div class="step-pill"><span class="step-number">03</span><span class="step-icon"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i></span></div>
+                        <h3>Launch a Scan</h3>
+                        <p>Click Scan to evaluate market conditions, playbook rules, catalyst/AI validation, and risk filters before any action can route.</p>
+                    </article>
+                    <article class="flow-step">
+                        <div class="step-pill"><span class="step-number">04</span><span class="step-icon"><i class="fas fa-gears" aria-hidden="true"></i></span></div>
+                        <h3>Automation Takes Over</h3>
+                        <p>When your rules pass, XeanVI can size positions, prepare and route bracket orders, can manage the trade, and log each action according to your defined controls.</p>
+                    </article>
+                </div>
+                <aside class="automation-summary">
+                    <h3>Built for traders who want execution discipline without manual hesitation.</h3>
+                    <ul class="summary-list">
+                        <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Rule checks before routing</span></li>
+                        <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Position sizing from your risk settings</span></li>
+                        <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Bracket orders based on your playbook</span></li>
+                        <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Dashboard visibility and audit logs</span></li>
+                        <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Paper testing before live use</span></li>
+                    </ul>
+                    <div class="automation-cta">
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Automating</a>
+                        <a href="/features" class="btn btn-secondary">Review Features</a>
                     </div>
-                    <h3 style="font-size: 1.25rem;">Sign Up & Complete Onboarding</h3>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">
-                        Create your account, complete onboarding, and define your <a href="/playbook" style="color: var(--accent-blue); text-decoration: underline; text-underline-offset: 0.18em; text-decoration-thickness: 1.5px; font-weight: 600;">Trading Playbook</a> rules, risk limits, and setup criteria.
-                    </p>
-                </article>
-
-                <article style="text-align: center; padding: 2rem;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
-                        2
-                    </div>
-                    <h3 style="font-size: 1.25rem;">Connect Your Supported Broker</h3>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">
-                        Authorize supported broker API permissions in <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: underline; text-underline-offset: 0.18em; text-decoration-thickness: 1.5px; font-weight: 600;">Broker Integration</a> so XeanVI can route user-configured instructions while funds stay at your broker.
-                    </p>
-                </article>
-
-                <article style="text-align: center; padding: 2rem;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
-                        3
-                    </div>
-                    <h3 style="font-size: 1.25rem;">Click Scan</h3>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">
-                        Run a scan from your dashboard to trigger playbook checks, AI/catalyst validation, and risk checks before any order is prepared.
-                    </p>
-                </article>
-
-                <article style="text-align: center; padding: 2rem;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
-                        4
-                    </div>
-                    <h3 style="font-size: 1.25rem;">Watch Rule-Driven Automation Run</h3>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">
-                        XeanVI scans, validates, sizes, routes, manages, and logs actions according to your user-defined playbook and risk rules.
-                    </p>
-                </article>
+                </aside>
             </div>
         </div>
     </section>
