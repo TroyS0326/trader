@@ -83,6 +83,7 @@ BREVO_LIST_ID = int(os.getenv('BREVO_LIST_ID', '5'))
 BREVO_SIGNUP_LIST_ID = int(os.getenv('BREVO_SIGNUP_LIST_ID', '0'))
 BREVO_SIGNUP_SYNC_OPTIONAL = os.getenv('BREVO_SIGNUP_SYNC_OPTIONAL', '0') == '1'
 BREVO_WELCOME_TEMPLATE_ENABLED = os.getenv('BREVO_WELCOME_TEMPLATE_ENABLED', '1') == '1'
+BREVO_WELCOME_TEMPLATE_ID = os.getenv('BREVO_WELCOME_TEMPLATE_ID')
 META_PIXEL_ID = os.getenv('META_PIXEL_ID', '').strip()
 GOOGLE_ADS_ID = os.getenv('GOOGLE_ADS_ID', '').strip()
 GOOGLE_ADS_CONVERSION_SIGNUP_LABEL = os.getenv('GOOGLE_ADS_CONVERSION_SIGNUP_LABEL', '').strip()
@@ -335,6 +336,11 @@ def validate_required_production_config(strict: bool = False) -> list[str]:
         errors.append('WTF_CSRF_TRUSTED_ORIGINS must include https://xeanvi.com and https://www.xeanvi.com.')
     if BREVO_RESET_PASSWORD_TEMPLATE_ID and not str(BREVO_RESET_PASSWORD_TEMPLATE_ID).isdigit():
         errors.append('BREVO_RESET_PASSWORD_TEMPLATE_ID must be numeric.')
+    if BREVO_WELCOME_TEMPLATE_ENABLED:
+        if not BREVO_WELCOME_TEMPLATE_ID:
+            errors.append('BREVO_WELCOME_TEMPLATE_ID is required when BREVO_WELCOME_TEMPLATE_ENABLED=1.')
+        elif not str(BREVO_WELCOME_TEMPLATE_ID).isdigit():
+            errors.append('BREVO_WELCOME_TEMPLATE_ID must be numeric when BREVO_WELCOME_TEMPLATE_ENABLED=1.')
     if not BREVO_SIGNUP_SYNC_OPTIONAL and BREVO_SIGNUP_LIST_ID <= 0:
         errors.append('BREVO_SIGNUP_LIST_ID must be a positive integer unless BREVO_SIGNUP_SYNC_OPTIONAL=1.')
     if STRIPE_PRICE_ID_MONTHLY and STRIPE_PRICE_ID_MONTHLY == STRIPE_PRICE_ID_ANNUAL:

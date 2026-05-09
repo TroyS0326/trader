@@ -571,6 +571,65 @@ def add_signup_user_to_brevo(user):
         return False
 
 
+def send_welcome_email(user: User) -> bool:
+    if not bool(getattr(config, 'BREVO_WELCOME_TEMPLATE_ENABLED', True)):
+        return False
+
+    api_key = getattr(config, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY')
+    if not api_key:
+        logger.error('Brevo welcome email skipped: missing BREVO_API_KEY for user_id=%s', user.id)
+        return False
+
+    template_id = getattr(config, 'BREVO_WELCOME_TEMPLATE_ID', None) or os.getenv('BREVO_WELCOME_TEMPLATE_ID')
+    if not template_id:
+        logger.error('Brevo welcome email skipped: missing BREVO_WELCOME_TEMPLATE_ID for user_id=%s', user.id)
+        return False
+
+    if not str(template_id).isdigit():
+        logger.error('Brevo welcome email skipped: BREVO_WELCOME_TEMPLATE_ID must be numeric for user_id=%s', user.id)
+        return False
+
+    full_name = (user.full_name or '').strip()
+    first_name = full_name.split(' ')[0] if full_name else ''
+    app_url = (getattr(config, 'APP_BASE_URL', 'https://xeanvi.com') or 'https://xeanvi.com').rstrip('/')
+
+    payload = {
+        'sender': {
+            'name': getattr(config, 'BREVO_SENDER_NAME', 'XeanVI'),
+            'email': getattr(config, 'BREVO_SENDER_EMAIL', 'support@xeanvi.com'),
+        },
+        'to': [{'email': user.email, 'name': full_name or user.email}],
+        'templateId': int(template_id),
+        'params': {
+            'first_name': first_name,
+            'full_name': full_name,
+            'email': user.email,
+            'app_url': app_url,
+            'login_url': f'{app_url}/login',
+            'dashboard_url': f'{app_url}/dashboard',
+            'playbook_url': f'{app_url}/playbook',
+            'pricing_url': f'{app_url}/pricing',
+            'support_email': getattr(config, 'BREVO_SENDER_EMAIL', 'support@xeanvi.com'),
+        },
+        'tags': ['welcome', 'signup'],
+    }
+    headers = {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': api_key,
+    }
+    try:
+        response = requests.post('https://api.brevo.com/v3/smtp/email', json=payload, headers=headers, timeout=15)
+        if response.status_code in [200, 201, 202]:
+            logger.info('Brevo welcome email sent for user_id=%s', user.id)
+            return True
+        logger.error('Brevo welcome email failed for user_id=%s status=%s response=%s', user.id, response.status_code, _brief_error_text(response.text))
+        return False
+    except Exception as exc:
+        logger.error('Brevo welcome email exception for user_id=%s: %s', user.id, exc)
+        return False
+
+
 def update_brevo_contact_attributes(user, attributes: dict) -> bool:
     """
     Updates existing Brevo contact attributes for funnel automation.
@@ -1055,6 +1114,7 @@ def signup():
         db.session.commit()
         track_user_event('signup_completed', user=new_user, context={'plan': intended_plan or ''})
         add_signup_user_to_brevo(new_user)
+        send_welcome_email(new_user)
         update_brevo_contact_attributes(new_user, get_user_brevo_funnel_attributes(new_user))
         login_user(new_user)
 
