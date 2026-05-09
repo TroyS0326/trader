@@ -30,7 +30,7 @@ os.environ["XEANVI_TEST_DB_PATH"] = TEST_DB_DEFAULT
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("TOKEN_ENCRYPTION_KEY", "test-token-encryption-key")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
-os.environ.setdefault("RATELIMIT_STORAGE_URI", "memory://")
+os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
 os.environ.setdefault("STRIPE_PUBLIC_KEY", "pk_test_dummy")
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_dummy")
 os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_test_dummy")
