@@ -7,6 +7,8 @@ from app import app
 from models import db, User, UserEvent, Trade, Scan, MarketRegime, WatchCandidate, AdminDailyDigestEmailLog
 from sqlalchemy.exc import IntegrityError, PendingRollbackError
 
+from time_utils import utc_now_aware
+
 
 def get_report_window(report_date=None, timezone_name='America/New_York'):
     tz = ZoneInfo(timezone_name)
@@ -34,7 +36,7 @@ def build_admin_daily_digest(report_date=None):
     top_symbols=dict(Counter([t.symbol for t in trades]).most_common(5))
     warnings=[]
     if not config.BREVO_API_KEY: warnings.append('BREVO_API_KEY missing')
-    return {'report_date': w['report_date'], 'new_signups_count': len(signups), 'checkout_started_count': len(started), 'checkout_completed_count': len(completed), 'checkout_expired_count': len(expired), 'checkout_abandoned_count': len(abandoned), 'new_signups':[{'email':u.email,'full_name':u.full_name or '', 'created_at':(u.created_at.isoformat() if u.created_at else ''),'subscription_status':u.subscription_status} for u in signups], 'abandoned_checkout_users':[{'user_id':e.user_id} for e in abandoned], 'scans_created_count':len(scans), 'trades_created_count':len(trades), 'top_symbols_by_trade_count':top_symbols, 'latest_market_regime_status': (MarketRegime.query.order_by(MarketRegime.updated_at.desc()).first().regime_status if MarketRegime.query.first() else 'unavailable'), 'top_watch_candidates':[{'symbol':w.symbol,'latest_decision':w.latest_decision,'latest_setup_grade':w.latest_setup_grade,'latest_score_total':w.latest_score_total,'source':w.source,'status':w.status} for w in watch], 'warnings':warnings, 'digest_generated_at':datetime.utcnow().isoformat(), 'summary_headline': f"XeanVI Daily Admin Digest — {w['report_date']}"}
+    return {'report_date': w['report_date'], 'new_signups_count': len(signups), 'checkout_started_count': len(started), 'checkout_completed_count': len(completed), 'checkout_expired_count': len(expired), 'checkout_abandoned_count': len(abandoned), 'new_signups':[{'email':u.email,'full_name':u.full_name or '', 'created_at':(u.created_at.isoformat() if u.created_at else ''),'subscription_status':u.subscription_status} for u in signups], 'abandoned_checkout_users':[{'user_id':e.user_id} for e in abandoned], 'scans_created_count':len(scans), 'trades_created_count':len(trades), 'top_symbols_by_trade_count':top_symbols, 'latest_market_regime_status': (MarketRegime.query.order_by(MarketRegime.updated_at.desc()).first().regime_status if MarketRegime.query.first() else 'unavailable'), 'top_watch_candidates':[{'symbol':w.symbol,'latest_decision':w.latest_decision,'latest_setup_grade':w.latest_setup_grade,'latest_score_total':w.latest_score_total,'source':w.source,'status':w.status} for w in watch], 'warnings':warnings, 'digest_generated_at':utc_now_aware().isoformat(), 'summary_headline': f"XeanVI Daily Admin Digest — {w['report_date']}"}
 
 
 def render_admin_digest_html(params):
