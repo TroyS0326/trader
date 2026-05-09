@@ -30,6 +30,10 @@ celery_app.conf.beat_schedule = {
         'task': 'tasks.update_market_regime_task',
         'schedule': crontab(minute='*/5'),
     },
+    'send-admin-daily-digest': {
+        'task': 'tasks.send_admin_daily_digest_task',
+        'schedule': crontab(minute=0, hour=22),
+    },
 }
 
 _db_app = Flask(__name__)
@@ -316,3 +320,15 @@ def update_market_regime_task():
         'vixy_day_change_pct': vixy_day_change_pct,
         'spy_range_pct': spy_range_pct,
     }
+
+
+@celery_app.task
+def send_admin_daily_digest_task():
+    import admin_daily_digest
+    from datetime import datetime
+    if not config.ADMIN_DAILY_DIGEST_ENABLED:
+        return {'status': 'skipped', 'reason': 'disabled'}
+    if config.ADMIN_DAILY_DIGEST_SKIP_WEEKENDS and datetime.utcnow().weekday() >= 5:
+        return {'status': 'skipped', 'reason': 'weekend'}
+    with _db_app.app_context():
+        return admin_daily_digest.send_admin_daily_digest()

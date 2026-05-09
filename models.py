@@ -165,6 +165,8 @@ class User(UserMixin, db.Model):
     playbook_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     transparency_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     broker_connection_started = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def _decrypt_token_value(self, encrypted_value: Optional[str]) -> Optional[str]:
         if not encrypted_value:
@@ -414,6 +416,21 @@ class DailyReportEmailLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     report_date = db.Column(db.String(20), nullable=False, index=True)
     email = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    brevo_message_id = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    raw_json = db.Column(db.Text, nullable=True)
+
+class AdminDailyDigestEmailLog(db.Model):
+    __tablename__ = 'admin_daily_digest_email_logs'
+    __table_args__ = (
+        db.UniqueConstraint('report_date', 'recipient_email', name='uq_admin_digest_date_recipient'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_date = db.Column(db.String(20), nullable=False, index=True)
+    recipient_email = db.Column(db.String(255), nullable=False, index=True)
     status = db.Column(db.String(20), nullable=False)
     reason = db.Column(db.Text, nullable=True)
     brevo_message_id = db.Column(db.String(120), nullable=True)

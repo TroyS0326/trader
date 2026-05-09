@@ -201,3 +201,6 @@ python -m py_compile app.py config.py broker.py execution_guard.py scanner_servi
 curl /healthz
 curl /readyz
 ```
+
+- [ ] Configure `ADMIN_DAILY_DIGEST_ENABLED`, sender, recipient, and optional template ID.
+- [ ] Run `python admin_daily_digest.py --date 2026-05-08 --dry-run` and confirm admin-only recipient.
