@@ -22,10 +22,11 @@ if _is_prod_db_path(os.getenv("DB_PATH")) or _is_prod_db_path(os.getenv("XEANVI_
     raise RuntimeError("Refusing to run tests against production DB.")
 
 TEST_DB_DEFAULT = os.getenv("XEANVI_TEST_DB_PATH", "/tmp/xeanvi-test.db")
-os.environ.setdefault("FLASK_ENV", "testing")
-os.environ.setdefault("TESTING", "1")
-os.environ.setdefault("DB_PATH", TEST_DB_DEFAULT)
-os.environ.setdefault("XEANVI_TEST_DB_PATH", TEST_DB_DEFAULT)
+os.environ["FLASK_ENV"] = "testing"
+os.environ["TESTING"] = "1"
+os.environ["DATABASE_URL"] = ""
+os.environ["DB_PATH"] = TEST_DB_DEFAULT
+os.environ["XEANVI_TEST_DB_PATH"] = TEST_DB_DEFAULT
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("TOKEN_ENCRYPTION_KEY", "test-token-encryption-key")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")

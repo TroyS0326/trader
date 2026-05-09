@@ -4,12 +4,19 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 
+PRELOAD_IS_TESTING = (
+    os.getenv("FLASK_ENV", "").strip().lower() == "testing"
+    or os.getenv("TESTING", "0") == "1"
+    or bool(os.getenv("PYTEST_CURRENT_TEST"))
+)
+
 # Check the VPS production path first, then fallback to local directory .env
 PROD_ENV_PATH = '/etc/xeanvi/xeanvi.env'
-if os.path.exists(PROD_ENV_PATH):
-    load_dotenv(PROD_ENV_PATH)
-else:
-    load_dotenv(BASE_DIR / '.env')
+if not PRELOAD_IS_TESTING:
+    if os.path.exists(PROD_ENV_PATH):
+        load_dotenv(PROD_ENV_PATH)
+    else:
+        load_dotenv(BASE_DIR / '.env')
 
 
 def require_env(var_name: str) -> str:
