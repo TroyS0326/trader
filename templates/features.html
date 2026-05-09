@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>XeanVI Features | Automated Trading Execution for Retail Day Traders</title>
-    <meta name="description" content="Explore XeanVI PRO automation features: automated scans, AI validation, playbook-based risk controls, supported broker execution, and paper testing before live use.">
+    <title>XeanVI PRO Features | Rule-Driven Trading Automation</title>
+    <meta name="description" content="Explore XeanVI PRO features: automated scans, playbook rules, AI-assisted validation, supported broker-connected routing, paper testing, and dashboard audit visibility.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -107,15 +107,17 @@
         <header class="page-header" style="padding-top: 5rem; padding-bottom: 3rem; text-align: center;">
             <div class="container">
                 <div class="badge-pill" style="font-family: 'JetBrains Mono', monospace; margin: 0 auto 1rem;">PRO_ENGINE_FEATURES</div>
-                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem;">XeanVI Features:<br><span class="text-gradient">Automated Trading Execution for Retail Day Traders</span></h1>
+                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem;">XeanVI PRO Features:<br><span class="text-gradient">Rule-Driven Trading Automation</span></h1>
                 <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 760px; margin: 0 auto; line-height: 1.6;">
-                    From scan to order management, XeanVI PRO is built to automate your trading workflow around the playbook rules, broker permissions, and risk controls you define.
+                    See how XeanVI connects your playbook, AI-assisted validation, risk controls, paper testing, broker permissions, and execution logs into one controlled automation workflow.
                 </p>
                 <div style="margin-top: 2rem;">
                     {% if current_user.is_authenticated %}
                         <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
+                        <a href="/pricing" class="btn btn-secondary" style="padding: 0.8rem 2rem; font-weight: 600; margin-left: 0.75rem;">View Pricing</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Start Monthly PRO</a>
+                        <a href="/pricing" class="btn btn-secondary" style="padding: 0.8rem 2rem; font-weight: 600; margin-left: 0.75rem;">View Pricing</a>
                     {% endif %}
                 </div>
             </div>
@@ -124,42 +126,19 @@
         <section class="section-pad" style="border-top: 1px solid var(--border-color);">
             <div class="container">
                 <div style="text-align: center; margin-bottom: 4rem;">
-                    <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Built as One Automation Workflow</h2>
-                    <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">
-                        Define your exact parameters inside your <a href="/playbook" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">Trading Playbook</a>, test the logic in our paper sandbox, and use XeanVI PRO to support broker-connected execution based on your configured rules.
+                    <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">The XeanVI Automation Stack</h2>
+                    <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto;">
+                        Each layer exists to keep automation structured, testable, and tied to the rules you define.
                     </p>
                 </div>
 
                 <div class="grid-3">
-                    <div class="feature-box card" style="display: flex; flex-direction: column;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                            <i class="fas fa-brain" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Automated Scans & AI Scoring</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
-                            XeanVI PRO automatically scans market conditions based on your selected signals. AI-assisted scoring helps validate catalyst and setup quality so only qualifying opportunities move forward in your configured workflow.
-                        </p>
-                    </div>
-
-                    <div class="feature-box card" style="display: flex; flex-direction: column;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                            <i class="fas fa-crosshairs" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Playbook-Based Risk Controls</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
-                            You pre-define maximum risk, position sizing, entry conditions, and stop-loss settings in your <a href="/playbook" style="color: var(--text-muted); text-decoration: underline;">playbook</a>. Automation enforces those limits on every qualifying setup before routing can occur.
-                        </p>
-                    </div>
-
-                    <div class="feature-box card" style="display: flex; flex-direction: column;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1.5rem;">
-                            <i class="fas fa-server" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Automated Broker Execution</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; flex-grow: 1;">
-                            When a setup passes your playbook and validation checks, XeanVI can route bracket orders through your connected supported broker and manage the trade according to your configured automation settings.
-                        </p>
-                    </div>
+                    <div class="feature-box card"><h3>Automated Market Scans</h3><p style="color: var(--text-muted);">Scan selected market conditions and setup signals without manually watching every chart.</p></div>
+                    <div class="feature-box card"><h3>AI-Assisted Setup Validation</h3><p style="color: var(--text-muted);">Use AI-assisted catalyst and context checks as a validation layer before a setup can move forward.</p></div>
+                    <div class="feature-box card"><h3>Playbook Rule Engine</h3><p style="color: var(--text-muted);">Your setup rules, entry criteria, stop-loss logic, and risk limits define what automation is allowed to do.</p></div>
+                    <div class="feature-box card"><h3>Risk-Based Position Sizing</h3><p style="color: var(--text-muted);">Calculate position size from your configured risk settings and stop distance before routing decisions.</p></div>
+                    <div class="feature-box card"><h3>Supported Broker-Connected Routing</h3><p style="color: var(--text-muted);">When conditions pass, XeanVI can prepare and route bracket-order instructions through your connected supported broker.</p></div>
+                    <div class="feature-box card"><h3>Dashboard Monitoring &amp; Audit Logs</h3><p style="color: var(--text-muted);">Monitor active workflows and review recorded actions so automation stays visible.</p></div>
                 </div>
             </div>
         </section>
@@ -167,9 +146,9 @@
         <section class="section-pad" style="background: var(--bg-main); border-top: 1px solid var(--border-color);">
             <div class="container">
                 <div style="text-align: center; margin-bottom: 3rem;">
-                    <h2 style="font-size: 2rem;">Manual Hesitation vs. PRO Automation</h2>
+                    <h2 style="font-size: 2rem;">Manual Trading vs. XeanVI PRO Workflow</h2>
                     <p style="color: var(--text-muted); max-width: 660px; margin: 0 auto;">
-                        See how upgrading to XeanVI PRO transforms an emotional, manual process into a disciplined, structured, rules-based execution workflow.
+                        XeanVI is designed to reduce execution drift by converting your defined process into a repeatable workflow.
                     </p>
                 </div>
 
@@ -184,26 +163,11 @@
                                 </tr>
                             </thead>
                             <tbody style="font-size: 1rem;">
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Setup Review</td>
-                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-minus" style="color: var(--warning); margin-right: 8px;" aria-hidden="true"></i> Fatigue from constant chart scanning</td>
-                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;" aria-hidden="true"></i> Automated market scans & AI validation</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Testing Environment</td>
-                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-minus" style="color: var(--warning); margin-right: 8px;" aria-hidden="true"></i> Guessing edge with live capital</td>
-                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;" aria-hidden="true"></i> Paper sandbox to test the automation before live use</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Order Execution</td>
-                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-minus" style="color: var(--warning); margin-right: 8px;" aria-hidden="true"></i> Slow, manual ticket entry</td>
-                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;" aria-hidden="true"></i> Automated supported broker API routing</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Risk Settings</td>
-                                    <td style="padding: 1.5rem; color: var(--text-muted);"><i class="fas fa-minus" style="color: var(--warning); margin-right: 8px;" aria-hidden="true"></i> Emotional exits and broken rules</td>
-                                    <td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);"><i class="fas fa-check" style="color: var(--success); margin-right: 8px;" aria-hidden="true"></i> Automated enforcement of max risk, sizing, and stop-loss rules</td>
-                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Market Review</td><td style="padding: 1.5rem; color: var(--text-muted);">Constant chart watching and scattered alerts</td><td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);">Automated scans tied to configured criteria</td></tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Setup Validation</td><td style="padding: 1.5rem; color: var(--text-muted);">Subjective judgment under pressure</td><td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);">Playbook checks plus AI-assisted catalyst/context validation</td></tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Position Sizing</td><td style="padding: 1.5rem; color: var(--text-muted);">Rushed or inconsistent sizing</td><td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);">Size calculated from risk settings and stop distance</td></tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Order Routing</td><td style="padding: 1.5rem; color: var(--text-muted);">Manual ticket entry and delayed execution</td><td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);">Supported broker-connected bracket-order routing when conditions pass</td></tr>
+                                <tr><td style="padding: 1.5rem; font-weight: 600; color: var(--text-main);">Review/Audit</td><td style="padding: 1.5rem; color: var(--text-muted);">Hard to reconstruct what happened</td><td style="padding: 1.5rem; font-weight: 600; background: rgba(56, 189, 248, 0.03); border-left: 1px solid var(--border-color); color: var(--text-main);">Dashboard visibility and execution logs</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -214,32 +178,40 @@
         <section class="section-pad" style="border-top: 1px solid var(--border-color);">
             <div class="container grid-2" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 4rem; align-items: center;">
                 <div>
-                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">Secure API Execution & Dashboard Control</h2>
+                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">Broker-connected automation with user-controlled permissions</h2>
                     <p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6;">
-                        XeanVI PRO is an execution layer, not a custodian. Connect your broker, authorize permissions, and monitor the automation from your dashboard while funds remain at your supported brokerage account. You remain responsible for all trading activity and decisions.
+                        XeanVI PRO is an execution layer, not a custodian. You authorize broker permissions, define the rules, and monitor automated workflows from the dashboard while funds remain at your supported brokerage account.
                     </p>
                     <ul style="list-style: none; padding: 0; margin-bottom: 2rem;">
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
-                            <i class="fas fa-plug" style="color: var(--accent-blue);" aria-hidden="true"></i> Fast, live order routing via <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: none;">supported broker API</a>
+                            <i class="fas fa-plug" style="color: var(--accent-blue);" aria-hidden="true"></i> Funds stay with your supported broker
                         </li>
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
-                            <i class="fas fa-chart-line" style="color: var(--accent-blue);" aria-hidden="true"></i> Real-time dashboard monitoring of active sequences
+                            <i class="fas fa-chart-line" style="color: var(--accent-blue);" aria-hidden="true"></i> You control broker permissions
                         </li>
                         <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
-                            <i class="fas fa-list-check" style="color: var(--accent-blue);" aria-hidden="true"></i> Full transparency with detailed execution logs
+                            <i class="fas fa-list-check" style="color: var(--accent-blue);" aria-hidden="true"></i> Automation follows your playbook settings
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
+                            <i class="fas fa-flask" style="color: var(--accent-blue);" aria-hidden="true"></i> Paper testing before live use
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; color: var(--text-main); font-weight: 500;">
+                            <i class="fas fa-clipboard-list" style="color: var(--accent-blue);" aria-hidden="true"></i> Dashboard monitoring and audit logs
                         </li>
                     </ul>
                     {% if current_user.is_authenticated %}
-                        <a href="/upgrade" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Review Pricing</a>
+                        <a href="/broker-integration" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; margin-right: 0.75rem;">Review Broker Integration</a>
+                        <a href="/upgrade" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Upgrade to PRO</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Review Pricing</a>
+                        <a href="/broker-integration" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; margin-right: 0.75rem;">Review Broker Integration</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Start Monthly PRO</a>
                     {% endif %}
                 </div>
                 <div style="background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
                     <i class="fas fa-user-shield" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;" aria-hidden="true"></i>
-                    <h3 style="margin-bottom: 0.5rem;">Transparency & Sandbox Safety</h3>
+                    <h3 style="margin-bottom: 0.5rem;">Paper Testing & Audit Visibility</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">
-                        Before deploying live capital, users can test their rules in the paper trading mode. Learn exactly how the engine thinks by reviewing our <a href="/transparency" style="color: var(--accent-blue);">transparency and logic reports</a>. You maintain absolute control over your API permissions.
+                        Paper mode lets you review how your configured rules behave before live routing. Audit visibility helps you understand what actions were triggered and why. Learn more on our <a href="/transparency" style="color: var(--accent-blue);">transparency page</a>.
                     </p>
                 </div>
             </div>
@@ -251,48 +223,27 @@
                     <h2 style="font-size: 2rem;">PRO Features Details</h2>
                 </div>
 
-                <details class="feature-details">
-                    <summary>What exactly do I get with XeanVI PRO?</summary>
-                    <div class="faq-content">
-                        A PRO subscription unlocks rule-based automation tools. This includes automated market scans, AI-assisted setup review, and supported broker API connectivity to route orders after your playbook, broker, and risk settings are configured.
-                    </div>
-                </details>
-
-                <details class="feature-details">
-                    <summary>Is the order execution fully automated?</summary>
-                    <div class="faq-content">
-                        XeanVI supports automated order routing after your playbook, broker connection, and risk settings are configured. You define the rules and permissions, and the platform routes order instructions when those conditions are met.
-                    </div>
-                </details>
-
-                <details class="feature-details">
-                    <summary>What has to be set up before automation can run?</summary>
-                    <div class="faq-content">
-                        Define your playbook, complete onboarding, connect a supported broker, and authorize the required permissions. Then use paper mode to confirm the automation follows your configured rules before enabling live routing.
-                    </div>
-                </details>
-
-                <details class="feature-details">
-                    <summary>Can I test the automation before using live capital?</summary>
-                    <div class="faq-content">
-                        Yes. XeanVI includes a paper trading sandbox so you can test scans, validation, sizing, routing behavior, and management logic before using live capital. Paper testing is recommended, and no results are guaranteed.
-                    </div>
-                </details>
+                <details class="feature-details"><summary>What do I get with XeanVI PRO?</summary><div class="faq-content">XeanVI PRO includes automated scans, playbook rules, AI-assisted validation, paper testing, broker-connected routing, and dashboard monitoring with audit visibility.</div></details>
+                <details class="feature-details"><summary>Is execution fully automated?</summary><div class="faq-content">XeanVI can route order instructions after playbook, broker, risk, and permission requirements are configured and conditions pass. You remain responsible for all trading activity and decisions.</div></details>
+                <details class="feature-details"><summary>Can I test before live capital?</summary><div class="faq-content">Yes. Paper testing is available and recommended before enabling live routing.</div></details>
+                <details class="feature-details"><summary>Does XeanVI hold my funds?</summary><div class="faq-content">No. Funds remain with your supported broker, and you control broker permissions.</div></details>
+                <details class="feature-details"><summary>Is this financial advice?</summary><div class="faq-content">No. XeanVI does not provide financial advice, investment recommendations, or guaranteed results.</div></details>
             </div>
         </section>
 
         <section class="cta section-pad" style="border-top: 1px solid var(--border-color); background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 60%); text-align: center;">
             <div class="container">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">Build Your Rule-Based Automation Workflow</h2>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">Ready to build your automation workflow?</h2>
                 <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 650px; margin-left: auto; margin-right: auto; font-size: 1.1rem;">
-                    Define your playbook, test the logic in paper mode, and use XeanVI PRO to support broker-connected execution with rules you control.
+                    Define your playbook, test in paper mode, connect a supported broker when ready, and monitor how XeanVI handles scanning, validation, sizing, routing, and logs around the rules you set.
                 </p>
                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                     {% if current_user.is_authenticated %}
                         <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">Upgrade to PRO</a>
+                        <a href="/pricing" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">View Pricing</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">Start PRO Automation</a>
-                        <a href="/login" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">Log In</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">Start Monthly PRO</a>
+                        <a href="/pricing" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; text-transform: uppercase;">View Pricing</a>
                     {% endif %}
                 </div>
                 <p style="color: var(--text-muted); font-size: 0.8rem; max-width: 700px; margin: 2rem auto 0; line-height: 1.6;">
