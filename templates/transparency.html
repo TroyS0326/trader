@@ -110,6 +110,9 @@
         .trust-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.4rem; }
         .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; }
         .settings-card { background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .transparency-page .card-action { display: block; text-align: center; margin-top: auto; padding: 0.9rem 1rem; border-radius: 8px; font-weight: 800; text-decoration: none; border: 1px solid rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.12); color: var(--text-main); }
+        .transparency-page .card-action:hover,
+        .transparency-page .card-action:focus-visible { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-blue); color: #fff; outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
         .faq-details { background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
         .faq-details summary { padding: 1.15rem 1.5rem; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
@@ -192,8 +195,8 @@
                 <div class="section-title"><h2 style="font-size:1.8rem; margin-bottom:.6rem;">Audit visibility around the workflow</h2></div>
                 <div class="card-grid">
                     <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-clipboard-check" aria-hidden="true" style="color:var(--success); margin-right:8px;"></i>Execution Audit Trail</h3><p style="color:var(--text-muted); line-height:1.65;">Review why a workflow moved forward or stopped, including playbook conditions, validation context, risk settings, and recorded outcomes where available.</p><a href="#" class="btn btn-secondary disabled-link" aria-disabled="true" style="display:block; text-align:center; margin-top:auto;">Audit Downloads Coming Soon</a></article>
-                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-user-shield" aria-hidden="true" style="color:var(--accent-blue); margin-right:8px;"></i>Broker Permission Boundaries</h3><p style="color:var(--text-muted); line-height:1.65;">XeanVI is not a custodian. Broker-connected workflows depend on supported broker permissions, user-defined settings, and account configuration.</p><a href="/broker-integration" class="btn" style="display:block; text-align:center; margin-top:auto;">Review Broker Trust</a></article>
-                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-lock" aria-hidden="true" style="color:var(--warning); margin-right:8px;"></i>Data Privacy & Account Control</h3><p style="color:var(--text-muted); line-height:1.65;">Review how account and workflow data are handled, and keep broker access under your control.</p><a href="/privacy" class="btn" style="display:block; text-align:center; margin-top:auto;">Review Privacy Policy</a></article>
+                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-user-shield" aria-hidden="true" style="color:var(--accent-blue); margin-right:8px;"></i>Broker Permission Boundaries</h3><p style="color:var(--text-muted); line-height:1.65;">XeanVI is not a custodian. Broker-connected workflows depend on supported broker permissions, user-defined settings, and account configuration.</p><a href="/broker-integration" class="card-action">Review Broker Trust</a></article>
+                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-lock" aria-hidden="true" style="color:var(--warning); margin-right:8px;"></i>Data Privacy & Account Control</h3><p style="color:var(--text-muted); line-height:1.65;">Review how account and workflow data are handled, and keep broker access under your control.</p><a href="/privacy" class="card-action">Review Privacy Policy</a></article>
                 </div>
             </div>
         </section>
@@ -239,14 +242,6 @@
             </div>
         </section>
 
-        <section style="padding:0 0 2rem;">
-            <div class="container" style="text-align:center;">
-                <p style="font-size:.95rem; color:var(--text-muted); margin:0;">Follow XeanVI for platform updates, trading discipline content, and product announcements.
-                    <a href="https://www.facebook.com/profile.php?id=61560981104152" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Facebook" style="margin-left:8px; margin-right:10px;">Facebook</a>
-                    <a href="https://www.instagram.com/xean.vi" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Instagram">Instagram</a>
-                </p>
-            </div>
-        </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
