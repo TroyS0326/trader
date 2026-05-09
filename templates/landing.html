@@ -138,6 +138,7 @@
         margin-bottom: 1rem;
     }
     .landing-page .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .landing-page .hero-helper { margin-top: 0.9rem; font-size: 0.95rem; margin-bottom: 0; }
     .landing-page .hero-trust-strip {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -152,6 +153,19 @@
         color: var(--text-muted);
         font-size: 0.86rem;
     }
+    .quick-start-cards { padding: 3rem 0; border-top: 1px solid var(--border-color); }
+    .quick-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem;
+    }
+    .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .fit-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.2rem; }
+    .fit-card ul { margin: 0; padding-left: 1rem; color: var(--text-muted); }
+    .fit-card li { margin-bottom: 0.45rem; }
+    .mid-cta { padding: 3rem 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); }
+    .mobile-sticky-cta { display: none; }
 
     .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
 
@@ -228,6 +242,24 @@
         .automation-layout { grid-template-columns: 1fr; }
         .automation-pipeline { grid-template-columns: 1fr; }
         .flow-step::after { display: none; }
+        .fit-grid { grid-template-columns: 1fr; }
+        .mobile-sticky-cta {
+            display: block;
+            position: fixed;
+            bottom: max(0.8rem, env(safe-area-inset-bottom));
+            left: 1rem;
+            right: 1rem;
+            z-index: 1100;
+        }
+        .mobile-sticky-cta a {
+            display: block;
+            text-align: center;
+            padding: 0.9rem 1rem;
+            border-radius: 10px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+        }
+        footer { padding-bottom: 6.5rem; }
     }
 </style>
 </head>
@@ -242,27 +274,27 @@
             <div class="hero-content">
                 <div class="hero-badge">RULE-DRIVEN AUTOMATION</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    Automate Your Trading: Sign Up, Connect Your Broker, Click Scan
+                    Stop chasing setups manually. Let your rules scan, validate, size, and prepare bracket orders before emotion gets involved.
                 </h1>
                 <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
-                    XeanVI turns your trading playbook into an automated execution workflow. Define your rules, complete onboarding, connect a supported broker, click Scan, and let XeanVI scan, validate setups, calculate size, route bracket orders, manage trades, and log each action based on the controls you set.
+                    XeanVI is rule-driven trading automation software. Create your account, build your playbook, run paper scans first, then connect a supported broker only when you are ready for live routing.
                 </p>
                 
 {% include 'partials/launch_promo.html' %}
 <div class="hero-actions">
-                    <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Automating" }}</a>
-                    <a href="/features" class="btn btn-secondary">See the Automation Flow</a>
+                    <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Create Account & Test Paper Mode" }}</a>
+                    <a href="#paper-scan-demo" class="btn btn-secondary">Watch Paper Scan Demo</a>
                 </div>
+                <p class="hero-helper">You can start in paper mode immediately after signup before connecting any live broker permissions.</p>
                 <div class="hero-trust-strip" aria-label="Landing hero trust highlights">
-                    <div class="hero-trust-item">Playbook rules</div>
-                    <div class="hero-trust-item">Paper testing</div>
-                    <div class="hero-trust-item">Supported broker routing</div>
-                    <div class="hero-trust-item">Dashboard audit logs</div>
-                    <div class="hero-trust-item">No financial advice</div>
+                    <div class="hero-trust-item">No live broker connection required to create your account</div>
+                    <div class="hero-trust-item">Start in paper mode first</div>
+                    <div class="hero-trust-item">You define the rules and risk limits</div>
+                    <div class="hero-trust-item">Trading involves risk; XeanVI is software, not financial advice</div>
                 </div>
             </div>
 
-            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;" aria-label="Interactive paper trading sandbox terminal">
+            <div id="paper-scan-demo" style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;" aria-label="Interactive paper trading sandbox terminal">
                 <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
                     <div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Sandbox</div>
@@ -288,6 +320,19 @@
             </div>
         </div>
     </section>
+    <section class="quick-start-cards">
+        <div class="container">
+            <div style="text-align: center; max-width: 860px; margin: 0 auto 2rem;">
+                <h2 style="font-size: 2rem; margin-bottom: 0.7rem;">What happens after you sign up</h2>
+                <p style="margin-bottom: 0;">Start low-risk with paper mode. Broker connection is optional until you decide to go live.</p>
+            </div>
+            <div class="grid-3" style="gap: 1rem;">
+                <article class="quick-card"><h3>1) Build your playbook</h3><p style="margin: 0;">Set setup criteria, risk limits, and position sizing rules that match your process.</p></article>
+                <article class="quick-card"><h3>2) Run paper scans</h3><p style="margin: 0;">Use simulated workflow to review how scans and rule checks behave before live capital.</p></article>
+                <article class="quick-card"><h3>3) Connect broker only when ready</h3><p style="margin: 0;">Enable supported broker routing after your rules and permissions are configured.</p></article>
+            </div>
+        </div>
+    </section>
 
     <section class="features" style="padding: 4.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
@@ -302,6 +347,20 @@
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Inconsistent position sizing</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Broken stop-loss discipline</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Manual order-management fatigue</strong></article>
+            </div>
+        </div>
+    </section>
+    <section class="mid-cta">
+        <div class="container">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.2rem;">
+                <div style="max-width: 680px;">
+                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Test your rules before you trust them live.</h2>
+                    <p style="margin-bottom: 0;">Trading involves risk. XeanVI is software for user-defined workflow automation and is not financial advice.</p>
+                </div>
+                <div style="display: flex; gap: 0.7rem; flex-wrap: wrap;">
+                    <a href="/signup?plan=monthly" class="btn btn-primary">Create Account & Start Paper Mode</a>
+                    <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
+                </div>
             </div>
         </div>
     </section>
@@ -497,6 +556,32 @@
             </div>
         </div>
     </section>
+    <section style="padding: 3.5rem 0; border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 2rem;">Built for / Not built for</h2>
+            </div>
+            <div class="fit-grid">
+                <article class="fit-card">
+                    <h3 style="margin-bottom: 0.75rem;">Built for</h3>
+                    <ul>
+                        <li>Retail traders with defined setups</li>
+                        <li>Traders who want rule discipline</li>
+                        <li>Traders who want paper testing before live automation</li>
+                    </ul>
+                </article>
+                <article class="fit-card">
+                    <h3 style="margin-bottom: 0.75rem;">Not built for</h3>
+                    <ul>
+                        <li>Get-rich-quick trading</li>
+                        <li>Blind signal following</li>
+                        <li>Guaranteed profits</li>
+                        <li>Financial advice</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
 
     <section id="pricing" class="pricing-section" style="padding: 6rem 0; background-color: var(--bg-card);">
         <div class="container">
@@ -580,6 +665,9 @@
         </div>
     </section>
 </main>
+<div class="mobile-sticky-cta" aria-label="Quick mobile signup call to action">
+    <a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Mode</a>
+</div>
 
 {% include 'footer.html' %}
 
