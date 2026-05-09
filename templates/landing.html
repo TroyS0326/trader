@@ -274,10 +274,10 @@
             <div class="hero-content">
                 <div class="hero-badge">RULE-DRIVEN AUTOMATION</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    Stop chasing setups manually. Let your rules scan, validate, size, and prepare bracket orders before emotion gets involved.
+                    Automate Your Trading Rules Before Emotion Takes Over
                 </h1>
                 <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
-                    XeanVI is rule-driven trading automation software. Create your account, build your playbook, run paper scans first, then connect a supported broker only when you are ready for live routing.
+                    XeanVI is rule-driven trading automation software: build your playbook, run paper scans first, and connect a supported broker only when you are ready. It helps scan market data, check validation gates, calculate size from your risk settings, prepare bracket-order workflows for routing, and log each action based on your controls.
                 </p>
                 
 {% include 'partials/launch_promo.html' %}
@@ -285,7 +285,7 @@
                     <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Create Account & Test Paper Mode" }}</a>
                     <a href="#paper-scan-demo" class="btn btn-secondary">Watch Paper Scan Demo</a>
                 </div>
-                <p class="hero-helper">You can start in paper mode immediately after signup before connecting any live broker permissions.</p>
+                <p class="hero-helper">No live broker connection required to create an account. Start in paper mode first.</p>
                 <div class="hero-trust-strip" aria-label="Landing hero trust highlights">
                     <div class="hero-trust-item">No live broker connection required to create your account</div>
                     <div class="hero-trust-item">Start in paper mode first</div>
@@ -709,7 +709,6 @@
         const btn = document.getElementById('btn-simulate');
         const status = document.getElementById('sim-status');
         const dot = document.getElementById('sim-dot');
-        const br = document.getElementById('sim-bankroll');
 
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Processing...';
@@ -724,27 +723,23 @@
         addSimLog("> Scan started: connecting to simulated market data feed...", "var(--accent-blue)");
 
         setTimeout(() => addSimLog("> Playbook rules checked: reviewing symbols for setup alignment..."), 800);
-        setTimeout(() => addSimLog("> Catalyst/AI validation checked: setup context passed threshold.", "#f59e0b"), 2200);
+        setTimeout(() => addSimLog("> Validation gate checked: setup context reviewed against your playbook.", "#f59e0b"), 2200);
         setTimeout(() => addSimLog("> Position size calculated from playbook max-risk and stop distance.", "var(--success)"), 3800);
 
         setTimeout(() => {
-            addSimLog("> Bracket order prepared and routed in paper mode: 50 shares at $128.50.");
+            addSimLog("> Bracket order prepared in paper mode: 50 shares at $128.50.");
             addSimLog("> Bracket targets attached: Target $131.50 | Stop $127.00.");
         }, 5000);
 
         setTimeout(() => {
-            addSimLog("> Audit log updated: paper execution event recorded.", "var(--accent-blue)");
-            addSimLog("> <strong>Paper demo complete: +$150.00 simulated gross result.</strong>", "var(--success)");
-
-            bankroll += 150;
-            br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
-            br.style.color = 'var(--success)';
+            addSimLog("> Audit log recorded: paper workflow event captured.", "var(--accent-blue)");
+            addSimLog("> <strong>Paper workflow complete: scan, validation, sizing, bracket preparation, and audit log recorded.</strong>", "var(--success)");
+            addSimLog("> Demo complete: no live capital used.", "var(--text-muted)");
 
             status.style.color = 'var(--success)';
             status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Paper Cycle Completed`;
 
             setTimeout(() => {
-                br.style.color = 'var(--text-main)';
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-redo" aria-hidden="true"></i> Run Another Paper Scan';
                 btn.style.background = 'var(--accent-blue)';
