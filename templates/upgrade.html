@@ -74,6 +74,7 @@
         .pricing-page .page-hero { padding: 5rem 0 3.5rem; border-bottom: 1px solid var(--border-color); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08) 0%, transparent 60%); }
         .pricing-page .hero-inner { text-align: center; max-width: 860px; margin: 0 auto; padding: 0 1rem; }
         .pricing-header { text-align: center; max-width: 800px; margin: 1.2rem auto 0.5rem; padding: 0 1rem; }
+        .pricing-header .badge-pill { display: inline-block; margin: 0 auto 1rem; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(56, 189, 248, 0.12); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.28); }
         .pricing-header h1 { font-size: clamp(2rem, 4vw, 2.8rem); margin-bottom: 1rem; color: var(--text-main); font-weight: 800; line-height: 1.2; letter-spacing: -0.5px; }
         .pricing-header p { color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; }
         .value-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; margin-top: 1.2rem; }
@@ -164,7 +165,7 @@
 
         <header class="page-hero"><div class="container hero-inner"><div class="pricing-header">
 {% include 'partials/launch_promo.html' %}
-
+            <div class="badge-pill">XEANVI PRO PRICING</div>
             <h1>Choose Your XeanVI PRO Plan</h1>
             <p>Start with paper testing, build your playbook, and unlock broker-connected automation tools when you are ready to run Rule-Driven Trading Automation workflows with visibility and control.</p>
             <div class="value-strip" aria-label="Core PRO value points">
@@ -173,11 +174,7 @@
                 <span class="value-pill">Supported broker-connected routing</span>
                 <span class="value-pill">Dashboard monitoring and audit logs</span>
             </div>
-        </div>
-            <div class="value-strip" aria-label="Pricing trust strip">
-                <span class="value-pill">Clear monthly/annual billing</span><span class="value-pill">Secure checkout</span><span class="value-pill">Cancel anytime</span><span class="value-pill">Paper-first workflow</span>
-            </div>
-        </div></header>
+        </div></div></header>
 
         <div class="pricing-grid">
             <section id="monthly-plan" class="pricing-card primary-focus">
