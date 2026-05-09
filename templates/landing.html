@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <title>XeanVI | Rule-Driven Trading Automation</title>
-<meta name="description" content="Build a trading playbook, test in paper mode, connect a supported broker, and use XeanVI to scan, validate, size, route, and log rule-driven trading workflows.">
+<meta name="description" content="Automate your trading workflow with XeanVI. Define playbook rules, complete onboarding, connect a supported broker, click Scan, and let rule-based automation scan, validate, size, route, and manage trades with paper testing before live use.">
 
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="XeanVI">
@@ -242,43 +242,57 @@
             <div class="hero-content">
                 <div class="hero-badge">RULE-DRIVEN AUTOMATION</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    Automate Your Trading Rules — From Scan to Bracket Order
+                    Automate Your Trading: Sign Up, Connect Your Broker, Click Scan
                 </h1>
-                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                    Define your playbook, test in paper mode, connect a supported broker, and let XeanVI scan, validate, size, route, and log each trade workflow based on the controls you set.
+                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
+                    XeanVI turns your trading playbook into an automated execution workflow. Define your rules, complete onboarding, connect a supported broker, click Scan, and let XeanVI scan, validate setups, calculate size, route bracket orders, manage trades, and log each action based on the controls you set.
                 </p>
-
+                
 {% include 'partials/launch_promo.html' %}
-                <div class="hero-actions">
-                    <a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Testing</a>
-                    <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+<div class="hero-actions">
+                    <a href="/signup?plan=monthly" class="btn btn-primary">{{ "Claim 2 Months for $19.99" if launch_promo_active else "Start Automating" }}</a>
+                    <a href="/features" class="btn btn-secondary">See the Automation Flow</a>
                 </div>
-                <p style="font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0; color: var(--text-muted);">No profit promises. No black-box trading. Your rules, your risk limits, your broker permissions.</p>
                 <div class="hero-trust-strip" aria-label="Landing hero trust highlights">
-                    <div class="hero-trust-item">For retail day traders seeking systematic discipline</div>
-                    <div class="hero-trust-item">Paper mode before live deployment</div>
-                    <div class="hero-trust-item">Supported broker connection when ready</div>
-                    <div class="hero-trust-item">Dashboard visibility and audit logs</div>
+                    <div class="hero-trust-item">Playbook rules</div>
+                    <div class="hero-trust-item">Paper testing</div>
+                    <div class="hero-trust-item">Supported broker routing</div>
+                    <div class="hero-trust-item">Dashboard audit logs</div>
+                    <div class="hero-trust-item">No financial advice</div>
                 </div>
             </div>
-            <aside style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);" aria-label="Workflow status preview">
-                <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);">XeanVI Workflow Preview</div>
-                <div style="padding: 1.25rem; display: grid; gap: 0.75rem;">
-                    <div><strong>Mode:</strong> Paper</div>
-                    <div><strong>Broker:</strong> Not connected (connect when ready)</div>
-                    <div><strong>Playbook:</strong> Required</div>
-                    <div><strong>Risk:</strong> User-defined</div>
-                    <div><strong>Scan status:</strong> Waiting for command</div>
-                    <div><strong>Next step:</strong> Create account → build playbook → test in paper mode</div>
+
+            <div style="border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column;" aria-label="Interactive paper trading sandbox terminal">
+                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Sandbox</div>
+                        <div id="sim-status" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                            <span id="sim-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);"></span> Awaiting Command
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Paper Balance</div>
+                        <div id="sim-bankroll" style="color: var(--text-main); font-weight: 800; font-size: 1.25rem;">$10,000.00</div>
+                    </div>
                 </div>
-            </aside>
+
+                <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
+                    <div style="color: var(--text-muted);">> Paper sandbox loaded. $10,000 simulated balance available.</div>
+                </div>
+
+                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                    <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run paper trading sandbox simulation">
+                        <i class="fas fa-play" aria-hidden="true"></i> Run Paper Scan
+                    </button>
+                </div>
+            </div>
         </div>
     </section>
 
     <section class="features" style="padding: 4.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
             <div style="text-align: center; max-width: 860px; margin: 0 auto 2.5rem;">
-                <h2 style="font-size: 2.2rem; margin-bottom: 0.85rem;">Manual execution is where many solid plans break down.</h2>
+                <h2 style="font-size: 2.2rem; margin-bottom: 0.85rem;">Manual execution is where good plans break down.</h2>
                 <p style="margin-bottom: 0;">
                     Most traders do not fail because they lack rules. They struggle when live markets create hesitation, rushed sizing, late entries, emotional exits, and inconsistent follow-through. XeanVI is built to turn your written playbook into a repeatable automation workflow you can test, monitor, and control.
                 </p>
@@ -288,26 +302,15 @@
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Inconsistent position sizing</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Broken stop-loss discipline</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Manual order-management fatigue</strong></article>
-            
-                <article style="background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); height: 100%;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
-                        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">I need to see what happened</h3>
-                    </div>
-                    <p style="font-size: 0.95rem; line-height: 1.6;">Dashboard visibility and audit logs help users review workflow activity.</p>
-                </article>
             </div>
-            <div style="text-align:center;margin-top:1.5rem;"><a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Testing</a> <a href="/pricing" class="btn btn-secondary">View Pricing</a></div>
         </div>
     </section>
 
-    <section id="how-it-works" class="automation-flow-section">
+    <section class="automation-flow-section">
         <div class="container">
             <div class="automation-header">
                 <div class="section-badge"><i class="fas fa-diagram-project" aria-hidden="true"></i>RULE-DRIVEN AUTOMATION</div>
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Works</h2>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Turns Your Playbook Into Automated Execution</h2>
                 <p class="automation-subhead">
                     Define your rules once, complete onboarding, connect your supported broker, then launch scans that validate setups, calculate position size, prepare bracket-order instructions when conditions pass, and log every action around your risk controls.
                 </p>
@@ -316,23 +319,23 @@
                 <div class="automation-pipeline">
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">01</span><span class="step-icon"><i class="fas fa-sliders" aria-hidden="true"></i></span></div>
-                        <h3>Create Account</h3>
-                        <p>Create your account and enter onboarding so your workspace is ready for rule-driven setup.</p>
+                        <h3>Build Your Playbook</h3>
+                        <p>Complete onboarding, then define your setup rules, risk limits, sizing preferences, and trade criteria so automation follows your plan.</p>
                     </article>
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">02</span><span class="step-icon"><i class="fas fa-link" aria-hidden="true"></i></span></div>
-                        <h3>Build Playbook</h3>
-                        <p>Define setup conditions, validation requirements, and risk sizing controls the workflow must follow.</p>
+                        <h3>Connect Broker Access</h3>
+                        <p>Connect a supported broker and authorize API permissions in <a href="/broker-integration" style="color: var(--accent-blue);">Broker Integration</a>. Funds remain at your broker and you control permissions.</p>
                     </article>
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">03</span><span class="step-icon"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i></span></div>
-                        <h3>Test in Paper Mode</h3>
-                        <p>Run click Scan in paper mode to review how your playbook behaves before any live routing.</p>
+                        <h3>Launch a Scan</h3>
+                        <p>Click Scan to evaluate market conditions, playbook rules, catalyst/AI validation, and risk filters before any action can route.</p>
                     </article>
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">04</span><span class="step-icon"><i class="fas fa-gears" aria-hidden="true"></i></span></div>
-                        <h3>Connect Broker & Run Scan</h3>
-                        <p>When ready, connect a supported broker and run scans that can route eligible bracket-order workflows under your controls.</p>
+                        <h3>Automation Takes Over</h3>
+                        <p>When your rules pass, XeanVI can calculate position size, prepare and route bracket orders, manage the trade workflow, and log each action according to your defined controls.</p>
                     </article>
                 </div>
                 <aside class="automation-summary">
@@ -345,8 +348,8 @@
                         <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Paper testing before live use</span></li>
                     </ul>
                     <div class="automation-cta">
-                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Testing</a>
-                        <a href="/pricing" class="btn btn-secondary">View Pricing</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Automating</a>
+                        <a href="/features" class="btn btn-secondary">Review Features</a>
                     </div>
                 </aside>
             </div>
@@ -356,7 +359,7 @@
     <section class="features">
         <div class="container">
             <div style="text-align: center; margin-bottom: 4rem;">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Why traders hesitate — and how XeanVI handles it</h2>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Automation with control at every gate</h2>
                 <p style="max-width: 740px; margin: 0 auto;">
                     XeanVI is not random auto-trading. It checks your rules, your risk settings, and your broker permissions before any supported routing workflow can occur.
                 </p>
@@ -368,10 +371,10 @@
                         <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
                             <i class="fas fa-microchip" aria-hidden="true"></i>
                         </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">I do not trust bots with my money</h3>
+                        <h3 style="margin: 0; font-size: 1.25rem;">Validation Gate</h3>
                     </div>
                     <p style="font-size: 0.95rem; line-height: 1.6;">
-                        Start in paper mode first. Live routing requires broker connection and user-defined controls.
+                        Scans and AI-assisted catalyst checks help filter whether a setup matches your playbook before it moves forward.
                     </p>
                 </article>
 
@@ -380,10 +383,10 @@
                         <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
                             <i class="fas fa-server" aria-hidden="true"></i>
                         </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">I do not want black-box trades</h3>
+                        <h3 style="margin: 0; font-size: 1.25rem;">Risk Gate</h3>
                     </div>
                     <p style="font-size: 0.95rem; line-height: 1.6;">
-                        The playbook defines what the workflow is allowed to check, size, route, and log.
+                        Position sizing, max risk, stop-loss distance, and trade criteria come from the settings you define.
                     </p>
                 </article>
 
@@ -392,35 +395,11 @@
                         <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(245, 158, 11, 0.12); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
                             <i class="fas fa-shield-halved" aria-hidden="true"></i>
                         </div>
-                        <h3 style="margin: 0; font-size: 1.25rem;">I am worried about oversized trades</h3>
+                        <h3 style="margin: 0; font-size: 1.25rem;">Execution Gate</h3>
                     </div>
                     <p style="font-size: 0.95rem; line-height: 1.6;">
-                        Risk settings and position sizing controls are part of the workflow before routing.
+                        When conditions pass, XeanVI can prepare and route bracket-order instructions through your connected supported broker.
                     </p>
-                </article>
-            </div>
-            <div style="text-align:center;margin-top:1.5rem;"><a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Testing</a> <a href="/pricing" class="btn btn-secondary">View Pricing</a></div>
-        </div>
-    </section>
-
-    <section style="padding: 4rem 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); background: var(--bg-card);">
-        <div class="container">
-            <div style="text-align:center; max-width: 860px; margin: 0 auto 2rem;">
-                <h2 style="font-size:2.2rem;">Manual Execution vs. XeanVI Workflow</h2>
-                <p style="margin-bottom:0;">This comparison explains workflow differences only. It does not imply any guaranteed trading outcome.</p>
-            </div>
-            <div class="grid-2" style="align-items: stretch;">
-                <article style="border:1px solid var(--border-color); border-radius:14px; padding:1.5rem; background:var(--bg-main);">
-                    <h3>Manual execution</h3>
-                    <ul>
-                        <li>Watch charts manually</li><li>React under pressure</li><li>Recalculate risk manually</li><li>Enter orders manually</li><li>Review later from scattered notes</li>
-                    </ul>
-                </article>
-                <article style="border:1px solid var(--border-color); border-radius:14px; padding:1.5rem; background:var(--bg-main);">
-                    <h3>XeanVI workflow</h3>
-                    <ul>
-                        <li>Scan configured conditions</li><li>Validate against playbook rules</li><li>Calculate size from risk settings</li><li>Route supported bracket-order workflow when eligible</li><li>Log workflow activity in dashboard</li>
-                    </ul>
                 </article>
             </div>
         </div>
@@ -439,7 +418,7 @@
                     <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
                         Review Full Features <span style="color: var(--accent-blue);">→</span>
                     </a>
-                    <a href="/playbook" class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2rem;">Create Account</a>
+                    <a href="/playbook" class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2rem;">Build Your Playbook</a>
                 </div>
             </div>
         </div>
@@ -460,7 +439,7 @@
                     <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
                             <i class="fas fa-microchip" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
-                            Can I test XeanVI before live trading?
+                            Is XeanVI automated after setup?
                         </h3>
                         <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
@@ -475,7 +454,7 @@
                     <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
                             <i class="fas fa-brain" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
-                            Does XeanVI guarantee profits?
+                            Can I test the automation before using live capital?
                         </h3>
                         <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
@@ -490,7 +469,7 @@
                     <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
                             <i class="fas fa-lock" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
-                            Does XeanVI trade without my rules?
+                            Does XeanVI control my broker account?
                         </h3>
                         <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
@@ -505,7 +484,7 @@
                     <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">
                             <i class="fas fa-scale-balanced" style="color: var(--accent-blue); margin-right: 12px;" aria-hidden="true"></i>
-                            What broker connection is required?
+                            Is this financial advice?
                         </h3>
                         <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
                     </div>
@@ -513,24 +492,6 @@
                         <p style="padding-top: 1rem; margin-bottom: 0;">
                             No. XeanVI does not provide financial advice or guaranteed results. It is software that follows user-defined rules and workflows, and you remain responsible for each trading decision.
                         </p>
-                    </div>
-                </article>
-                <article class="faq-item" style="padding: 1.5rem; border-top: 1px solid var(--border-color);">
-                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Is this for complete beginners?</h3>
-                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
-                    </div>
-                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
-                        <p style="padding-top: 1rem; margin-bottom: 0;">Beginners can use the workflow, but they still need to understand risk management and should test in paper mode first.</p>
-                    </div>
-                </article>
-                <article class="faq-item" style="padding: 1.5rem; border-top: 1px solid var(--border-color);">
-                    <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleFAQ(this)" onkeydown="handleFAQKeydown(event, this)" aria-expanded="false" role="button" tabindex="0">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">What happens after I sign up?</h3>
-                        <i class="fas fa-chevron-down" style="color: var(--text-muted); transition: transform 0.3s;" aria-hidden="true"></i>
-                    </div>
-                    <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); line-height: 1.6;">
-                        <p style="padding-top: 1rem; margin-bottom: 0;">Signup leads into onboarding and playbook setup so you can begin paper testing before broker-connected routing.</p>
                     </div>
                 </article>
             </div>
@@ -605,11 +566,11 @@
             </div>
 
             <section style="margin-top: 3rem; background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(2,6,23,0.55)); border: 1px solid var(--border-color); border-radius: 16px; padding: 2rem; text-align: center;">
-                <h3 style="font-size: 1.6rem; margin-bottom: 0.8rem;">Ready to start with paper testing?</h3>
+                <h3 style="font-size: 1.6rem; margin-bottom: 0.8rem;">Ready to turn your trading rules into an automated workflow?</h3>
                 <p style="max-width: 800px; margin: 0 auto 1.4rem;">Start with paper mode, define your playbook, and see how XeanVI handles scanning, validation, sizing, and execution workflow around the controls you set.</p>
                 <div style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="/signup?plan=monthly" class="btn btn-primary">Start Paper Testing</a>
-                    <a href="/pricing" class="btn btn-secondary">View Pricing</a>
+                    <a href="/signup?plan=monthly" class="btn btn-primary">Start Automating</a>
+                    <a href="/features" class="btn btn-secondary">Review Features</a>
                 </div>
             </section>
 
@@ -643,7 +604,68 @@
         }
     }
 
-    
+    let isSimulating = false;
+    let bankroll = 10000;
+
+    function addSimLog(msg, color = 'var(--text-muted)') {
+        const term = document.getElementById('sim-terminal');
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        term.innerHTML += `<div style="color: ${color}; margin-top: 6px;">[${time}] ${msg}</div>`;
+        term.scrollTop = term.scrollHeight;
+    }
+
+    function runSimulation() {
+        if (isSimulating) return;
+        isSimulating = true;
+
+        const btn = document.getElementById('btn-simulate');
+        const status = document.getElementById('sim-status');
+        const dot = document.getElementById('sim-dot');
+        const br = document.getElementById('sim-bankroll');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Processing...';
+        btn.style.background = 'var(--bg-card)';
+        btn.style.color = 'var(--text-muted)';
+
+        status.style.color = '#f59e0b';
+        dot.style.background = '#f59e0b';
+        status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Paper Data...`;
+
+        document.getElementById('sim-terminal').innerHTML = '';
+        addSimLog("> Scan started: connecting to simulated market data feed...", "var(--accent-blue)");
+
+        setTimeout(() => addSimLog("> Playbook rules checked: reviewing symbols for setup alignment..."), 800);
+        setTimeout(() => addSimLog("> Catalyst/AI validation checked: setup context passed threshold.", "#f59e0b"), 2200);
+        setTimeout(() => addSimLog("> Position size calculated from playbook max-risk and stop distance.", "var(--success)"), 3800);
+
+        setTimeout(() => {
+            addSimLog("> Bracket order prepared and routed in paper mode: 50 shares at $128.50.");
+            addSimLog("> Bracket targets attached: Target $131.50 | Stop $127.00.");
+        }, 5000);
+
+        setTimeout(() => {
+            addSimLog("> Audit log updated: paper execution event recorded.", "var(--accent-blue)");
+            addSimLog("> <strong>Paper demo complete: +$150.00 simulated gross result.</strong>", "var(--success)");
+
+            bankroll += 150;
+            br.innerText = '$' + bankroll.toLocaleString('en-US', {minimumFractionDigits: 2});
+            br.style.color = 'var(--success)';
+
+            status.style.color = 'var(--success)';
+            status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Paper Cycle Completed`;
+
+            setTimeout(() => {
+                br.style.color = 'var(--text-main)';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-redo" aria-hidden="true"></i> Run Another Paper Scan';
+                btn.style.background = 'var(--accent-blue)';
+                btn.style.color = 'white';
+                isSimulating = false;
+            }, 1800);
+
+        }, 7500);
+    }
 </script>
 </body>
 </html>
