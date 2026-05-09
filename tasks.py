@@ -138,7 +138,7 @@ def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
                     target_2,
                 )
 
-        celery_app.log.get_default_logger().info('Dispatched %s parallel execution tasks for %s', len(active_users), symbol)
+        logger.info('Dispatched %s parallel execution tasks for %s', len(active_users), symbol)
 
 
 def morning_pre_processing():
