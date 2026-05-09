@@ -96,6 +96,11 @@
         .feature-details summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--accent-blue); transition: transform 0.3s; }
         .feature-details[open] summary::after { transform: rotate(180deg); }
         .feature-details .faq-content { padding: 0 1.5rem 1.5rem; color: var(--text-muted); line-height: 1.6; }
+            .features-page .page-hero { padding: 5rem 0 3.5rem; border-bottom: 1px solid var(--border-color); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08) 0%, transparent 60%); }
+        .features-page .hero-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+        .features-page .hero-actions { margin-top: 2rem; display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; }
+        .features-page .hero-trust-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.75rem; margin-top:1.25rem; }
+        .features-page .hero-trust-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding:.7rem; color: var(--text-muted); font-size:.86rem; }
     </style>
 </head>
 <body class="auth-body">
@@ -103,15 +108,15 @@
 
     {% include 'nav.html' %}
 
-    <main>
-        <header class="page-header" style="padding-top: 5rem; padding-bottom: 3rem; text-align: center;">
-            <div class="container">
+    <main class="features-page">
+        <header class="page-hero">
+            <div class="container hero-inner">
                 <div class="badge-pill" style="font-family: 'JetBrains Mono', monospace; margin: 0 auto 1rem;">PRO_ENGINE_FEATURES</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem;">XeanVI PRO Features:<br><span class="text-gradient">Rule-Driven Trading Automation</span></h1>
                 <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 760px; margin: 0 auto; line-height: 1.6;">
                     See how XeanVI connects your playbook, AI-assisted validation, risk controls, paper testing, broker permissions, and execution logs into one controlled automation workflow.
                 </p>
-                <div style="margin-top: 2rem;">
+                <div class="hero-actions">
                     {% if current_user.is_authenticated %}
                         <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Upgrade to PRO</a>
                         <a href="/pricing" class="btn btn-secondary" style="padding: 0.8rem 2rem; font-weight: 600; margin-left: 0.75rem;">View Pricing</a>
@@ -119,6 +124,9 @@
                         <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 600;">Start Monthly PRO</a>
                         <a href="/pricing" class="btn btn-secondary" style="padding: 0.8rem 2rem; font-weight: 600; margin-left: 0.75rem;">View Pricing</a>
                     {% endif %}
+                </div>
+                <div class="hero-trust-strip" aria-label="Feature trust highlights">
+                    <div class="hero-trust-item">Rule-driven automation</div><div class="hero-trust-item">AI-assisted validation</div><div class="hero-trust-item">Paper-first testing</div><div class="hero-trust-item">Broker permission boundaries</div><div class="hero-trust-item">Audit visibility</div>
                 </div>
             </div>
         </header>

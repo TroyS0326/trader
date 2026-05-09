@@ -119,9 +119,9 @@
     .btn-secondary { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
     .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
 
-    .hero { padding: 8rem 0; position: relative; overflow: hidden; }
-    .hero::before { content: ''; position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); z-index: -1; }
-    .hero-content { max-width: 700px; }
+    .landing-page .hero { padding: 5rem 0 3.5rem; position: relative; overflow: hidden; border-bottom: 1px solid var(--border-color); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08) 0%, transparent 60%); }
+    .landing-page .hero::before { content: none; }
+    .landing-page .hero-content { max-width: 900px; margin: 0 auto; text-align:center; }
 
     .features { padding: 6rem 0; background-color: var(--bg-main); border-top: 1px solid var(--border-color); }
 
@@ -206,7 +206,7 @@
 
 {% include 'nav.html' %}
 
-<main>
+<main class="landing-page">
     <section class="hero">
         <div class="container grid-2">
             <div class="hero-content">
