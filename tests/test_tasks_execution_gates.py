@@ -1,12 +1,88 @@
 from contextlib import nullcontext
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
+import sys
 
-import pytest
 
-pytest.importorskip("redis")
-pytest.importorskip("requests")
-pytest.importorskip("celery")
-pytest.importorskip("flask")
+class _FakeCelery:
+    def __init__(self, *args, **kwargs):
+        self.conf = SimpleNamespace(beat_schedule=None, timezone=None)
+        self.log = SimpleNamespace(get_default_logger=lambda: SimpleNamespace())
+
+    def task(self, fn):
+        fn.run = fn
+        return fn
+
+
+def _install_import_stubs():
+    sys.modules.setdefault("redis", ModuleType("redis"))
+    sys.modules["redis"].Redis = SimpleNamespace(from_url=lambda *args, **kwargs: object())
+
+    sys.modules.setdefault("requests", ModuleType("requests"))
+
+    celery_stub = ModuleType("celery")
+    celery_stub.Celery = _FakeCelery
+    sys.modules.setdefault("celery", celery_stub)
+
+    schedules_stub = ModuleType("celery.schedules")
+    schedules_stub.crontab = lambda *args, **kwargs: None
+    sys.modules.setdefault("celery.schedules", schedules_stub)
+
+    flask_stub = ModuleType("flask")
+
+    class _FakeFlask:
+        def __init__(self, *args, **kwargs):
+            self.config = {}
+
+        def app_context(self):
+            return nullcontext()
+
+    flask_stub.Flask = _FakeFlask
+    sys.modules.setdefault("flask", flask_stub)
+
+    models_stub = ModuleType("models")
+    models_stub.User = object()
+    models_stub.MarketRegime = object()
+    models_stub.db = SimpleNamespace(
+        init_app=lambda app: None,
+        session=SimpleNamespace(get=lambda model, user_id: None),
+    )
+    sys.modules.setdefault("models", models_stub)
+
+    broker_stub = ModuleType("broker")
+    broker_stub.place_managed_entry_order = lambda **kwargs: {"id": "stub"}
+    sys.modules.setdefault("broker", broker_stub)
+
+    guard_stub = ModuleType("execution_guard")
+    guard_stub.validate_execution_against_approved_scan = lambda **kwargs: {"ok": True}
+    guard_stub.audit_trade_log = lambda **kwargs: None
+    sys.modules.setdefault("execution_guard", guard_stub)
+
+    ai_stub = ModuleType("ai_catalyst")
+    ai_stub.batch_process_premarket = lambda symbols: None
+    sys.modules.setdefault("ai_catalyst", ai_stub)
+
+    scanner_stub = ModuleType("scanner")
+    scanner_stub.get_refined_universe = lambda: []
+    sys.modules.setdefault("scanner", scanner_stub)
+
+    perf_stub = ModuleType("analyze_performance")
+    perf_stub.calculate_user_kelly_fraction = lambda user_id: None
+    sys.modules.setdefault("analyze_performance", perf_stub)
+
+    config_stub = ModuleType("config")
+    config_stub.REDIS_URL = "redis://example"
+    config_stub.SQLALCHEMY_DATABASE_URI = "sqlite://"
+    config_stub.SQLALCHEMY_ENGINE_OPTIONS = {}
+    config_stub.ALPACA_API_KEY = ""
+    config_stub.ALPACA_API_SECRET = ""
+    sys.modules.setdefault("config", config_stub)
+
+    sentry_stub = ModuleType("sentry_setup")
+    sentry_stub.init_sentry = lambda name: None
+    sys.modules.setdefault("sentry_setup", sentry_stub)
+
+
+_install_import_stubs()
 
 import tasks
 
