@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>System Transparency & Live Automation Data | XeanVI PRO</title>
-    <meta name="description" content="Review XeanVI PRO system transparency. Explore our paper trading sandbox reports, AI-assisted validation logic, secure broker permissions, and live automation data.">
+    <title>Transparency & Audit Visibility | XeanVI PRO</title>
+    <meta name="description" content="Review how XeanVI PRO handles paper performance reporting, audit visibility, AI-assisted validation, broker permissions, and the difference between paper testing and live routing.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -15,16 +15,16 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="XeanVI">
     <meta property="og:url" content="https://xeanvi.com/transparency">
-    <meta property="og:title" content="System Transparency & Live Automation Data | XeanVI PRO">
-    <meta property="og:description" content="Build trust in your automated execution. Review simulated workflow data, AI validation, and broker API permissions before turning on XeanVI PRO.">
+    <meta property="og:title" content="Transparency & Audit Visibility | XeanVI PRO">
+    <meta property="og:description" content="Review how XeanVI PRO handles paper performance reporting, audit visibility, AI-assisted validation, broker permissions, and the difference between paper testing and live routing.">
     <meta property="og:image" content="https://xeanvi.com/static/seo-banner.webp">
-    <meta property="og:image:alt" content="XeanVI PRO transparency dashboard and automated trading report preview">
+    <meta property="og:image:alt" content="XeanVI PRO transparency dashboard and workflow audit visibility preview">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="System Transparency & Live Automation Data | XeanVI PRO">
-    <meta name="twitter:description" content="Review XeanVI PRO system transparency, paper sandbox data, AI-assisted logic, and secure broker API permissions.">
+    <meta name="twitter:title" content="Transparency & Audit Visibility | XeanVI PRO">
+    <meta name="twitter:description" content="Review how XeanVI PRO handles paper performance reporting, audit visibility, AI-assisted validation, broker permissions, and the difference between paper testing and live routing.">
     <meta name="twitter:image" content="https://xeanvi.com/static/seo-banner.webp">
-    <meta name="twitter:image:alt" content="XeanVI PRO transparency dashboard and automated trading report preview">
+    <meta name="twitter:image:alt" content="XeanVI PRO transparency dashboard and workflow audit visibility preview">
 
     <meta name="theme-color" content="#0f172a">
 
@@ -57,7 +57,15 @@
           "name": "XeanVI PRO",
           "applicationCategory": "FinanceApplication",
           "operatingSystem": "Web",
-          "description": "XeanVI PRO is an execution command center platform featuring a paper trading execution sandbox, AI-assisted validation, and secure live broker API connectivity.",
+          "description": "XeanVI PRO is software for rule-driven trading workflows with paper performance reporting, sample-size discipline, workflow audit visibility, AI-assisted validation context, and broker permission boundaries.",
+          "featureList": [
+            "Paper Performance Reporting",
+            "Public Sample-Size Threshold",
+            "Workflow Audit Visibility",
+            "AI-Assisted Validation Context",
+            "Broker Permission Boundaries",
+            "Paper vs Live Routing Disclosure"
+          ],
           "publisher": {
             "@id": "https://xeanvi.com/#organization"
           }
@@ -66,8 +74,8 @@
           "@type": "WebPage",
           "@id": "https://xeanvi.com/transparency#webpage",
           "url": "https://xeanvi.com/transparency",
-          "name": "System Transparency & Live Automation Data | XeanVI PRO",
-          "description": "Review XeanVI PRO system transparency. Explore our paper trading sandbox reports, AI-assisted validation logic, secure broker permissions, and live automation data.",
+          "name": "Transparency & Audit Visibility | XeanVI PRO",
+          "description": "Review how XeanVI PRO handles paper performance reporting, audit visibility, AI-assisted validation, broker permissions, and the difference between paper testing and live routing.",
           "isPartOf": {
             "@id": "https://xeanvi.com/#website"
           },
@@ -85,236 +93,160 @@
 
     <style>
         body { background-color: #060b14; display: flex; flex-direction: column; min-height: 100vh; }
-        .hero-section { padding: 5rem 2rem 3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.05) 0%, transparent 60%); }
-        .sys-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); padding: 4px 10px; border-radius: 4px; display: inline-block; margin-bottom: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .transparency-page { flex: 1; }
+        .transparency-page section { padding: 4rem 0; }
+        .transparency-page .container { max-width: 1080px; margin: 0 auto; padding: 0 2rem; }
+        .transparency-page a:not(.btn) { color: var(--accent-blue); text-decoration: underline; font-weight: 600; }
+        .transparency-page a:not(.btn):hover,
+        .transparency-page a:not(.btn):focus-visible { color: #8bc1ff; }
 
-        .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); }
+        .hero-section { padding: 5rem 0 3.5rem; border-bottom: 1px solid var(--border-color); background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08) 0%, transparent 60%); }
+        .sys-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; background: rgba(56, 189, 248, 0.12); color: var(--accent-blue); padding: 0.45rem 0.75rem; border-radius: 999px; display: inline-block; margin-bottom: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; }
+        .trust-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
+        .trust-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.7rem; color: var(--text-muted); font-size: 0.86rem; }
 
+        .section-title { text-align: center; margin-bottom: 2rem; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; }
+        .trust-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.4rem; }
+        .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; }
         .settings-card { background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; }
 
-        .disclosure-box {
-            background: #020617;
-            border: 1px dashed rgba(255,255,255,0.15);
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: left;
-            margin: 2rem auto 0;
-            max-width: 850px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
         .faq-details { background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
-        .faq-details summary { padding: 1.5rem; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
+        .faq-details summary { padding: 1.15rem 1.5rem; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
         .faq-details summary::-webkit-details-marker { display: none; }
         .faq-details summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--accent-blue); transition: transform 0.3s; }
         .faq-details[open] summary::after { transform: rotate(180deg); }
-        .faq-content { padding: 0 1.5rem 1.5rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
+        .faq-content { padding: 0 1.5rem 1.3rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
 
-        .disabled-link {
-            opacity: 0.7;
-            pointer-events: none;
-            cursor: not-allowed;
-        }
+        .disclosure-box { background: #020617; border: 1px dashed rgba(255,255,255,0.18); padding: 1.4rem; border-radius: 8px; margin-top: 1.6rem; color: var(--text-muted); line-height: 1.6; font-size: 0.88rem; }
+        .disabled-link { opacity: 0.7; pointer-events: none; cursor: not-allowed; }
     </style>
 </head>
 <body class="dash-body">
     {% include 'partials/meta_pixel.html' %}
-
     {% include 'nav.html' %}
 
-    <main>
+    <main class="transparency-page">
         <header class="hero-section">
-            <div class="container" style="max-width: 850px;">
-                <div class="sys-tag">TRANSPARENCY_REPORT</div>
-                <h1 style="font-size: clamp(2.2rem, 5vw, 3rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">
-                    System Transparency, <span class="text-gradient">Audit Trail</span>, and Execution Logic
-                </h1>
-                <p style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; margin-bottom: 0;">
-                    XeanVI operates on clear rules, not black boxes. Review audit logs, paper-mode data, AI-assisted validation behavior, and supported broker API workflows before deciding on live broker-connected automation.
-                </p>
+            <div class="container" style="max-width: 900px; text-align: center;">
+                <div class="sys-tag">TRANSPARENCY & AUDIT VISIBILITY</div>
+                <h1 style="font-size: clamp(2.1rem, 5vw, 3rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -0.02em;">See How XeanVI Tracks Workflow Decisions</h1>
+                <p style="color: var(--text-muted); font-size: 1.08rem; line-height: 1.65; margin-bottom: 1.5rem;">XeanVI is designed to show how rule-driven workflows are evaluated, tested, logged, and monitored. Review paper performance status, audit visibility, AI-assisted validation context, and broker-permission boundaries before considering live routing.</p>
+                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom: 1rem;">
+                    {% if current_user.is_authenticated %}
+                        <a href="/dashboard" class="btn btn-primary">Open Dashboard</a>
+                    {% else %}
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
+                    {% endif %}
+                    <a href="/broker-integration" class="btn btn-secondary">Review Broker Trust</a>
+                </div>
+                <div class="trust-strip" aria-label="Trust highlights">
+                    <div class="trust-item">No fake early results</div>
+                    <div class="trust-item">Paper/live distinction</div>
+                    <div class="trust-item">Audit logs</div>
+                    <div class="trust-item">Broker permissions</div>
+                    <div class="trust-item">No financial advice</div>
+                </div>
             </div>
         </header>
 
-        <section style="padding: 4rem 0; border-bottom: 1px solid var(--border-color); background: #020617;">
-            <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem;">
-                <div style="margin-bottom: 2rem; text-align: center;">
-                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Verified Performance Transparency</h2>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 760px; margin: 0 auto;">
-                        XeanVI publishes performance data only after a meaningful sample of completed trades exists. Until then, this page explains how the system tracks execution quality, risk controls, realized P&L, and automation behavior without displaying misleading early-stage statistics.
-                    </p>
+        <section style="background:#020617; border-bottom:1px solid var(--border-color);">
+            <div class="container">
+                <div class="section-title">
+                    <h2 style="font-size:2rem; margin-bottom:.6rem;">Performance Reporting With Sample-Size Discipline</h2>
+                    <p style="color:var(--text-muted); max-width:820px; margin:0 auto;">XeanVI does not publish public-facing win rate, profit factor, drawdown, or equity-curve metrics until enough completed trade records exist to avoid tiny-sample statistics.</p>
                 </div>
 
                 <div id="performance-building-state" style="display: none; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; text-align: left;">
-    <div style="display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-blue); background: rgba(56, 189, 248, 0.1); padding: 5px 10px; border-radius: 4px; margin-bottom: 1rem; letter-spacing: 0.08em;">
-        LIVE_REPORT_BUILDING
-    </div>
+                    <div style="display:inline-block; font-family:'JetBrains Mono', monospace; font-size:.72rem; color:var(--warning); background:rgba(245, 158, 11, 0.12); padding:5px 10px; border-radius:4px; margin-bottom:1rem; letter-spacing:.08em;">REPORT BUILDING STATE</div>
+                    <h3 style="font-size:1.45rem; margin-bottom:.8rem;">Public metrics are intentionally gated until sample thresholds are met</h3>
+                    <p style="color:var(--text-muted); line-height:1.7; margin-bottom:1rem;">XeanVI collects completed trade records before displaying public win rate, profit factor, drawdown, and equity-curve data. This helps prevent misleading tiny-sample reporting.</p>
+                    <p id="sample-size-note" style="font-family:'JetBrains Mono', monospace; color:var(--text-muted); font-size:.82rem; margin:0;">Verified public report activates after enough completed trades are recorded.</p>
+                </div>
 
-    <h3 style="font-size: 1.6rem; margin-bottom: 1rem;">Verified Results Are Being Collected</h3>
-
-    <p style="color: var(--text-muted); line-height: 1.7; font-size: 0.98rem; margin-bottom: 1.25rem;">
-        XeanVI is currently collecting completed trade data before publishing public-facing win rate, profit factor, drawdown, and equity curve statistics. We do this intentionally so early users are not shown tiny-sample results that could be misleading.
-    </p>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
-            <div style="color: var(--success); font-size: 1.4rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-shield-alt" aria-hidden="true"></i>
-            </div>
-            <strong style="display:block; margin-bottom: 0.5rem;">Risk Rules First</strong>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                Every trade is checked against defined entry, stop, target, and bankroll rules before execution.
-            </p>
-        </div>
-
-        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
-            <div style="color: var(--accent-blue); font-size: 1.4rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-database" aria-hidden="true"></i>
-            </div>
-            <strong style="display:block; margin-bottom: 0.5rem;">Real P&L Tracking</strong>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                Completed trades are logged with realized P&L, exit price, outcome, and execution status.
-            </p>
-        </div>
-
-        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem;">
-            <div style="color: var(--danger); font-size: 1.4rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-chart-line" aria-hidden="true"></i>
-            </div>
-            <strong style="display:block; margin-bottom: 0.5rem;">No Fake Performance</strong>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                Public results stay hidden until enough completed trades exist to show a more responsible sample.
-            </p>
-        </div>
-    </div>
-
-    <p id="sample-size-note" style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.8rem; margin-top: 1.5rem; margin-bottom: 0;">
-        Verified public report activates after enough completed trades are recorded.
-    </p>
-</div>
-<div id="performance-live-state" style="display: none;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                    <div class="stat-card">
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Win Rate</p>
-                        <h3 id="stat-winrate" style="color: var(--success); font-size: 2.2rem; margin: 0;">--%</h3>
+                <div id="performance-live-state" style="display: none;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.4rem;">
+                        <div class="stat-card"><p style="color:var(--text-muted); font-size:.87rem; margin-bottom:.5rem; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Paper Win Rate</p><h3 id="stat-winrate" style="color:var(--success); font-size:2.1rem; margin:0;">--%</h3></div>
+                        <div class="stat-card"><p style="color:var(--text-muted); font-size:.87rem; margin-bottom:.5rem; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Paper Profit Factor</p><h3 id="stat-profitfactor" style="color:var(--accent-blue); font-size:2.1rem; margin:0;">--</h3></div>
+                        <div class="stat-card"><p style="color:var(--text-muted); font-size:.87rem; margin-bottom:.5rem; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Paper Trades</p><h3 id="stat-trades" style="font-size:2.1rem; margin:0; color:var(--text-main);">--</h3></div>
+                        <div class="stat-card"><p style="color:var(--text-muted); font-size:.87rem; margin-bottom:.5rem; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Max Paper Drawdown</p><h3 id="stat-drawdown" style="color:var(--danger); font-size:2.1rem; margin:0;">$--</h3></div>
                     </div>
-                    <div class="stat-card">
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Profit Factor</p>
-                        <h3 id="stat-profitfactor" style="color: var(--accent-blue); font-size: 2.2rem; margin: 0;">--</h3>
-                    </div>
-                    <div class="stat-card">
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Paper Trades</p>
-                        <h3 id="stat-trades" style="font-size: 2.2rem; margin: 0; color: var(--text-main);">--</h3>
-                    </div>
-                    <div class="stat-card">
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Max Paper Drawdown</p>
-                        <h3 id="stat-drawdown" style="color: var(--danger); font-size: 2.2rem; margin: 0;">$--</h3>
+                    <div style="background:var(--bg-card); padding:1.4rem; border-radius:12px; border:1px solid var(--border-color);">
+                        <canvas id="equityChart" width="400" height="150" aria-label="Line chart showing verified execution equity curve data" role="img"></canvas>
                     </div>
                 </div>
 
-                    <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <canvas id="equityChart" width="400" height="150" aria-label="Line chart showing verified execution equity curve data" role="img"></canvas>
-    </div>
-</div>
+                <div class="disclosure-box"><strong style="color:var(--text-main);">TRANSPARENCY DISCLOSURE //</strong> Performance data is displayed only when enough completed trade records exist to reduce tiny-sample distortion. Reported metrics are informational, not predictive. Trading involves risk, including liquidity constraints, spread changes, slippage, and possible loss of capital.</div>
+            </div>
+        </section>
 
-                <div class="disclosure-box">
-                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px;">TRANSPARENCY DISCLOSURE //</strong>
-                    Performance data is displayed only when enough completed trade records exist to avoid misleading early-stage statistics. Any published results are informational only and do not guarantee future performance. Live trading involves real market risk, including liquidity constraints, slippage, execution delays, spread changes, and possible loss of capital.
+        <section>
+            <div class="container card-grid" style="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
+                <article class="trust-card"><h3 style="margin-bottom:.75rem;">What this page can show</h3><ul style="color:var(--text-muted); line-height:1.7; padding-left:1.2rem; margin:0;"><li>Whether verified public performance data is ready</li><li>Paper win rate, paper profit factor, trade count, and drawdown when the sample threshold is met</li><li>A paper equity-curve view when the report is active</li><li>How XeanVI communicates building-state transparency before public metrics are ready</li><li>Where audit visibility fits into the workflow</li></ul></article>
+                <article class="trust-card"><h3 style="margin-bottom:.75rem;">What this page does not claim</h3><ul style="color:var(--text-muted); line-height:1.7; padding-left:1.2rem; margin:0;"><li>Does not guarantee future results</li><li>Does not claim paper results will match live results</li><li>Does not replace broker statements or tax records</li><li>Does not provide financial advice or investment recommendations</li><li>Does not remove user responsibility for rules, permissions, account settings, or trading decisions</li></ul></article>
+            </div>
+        </section>
+
+        <section style="padding-top:0;">
+            <div class="container">
+                <div class="section-title"><h2 style="font-size:1.8rem; margin-bottom:.6rem;">Audit visibility around the workflow</h2></div>
+                <div class="card-grid">
+                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-clipboard-check" aria-hidden="true" style="color:var(--success); margin-right:8px;"></i>Execution Audit Trail</h3><p style="color:var(--text-muted); line-height:1.65;">Review why a workflow moved forward or stopped, including playbook conditions, validation context, risk settings, and recorded outcomes where available.</p><a href="#" class="btn btn-secondary disabled-link" aria-disabled="true" style="display:block; text-align:center; margin-top:auto;">Audit Downloads Coming Soon</a></article>
+                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-user-shield" aria-hidden="true" style="color:var(--accent-blue); margin-right:8px;"></i>Broker Permission Boundaries</h3><p style="color:var(--text-muted); line-height:1.65;">XeanVI is not a custodian. Broker-connected workflows depend on supported broker permissions, user-defined settings, and account configuration.</p><a href="/broker-integration" class="btn" style="display:block; text-align:center; margin-top:auto;">Review Broker Trust</a></article>
+                    <article class="settings-card"><h3 style="margin-bottom:.8rem;"><i class="fas fa-lock" aria-hidden="true" style="color:var(--warning); margin-right:8px;"></i>Data Privacy & Account Control</h3><p style="color:var(--text-muted); line-height:1.65;">Review how account and workflow data are handled, and keep broker access under your control.</p><a href="/privacy" class="btn" style="display:block; text-align:center; margin-top:auto;">Review Privacy Policy</a></article>
                 </div>
             </div>
         </section>
 
-        <section style="padding: 4rem 0;">
-            <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
-
-                    <article class="settings-card">
-                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;"><i class="fas fa-chart-line" style="color: var(--success); margin-right: 10px;" aria-hidden="true"></i> Execution Audit Trail</h3>
-                        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; flex-grow: 1;">
-                            Trust requires visibility. XeanVI helps you audit every automated decision while keeping you responsible for final trading decisions. Review exactly why the engine triggered a trade, why it skipped a setup, and how it calculated your risk based on your <a href="/playbook" style="color: var(--text-muted); text-decoration: underline;">Trading Playbook</a>.
-                        </p>
-                        <a href="#" class="btn btn-secondary disabled-link" aria-disabled="true" style="display: block; text-align: center; padding: 1rem; border-radius: 6px; font-weight: bold; margin-top: auto;">Audit Downloads Coming Soon</a>
-                    </article>
-
-                    <article class="settings-card">
-                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;"><i class="fas fa-user-shield" style="color: var(--accent-blue); margin-right: 10px;" aria-hidden="true"></i> Secure Broker API Permissions</h3>
-                        <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; flex-grow: 1;">
-                            We act as an execution conduit, not a custodian. XeanVI PRO connects to your supported <a href="/broker-integration" style="color: var(--text-muted); text-decoration: underline;">broker account via API</a>. You maintain complete control over your funds, review all requested permissions, and can revoke execution access at any time.
-                        </p>
-                        <a href="/privacy" class="btn" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); display: block; text-align: center; padding: 1rem; border-radius: 6px; font-weight: bold; margin-top: auto;">Review Data Privacy Policy →</a>
-                    </article>
-
+        <section style="background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div class="container">
+                <div class="section-title"><h2 style="font-size:1.8rem;">Paper results are not live results</h2></div>
+                <div class="card-grid">
+                    <article class="trust-card"><h3>Paper mode</h3><p style="color:var(--text-muted); margin:0;">Paper testing helps users review rule behavior without live capital.</p></article>
+                    <article class="trust-card"><h3>Live routing</h3><p style="color:var(--text-muted); margin:0;">Live routing uses real market conditions and can be affected by liquidity, spreads, slippage, delays, partial fills, broker status, and account configuration.</p></article>
+                    <article class="trust-card"><h3>User responsibility</h3><p style="color:var(--text-muted); margin:0;">Users remain responsible for account settings, permissions, risk limits, and trading decisions.</p></article>
                 </div>
             </div>
         </section>
 
-        <section style="padding: 4rem 0; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05);">
-            <div class="container" style="max-width: 800px; margin: 0 auto; padding: 0 2rem;">
-                <h2 style="font-size: 2rem; text-align: center; margin-bottom: 3rem;">System Transparency Details</h2>
-
-                <details class="faq-details">
-                    <summary>Are the report metrics based on live capital?</summary>
-                    <div class="faq-content">
-                        Unless clearly labeled otherwise, the metrics shown on this page represent simulated data from our paper trading sandbox. They are intended for reviewing how the automated logic performs under defined rules, not as a guarantee of live market results.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>How does live automation differ from paper mode?</summary>
-                    <div class="faq-content">
-                        Paper mode assumes perfect fills to help you test your logic safely. Live automation (unlocked via XeanVI PRO) executes in the real market, meaning it faces actual liquidity constraints, spread variations, and potential slippage that can alter outcomes.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>How does XeanVI use AI-assisted market scoring?</summary>
-                    <div class="faq-content">
-                        Before execution, XeanVI PRO uses AI-assisted scoring to validate market context, headlines, and catalyst language against your playbook. These scores are software-generated workflow signals, not financial advice or guaranteed trade predictors.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Does XeanVI hold my funds?</summary>
-                    <div class="faq-content">
-                        No. XeanVI routes execution commands to your supported broker via API. We do not hold, transfer, or manage your capital. You maintain full control over your broker account and permissions.
-                    </div>
-                </details>
+        <section>
+            <div class="container" style="max-width:900px;">
+                <h2 style="font-size:2rem; text-align:center; margin-bottom:2rem;">Transparency FAQ</h2>
+                <details class="faq-details"><summary>What does the Transparency page measure?</summary><div class="faq-content">It reports paper-mode performance metrics only when the public sample-size threshold is met, and explains building-state transparency before public metrics are active.</div></details>
+                <details class="faq-details"><summary>Why are metrics hidden at first?</summary><div class="faq-content">To avoid misleading tiny-sample statistics. Public metrics activate only after enough completed trades exist.</div></details>
+                <details class="faq-details"><summary>Are the metrics based on live capital?</summary><div class="faq-content">Unless clearly labeled otherwise, metrics represent paper-mode/simulated workflow data, not live-capital performance.</div></details>
+                <details class="faq-details"><summary>How does paper mode differ from live routing?</summary><div class="faq-content">Paper mode helps test logic without live capital. Live routing uses real market conditions and can be affected by fills, spreads, liquidity, delays, and broker/account configuration.</div></details>
+                <details class="faq-details"><summary>How does XeanVI use AI-assisted validation?</summary><div class="faq-content">AI-assisted validation can help organize catalyst/context signals against the user’s playbook. It is a workflow signal, not financial advice or a guarantee.</div></details>
+                <details class="faq-details"><summary>Does XeanVI hold my funds?</summary><div class="faq-content">No. Funds remain with the supported broker. XeanVI is not a custodian and does not withdraw or transfer user funds.</div></details>
+                <details class="faq-details"><summary>Can I audit why a workflow moved forward?</summary><div class="faq-content">XeanVI is designed to provide dashboard and audit visibility around playbook rules, validation context, risk settings, and workflow status where available.</div></details>
+                <details class="faq-details"><summary>Is this financial advice?</summary><div class="faq-content">No. XeanVI provides software for rule-driven trading workflows. It does not provide financial advice, investment recommendations, legal advice, tax advice, guaranteed fills, or guaranteed results. Trading involves risk, including possible loss of capital.</div></details>
             </div>
         </section>
 
-        <section style="padding: 5rem 2rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
-            <div class="container" style="max-width: 760px;">
-                <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Ready to Deploy Live Automation?</h2>
-                <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
-                    Upgrade to XeanVI PRO to connect your broker and execute live, or start with a free account to test your strategies in the paper trading sandbox first.
-                </p>
-                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <section style="padding-top:0; text-align:center;">
+            <div class="container" style="max-width:760px;">
+                <h2 style="font-size:2rem; margin-bottom:.8rem;">Ready to test with visibility?</h2>
+                <p style="color:var(--text-muted); line-height:1.65;">Start with paper testing, review how your playbook behaves, and use broker-connected routing only when your rules, permissions, and risk controls are configured.</p>
+                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1.4rem;">
                     {% if current_user.is_authenticated %}
-                        <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Upgrade to PRO</a>
+                        <a href="/dashboard" class="btn btn-primary">Open Dashboard</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Start PRO Automation</a>
-                        <a href="/signup" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Test Paper Mode</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
                     {% endif %}
+                    <a href="/broker-integration" class="btn btn-secondary">Review Broker Trust</a>
                 </div>
-
-                <p style="color: var(--text-muted); font-size: 0.8rem; max-width: 720px; margin: 2rem auto 0; line-height: 1.6;">
-                    XeanVI PRO provides AI-powered execution command center platform, enabling rules-based market execution and supported broker connectivity. It does not provide financial advice, investment recommendations, or guaranteed results. Automation software runs according to user parameters and past performance or paper results do not guarantee live trading profitability.
-                </p>
-            </div>
-        </section>
-        <section style="padding: 0 0 2rem; background: #060b14;">
-            <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem; text-align: center;">
-                <p style="font-size: 0.95rem; color: var(--text-muted); margin: 0;">
-                    Follow XeanVI for platform updates, trading discipline content, and product announcements.
-                    <a href="https://www.facebook.com/profile.php?id=61560981104152" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Facebook" style="color: var(--accent-blue); text-decoration: none; margin-left: 8px; margin-right: 10px;">Facebook</a>
-                    <a href="https://www.instagram.com/xean.vi" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Instagram" style="color: var(--accent-blue); text-decoration: none;">Instagram</a>
-                </p>
+                <p style="color:var(--text-muted); font-size:.85rem; margin-top:1.6rem;">XeanVI does not provide financial advice or guaranteed results. Trading involves risk, including possible loss of capital. Paper testing and public metrics do not guarantee live trading outcomes.</p>
             </div>
         </section>
 
+        <section style="padding:0 0 2rem;">
+            <div class="container" style="text-align:center;">
+                <p style="font-size:.95rem; color:var(--text-muted); margin:0;">Follow XeanVI for platform updates, trading discipline content, and product announcements.
+                    <a href="https://www.facebook.com/profile.php?id=61560981104152" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Facebook" style="margin-left:8px; margin-right:10px;">Facebook</a>
+                    <a href="https://www.instagram.com/xean.vi" target="_blank" rel="noopener noreferrer" aria-label="XeanVI on Instagram">Instagram</a>
+                </p>
+            </div>
+        </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
