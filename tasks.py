@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import redis
 import logging
 import requests
@@ -15,6 +13,7 @@ from scanner import get_refined_universe
 from analyze_performance import calculate_user_kelly_fraction
 import config
 from sentry_setup import init_sentry
+from time_utils import utc_now_aware, utc_now_naive
 
 init_sentry("xeanvi-worker")
 
@@ -325,7 +324,6 @@ def update_market_regime_task():
 @celery_app.task
 def send_admin_daily_digest_task():
     import admin_daily_digest
-    from datetime import datetime
     if not config.ADMIN_DAILY_DIGEST_ENABLED:
         return {'status': 'skipped', 'reason': 'disabled'}
     if config.ADMIN_DAILY_DIGEST_SKIP_WEEKENDS and utc_now_aware().weekday() >= 5:

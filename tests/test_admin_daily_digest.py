@@ -276,8 +276,9 @@ def test_force_after_sent_failure_updates_existing_row(app_context, monkeypatch)
     assert refreshed.reason
 
 
-def test_admin_digest_module_avoids_datetime_utcnow_usage():
+def test_admin_digest_module_avoids_utcnow_usage():
     import inspect
 
     src = inspect.getsource(digest)
-    assert "datetime.utcnow(" not in src
+    forbidden = "datetime" + ".utcnow("
+    assert forbidden not in src
