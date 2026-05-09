@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from db import get_recent_scans
 from execution_diagnostics import evaluate_execution_readiness
-from models import User, WatchCandidate
+from models import db, User, WatchCandidate
 from scan_contract import validate_scan_payload_contract
 from scanner import normalize_skip_reason_code
 from config import RECENT_SCAN_WINDOW_MINUTES_15, RECENT_SCAN_WINDOW_MINUTES_60
