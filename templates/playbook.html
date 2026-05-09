@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Playbook Engine | Define Rules for Automated Trading | XeanVI PRO</title>
-    <meta name="description" content="Build your strategy rules, configure strict risk settings, test in paper mode, and use broker-supported automation workflows with XeanVI PRO.">
+    <title>Trading Playbook | Rule-Based Automation Controls | XeanVI PRO</title>
+    <meta name="description" content="Learn how the XeanVI Trading Playbook defines setup criteria, AI-assisted validation, risk limits, position sizing, paper testing, and broker-connected routing eligibility.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -15,16 +15,16 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="XeanVI">
     <meta property="og:url" content="https://xeanvi.com/playbook">
-    <meta property="og:title" content="Playbook Engine | Define Rules for Automated Trading | XeanVI PRO">
-    <meta property="og:description" content="Configure your exact setup criteria, risk limits, and target preferences. Test in paper mode, then use broker-supported automation workflows through a supported API connection.">
+    <meta property="og:title" content="Trading Playbook | Rule-Based Automation Controls | XeanVI PRO">
+    <meta property="og:description" content="Learn how the XeanVI Trading Playbook defines setup criteria, AI-assisted validation, risk limits, position sizing, paper testing, and broker-connected routing eligibility.">
     <meta property="og:image" content="https://xeanvi.com/static/seo-playbook.webp">
-    <meta property="og:image:alt" content="XeanVI PRO Playbook Engine automation rules preview">
+    <meta property="og:image:alt" content="XeanVI PRO Trading Playbook rule control preview">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Playbook Engine | Define Rules for Automated Trading | XeanVI PRO">
-    <meta name="twitter:description" content="Build your rules, test in paper mode, and use XeanVI PRO to support broker-connected automation workflows through a supported broker connection.">
+    <meta name="twitter:title" content="Trading Playbook | Rule-Based Automation Controls | XeanVI PRO">
+    <meta name="twitter:description" content="Learn how the XeanVI Trading Playbook defines setup criteria, AI-assisted validation, risk limits, position sizing, paper testing, and broker-connected routing eligibility.">
     <meta name="twitter:image" content="https://xeanvi.com/static/seo-playbook.webp">
-    <meta name="twitter:image:alt" content="XeanVI PRO Playbook Engine automation rules preview">
+    <meta name="twitter:image:alt" content="XeanVI PRO Trading Playbook rule control preview">
 
     <script type="application/ld+json">
     {
@@ -55,7 +55,16 @@
           "name": "XeanVI PRO",
           "applicationCategory": "FinanceApplication",
           "operatingSystem": "Web",
-          "description": "XeanVI PRO is an execution command center platform that relies on user-defined playbook rules to manage scanning, validation, risk controls, and broker API order routing.",
+          "description": "XeanVI PRO is rule-driven trading workflow software where users define playbook settings for setup criteria, validation, risk controls, sizing, paper testing, and broker-connected routing eligibility.",
+          "featureList": [
+            "Trading Playbook Rule Engine",
+            "Setup Criteria Controls",
+            "AI-Assisted Catalyst Validation",
+            "Risk-Based Position Sizing",
+            "Paper Testing Before Live Use",
+            "Broker-Connected Routing Eligibility",
+            "Dashboard Monitoring and Audit Logs"
+          ],
           "publisher": {
             "@id": "https://xeanvi.com/#organization"
           }
@@ -64,8 +73,8 @@
           "@type": "WebPage",
           "@id": "https://xeanvi.com/playbook#webpage",
           "url": "https://xeanvi.com/playbook",
-          "name": "Playbook Engine | Define Rules for Automated Trading | XeanVI PRO",
-          "description": "Build your strategy rules, configure strict risk settings, test in paper mode, and use broker-supported automation workflows with XeanVI PRO.",
+          "name": "Trading Playbook | Rule-Based Automation Controls | XeanVI PRO",
+          "description": "Learn how the XeanVI Trading Playbook defines setup criteria, AI-assisted validation, risk limits, position sizing, paper testing, and broker-connected routing eligibility.",
           "isPartOf": {
             "@id": "https://xeanvi.com/#website"
           },
@@ -79,188 +88,36 @@
 
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            background-color: #060b14;
-            background-image: radial-gradient(circle at top right, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .hero-section {
-            padding: 6rem 2rem 4rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .sys-tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent-blue);
-            padding: 4px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 1.5rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .pipeline-container {
-            max-width: 900px;
-            margin: 4rem auto;
-            position: relative;
-            padding: 0 2rem;
-        }
-
-        .pipeline-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 2rem;
-            width: 2px;
-            background: linear-gradient(to bottom, var(--accent-blue), var(--success), var(--warning));
-            opacity: 0.3;
-            z-index: 0;
-        }
-
-        .pipeline-node {
-            position: relative;
-            z-index: 1;
-            margin-bottom: 4rem;
-            padding-left: 4rem;
-        }
-
-        .pipeline-node:last-child {
-            margin-bottom: 0;
-        }
-
-        .node-marker {
-            position: absolute;
-            left: -13px;
-            top: 0;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #020617;
-            border: 2px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-
-        .node-1 .node-marker { border-color: var(--accent-blue); color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
-        .node-2 .node-marker { border-color: var(--success); color: var(--success); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
-        .node-3 .node-marker { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
-
-        .node-card {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 2.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .node-header {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.05em;
-        }
-
-        .node-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 1rem;
-        }
-
-        .terminal-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .terminal-list li {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .terminal-list li:last-child {
-            margin-bottom: 0;
-        }
-
-        .list-icon {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            background: rgba(255,255,255,0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-top: 3px;
-        }
-
-        .faq-details {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            overflow: hidden;
-        }
-
-        .faq-details summary {
-            padding: 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .faq-details summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .faq-details summary::after {
-            content: '\f078';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            color: var(--accent-blue);
-            transition: transform 0.3s;
-        }
-
-        .faq-details[open] summary::after {
-            transform: rotate(180deg);
-        }
-
-        .faq-content {
-            padding: 0 1.5rem 1.5rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
-
-        @media (max-width: 768px) {
-            .pipeline-container::before { left: 1.5rem; }
-            .pipeline-node { padding-left: 2.5rem; }
-            .node-marker { left: -18px; width: 24px; height: 24px; font-size: 0.6rem; }
-            .node-card { padding: 1.5rem; }
-        }
+        body { background: var(--bg-main); display: flex; flex-direction: column; min-height: 100vh; }
+        .playbook-page { padding-bottom: 2rem; }
+        .playbook-page section { padding: 4rem 2rem; }
+        .playbook-page .hero-section { padding: 5.5rem 2rem 3rem; text-align: center; border-bottom: 1px solid var(--border-color); }
+        .playbook-page .badge { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: .12em; text-transform: uppercase; display: inline-block; padding: .45rem .8rem; border-radius: 999px; background: rgba(56,189,248,.12); color: var(--accent-blue); margin-bottom: 1.25rem; }
+        .playbook-page .subhead { max-width: 860px; margin: 0 auto 2rem; color: var(--text-muted); line-height: 1.7; }
+        .playbook-page .cta-row, .playbook-page .trust-strip { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; }
+        .playbook-page .trust-strip { margin-top: 1.5rem; }
+        .playbook-page .pill { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 999px; padding: .5rem .9rem; font-size: .86rem; }
+        .playbook-page .grid { display: grid; gap: 1rem; }
+        .playbook-page .grid-3 { grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); }
+        .playbook-page .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.25rem; }
+        .playbook-page .card h3 { margin-bottom: .5rem; font-size: 1.08rem; }
+        .playbook-page .card p { color: var(--text-muted); margin: 0; line-height: 1.65; }
+        .playbook-page .section-intro { text-align: center; max-width: 820px; margin: 0 auto 1.75rem; color: var(--text-muted); }
+        .playbook-page .steps { display: grid; gap: .9rem; }
+        .playbook-page .step { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1rem 1rem 3.3rem; position: relative; }
+        .playbook-page .step-index { position: absolute; left: .9rem; top: .95rem; font-family: 'JetBrains Mono', monospace; color: var(--accent-blue); font-weight: 700; }
+        .playbook-page .example-note { color: var(--warning); font-size: .9rem; margin-top: 1rem; }
+        .playbook-page .why { background: rgba(0,0,0,.18); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+        .playbook-page .faq-details { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: .8rem; }
+        .playbook-page .faq-details summary { list-style: none; cursor: pointer; padding: 1rem 1.1rem; font-weight: 600; }
+        .playbook-page .faq-details summary::-webkit-details-marker { display: none; }
+        .playbook-page .faq-content { padding: 0 1.1rem 1rem; color: var(--text-muted); line-height: 1.65; }
+        .playbook-page .disclosure { color: var(--text-muted); font-size: .88rem; max-width: 920px; margin: 1.4rem auto 0; }
+        .playbook-page a:not(.btn) { color: var(--accent-blue); text-decoration: underline; font-weight: 600; }
+        .playbook-page a:not(.btn):hover, .playbook-page a:not(.btn):focus-visible { color: var(--text-main); outline: none; }
     </style>
 </head>
 <body>
@@ -268,182 +125,114 @@
 
     {% include 'nav.html' %}
 
-    <main>
+    <main class="playbook-page">
         <header class="hero-section">
             <div class="container">
-                <div class="sys-tag">DOC_01 // TRADING PLAYBOOK</div>
-                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">
-                    The Playbook: Your Rules for <span class="text-gradient">Monthly PRO Automation</span>
-                </h1>
-                <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 760px; margin: 0 auto 2rem; line-height: 1.6;">
-                    Define your specific setup criteria, strict risk controls, and bracket order preferences. XeanVI PRO reads your playbook, supports paper-mode testing, and routes broker-connected order instructions based on your settings and permissions.
-                </p>
-                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                    <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 0.8rem 2rem;">Start PRO Automation</a>
-                    <a href="#pipeline" class="btn btn-secondary" style="padding: 0.8rem 2rem;">Explore the Workflow</a>
+                <span class="badge">PLAYBOOK CONTROL LAYER</span>
+                <h1 style="font-size: clamp(2.2rem,5vw,3.2rem); margin-bottom: 1rem;">Your Playbook Is the Rule System Behind XeanVI Automation</h1>
+                <p class="subhead">Define the setup criteria, risk limits, sizing rules, stop logic, and trade-management preferences XeanVI is allowed to follow before any broker-connected workflow can move forward.</p>
+                <div class="cta-row">
+                    {% if current_user.is_authenticated %}
+                        <a href="/dashboard" class="btn btn-primary">Open Dashboard</a>
+                        <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
+                    {% else %}
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
+                        <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+                    {% endif %}
+                </div>
+                <div class="trust-strip">
+                    <span class="pill">Rules before routing</span>
+                    <span class="pill">Risk settings define size</span>
+                    <span class="pill">Paper testing before live use</span>
+                    <span class="pill">Broker permissions required</span>
+                    <span class="pill">Dashboard visibility and audit logs</span>
                 </div>
             </div>
         </header>
 
-        <section style="padding: 4rem 2rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div class="container" style="max-width: 820px; text-align: center;">
-                <h2 style="font-size: 2rem; margin-bottom: 1.5rem;">Codify Your Strategy for Rule-Based Execution</h2>
-                <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 1.5rem;">
-                    XeanVI PRO turns your manual trading ideas into a disciplined, automated process. Instead of reacting emotionally to every chart or mismanaging risk in the heat of the moment, you dictate your exact parameters in advance.
-                </p>
-                <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7;">
-                    The engine uses your customized playbook settings to scan the market, validate setups, calculate position sizing, and automatically route trades via your connected <a href="/broker-integration" style="color: var(--accent-blue); text-decoration: underline;">broker API</a>.
-                </p>
-            </div>
-        </section>
-
-        <section id="pipeline" class="section-pad" style="padding-top: 4rem;">
-            <div class="container" style="text-align: center; margin-bottom: 2rem;">
-                <h2 style="font-size: 2.2rem;">How the PRO Playbook Engine Works</h2>
-                <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">
-                    See how your custom rules drive XeanVI PRO's scanning, validation, and live execution pipelines.
-                </p>
-            </div>
-
-            <div class="pipeline-container">
-
-                <div class="pipeline-node node-1">
-                    <div class="node-marker">01</div>
-                    <div class="node-card">
-                        <div class="node-header">PHASE_01 // DEFINE SETUPS</div>
-                        <div class="node-title">Rule-Based Market Screening</div>
-                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                            Tell the system exactly what to look for. XeanVI PRO continuously monitors the market, filtering out the noise and validating setups that align with your strict playbook criteria.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>
-                                <span class="list-icon" style="color: var(--accent-blue);">NLP</span>
-                                <div><strong style="color: var(--text-main);">AI Catalyst Validation:</strong> Define how XeanVI PRO should interpret news, SEC filings, and sector momentum before green-lighting a setup.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--accent-blue);">VOL</span>
-                                <div><strong style="color: var(--text-main);">Volume & Liquidity Rules:</strong> Set minimum relative volume thresholds to ensure the software only targets highly liquid, in-play assets.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--accent-blue);">FLT</span>
-                                <div><strong style="color: var(--text-main);">Float & Volatility Context:</strong> Lock in float requirements and daily range parameters to match your specific trading style.</div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="pipeline-node node-2">
-                    <div class="node-marker">02</div>
-                    <div class="node-card">
-                        <div class="node-header">PHASE_02 // RISK CONTROLS</div>
-                        <div class="node-title">Strict Risk & Capital Parameters</div>
-                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                            Automation is only as good as its risk management. You define your max pain point, and the software handles the complex math behind the scenes to keep you within limits.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>
-                                <span class="list-icon" style="color: var(--success);">SIZE</span>
-                                <div><strong style="color: var(--text-main);">Automated Position Sizing:</strong> Set your max risk percentage, and XeanVI PRO calculates the exact share quantity based on the distance to your stop-loss.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--success);">STOP</span>
-                                <div><strong style="color: var(--text-main);">Hard Risk Floors:</strong> Configure your required stop-loss rules so the engine immediately knows where to attach protective exit orders.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--success);">TEST</span>
-                                <div><strong style="color: var(--text-main);">Paper Sandbox Verification:</strong> Test your risk rules in our simulated execution environment to ensure the logic behaves correctly before upgrading.</div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="pipeline-node node-3">
-                    <div class="node-marker">03</div>
-                    <div class="node-card">
-                        <div class="node-header">PHASE_03 // PRO EXECUTION</div>
-                        <div class="node-title">Broker-Connected Order Routing</div>
-                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                            Once your rules align, XeanVI PRO pushes the instructions directly to your account. You maintain full control over the API connection and can revoke it at any time.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>
-                                <span class="list-icon" style="color: var(--warning);">API</span>
-                                <div><strong style="color: var(--text-main);">Secure Broker Connectivity:</strong> Connect your supported <a href="/broker-integration" style="color: var(--warning);">broker API</a> to allow XeanVI PRO to function as your live execution engine.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--warning);">BRK</span>
-                                <div><strong style="color: var(--text-main);">Bracket Order Creation:</strong> The software automatically routes configured order instructions alongside your pre-defined profit targets and stop-losses.</div>
-                            </li>
-                            <li>
-                                <span class="list-icon" style="color: var(--warning);">AUTO</span>
-                                <div><strong style="color: var(--text-main);">Unemotional Execution:</strong> XeanVI PRO routes configured order instructions when market data matches the rules and permissions you set.</div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <section class="section-pad" style="background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); padding: 4rem 2rem;">
-            <div class="container" style="max-width: 800px;">
-                <h2 style="font-size: 2rem; text-align: center; margin-bottom: 3rem;">Playbook Workflow Details</h2>
-
-                <details class="faq-details">
-                    <summary>What exactly is the Playbook Engine?</summary>
-                    <div class="faq-content">
-                        The Playbook is the central logic engine of XeanVI. It is where you configure the specific market criteria, risk percentages, and order parameters that the PRO software will follow when scanning and routing trades.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Can I customize my entry and exit targets?</summary>
-                    <div class="faq-content">
-                        Yes. You have full control over establishing target zones, stop-loss percentages, and scale-out logic. XeanVI PRO uses these rules to attach automated bracket orders when executing a trade.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Do I have to know how to code?</summary>
-                    <div class="faq-content">
-                        No coding is required. The Playbook features a visual, form-based interface that allows you to easily input and adjust your technical rules, which the backend engine translates into automation logic.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Can I test my rules before live trading?</summary>
-                    <div class="faq-content">
-                        Absolutely. We strongly encourage all users to test their customized playbook in the paper trading sandbox first to observe how the automation behaves before connecting a live PRO execution workflow.
-                    </div>
-                </details>
-            </div>
-        </section>
-
-        <section class="cta-section" style="background: #020617; padding: 6rem 2rem; text-align: center; border-top: 1px dashed rgba(255,255,255,0.1);">
+        <section>
             <div class="container">
-                <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: var(--text-main);">Connect Your Playbook to a Live Automation Workflow</h2>
-                <p style="color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; max-width: 650px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                    Build your rules in the sandbox, connect your supported broker API, and upgrade to XeanVI PRO for broker-connected automation workflows based on your settings.
-                </p>
+                <h2 style="text-align:center; margin-bottom:.7rem;">What the Playbook Controls</h2>
+                <p class="section-intro">The Trading Playbook is the rule blueprint XeanVI follows to scan configured market conditions, apply validation checks, and determine when supported broker-connected routing can be considered.</p>
+                <div class="grid grid-3">
+                    <article class="card"><h3>Setup Criteria</h3><p>Define the market conditions, symbols, volume context, float/volatility filters, and setup patterns that qualify for review.</p></article>
+                    <article class="card"><h3>AI/Catalyst Validation</h3><p>Use AI-assisted context checks to help evaluate whether headlines, filings, or sector momentum support the setup before it can move forward.</p></article>
+                    <article class="card"><h3>Risk Limits</h3><p>Set max risk, stop-loss behavior, and boundaries that automation must respect.</p></article>
+                    <article class="card"><h3>Position Sizing</h3><p>XeanVI can calculate size from the risk settings and stop distance you define.</p></article>
+                    <article class="card"><h3>Trade Management</h3><p>Define target, stop, and bracket-order preferences so the workflow has clear instructions.</p></article>
+                    <article class="card"><h3>Routing Eligibility</h3><p>Broker-connected routing can only be considered when playbook rules, validation, risk settings, broker permissions, and account configuration align.</p></article>
+                </div>
+            </div>
+        </section>
 
-                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <section id="how-it-works" class="why">
+            <div class="container">
+                <h2 style="text-align:center; margin-bottom:.7rem;">How the Playbook Powers Automation</h2>
+                <p class="section-intro">This rule-driven workflow is built for execution discipline, with paper testing recommended before live routing.</p>
+                <div class="steps">
+                    <div class="step"><span class="step-index">01</span><strong>You define the rules</strong><p>Set criteria, risk, sizing, and trade-management preferences.</p></div>
+                    <div class="step"><span class="step-index">02</span><strong>XeanVI scans against those rules</strong><p>Market conditions are checked against your playbook.</p></div>
+                    <div class="step"><span class="step-index">03</span><strong>Validation and risk gates run</strong><p>AI-assisted context, setup checks, and risk math help determine whether the workflow can continue.</p></div>
+                    <div class="step"><span class="step-index">04</span><strong>Paper testing confirms behavior</strong><p>Review how the playbook behaves before live routing.</p></div>
+                    <div class="step"><span class="step-index">05</span><strong>Broker-connected routing can be considered</strong><p>When conditions pass and permissions are configured, XeanVI can prepare and route supported order instructions.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <h2 style="text-align:center; margin-bottom:.7rem;">Sample Playbook Rule Stack</h2>
+                <p class="section-intro">Example only for product explanation. This is not a recommendation.</p>
+                <div class="grid grid-3">
+                    <article class="card"><h3>Market Filter</h3><p>Relative volume above configured threshold.</p></article>
+                    <article class="card"><h3>Catalyst Filter</h3><p>News/filing/sector context passes AI-assisted validation.</p></article>
+                    <article class="card"><h3>Risk Rule</h3><p>Max risk per trade based on user setting.</p></article>
+                    <article class="card"><h3>Stop Rule</h3><p>Stop-loss distance defines position size.</p></article>
+                    <article class="card"><h3>Routing Rule</h3><p>Only route when broker connection and permissions are active.</p></article>
+                    <article class="card"><h3>Visibility Rule</h3><p>Track behavior in dashboard monitoring and audit logs.</p></article>
+                </div>
+                <p class="example-note">Examples are for product explanation only and are not trading recommendations.</p>
+            </div>
+        </section>
+
+        <section class="why">
+            <div class="container" style="max-width:900px;">
+                <h2 style="text-align:center; margin-bottom:.75rem;">Automation without a playbook is just risk.</h2>
+                <p class="section-intro" style="margin-bottom:0;">XeanVI is designed around the opposite idea: automation should be constrained before it acts. The Playbook gives the system boundaries, so scans, validation, sizing, routing, and monitoring remain tied to the rules you define. This helps reduce hesitation, rushed sizing, emotional exits, broken stop-loss discipline, and manual order fatigue.</p>
+            </div>
+        </section>
+
+        <section>
+            <div class="container" style="max-width: 900px;">
+                <h2 style="text-align:center; margin-bottom:1rem;">Frequently Asked Questions</h2>
+                <details class="faq-details"><summary>What is the Trading Playbook?</summary><div class="faq-content">The Playbook is the rule set XeanVI uses to evaluate setups, enforce risk settings, calculate sizing, and determine whether broker-connected routing can be considered.</div></details>
+                <details class="faq-details"><summary>Do I need to code my rules?</summary><div class="faq-content">No. The product presents playbook setup through a visual/form-based workflow where users define parameters without writing code.</div></details>
+                <details class="faq-details"><summary>What kind of rules can I define?</summary><div class="faq-content">Setup criteria, catalyst/context preferences, volume/liquidity filters, risk limits, stop/target logic, sizing preferences, and routing constraints.</div></details>
+                <details class="faq-details"><summary>Does the Playbook guarantee better trades?</summary><div class="faq-content">No. The Playbook improves structure and consistency, but it does not guarantee fills, profits, or trading results.</div></details>
+                <details class="faq-details"><summary>Can I test my Playbook before live routing?</summary><div class="faq-content">Yes. Paper testing is recommended before live use so users can review how rules behave without live capital.</div></details>
+                <details class="faq-details"><summary>Can XeanVI trade outside my Playbook?</summary><div class="faq-content">XeanVI is designed to operate around user-defined settings, broker permissions, and workflow conditions. Users remain responsible for reviewing their settings and account configuration.</div></details>
+                <details class="faq-details"><summary>Is this financial advice?</summary><div class="faq-content">No. XeanVI provides software for rule-driven trading workflows. It does not provide financial advice, investment recommendations, legal advice, tax advice, guaranteed fills, or guaranteed results. Trading involves risk, including possible loss of capital.</div></details>
+            </div>
+        </section>
+
+        <section class="cta-section" style="padding-top:1rem; text-align:center;">
+            <div class="container" style="max-width:900px;">
+                <h2 style="margin-bottom:.8rem;">Ready to turn your rules into a controlled workflow?</h2>
+                <p class="section-intro">Start by defining your playbook, test the behavior in paper mode, then connect a supported broker only when you understand the rules, permissions, and risks.</p>
+                <div class="cta-row">
                     {% if current_user.is_authenticated %}
-                        <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Upgrade to PRO</a>
-                        <a href="/playbook" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Edit Playbook</a>
+                        <a href="/dashboard" class="btn btn-primary">Open Dashboard</a>
+                        <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Start Monthly PRO</a>
-                        <a href="/signup" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; text-transform: uppercase;">Test in Sandbox</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
+                        <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
                     {% endif %}
                 </div>
-
-                <p style="color: var(--text-muted); font-size: 0.8rem; max-width: 720px; margin: 2rem auto 0; line-height: 1.6;">
-                    XeanVI provides AI-powered execution command center platform, market review features, paper execution tools, and supported broker connectivity. It does not provide financial advice or investment recommendations. Live execution is entirely dependent on user-defined parameters. Trading involves significant risk, including possible loss of capital.
-                </p>
+                <p class="disclosure">XeanVI does not provide financial advice or guaranteed results. Trading involves risk, including possible loss of capital. Broker-connected workflows depend on user-defined rules, broker permissions, and account configuration.</p>
             </div>
         </section>
     </main>
 
     {% include 'footer.html' %}
-
 </body>
 </html>
