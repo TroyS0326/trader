@@ -46,6 +46,21 @@ def _stub_user_query(monkeypatch):
     )
 
 
+
+
+def test_scanner_effectiveness_imports_db_from_models():
+    src = Path("scanner_effectiveness.py").read_text()
+    assert "from models import db, User, WatchCandidate" in src
+
+
+def test_build_report_uses_db_session_get_without_nameerror(monkeypatch):
+    row = {"id": 77, "created_at": datetime.now(timezone.utc).isoformat(), "payload_json": json.dumps({"user_id": 1, "best_pick": {"symbol": "AAPL", "decision": "WATCH"}})}
+    monkeypatch.setattr(scanner_effectiveness, "get_recent_scans", lambda limit=10: [row])
+    _set_redis(monkeypatch, {})
+    _stub_user_query(monkeypatch)
+    with app_module.app.app_context():
+        report = scanner_effectiveness.build_scanner_effectiveness_report(limit=10)
+    assert report["total_scans_analyzed"] == 1
 def test_source_no_query_get_or_datetime_utcnow_in_target_files():
     query_get_marker = ".query" + ".get("
     for path in ("scanner.py", "scanner_effectiveness.py", "app.py"):
