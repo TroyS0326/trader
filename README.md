@@ -884,5 +884,15 @@ CLI:
 - `python admin_daily_digest.py --send --force`
 - `python admin_daily_digest.py --recipient admin@example.com --dry-run`
 
+Scheduling and services:
+- Do **not** assume the worker/scheduler service is named `celery.service`.
+- Discover active unit names first:
+  - `systemctl list-units --type=service | grep -Ei "celery|worker|beat|rq|scheduler|xeanvi"`
+  - `systemctl list-unit-files | grep -Ei "celery|worker|beat|rq|scheduler|xeanvi"`
+- If production is **not** running Celery beat for this task, use a safe scheduler option:
+  - Option A: a systemd timer that runs the admin digest CLI on schedule.
+  - Option B: enable the correct existing celery beat service name if this deployment already uses beat.
+- Keep these as deployment operations/documentation; do not assume a new production service filename.
+
 Validation:
 - `python config_check.py --strict`
