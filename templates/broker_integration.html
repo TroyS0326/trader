@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <title>Broker API Integration | AI-Powered Execution Command Center | XeanVI PRO</title>
-    <meta name="description" content="Connect your supported broker API to XeanVI PRO. Authorize secure access, deploy rule-based automation, and execute live trades with strict risk controls.">
+    <title>Broker Integration | Permissioned Broker-Connected Automation | XeanVI PRO</title>
+    <meta name="description" content="Learn how XeanVI PRO connects to supported broker APIs with user-authorized permissions, paper testing before live use, playbook-based routing rules, dashboard visibility, and audit logs.">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="XeanVI">
@@ -15,16 +15,16 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="XeanVI">
     <meta property="og:url" content="https://xeanvi.com/broker-integration">
-    <meta property="og:title" content="Broker API Integration | AI-Powered Execution Command Center | XeanVI PRO">
-    <meta property="og:description" content="Connect a supported broker API, review permissions, test in the sandbox, and upgrade to PRO for live automated execution.">
+    <meta property="og:title" content="Broker Integration | Permissioned Broker-Connected Automation | XeanVI PRO">
+    <meta property="og:description" content="Learn how XeanVI PRO connects to supported broker APIs with user-authorized permissions, paper testing before live use, playbook-based routing rules, dashboard visibility, and audit logs.">
     <meta property="og:image" content="https://xeanvi.com/static/seo-broker-integration.webp">
-    <meta property="og:image:alt" content="XeanVI PRO broker API integration and live execution workflow preview">
+    <meta property="og:image:alt" content="XeanVI PRO broker integration trust center and permissioned workflow overview">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Broker API Integration | AI-Powered Execution Command Center | XeanVI PRO">
-    <meta name="twitter:description" content="Authorize a secure broker connection to deploy your playbook into live automated trading with XeanVI PRO.">
+    <meta name="twitter:title" content="Broker Integration | Permissioned Broker-Connected Automation | XeanVI PRO">
+    <meta name="twitter:description" content="Understand broker permissions, paper-first testing, playbook-based routing rules, and dashboard audit visibility with XeanVI PRO.">
     <meta name="twitter:image" content="https://xeanvi.com/static/seo-broker-integration.webp">
-    <meta name="twitter:image:alt" content="XeanVI PRO broker API integration and live execution workflow preview">
+    <meta name="twitter:image:alt" content="XeanVI PRO broker integration trust center and permissioned workflow overview">
 
     <script type="application/ld+json">
     {
@@ -55,13 +55,14 @@
           "name": "XeanVI PRO",
           "applicationCategory": "FinanceApplication",
           "operatingSystem": "Web",
-          "description": "XeanVI PRO is an AI-powered execution command center platform connecting user-defined playbooks to supported broker APIs for automated execution.",
+          "description": "XeanVI PRO is software for rule-driven broker-connected workflows, with user-authorized permissions, paper testing before live use, and dashboard audit visibility.",
           "featureList": [
-            "Supported broker API connections",
-            "Live automated order routing (PRO)",
-            "User-authorized API permissions",
-            "Rule-based execution workflow",
-            "Paper trading execution sandbox"
+            "Supported Broker API Connections",
+            "User-Authorized Broker Permissions",
+            "Paper Testing Before Live Use",
+            "Playbook-Based Routing Rules",
+            "Risk-Based Position Sizing",
+            "Dashboard Monitoring and Audit Logs"
           ],
           "publisher": {
             "@id": "https://xeanvi.com/#organization"
@@ -71,8 +72,8 @@
           "@type": "WebPage",
           "@id": "https://xeanvi.com/broker-integration#webpage",
           "url": "https://xeanvi.com/broker-integration",
-          "name": "Broker API Integration | Live Automated Trading | XeanVI PRO",
-          "description": "Connect your supported broker API to XeanVI PRO. Authorize secure access, deploy rule-based automation, and execute live trades with strict risk controls.",
+          "name": "Broker Integration | Permissioned Broker-Connected Automation | XeanVI PRO",
+          "description": "Understand how XeanVI PRO supports broker-connected routing through user-defined rules, permission controls, paper testing, and audit-friendly dashboard monitoring.",
           "isPartOf": {
             "@id": "https://xeanvi.com/#website"
           },
@@ -89,320 +90,167 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
      <style>
-        body {
-            background-color: #060b14;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .hero-section {
-            padding: 6rem 2rem 4rem;
-            text-align: center;
-            background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .sys-tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--accent-blue);
-            padding: 4px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 1.5rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .module-card {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 2.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .module-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .terminal-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 1.5rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            flex-grow: 1;
-        }
-
-        .terminal-list li {
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            line-height: 1.5;
-        }
-
-        .terminal-list li::before {
-            content: '>';
-            color: var(--accent-blue);
-            font-weight: bold;
-            margin-top: 2px;
-        }
-
-        .disclosure-box {
-            background: #020617;
-            border: 1px dashed rgba(255,255,255,0.15);
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: left;
-            margin: 2rem auto;
-            max-width: 800px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .faq-details {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            overflow: hidden;
-        }
-
-        .faq-details summary {
-            padding: 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--text-main);
-        }
-
-        .faq-details summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .faq-details summary::after {
-            content: '\f078';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            color: var(--accent-blue);
-            transition: transform 0.3s;
-        }
-
-        .faq-details[open] summary::after {
-            transform: rotate(180deg);
-        }
-
-        .faq-content {
-            padding: 0 1.5rem 1.5rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
+        body { background-color: var(--bg-main); display: flex; flex-direction: column; min-height: 100vh; }
+        .trust-hero { padding: 5.5rem 2rem 3.25rem; border-bottom: 1px solid var(--border-color); }
+        .trust-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(56, 189, 248, 0.12); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 999px; padding: 0.35rem 0.8rem; display: inline-block; margin-bottom: 1rem; }
+        .hero-actions, .footer-actions { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+        .trust-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; margin-top: 2.2rem; }
+        .trust-chip { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.8rem 0.9rem; color: var(--text-main); font-size: 0.9rem; }
+        .section-title { font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 0.8rem; }
+        .section-sub { color: var(--text-muted); max-width: 850px; line-height: 1.65; }
+        .two-col, .layers-grid, .timeline-grid { display: grid; gap: 1rem; }
+        .two-col { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .layers-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .timeline-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; }
+        .card h3, .card h4 { margin-bottom: 0.6rem; }
+        .card p { color: var(--text-muted); line-height: 1.6; }
+        .list-clean { margin: 0; padding-left: 1.2rem; color: var(--text-muted); line-height: 1.6; }
+        .list-clean li { margin-bottom: 0.45rem; }
+        .timeline-step { position: relative; }
+        .timeline-step .step-num { color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; margin-bottom: 0.55rem; }
+        .disclosure-block { border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.07); }
+        .faq-details { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 0.9rem; }
+        .faq-details summary { padding: 1rem 1.1rem; cursor: pointer; font-weight: 600; color: var(--text-main); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        .faq-details summary::-webkit-details-marker { display: none; }
+        .faq-details summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--accent-blue); transition: transform 0.2s; }
+        .faq-details[open] summary::after { transform: rotate(180deg); }
+        .faq-content { padding: 0 1.1rem 1rem; color: var(--text-muted); line-height: 1.6; }
+        .link-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.85rem; }
+        .link-row a { text-decoration: underline; }
+        @media (max-width: 700px) { .trust-hero { padding-top: 4.5rem; } }
     </style>
 </head>
 <body>
     {% include 'partials/meta_pixel.html' %}
-
     {% include 'nav.html' %}
 
     <main>
-        <header class="hero-section">
+        <header class="trust-hero">
             <div class="container">
-                <div class="sys-tag">BROKER_API_WORKFLOW</div>
-                <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; font-weight: 800; letter-spacing: -1px;">
-                    Supported Broker API Workflow for <span class="text-gradient">Monthly PRO Automation</span>
-                </h1>
-                <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 760px; margin: 0 auto 2rem; line-height: 1.6;">
-                    XeanVI PRO acts as your execution workflow. Connect a supported broker API, review your permissions, and allow the software to automatically route trades based exclusively on your defined playbook rules.
-                </p>
-                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <span class="trust-badge">BROKER CONNECTION TRUST CENTER</span>
+                <h1 style="font-size: clamp(2.1rem, 5vw, 3.25rem); margin-bottom: 1rem;">Broker-Connected Automation, Permissioned by You</h1>
+                <p class="section-sub">XeanVI does not custody your funds. Your broker account stays with your supported broker. You define the playbook, authorize permissions, test in paper mode, and monitor any broker-connected workflow from your dashboard.</p>
+                <div class="hero-actions" style="margin-top: 1.7rem;">
                     {% if current_user.is_authenticated %}
-                        <a href="/settings" class="btn btn-primary" style="padding: 0.8rem 2rem;">Manage API Connections</a>
+                        <a href="/settings" class="btn btn-primary">Manage Broker Connections</a>
                     {% else %}
-                        <a href="/upgrade" class="btn btn-primary" style="padding: 0.8rem 2rem;">Unlock PRO Automation</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
                     {% endif %}
-                    <a href="/features" class="btn btn-secondary" style="padding: 0.8rem 2rem;">Explore Live Automation</a>
+                    <a href="/features" class="btn btn-secondary">Review Features</a>
+                </div>
+                <div class="trust-strip">
+                    <div class="trust-chip">Funds stay at your broker</div>
+                    <div class="trust-chip">User-authorized permissions</div>
+                    <div class="trust-chip">Paper testing before live use</div>
+                    <div class="trust-chip">Dashboard monitoring and audit logs</div>
+                    <div class="trust-chip">No financial advice or guaranteed results</div>
                 </div>
             </div>
         </header>
 
-        <section class="section-pad" style="background: #060b14;">
+        <section class="section-pad">
             <div class="container">
-                <div style="text-align: center; margin-bottom: 4rem;">
-                    <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Powering Your Automated Workflow</h2>
-                    <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto; line-height: 1.6;">
-                        A supported broker API allows XeanVI to support live broker-connected automation workflows. You remain responsible for all trading activity and account settings, using XeanVI simply as the rule-based conduit to your brokerage.
-                    </p>
-                </div>
-
-                <div class="module-grid">
-
-                    <div class="module-card">
-                        <div class="module-icon" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-blue);">
-                            <i class="fas fa-lock" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">User-Controlled Broker Authorization</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                            Your brokerage account remains distinct and fully under your control. You review and authorize specific permissions during the API connection process and can revoke access instantly from your dashboard.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>Broker account security remains with your provider</li>
-                            <li>Review requested permissions prior to connection</li>
-                            <li>Revoke supported API access at any time</li>
+                <h2 class="section-title">What XeanVI Can and Cannot Do</h2>
+                <p class="section-sub" style="margin-bottom: 1.4rem;">Capabilities depend on the broker connection and permissions you authorize. XeanVI operates as software within those boundaries.</p>
+                <div class="two-col">
+                    <article class="card">
+                        <h3>What XeanVI can do when authorized</h3>
+                        <ul class="list-clean">
+                            <li>Read broker/account information required for supported workflows, depending on broker permissions.</li>
+                            <li>Use configured playbook rules to evaluate whether a setup can move forward.</li>
+                            <li>Calculate position size from user-defined risk settings.</li>
+                            <li>Prepare and can route supported order instructions when conditions pass.</li>
+                            <li>Record dashboard/audit visibility for workflow actions.</li>
                         </ul>
-                    </div>
-
-                    <div class="module-card">
-                        <div class="module-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
-                            <i class="fas fa-microchip" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Live API Order Routing (PRO)</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                            Upgrading to XeanVI PRO unlocks broker-connected execution. The system reads your custom setup rules and routes configured order instructions through your authorized broker connection when your criteria are met.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>Live order routing unlocked via PRO subscription</li>
-                            <li>Automated generation of entry and bracket orders</li>
-                            <li>Paper trading sandbox available for safety testing</li>
+                    </article>
+                    <article class="card">
+                        <h3>What XeanVI does not do</h3>
+                        <ul class="list-clean">
+                            <li>Does not custody your funds.</li>
+                            <li>Does not withdraw or transfer your money.</li>
+                            <li>Does not provide financial advice or investment recommendations.</li>
+                            <li>Does not guarantee fills, profits, or trading results.</li>
+                            <li>Does not replace your responsibility for broker permissions, account settings, and trading decisions.</li>
                         </ul>
-                    </div>
-
-                    <div class="module-card">
-                        <div class="module-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
-                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                        </div>
-                        <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Automated Risk Enforcement</h3>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                            XeanVI relies on the stop-loss and target parameters you configure in your playbook. It automatically calculates position sizing and attaches protective exits, but you retain full responsibility for all market risk.
-                        </p>
-                        <ul class="terminal-list">
-                            <li>Software applies user-configured risk thresholds</li>
-                            <li>Automated stop-loss and profit target attachment</li>
-                            <li>User retains final responsibility for all capital</li>
-                        </ul>
-                    </div>
-
+                    </article>
                 </div>
             </div>
         </section>
 
-        <section class="section-pad" style="background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div class="container" style="max-width: 900px; text-align: center;">
-                <div class="badge-pill" style="margin-bottom: 1.5rem;">SUPPORTED BROKER CONNECTION</div>
-                <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">Deploy Broker-Connected Execution</h2>
-                <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 3rem;">
-                    XeanVI is built to bridge your rules with a supported broker API for live execution. Before stepping into the live markets with a <a href="/upgrade" style="color: var(--accent-blue);">PRO plan</a>, it is highly recommended to validate your automation logic in our simulated sandbox.
-                </p>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; text-align: left; background: #0f172a; padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
-                    <div>
-                        <div style="color: var(--accent-blue); font-size: 1.5rem; margin-bottom: 1rem;">1</div>
-                        <h4 style="margin-bottom: 0.5rem;">Link Your Broker API</h4>
-                        <p style="font-size: 0.85rem; color: var(--text-muted);">Use a supported brokerage account, review the requested execution permissions, and establish a secure API connection.</p>
-                    </div>
-                    <div>
-                        <div style="color: var(--success); font-size: 1.5rem; margin-bottom: 1rem;">2</div>
-                        <h4 style="margin-bottom: 0.5rem;">Define and Test Rules</h4>
-                        <p style="font-size: 0.85rem; color: var(--text-muted);">Build your setup criteria and test the automated routing logic thoroughly in the paper trading sandbox first.</p>
-                    </div>
-                    <div>
-                        <div style="color: var(--warning); font-size: 1.5rem; margin-bottom: 1rem;">3</div>
-                        <h4 style="margin-bottom: 0.5rem;">Enable PRO Automation</h4>
-                        <p style="font-size: 0.85rem; color: var(--text-muted);">Upgrade to PRO to allow XeanVI to monitor real-time data and send live orders directly to your connected broker.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="section-pad" style="background: #060b14;">
-            <div class="container" style="max-width: 800px;">
-                <h2 style="font-size: 2rem; text-align: center; margin-bottom: 3rem;">Supported Broker API Workflow Details</h2>
-
-                <details class="faq-details">
-                    <summary>Which brokers does XeanVI currently support?</summary>
-                    <div class="faq-content">
-                        XeanVI is designed to connect with supported broker APIs to facilitate automated trading workflows. Check your dashboard connections page to review the currently supported integrations and required account types.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Can XeanVI withdraw or transfer my funds?</summary>
-                    <div class="faq-content">
-                        XeanVI is designed for broker-connected order-routing workflows and does not custody user funds. Users should review the exact permissions shown by their broker before authorizing access.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Is this live automated trading?</summary>
-                    <div class="faq-content">
-                        Yes. With a PRO subscription and an authorized API connection, XeanVI acts as an automated execution workflow. It will push live orders to your connected broker the moment market conditions match your strict playbook rules.
-                    </div>
-                </details>
-
-                <details class="faq-details">
-                    <summary>Should I test in paper trading before live trading?</summary>
-                    <div class="faq-content">
-                        Absolutely. We strongly advise that you test all playbook rules, risk parameters, and API automation settings in the paper sandbox before using live capital in the live market.
-                    </div>
-                </details>
-            </div>
-        </section>
-
-        <section class="section-pad" style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: #0f172a;">
+        <section class="section-pad" style="background: rgba(0,0,0,0.2); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
             <div class="container">
-                <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Ready for Live Automated Execution?</h2>
-                <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem; max-width: 650px; margin-left: auto; margin-right: auto;">
-                    Your broker account stays with your broker. XeanVI routes instructions only through supported broker-connected workflows you authorize.
-                </p>
-
-                <div class="disclosure-box">
-                    <strong style="color: var(--text-main); display: block; margin-bottom: 10px; font-size: 0.9rem;"><i class="fas fa-balance-scale" style="margin-right: 8px;" aria-hidden="true"></i> BROKER AUTHORIZATION DISCLOSURE //</strong>
-                    XeanVI provides AI-powered execution command center platform and supported broker connectivity via API. By connecting a broker account, you authorize XeanVI to transmit live trading instructions based exclusively on settings you configure. XeanVI does not provide financial advice or investment recommendations. Trading involves substantial risk, including possible loss of capital. You remain solely responsible for your account settings, broker permissions, and live trading activity.
+                <h2 class="section-title">Connect in the right order: paper first, live later</h2>
+                <p class="section-sub" style="margin-bottom: 1.3rem;">A careful rollout improves control and review quality before any live capital is considered.</p>
+                <div class="timeline-grid">
+                    <div class="card timeline-step"><div class="step-num">01</div><h4>Build your playbook</h4><p>Define setup criteria, risk limits, position sizing rules, stop logic, and trade-management preferences.</p></div>
+                    <div class="card timeline-step"><div class="step-num">02</div><h4>Test in paper mode</h4><p>Use paper workflows to review scanning, validation, sizing, and routing behavior before live capital.</p></div>
+                    <div class="card timeline-step"><div class="step-num">03</div><h4>Authorize broker permissions</h4><p>Review the broker’s permission screen before granting access. Only connect what you understand.</p></div>
+                    <div class="card timeline-step"><div class="step-num">04</div><h4>Monitor every workflow</h4><p>Use dashboard visibility and audit logs to see what actions were triggered and why.</p></div>
+                    <div class="card timeline-step"><div class="step-num">05</div><h4>Consider live routing only when ready</h4><p>Live routing uses real capital. Users remain responsible for all live trading decisions.</p></div>
                 </div>
+            </div>
+        </section>
 
-                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+        <section class="section-pad">
+            <div class="container">
+                <h2 class="section-title">Trust Layers in the Broker-Connected Workflow</h2>
+                <div class="layers-grid" style="margin-top: 1rem;">
+                    <article class="card"><h4>Permission Layer</h4><p>Broker access is authorized by the user. XeanVI only operates within the permissions granted through the supported broker connection.</p></article>
+                    <article class="card"><h4>Playbook Layer</h4><p>Automation is constrained by the rules you define: setup criteria, risk limits, position sizing preferences, stop logic, and trade-management settings.</p></article>
+                    <article class="card"><h4>Validation Layer</h4><p>Scans, catalyst context, and AI-assisted validation can help determine whether a setup qualifies before routing is considered.</p></article>
+                    <article class="card"><h4>Routing Layer</h4><p>When conditions pass, XeanVI can prepare and route supported order instructions through the connected broker.</p></article>
+                    <article class="card"><h4>Visibility Layer</h4><p>Dashboard monitoring and audit logs help users review workflow activity and understand triggered actions.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad" style="padding-top: 0;">
+            <div class="container">
+                <div class="card disclosure-block">
+                    <h3>Broker permissions matter. Review them before connecting.</h3>
+                    <p>Before authorizing a broker connection, review the permission screen shown by your broker. Permissions may allow XeanVI to access account information and submit order instructions according to settings you configure. XeanVI does not hold your funds, does not provide financial advice, and does not guarantee trading outcomes.</p>
+                    <div class="link-row">
+                        <a href="/terms">Review Terms</a>
+                        <a href="/privacy">Review Privacy</a>
+                        <a href="/contact">Contact Support</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-pad">
+            <div class="container" style="max-width: 900px;">
+                <h2 class="section-title" style="text-align:center;">Broker Integration FAQ</h2>
+                <details class="faq-details"><summary>Which broker connections does XeanVI support?</summary><div class="faq-content">XeanVI is designed for supported broker API integrations. Available integrations and account-type requirements should be reviewed from the dashboard or broker connection flow.</div></details>
+                <details class="faq-details"><summary>Can XeanVI withdraw or transfer my funds?</summary><div class="faq-content">No. XeanVI is designed for broker-connected workflow and order-routing functionality, not custody or money movement. Funds remain with your supported broker. Users should still review the exact permissions shown by their broker before authorizing access.</div></details>
+                <details class="faq-details"><summary>What permissions am I granting?</summary><div class="faq-content">Permissions vary by broker and account type. A broker connection may allow XeanVI to read account/order information and submit order instructions according to configured settings. Users must review the broker authorization screen before connecting.</div></details>
+                <details class="faq-details"><summary>Can I test before live routing?</summary><div class="faq-content">Yes. Paper testing is strongly recommended before live use. Paper mode lets you review scanning, validation, sizing, and routing behavior without live capital.</div></details>
+                <details class="faq-details"><summary>Will XeanVI automatically trade every scan?</summary><div class="faq-content">No. A scan does not automatically mean an order will route. Routing depends on playbook rules, validation checks, risk settings, broker connection status, permissions, market conditions, and account configuration.</div></details>
+                <details class="faq-details"><summary>Can I revoke broker access?</summary><div class="faq-content">Yes, where supported. Users should be able to disconnect or revoke supported API access through XeanVI settings and/or directly through the broker account controls.</div></details>
+                <details class="faq-details"><summary>Is XeanVI financial advice?</summary><div class="faq-content">No. XeanVI provides software for rule-driven trading workflows. It does not provide financial advice, investment recommendations, legal advice, tax advice, guaranteed fills, or guaranteed results. Trading involves risk, including possible loss of capital.</div></details>
+            </div>
+        </section>
+
+        <section class="section-pad" style="text-align: center; border-top: 1px solid var(--border-color); background: var(--bg-card);">
+            <div class="container" style="max-width: 900px;">
+                <h2 class="section-title">Ready to connect with control?</h2>
+                <p class="section-sub" style="margin: 0 auto 1.25rem;">Start with paper testing, define your playbook, review broker permissions, and use XeanVI PRO only within the rules and access you authorize.</p>
+                <div class="footer-actions" style="justify-content: center; margin-bottom: 1.1rem;">
                     {% if current_user.is_authenticated %}
-                        <a href="/upgrade" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Upgrade to PRO</a>
-                        <a href="/settings" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Broker Settings</a>
+                        <a href="/settings" class="btn btn-primary">Manage Broker Connections</a>
+                        <a href="/pricing" class="btn btn-secondary">Review Pricing</a>
                     {% else %}
-                        <a href="/signup?plan=monthly" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Start PRO Automation</a>
-                        <a href="/login" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; font-family: 'JetBrains Mono', monospace;">Log In</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary">Start Monthly PRO</a>
+                        <a href="/pricing" class="btn btn-secondary">Review Pricing</a>
                     {% endif %}
                 </div>
+                <p style="font-size:0.9rem; color: var(--text-muted);">Broker-connected workflows use real account permissions. Review all broker authorization screens carefully. You remain responsible for account settings and trading decisions.</p>
+                <p style="margin-top:0.85rem; color: var(--text-muted); font-size:0.9rem;">See also: <a href="/playbook">Playbook Rules</a> · <a href="/transparency">Transparency</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a></p>
             </div>
         </section>
     </main>
 
     {% include 'footer.html' %}
-
 </body>
 </html>
