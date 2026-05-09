@@ -90,7 +90,7 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
      <style>
-        body.broker-trust-page { background-color: var(--bg-main); display: flex; flex-direction: column; min-height: 100vh; }
+        body { background-color: var(--bg-main); display: flex; flex-direction: column; min-height: 100vh; }
         .trust-hero { padding: 5.5rem 2rem 3.25rem; border-bottom: 1px solid var(--border-color); }
         .trust-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(56, 189, 248, 0.12); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 999px; padding: 0.35rem 0.8rem; display: inline-block; margin-bottom: 1rem; }
         .hero-actions, .footer-actions { display: flex; gap: 0.85rem; flex-wrap: wrap; }
@@ -141,11 +141,11 @@
         @media (max-width: 700px) { .trust-hero { padding-top: 4.5rem; } }
     </style>
 </head>
-<body class="broker-trust-page">
+<body>
     {% include 'partials/meta_pixel.html' %}
     {% include 'nav.html' %}
 
-    <main>
+    <main class="broker-trust-page">
         <header class="trust-hero">
             <div class="container">
                 <span class="trust-badge">BROKER CONNECTION TRUST CENTER</span>
@@ -266,7 +266,8 @@
                     {% endif %}
                 </div>
                 <p style="font-size:0.9rem; color: var(--text-muted);">Broker-connected workflows use real account permissions. Review all broker authorization screens carefully. You remain responsible for account settings and trading decisions.</p>
-               
+                <p class="footer-links">See also: <a href="/playbook">Playbook Rules</a> · <a href="/transparency">Transparency</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a></p>
+            </div>
         </section>
     </main>
 
