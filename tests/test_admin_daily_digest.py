@@ -1,4 +1,3 @@
-from datetime import datetime
 import sys
 import types
 
@@ -7,6 +6,7 @@ import pytest
 import admin_daily_digest as digest
 from app import app
 from models import AdminDailyDigestEmailLog, User, UserEvent, db
+from time_utils import utc_now_naive
 
 
 @pytest.fixture
@@ -31,9 +31,9 @@ def _mock_requests_post(monkeypatch, post_callable):
 
 
 def test_build_abandoned_logic(app_context):
-    u1 = User(email="a@example.com", password_hash="x", subscription_status="free", created_at=datetime.utcnow())
-    u2 = User(email="b@example.com", password_hash="x", subscription_status="free", created_at=datetime.utcnow())
-    u3 = User(email="c@example.com", password_hash="x", subscription_status="pro", created_at=datetime.utcnow())
+    u1 = User(email="a@example.com", password_hash="x", subscription_status="free", created_at=utc_now_naive())
+    u2 = User(email="b@example.com", password_hash="x", subscription_status="free", created_at=utc_now_naive())
+    u3 = User(email="c@example.com", password_hash="x", subscription_status="pro", created_at=utc_now_naive())
     db.session.add_all([u1, u2, u3])
     db.session.commit()
     db.session.add(UserEvent(user_id=u1.id, event_name="checkout.started"))
@@ -274,3 +274,10 @@ def test_force_after_sent_failure_updates_existing_row(app_context, monkeypatch)
     assert AdminDailyDigestEmailLog.query.count() == 1
     assert refreshed.status == "failed"
     assert refreshed.reason
+
+
+def test_admin_digest_module_avoids_datetime_utcnow_usage():
+    import inspect
+
+    src = inspect.getsource(digest)
+    assert "datetime.utcnow(" not in src

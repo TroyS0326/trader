@@ -312,7 +312,7 @@ def update_market_regime_task():
         # vix_value currently stores VIXY proxy price, not raw VIX index level.
         latest.vix_value = vixy_price
         latest.spy_trend = 'chop' if tight_chop else 'normal'
-        latest.updated_at = datetime.utcnow()
+        latest.updated_at = utc_now_naive()
         db.session.commit()
 
     return {
@@ -328,7 +328,7 @@ def send_admin_daily_digest_task():
     from datetime import datetime
     if not config.ADMIN_DAILY_DIGEST_ENABLED:
         return {'status': 'skipped', 'reason': 'disabled'}
-    if config.ADMIN_DAILY_DIGEST_SKIP_WEEKENDS and datetime.utcnow().weekday() >= 5:
+    if config.ADMIN_DAILY_DIGEST_SKIP_WEEKENDS and utc_now_aware().weekday() >= 5:
         return {'status': 'skipped', 'reason': 'weekend'}
     with _db_app.app_context():
         return admin_daily_digest.send_admin_daily_digest()

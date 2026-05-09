@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 
+from time_utils import utc_now_naive
+
 db = SQLAlchemy()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -165,8 +167,8 @@ class User(UserMixin, db.Model):
     playbook_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     transparency_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     broker_connection_started = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
 
     def _decrypt_token_value(self, encrypted_value: Optional[str]) -> Optional[str]:
         if not encrypted_value:
@@ -271,8 +273,8 @@ class BlogPost(db.Model):
     og_image = db.Column(db.String(320), nullable=True)
     featured_image_alt = db.Column(db.String(240), nullable=True)
     featured_image_caption = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
     published_at = db.Column(db.DateTime, nullable=True)
 
 class BlogPublishingPlan(db.Model):
@@ -290,8 +292,8 @@ class BlogPublishingPlan(db.Model):
     assigned_author = db.Column(db.String(120), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     related_blog_post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
 
     related_blog_post = db.relationship('BlogPost', lazy='joined')
 
@@ -302,15 +304,15 @@ class StripeEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.String(255), nullable=False, unique=True, index=True)
     event_type = db.Column(db.String(120), nullable=False)
-    processed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    processed_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
 
 
 class Trade(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
     scan_id = db.Column(db.Integer, nullable=True)
 
     symbol = db.Column(db.String(10), nullable=False, index=True)
@@ -356,7 +358,7 @@ class Scan(db.Model):
     __tablename__ = 'scans'
 
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     market_day = db.Column(db.String(20), nullable=True)
     best_symbol = db.Column(db.String(10), nullable=True)
     best_decision = db.Column(db.String(20), nullable=True)
@@ -371,7 +373,7 @@ class MarketRegime(db.Model):
     vix_value = db.Column(db.Float, nullable=True)
     spy_trend = db.Column(db.String(50), nullable=True)
     regime_status = db.Column(db.String(50), nullable=True)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
 
 
 
@@ -387,8 +389,8 @@ class WatchCandidate(db.Model):
     symbol = db.Column(db.String(10), nullable=False, index=True)
     source = db.Column(db.String(64), nullable=True)
     sources_json = db.Column(db.Text, nullable=True)
-    first_seen_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    last_seen_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    first_seen_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+    last_seen_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     expires_at = db.Column(db.DateTime, nullable=True, index=True)
     status = db.Column(db.String(20), nullable=False, default='ACTIVE', index=True)
     latest_decision = db.Column(db.String(20), nullable=True)
@@ -419,7 +421,7 @@ class DailyReportEmailLog(db.Model):
     status = db.Column(db.String(20), nullable=False)
     reason = db.Column(db.Text, nullable=True)
     brevo_message_id = db.Column(db.String(120), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     raw_json = db.Column(db.Text, nullable=True)
 
 class AdminDailyDigestEmailLog(db.Model):
@@ -434,7 +436,7 @@ class AdminDailyDigestEmailLog(db.Model):
     status = db.Column(db.String(20), nullable=False)
     reason = db.Column(db.Text, nullable=True)
     brevo_message_id = db.Column(db.String(120), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     raw_json = db.Column(db.Text, nullable=True)
 
 class UserEvent(db.Model):
@@ -443,4 +445,4 @@ class UserEvent(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
     event_name = db.Column(db.String(80), nullable=False, index=True)
     event_context = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
