@@ -276,32 +276,6 @@ BREVO_SENDER_NAME=XeanVI Security
 PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS=3600
 ```
 
-### Brevo Welcome Email Automation
-
-Required production env vars:
-
-```env
-BREVO_API_KEY=
-BREVO_WELCOME_TEMPLATE_ENABLED=1
-BREVO_WELCOME_TEMPLATE_ID=
-BREVO_SENDER_EMAIL=support@xeanvi.com
-BREVO_SENDER_NAME=XeanVI
-```
-
-Template params sent by the app:
-
-```text
-{{params.first_name}}
-{{params.full_name}}
-{{params.email}}
-{{params.app_url}}
-{{params.login_url}}
-{{params.dashboard_url}}
-{{params.playbook_url}}
-{{params.pricing_url}}
-{{params.support_email}}
-```
-
 ### Scanner / Risk Settings
 
 ```env
