@@ -56,6 +56,19 @@ def test_trading_automation_seo_tags_and_internal_links():
         assert f'href="{link}"' in html
 
 
+def test_trading_automation_has_scoped_accessible_link_styles():
+    html = Path('templates/trading_automation.html').read_text(encoding='utf-8')
+    assert '<main class="trading-automation-page">' in html
+    assert '.trading-automation-page a {' in html
+    assert 'color: var(--accent-blue);' in html
+    assert 'text-decoration: underline;' in html
+    assert 'text-underline-offset: 0.2em;' in html
+    assert '.trading-automation-page a:hover,' in html
+    assert '.trading-automation-page a:focus-visible {' in html
+    assert 'text-decoration-color: var(--accent);' in html
+    assert 'color: var(--text-main);' in html
+
+
 def test_trading_automation_risk_language_and_banned_phrases():
     html = Path('templates/trading_automation.html').read_text(encoding='utf-8')
     html_lower = html.lower()
