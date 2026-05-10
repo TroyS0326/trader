@@ -41,6 +41,13 @@ def test_blog_post_supports_byline_dates_disclosure_and_safeguard_links():
         assert f'href="{href}"' in html
 
 
+def test_blog_post_safeguards_section_appears_before_footer_include():
+    html = _read('templates/blog_post.html')
+    safeguards_index = html.index('Explore XeanVI safeguards')
+    footer_index = html.index("{% include 'footer.html' %}")
+    assert safeguards_index < footer_index
+
+
 def test_banned_risky_phrases_absent_from_trust_templates():
     phrases = [
         'guarantee profits','guaranteed returns','risk-free','beat the market','sure wins',
