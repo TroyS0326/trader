@@ -92,7 +92,18 @@ def test_trading_automation_faq_jsonld_matches_visible_questions():
 
     for question in FAQ_QUESTIONS:
         assert question in names
-        assert question in html
+        assert f'<summary>{question}</summary>' in html
+
+
+def test_trading_automation_faq_uses_accordion_structure():
+    html = Path('templates/trading_automation.html').read_text(encoding='utf-8')
+
+    assert '<section class="card" style="padding: 2rem;">' in html
+    assert '<h2>Frequently asked questions</h2>' in html
+    assert html.count('<details class="faq-details">') == len(FAQ_QUESTIONS)
+    assert html.count('<div class="faq-content">') == len(FAQ_QUESTIONS)
+    assert '.trading-automation-page .faq-details summary::after {' in html
+    assert ".trading-automation-page .faq-details[open] summary::after {" in html
 
 
 def test_sitemap_contains_trading_automation_page():
