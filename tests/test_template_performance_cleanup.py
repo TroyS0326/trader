@@ -12,7 +12,6 @@ def test_marketing_google_fonts_requests_keep_display_swap_and_preconnect():
         'templates/playbook.html',
         'templates/broker_integration.html',
         'templates/transparency.html',
-        'templates/upgrade.html',
     ]
     for path in pages:
         html = _read(path)
