@@ -94,6 +94,46 @@
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}
     <style>
+        .trading-automation-page .faq-details {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 0.9rem;
+        }
+
+        .trading-automation-page .faq-details summary {
+            padding: 1rem 1.1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-main);
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trading-automation-page .faq-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .trading-automation-page .faq-details summary::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: var(--accent-blue);
+            transition: transform 0.2s;
+        }
+
+        .trading-automation-page .faq-details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .trading-automation-page .faq-content {
+            padding: 0 1.1rem 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
         .trading-automation-page a {
             color: var(--accent-blue);
             text-decoration: underline;
@@ -170,16 +210,26 @@
 
                 <section class="card" style="padding: 2rem;">
                     <h2>Frequently asked questions</h2>
-                    <h3>What is trading workflow automation?</h3>
-                    <p style="color: var(--text-muted);">It is the process of turning a written trading playbook into consistent workflow steps for scanning, checks, sizing, routing preparation, and monitoring.</p>
-                    <h3>Is trading automation financial advice?</h3>
-                    <p style="color: var(--text-muted);">No. XeanVI provides software tools for workflow execution and review. It does not provide financial advice.</p>
-                    <h3>Can I test automation before live trading?</h3>
-                    <p style="color: var(--text-muted);">Yes. Paper testing helps validate workflow behavior before live capital is used.</p>
-                    <h3>Does broker-connected automation control my funds?</h3>
-                    <p style="color: var(--text-muted);">No. Funds remain with your broker, and routing permissions depend on what you authorize.</p>
-                    <h3>Do automated trading workflows remove risk?</h3>
-                    <p style="color: var(--text-muted);">No. Automation can support consistency, but market and execution risk remain.</p>
+                    <details class="faq-details">
+                        <summary>What is trading workflow automation?</summary>
+                        <div class="faq-content">It is the process of turning a written trading playbook into consistent workflow steps for scanning, checks, sizing, routing preparation, and monitoring.</div>
+                    </details>
+                    <details class="faq-details">
+                        <summary>Is trading automation financial advice?</summary>
+                        <div class="faq-content">No. XeanVI provides software tools for workflow execution and review. It does not provide financial advice.</div>
+                    </details>
+                    <details class="faq-details">
+                        <summary>Can I test automation before live trading?</summary>
+                        <div class="faq-content">Yes. Paper testing helps validate workflow behavior before live capital is used.</div>
+                    </details>
+                    <details class="faq-details">
+                        <summary>Does broker-connected automation control my funds?</summary>
+                        <div class="faq-content">No. Funds remain with your broker, and routing permissions depend on what you authorize.</div>
+                    </details>
+                    <details class="faq-details">
+                        <summary>Do automated trading workflows remove risk?</summary>
+                        <div class="faq-content">No. Automation can support consistency, but market and execution risk remain.</div>
+                    </details>
                 </section>
             </div>
         </section>
