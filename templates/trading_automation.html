@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+{% include 'partials/google_ads_tag.html' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>Trading Automation Software Guide | XeanVI</title>
+    <meta name="description" content="Learn how trading workflow automation works, where rule-based processes help, why paper testing matters, and how broker-connected routing, bracket orders, and risk controls fit into a responsible workflow.">
+
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="XeanVI">
+    <link rel="canonical" href="https://xeanvi.com/trading-automation">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="XeanVI">
+    <meta property="og:url" content="https://xeanvi.com/trading-automation">
+    <meta property="og:title" content="Trading Automation Software Guide | XeanVI">
+    <meta property="og:description" content="Understand the building blocks of trading workflow automation: playbook rules, paper testing, broker-connected permissions, bracket order structure, and ongoing monitoring.">
+    <meta property="og:image" content="https://xeanvi.com/static/seo-banner.webp">
+    <meta property="og:image:alt" content="XeanVI trading workflow automation guide overview">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Trading Automation Software Guide | XeanVI">
+    <meta name="twitter:description" content="Understand rule-based trading workflows, paper testing, broker-connected permissions, and practical risk controls.">
+    <meta name="twitter:image" content="https://xeanvi.com/static/seo-banner.webp">
+    <meta name="twitter:image:alt" content="XeanVI trading workflow automation guide overview">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "url": "https://xeanvi.com/trading-automation",
+      "name": "Trading Automation Software Guide | XeanVI",
+      "description": "Educational guide to trading workflow automation, playbook rules, paper testing, broker-connected permissions, bracket order structure, and monitoring.",
+      "isPartOf": {
+        "@type": "WebSite",
+        "url": "https://xeanvi.com/",
+        "name": "XeanVI"
+      }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "url": "https://xeanvi.com/trading-automation",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is trading workflow automation?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Trading workflow automation is the process of turning your defined playbook into repeatable steps for scanning, rule checks, sizing, order preparation, and monitoring."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is trading automation financial advice?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Trading automation software is a workflow tool, not financial advice. You remain responsible for strategy decisions, risk settings, and account activity."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I test automation before live trading?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Paper testing lets you validate workflow logic and operational behavior before live use, but paper results do not predict live market outcomes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does broker-connected automation control my funds?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Funds remain with your broker. Broker-connected automation uses permissions you authorize to route workflow instructions under your configured rules."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do automated trading workflows remove risk?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Automation can improve process consistency, but market risk, execution risk, and user responsibility remain."
+          }
+        }
+      ]
+    }
+    </script>
+
+    {% include 'partials/async_app_css.html' %}
+    {% include 'partials/async_fontawesome_css.html' %}
+</head>
+<body class="auth-body">
+    {% include 'partials/meta_pixel.html' %}
+    {% include 'nav.html' %}
+
+    <main>
+        <section class="section-pad" style="border-bottom: 1px solid var(--border-color);">
+            <div class="container" style="max-width: 920px;">
+                <div class="badge-pill" style="margin-bottom: 1rem;">TRADING_WORKFLOW_AUTOMATION_GUIDE</div>
+                <h1 style="font-size: clamp(2.2rem, 4.8vw, 3.2rem); margin-bottom: 1rem;">Trading Workflow Automation: What It Is, What It Is Not, and How to Apply It Responsibly</h1>
+                <p style="font-size: 1.08rem; color: var(--text-muted); line-height: 1.7;">Trading workflow automation helps convert a written process into consistent operational steps. It can standardize how you scan opportunities, check rules, stage orders, and monitor activity. It does not remove market uncertainty, replace discipline, or provide financial advice.</p>
+            </div>
+        </section>
+
+        <section class="section-pad">
+            <div class="container" style="max-width: 920px; display: grid; gap: 2.5rem;">
+                <article class="card" style="padding: 2rem;">
+                    <h2>What trading automation can and cannot do</h2>
+                    <p style="color: var(--text-muted);">Automation can standardize scanning, rule checks, position sizing workflows, routing steps, and monitoring routines. It helps reduce process drift by executing the same logic every time configured conditions are met.</p>
+                    <p style="color: var(--text-muted);">Automation cannot remove market risk, guarantee outcomes, or replace user responsibility. It should be treated as process infrastructure, not a substitute for risk management and judgment.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>Rule-based workflow fundamentals</h2>
+                    <p style="color: var(--text-muted);">A rule-based workflow starts with a playbook. The playbook defines setup eligibility checks, entry conditions, position sizing parameters, stop placement, and target logic. It also defines when no trade should be taken.</p>
+                    <p style="color: var(--text-muted);">By translating entries, exits, sizing, stops, targets, and eligibility checks into explicit rules, you get a workflow that is auditable and repeatable across sessions.</p>
+                    <p><a href="/playbook">Explore playbook structure</a> and <a href="/features">see workflow capabilities</a>.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>Paper testing before live capital</h2>
+                    <p style="color: var(--text-muted);">Paper testing helps you validate operational behavior: whether rules trigger as expected, whether sizing calculations remain consistent, and whether monitoring data is understandable for post-trade review.</p>
+                    <p style="color: var(--text-muted);">Paper trading is not a guarantee of live performance. Live market conditions can differ in liquidity, spread, slippage, and timing.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>Broker-connected workflows</h2>
+                    <p style="color: var(--text-muted);">Broker-connected workflows use user-authorized permissions to route instructions through supported APIs. Funds remain in your broker account, and permission scope is tied to what you authorize.</p>
+                    <p style="color: var(--text-muted);">This model supports execution connectivity while keeping custody with the brokerage provider.</p>
+                    <p><a href="/broker-integration">Read the broker integration overview</a>.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>Bracket orders and risk controls</h2>
+                    <p style="color: var(--text-muted);">Bracket workflow logic typically combines an entry with attached stop-loss and target instructions. Risk controls can include sizing limits, maximum risk thresholds, and validation steps before routing.</p>
+                    <p style="color: var(--text-muted);">These controls can improve consistency, but they do not make trading safe or eliminate risk.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>Transparency and monitoring</h2>
+                    <p style="color: var(--text-muted);">Workflow transparency means you can review what conditions passed, what actions were triggered, and how decisions were recorded. Monitoring and logs support review, troubleshooting, and process refinement over time.</p>
+                    <p><a href="/transparency">Review transparency and audit visibility</a>.</p>
+                </article>
+
+                <article class="card" style="padding: 2rem;">
+                    <h2>How XeanVI fits into the workflow</h2>
+                    <p style="color: var(--text-muted);">XeanVI is built around an end-to-end process: automated scanning, playbook validation, paper testing, broker-connected routing, and ongoing monitoring. The goal is to help traders run a more structured workflow while keeping accountability clear.</p>
+                    <p style="color: var(--text-muted);">Learn more across the product: <a href="/features">Features</a>, <a href="/playbook">Playbook</a>, <a href="/broker-integration">Broker Integration</a>, <a href="/pricing">Pricing</a>, <a href="/transparency">Transparency</a>, <a href="/blog">Blog</a>, and <a href="/about">About</a>.</p>
+                </article>
+
+                <section class="card" style="padding: 2rem;">
+                    <h2>Frequently asked questions</h2>
+                    <h3>What is trading workflow automation?</h3>
+                    <p style="color: var(--text-muted);">It is the process of turning a written trading playbook into consistent workflow steps for scanning, checks, sizing, routing preparation, and monitoring.</p>
+                    <h3>Is trading automation financial advice?</h3>
+                    <p style="color: var(--text-muted);">No. XeanVI provides software tools for workflow execution and review. It does not provide financial advice.</p>
+                    <h3>Can I test automation before live trading?</h3>
+                    <p style="color: var(--text-muted);">Yes. Paper testing helps validate workflow behavior before live capital is used.</p>
+                    <h3>Does broker-connected automation control my funds?</h3>
+                    <p style="color: var(--text-muted);">No. Funds remain with your broker, and routing permissions depend on what you authorize.</p>
+                    <h3>Do automated trading workflows remove risk?</h3>
+                    <p style="color: var(--text-muted);">No. Automation can support consistency, but market and execution risk remain.</p>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    {% include 'footer.html' %}
+</body>
+</html>
