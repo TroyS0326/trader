@@ -26,6 +26,7 @@ PAGE_EXPECTATIONS = {
     'templates/broker_integration.html': 'https://xeanvi.com/broker-integration',
     'templates/transparency.html': 'https://xeanvi.com/transparency',
     'templates/blog_index.html': 'https://xeanvi.com/blog',
+    'templates/trading_automation.html': 'https://xeanvi.com/trading-automation',
 }
 FAQ_SCHEMA_PAGES = {
     'templates/landing.html',
@@ -157,6 +158,7 @@ def test_public_pages_cross_link_key_xeanvi_routes():
         'templates/transparency.html': ['/broker-integration', '/playbook', '/features', '/pricing'],
         'templates/blog_index.html': ['/features', '/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
         'templates/blog_post.html': ['/features', '/playbook', '/broker-integration', '/transparency', '/blog'],
+        'templates/trading_automation.html': ['/features', '/playbook', '/broker-integration', '/transparency', '/pricing', '/blog', '/about'],
     }
     for path, links in expected_links.items():
         html = _read(path)

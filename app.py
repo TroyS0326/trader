@@ -1192,6 +1192,11 @@ def broker_integration():
     return render_template('broker_integration.html')
 
 
+@app.route('/trading-automation')
+def trading_automation():
+    return render_template('trading_automation.html')
+
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
@@ -1251,6 +1256,7 @@ def sitemap_xml():
         '/pricing',
         '/playbook',
         '/broker-integration',
+        '/trading-automation',
         '/transparency',
         '/terms',
         '/privacy',
