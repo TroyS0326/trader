@@ -55,6 +55,7 @@ from blog_human_quality import analyze_human_quality
 from blog_images import save_blog_featured_image
 from blog_image_seo import generate_image_alt_caption
 from scanner_effectiveness import build_scanner_effectiveness_report
+from db_safety import validate_runtime_database_safety, assert_not_empty_production_database, assert_existing_production_database_has_users
 from execution_guard import (
     approve_scan_for_user,
     validate_execution_against_approved_scan,
@@ -3702,7 +3703,8 @@ def ws_watchlist(ws):
 
 with app.app_context():
     validate_runtime_database_safety(app)
-    db.create_all() # This creates the 'user' table first
+    assert_existing_production_database_has_users(db)
+    db.create_all()
     ensure_schema_migrations()
     assert_not_empty_production_database(db)
 

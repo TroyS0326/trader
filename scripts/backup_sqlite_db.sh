@@ -7,9 +7,16 @@ if [[ ! -f "$DB_PATH" ]]; then
   exit 1
 fi
 
-mkdir -p backups/db
+preferred="/var/backups/xeanvi-db"
+fallback="backups/db"
+if mkdir -p "$preferred" 2>/dev/null && [[ -w "$preferred" ]]; then
+  backup_dir="$preferred"
+else
+  mkdir -p "$fallback"
+  backup_dir="$fallback"
+fi
 name="$(basename "$DB_PATH")"
 stamp="$(date -u +%Y%m%d-%H%M%S)"
-out="backups/db/${stamp}-${name}.sqlite3"
+out="$backup_dir/${stamp}-${name}.sqlite3"
 cp "$DB_PATH" "$out"
 echo "SQLite backup created: $out"
