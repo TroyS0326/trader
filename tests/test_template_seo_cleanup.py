@@ -48,7 +48,28 @@ def _extract_title(html: str) -> str:
 
 
 def _extract_jsonld_blocks(html: str) -> list[str]:
-    return re.findall(r'<script type="application/ld\\+json">\\s*(.*?)\\s*</script>', html, re.DOTALL)
+    return re.findall(
+        r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>\s*(.*?)\s*</script>',
+        html,
+        re.IGNORECASE | re.DOTALL,
+    )
+
+
+def _normalize_text(value: str) -> str:
+    return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]+', ' ', value.lower())).strip()
+
+
+def _contains_visible_question(html: str, question: str) -> bool:
+    visible_text = _normalize_text(re.sub(r'<[^>]+>', ' ', html))
+    normalized_question = _normalize_text(question)
+    if normalized_question in visible_text:
+        return True
+
+    question_tokens = [token for token in normalized_question.split() if len(token) > 2]
+    if not question_tokens:
+        return False
+    matched = sum(token in visible_text for token in question_tokens)
+    return matched / len(question_tokens) >= 0.8
 
 
 def test_public_pages_have_unique_titles_and_descriptions():
@@ -188,6 +209,7 @@ def test_faq_schema_is_present_only_on_pages_with_visible_faq_content():
                 faq_blocks.append(data)
 
         if path in FAQ_SCHEMA_PAGES:
+            assert _extract_jsonld_blocks(html), f"Expected at least one JSON-LD block for {path}"
             assert faq_blocks, f"Expected FAQPage JSON-LD for {path}"
             assert 'faq' in html.lower(), f"Expected visible FAQ content for {path}"
         else:
@@ -197,15 +219,20 @@ def test_faq_schema_is_present_only_on_pages_with_visible_faq_content():
 def test_faq_schema_structure_and_phrase_safety():
     for path in FAQ_SCHEMA_PAGES:
         html = _read(path)
-        faq_schema = None
+        faq_blocks = []
         for block in _extract_jsonld_blocks(html):
+            if '{%' in block or '{{' in block:
+                continue
             data = json.loads(block)
             if data.get('@type') == 'FAQPage':
-                faq_schema = data
-                break
+                faq_blocks.append(data)
 
-        assert faq_schema is not None, f"Missing FAQPage schema for {path}"
+        assert faq_blocks, f"Missing FAQPage schema for {path}"
+        assert len(faq_blocks) == 1, f"Expected exactly one FAQPage schema block for {path}"
+
+        faq_schema = faq_blocks[0]
         assert faq_schema.get('@context') == 'https://schema.org'
+        assert faq_schema.get('@type') == 'FAQPage'
         assert isinstance(faq_schema.get('mainEntity'), list) and faq_schema['mainEntity']
         for entity in faq_schema['mainEntity']:
             assert entity.get('@type') == 'Question'
@@ -213,9 +240,9 @@ def test_faq_schema_structure_and_phrase_safety():
             accepted = entity.get('acceptedAnswer', {})
             assert accepted.get('@type') == 'Answer'
             assert isinstance(accepted.get('text'), str) and accepted['text'].strip()
+            assert _contains_visible_question(html, entity['name']), (
+                f"FAQ schema question must appear visibly in {path}: {entity['name']}"
+            )
             combined = f"{entity['name']} {accepted['text']}".lower()
             for phrase in BANNED_PHRASES:
                 assert phrase not in combined, f"Found banned phrase '{phrase}' in FAQ schema for {path}"
-
-        raw_faq_block = next(block for block in _extract_jsonld_blocks(html) if '"@type": "FAQPage"' in block)
-        assert '{{' not in raw_faq_block and '{%' not in raw_faq_block
