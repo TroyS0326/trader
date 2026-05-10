@@ -77,7 +77,7 @@ def _runtime_values(app=None):
 def validate_runtime_database_safety(app=None) -> None:
     is_production, is_testing, uri = _runtime_values(app)
     identity = database_identity(uri)
-    logger.info('Database runtime identity: %s', identity)
+    logger.info('Database runtime identity (redacted): %s', identity.get('redacted_uri'))
 
     if not is_production:
         return
@@ -89,8 +89,15 @@ def validate_runtime_database_safety(app=None) -> None:
     if not raw_database_url:
         raise RuntimeError('Unsafe runtime: DATABASE_URL must be set and non-empty in production.')
 
+    lowered_uri = uri.lower()
     if not uri.startswith('postgresql+psycopg://'):
         raise RuntimeError('Unsafe runtime: production database must use postgresql+psycopg:// URI.')
+
+    if lowered_uri.startswith('sqlite'):
+        raise RuntimeError('Unsafe runtime: sqlite is not allowed in production.')
+
+    if 'veteran_trades.db' in lowered_uri:
+        raise RuntimeError('Unsafe runtime: veteran_trades.db is decommissioned in production.')
 
     if identity['dialect'] == 'sqlite':
         raise RuntimeError('Unsafe runtime: sqlite is not allowed in production.')
