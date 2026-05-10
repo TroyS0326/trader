@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import re
 
 BANNED_PHRASES = [
@@ -26,6 +27,14 @@ PAGE_EXPECTATIONS = {
     'templates/transparency.html': 'https://xeanvi.com/transparency',
     'templates/blog_index.html': 'https://xeanvi.com/blog',
 }
+FAQ_SCHEMA_PAGES = {
+    'templates/landing.html',
+    'templates/upgrade.html',
+    'templates/features.html',
+    'templates/playbook.html',
+    'templates/broker_integration.html',
+    'templates/transparency.html',
+}
 
 
 def _read(path: str) -> str:
@@ -36,6 +45,10 @@ def _extract_title(html: str) -> str:
     m = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
     assert m
     return m.group(1).strip()
+
+
+def _extract_jsonld_blocks(html: str) -> list[str]:
+    return re.findall(r'<script type="application/ld\\+json">\\s*(.*?)\\s*</script>', html, re.DOTALL)
 
 
 def test_public_pages_have_unique_titles_and_descriptions():
@@ -161,3 +174,48 @@ def test_public_pages_cover_core_positioning_terms():
         'transparency',
     ):
         assert term in html, f"Expected core positioning term '{term}' to appear across public pages"
+
+
+def test_faq_schema_is_present_only_on_pages_with_visible_faq_content():
+    for path in PAGE_EXPECTATIONS:
+        html = _read(path)
+        faq_blocks = []
+        for block in _extract_jsonld_blocks(html):
+            if '{%' in block or '{{' in block:
+                continue
+            data = json.loads(block)
+            if data.get('@type') == 'FAQPage':
+                faq_blocks.append(data)
+
+        if path in FAQ_SCHEMA_PAGES:
+            assert faq_blocks, f"Expected FAQPage JSON-LD for {path}"
+            assert 'faq' in html.lower(), f"Expected visible FAQ content for {path}"
+        else:
+            assert not faq_blocks, f"Unexpected FAQPage JSON-LD in {path}"
+
+
+def test_faq_schema_structure_and_phrase_safety():
+    for path in FAQ_SCHEMA_PAGES:
+        html = _read(path)
+        faq_schema = None
+        for block in _extract_jsonld_blocks(html):
+            data = json.loads(block)
+            if data.get('@type') == 'FAQPage':
+                faq_schema = data
+                break
+
+        assert faq_schema is not None, f"Missing FAQPage schema for {path}"
+        assert faq_schema.get('@context') == 'https://schema.org'
+        assert isinstance(faq_schema.get('mainEntity'), list) and faq_schema['mainEntity']
+        for entity in faq_schema['mainEntity']:
+            assert entity.get('@type') == 'Question'
+            assert isinstance(entity.get('name'), str) and entity['name'].strip()
+            accepted = entity.get('acceptedAnswer', {})
+            assert accepted.get('@type') == 'Answer'
+            assert isinstance(accepted.get('text'), str) and accepted['text'].strip()
+            combined = f"{entity['name']} {accepted['text']}".lower()
+            for phrase in BANNED_PHRASES:
+                assert phrase not in combined, f"Found banned phrase '{phrase}' in FAQ schema for {path}"
+
+        raw_faq_block = next(block for block in _extract_jsonld_blocks(html) if '"@type": "FAQPage"' in block)
+        assert '{{' not in raw_faq_block and '{%' not in raw_faq_block
