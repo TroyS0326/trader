@@ -8,6 +8,11 @@ BANNED_PHRASES = [
     'beat the market',
     'sure wins',
     'automatic profits',
+    'guaranteed accuracy',
+    'no-loss',
+    'foolproof',
+    'set it and forget it',
+    'effortless profits',
 ]
 
 PAGE_EXPECTATIONS = {
@@ -133,3 +138,26 @@ def test_generic_anchor_text_spam_not_added_to_audited_templates():
     ]
     html = "\n".join(_read(path).lower() for path in audited_pages)
     assert '>click here<' not in html
+
+
+def test_public_pages_cover_core_positioning_terms():
+    audited_pages = [
+        'templates/landing.html',
+        'templates/features.html',
+        'templates/playbook.html',
+        'templates/broker_integration.html',
+        'templates/upgrade.html',
+        'templates/transparency.html',
+        'templates/blog_index.html',
+    ]
+    html = "\n".join(_read(path).lower() for path in audited_pages)
+    for term in (
+        'automated scanning',
+        'playbook',
+        'broker',
+        'paper testing',
+        'bracket order',
+        'risk controls',
+        'transparency',
+    ):
+        assert term in html, f"Expected core positioning term '{term}' to appear across public pages"
