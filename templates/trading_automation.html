@@ -93,12 +93,27 @@
 
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}
+    <style>
+        .trading-automation-page a {
+            color: var(--accent-blue);
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+            text-decoration-thickness: 0.08em;
+            font-weight: 600;
+        }
+
+        .trading-automation-page a:hover,
+        .trading-automation-page a:focus-visible {
+            color: var(--text-main);
+            text-decoration-color: var(--accent);
+        }
+    </style>
 </head>
 <body class="auth-body">
     {% include 'partials/meta_pixel.html' %}
     {% include 'nav.html' %}
 
-    <main>
+    <main class="trading-automation-page">
         <section class="section-pad" style="border-bottom: 1px solid var(--border-color);">
             <div class="container" style="max-width: 920px;">
                 <div class="badge-pill" style="margin-bottom: 1rem;">TRADING_WORKFLOW_AUTOMATION_GUIDE</div>
