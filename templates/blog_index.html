@@ -20,22 +20,39 @@
   <meta name="twitter:image" content="https://xeanvi.com/static/seo-banner.webp">
   <meta name="twitter:image:alt" content="XeanVI blog insights on trading automation workflows">
   {% include 'partials/async_app_css.html' %}
+  <style>
+    .blog-index a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .blog-index .post-title-link {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .blog-index .post-title-link:hover,
+    .blog-index .post-title-link:focus-visible {
+      text-decoration: underline;
+    }
+  </style>
 </head><body class="auth-body">{% include 'nav.html' %}
-<main class="container" style="padding:3rem 1rem;max-width:900px;">
+<main class="container blog-index" style="padding:3rem 1rem;max-width:900px;">
   <h1>Blog</h1>
-  <p style="color:var(--text-muted);">Articles and updates on building a more disciplined trading workflow with XeanVI. Explore practical notes on automation, playbook rules, broker-connected workflows, paper testing, and risk controls. New to XeanVI? Start with <a href="/features">Features</a>, <a href="/playbook">Playbook</a>, <a href="/broker-integration">Broker Integration</a>, or <a href="/transparency">Transparency</a>.</p>
+  <p style="color:var(--text-muted);">Articles and updates on trading workflow automation, risk controls, paper testing, and disciplined execution with XeanVI.</p>
   {% for post in posts %}
   <article class="card" style="padding:1.25rem;margin:1rem 0;">
     {% if post.og_image %}
     <a href="{{ url_for('blog_post', slug=post.slug) }}"><img src="{{ post.og_image }}" alt="{{ post.featured_image_alt or post.title }}" loading="lazy" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:.75rem;"></a>
     {% endif %}
-    <h2><a href="{{ url_for('blog_post', slug=post.slug) }}" style="color:var(--text-main);text-decoration:none;">{{ post.title }}</a></h2>
+    <h2><a href="{{ url_for('blog_post', slug=post.slug) }}" class="post-title-link">{{ post.title }}</a></h2>
     <p style="color:var(--text-muted);">{{ (post.published_at or post.created_at).strftime('%Y-%m-%d') if (post.published_at or post.created_at) else '' }}</p>
     {% if post.excerpt %}<p>{{ post.excerpt }}</p>{% endif %}
   </article>
   {% else %}<p>No posts published yet.</p>{% endfor %}
   <section class="card" style="padding:1rem; margin-top:1.2rem;">
-    <h2 style="margin-bottom:.45rem;">Continue your setup path</h2>
-    <p style="margin:0;">After reading, <a href="/pricing">compare XeanVI plans</a> or <a href="/signup?plan=monthly">create an account to test your playbook in paper mode before enabling live broker-connected workflows</a>.</p>
+    <h2 style="margin-bottom:.45rem;">Explore XeanVI</h2>
+    <p style="margin:0;">Continue with <a href="/features">Features</a>, <a href="/playbook">Playbook</a>, <a href="/broker-integration">Broker Integration</a>, and <a href="/transparency">Transparency</a>. If you are ready, <a href="/pricing">review plans</a> or <a href="/signup?plan=monthly">start in paper mode</a>.</p>
   </section>
 </main>{% include 'footer.html' %}</body></html>
