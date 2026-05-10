@@ -1,11 +1,121 @@
 <script>
   (function () {
+    async function sha256Hex(value) {
+      if (!value || !window.crypto || !window.crypto.subtle) {
+        return null;
+      }
+
+      const encoded = new TextEncoder().encode(value);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', encoded);
+      const bytes = Array.from(new Uint8Array(hashBuffer));
+      return bytes.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    function normalizeEmail(value) {
+      if (!value) {
+        return '';
+      }
+      return String(value).trim().toLowerCase();
+    }
+
+    function normalizePhone(value) {
+      if (!value) {
+        return '';
+      }
+      return String(value).trim().replace(/[^\d+]/g, '');
+    }
+
+    function normalizeName(value) {
+      if (!value) {
+        return '';
+      }
+      return String(value).trim().toLowerCase();
+    }
+
+    window.xeanviTrackCheckoutStarted = async function (userData) {
+      try {
+        if (typeof window.gtag !== 'function') {
+          return;
+        }
+
+        const safeData = userData || {};
+        const normalized = {
+          email: normalizeEmail(safeData.email),
+          phone: normalizePhone(safeData.phone),
+          first_name: normalizeName(safeData.first_name),
+          last_name: normalizeName(safeData.last_name),
+        };
+
+        const payload = {};
+
+        if (normalized.email) {
+          const hashedEmail = await sha256Hex(normalized.email);
+          if (hashedEmail) {
+            payload.sha256_email_address = hashedEmail;
+          }
+        }
+
+        if (normalized.phone) {
+          const hashedPhone = await sha256Hex(normalized.phone);
+          if (hashedPhone) {
+            payload.sha256_phone_number = hashedPhone;
+          }
+        }
+
+        const addressPayload = {};
+        if (normalized.first_name) {
+          const hashedFirstName = await sha256Hex(normalized.first_name);
+          if (hashedFirstName) {
+            addressPayload.sha256_first_name = hashedFirstName;
+          }
+        }
+
+        if (normalized.last_name) {
+          const hashedLastName = await sha256Hex(normalized.last_name);
+          if (hashedLastName) {
+            addressPayload.sha256_last_name = hashedLastName;
+          }
+        }
+
+        if (Object.keys(addressPayload).length) {
+          payload.address = addressPayload;
+        }
+
+        if (Object.keys(payload).length) {
+          // Google Ads Enhanced Conversions diagnostic recommends in-page user_data in addition to Automatic detection.
+          window.gtag('set', 'user_data', payload);
+        }
+      } catch (err) {
+        // no-op
+      }
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
       // Google Ads conversion labels are configured through environment variables. Blank labels disable the event.
       const conversionLabels = {{ (google_ads_conversion_labels or {})|tojson }};
       const googleAdsId = {{ (google_ads_id or '')|tojson }};
 
-      function trackGoogleAdsConversion(el) {
+      function checkoutUserDataFromElement(el) {
+        if (!el) {
+          return {};
+        }
+
+        const firstNameInput = el.querySelector('input[name="first_name"], input[name="firstname"], input[name="given_name"]');
+        const lastNameInput = el.querySelector('input[name="last_name"], input[name="lastname"], input[name="family_name"]');
+        const emailInput = el.querySelector('input[type="email"], input[name="email"]');
+        const phoneInput = el.querySelector('input[type="tel"], input[name="phone"], input[name="phone_number"]');
+
+        const currentUser = window.XEANVI_CURRENT_USER || {};
+
+        return {
+          email: (emailInput && emailInput.value) || currentUser.email || '',
+          phone: (phoneInput && phoneInput.value) || currentUser.phone || '',
+          first_name: (firstNameInput && firstNameInput.value) || currentUser.first_name || '',
+          last_name: (lastNameInput && lastNameInput.value) || currentUser.last_name || '',
+        };
+      }
+
+      async function trackGoogleAdsConversion(el) {
         try {
           if (typeof window.gtag !== 'function' || !el) {
             return;
@@ -19,6 +129,10 @@
           const label = (conversionLabels[conversionKey] || '').trim();
           if (!googleAdsId || !label) {
             return;
+          }
+
+          if (conversionKey === 'checkout' && typeof window.xeanviTrackCheckoutStarted === 'function') {
+            await window.xeanviTrackCheckoutStarted(checkoutUserDataFromElement(el));
           }
 
           const payload = {

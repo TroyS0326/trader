@@ -172,6 +172,11 @@
 </head>
 <body class="dash-body">
     {% include 'partials/meta_pixel.html' %}
+    <script>
+      window.XEANVI_CURRENT_USER = {
+        email: {{ (current_user.email if current_user.is_authenticated else None)|tojson }}
+      };
+    </script>
     {% with google_ads_id=(google_ads_id or '') %}
     {% include 'partials/google_ads_conversions.html' %}
     {% endwith %}
