@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import config
+from sqlalchemy import inspect, text
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def assert_not_empty_production_database(db, required_tables=('user',)) -> None:
     if not config.IS_PRODUCTION:
         return
 
-    inspector = db.inspect(db.engine)
+    inspector = inspect(db.engine)
     table_names = sorted(inspector.get_table_names())
     logger.info('Production database table count=%d tables=%s', len(table_names), table_names)
 
@@ -117,8 +118,26 @@ def assert_not_empty_production_database(db, required_tables=('user',)) -> None:
         if table_name not in table_names:
             raise RuntimeError(f'Production safety check failed: required table "{table_name}" is missing.')
 
-    user_count = db.session.execute(db.text('SELECT COUNT(*) FROM "user"')).scalar_one()
+    user_count = db.session.execute(text('SELECT COUNT(*) FROM "user"')).scalar_one()
     logger.info('Production database user table row_count=%s', user_count)
 
     if user_count == 0 and os.getenv('ALLOW_EMPTY_PRODUCTION_DB_STARTUP', '0') != '1':
         raise RuntimeError('Production safety check failed: user table is empty. Set ALLOW_EMPTY_PRODUCTION_DB_STARTUP=1 only for controlled emergency startup.')
+
+
+def assert_existing_production_database_has_users(db) -> None:
+    if not config.IS_PRODUCTION:
+        return
+
+    inspector = inspect(db.engine)
+    table_names = sorted(inspector.get_table_names())
+    logger.info('Production pre-create database table count=%d tables=%s', len(table_names), table_names)
+
+    if 'user' not in table_names:
+        raise RuntimeError('Production safety check failed before schema creation: production DB appears fresh or wrong because required user table is missing.')
+
+    user_count = db.session.execute(text('SELECT COUNT(*) FROM "user"')).scalar_one()
+    logger.info('Production pre-create user table row_count=%s', user_count)
+
+    if user_count == 0 and os.getenv('ALLOW_EMPTY_PRODUCTION_DB_STARTUP', '0') != '1':
+        raise RuntimeError('Production safety check failed before schema creation: user table is empty. Set ALLOW_EMPTY_PRODUCTION_DB_STARTUP=1 only for controlled emergency startup.')

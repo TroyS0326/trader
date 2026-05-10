@@ -6,8 +6,15 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-mkdir -p backups/db
+preferred="/var/backups/xeanvi-db"
+fallback="backups/db"
+if mkdir -p "$preferred" 2>/dev/null && [[ -w "$preferred" ]]; then
+  backup_dir="$preferred"
+else
+  mkdir -p "$fallback"
+  backup_dir="$fallback"
+fi
 stamp="$(date -u +%Y%m%d-%H%M%S)"
-out="backups/db/${stamp}-xeanvi.dump"
+out="$backup_dir/${stamp}-xeanvi.dump"
 pg_dump --format=custom --file="$out" "$DATABASE_URL"
 echo "PostgreSQL backup created: $out"

@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+from pathlib import Path
 
 import pytest
 from flask import Flask
@@ -83,3 +84,84 @@ def test_empty_production_user_table_fails_unless_override(monkeypatch, tmp_path
             db_safety_module.assert_not_empty_production_database(db)
         monkeypatch.setenv('ALLOW_EMPTY_PRODUCTION_DB_STARTUP', '1')
         db_safety_module.assert_not_empty_production_database(db)
+
+
+
+def test_app_imports_db_safety_functions():
+    src = Path('app.py').read_text()
+    assert 'assert_existing_production_database_has_users' in src
+    assert 'validate_runtime_database_safety' in src
+    assert 'assert_not_empty_production_database' in src
+
+
+def test_diagnostic_script_does_not_import_real_app():
+    src = Path('scripts/db_diagnose.py').read_text()
+    assert 'from app import app' not in src
+
+
+def _setup_user_table(db, with_row=False):
+    db.session.execute(db_safety_module_text('CREATE TABLE "user" (id INTEGER PRIMARY KEY, email TEXT)'))
+    if with_row:
+        db.session.execute(db_safety_module_text("INSERT INTO \"user\" (email) VALUES ('u@example.com')"))
+    db.session.commit()
+
+
+def db_safety_module_text(sql):
+    from sqlalchemy import text
+    return text(sql)
+
+
+def test_existing_production_db_fails_when_user_missing(monkeypatch, tmp_path, db_safety_module):
+    _patch_runtime(monkeypatch, db_safety_module, True, False, 'production', f"sqlite:///{tmp_path/'safe.db'}")
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'safe.db'}"
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    with app.app_context():
+        with pytest.raises(RuntimeError, match='user table is missing|user table'):
+            db_safety_module.assert_existing_production_database_has_users(db)
+
+
+def test_existing_production_db_fails_when_user_empty(monkeypatch, tmp_path, db_safety_module):
+    _patch_runtime(monkeypatch, db_safety_module, True, False, 'production', f"sqlite:///{tmp_path/'safe2.db'}")
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'safe2.db'}"
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    with app.app_context():
+        _setup_user_table(db, with_row=False)
+        monkeypatch.delenv('ALLOW_EMPTY_PRODUCTION_DB_STARTUP', raising=False)
+        with pytest.raises(RuntimeError, match='empty'):
+            db_safety_module.assert_existing_production_database_has_users(db)
+
+
+def test_existing_production_db_allows_empty_with_override(monkeypatch, tmp_path, db_safety_module):
+    _patch_runtime(monkeypatch, db_safety_module, True, False, 'production', f"sqlite:///{tmp_path/'safe3.db'}")
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'safe3.db'}"
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    with app.app_context():
+        _setup_user_table(db, with_row=False)
+        monkeypatch.setenv('ALLOW_EMPTY_PRODUCTION_DB_STARTUP', '1')
+        db_safety_module.assert_existing_production_database_has_users(db)
+
+
+def test_assert_not_empty_production_database_uses_sqlalchemy_inspect(monkeypatch, tmp_path, db_safety_module):
+    _patch_runtime(monkeypatch, db_safety_module, True, False, 'production', f"sqlite:///{tmp_path/'safe4.db'}")
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'safe4.db'}"
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    called = {'ok': False}
+
+    real_inspect = db_safety_module.inspect
+    def _wrapped(engine):
+        called['ok'] = True
+        return real_inspect(engine)
+
+    monkeypatch.setattr(db_safety_module, 'inspect', _wrapped)
+    with app.app_context():
+        _setup_user_table(db, with_row=True)
+        db_safety_module.assert_not_empty_production_database(db)
+    assert called['ok'] is True
