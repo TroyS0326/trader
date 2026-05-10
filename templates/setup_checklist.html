@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Setup Checklist | XeanVI</title>
+    <title>Setup & Broker Readiness | XeanVI</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     {% include 'partials/async_app_css.html' %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -31,10 +31,16 @@
         .hero-subtitle { margin:.55rem 0 0; color:var(--text-muted); }
         .progress { text-align:right; color:var(--text-muted); font-family:var(--font-mono, monospace); font-size:.9rem; }
         .progress strong { color:var(--accent-blue); font-size:1.05rem; }
+        .section-card { margin-bottom: 1rem; padding: 1.1rem; }
+        .section-title { margin:0 0 .25rem; font-size:1.1rem; }
+        .section-subtitle { margin:0 0 .8rem; color:var(--text-muted); font-size:.92rem; }
         .checklist-grid { display:grid; gap:.85rem; }
         .check-card { padding:1rem; border-left:4px solid var(--accent-blue); }
         .check-card.completed { border-left-color: var(--success); }
-        .check-card.optional:not(.completed) { border-left-color: var(--warning); }
+        .status-pill { font-size:.72rem; border-radius:999px; padding:.15rem .5rem; border:1px solid var(--border-color); color:var(--text-muted); }
+        .status-complete { color:#bbf7d0; border-color:rgba(16,185,129,.55); }
+        .status-required, .status-action-needed { color:#fde68a; border-color:rgba(245,158,11,.55); }
+        .status-recommended { color:#bfdbfe; border-color:rgba(56,189,248,.55); }
         .item-row { display:flex; justify-content:space-between; gap:.9rem; flex-wrap:wrap; align-items:flex-start; }
         .item-title { display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem; }
         .item-title strong { color:var(--text-main); }
@@ -53,8 +59,8 @@
     <section class="hero-card">
         <div class="hero-head">
             <div>
-                <h1 class="hero-title">XeanVI Setup Checklist</h1>
-                <p class="hero-subtitle">Complete the required setup path before using XeanVI's automated paper workflow. Each step keeps automation tied to your rules, risk settings, broker permissions, and dashboard visibility.</p>
+                <h1 class="hero-title">Setup &amp; Broker Readiness</h1>
+                <p class="hero-subtitle">Use this page to complete required setup for paper trading and live broker connection. Educational pages are available as recommended reviews, not blockers.</p>
             </div>
             <div class="progress">
                 <strong>{{ setup_checklist.percent_complete }}% complete</strong><br>
@@ -64,55 +70,84 @@
     </section>
 
 
-    <section class="hero-card" style="padding: 1rem 1.2rem; margin-bottom: 1rem;">
-        <p style="margin:0 0 .5rem; font-size:.72rem; letter-spacing:.12em; font-weight:700; color:var(--accent-blue);">SETUP PATH</p>
-        <p style="margin:0; color:var(--text-main); font-size:.95rem;">Recommended path: Account → Playbook → Paper bankroll → Paper testing → Broker connection → Dashboard monitoring.</p>
-        <p style="margin:.45rem 0 0; color:var(--text-muted); font-size:.86rem;">Completed steps can be reopened any time to review settings or documentation.</p>
-    </section>
-
-    <section class="checklist-grid">
-        {% for item in setup_checklist['items'] %}
+    <section class="hero-card section-card">
+        <h2 class="section-title">Paper Mode Setup</h2>
+        <p class="section-subtitle">Get your paper environment connected and ready for scanner and dashboard workflows.</p>
+        <div class="checklist-grid">
+        {% for item in setup_checklist['paper_items'] %}
         <article class="check-card{% if item.completed %} completed{% endif %}{% if item.optional %} optional{% endif %}">
             <div class="item-row">
                 <div>
                     <div class="item-title">
                         <i class="fa-solid {{ item.icon }} item-icon"></i>
                         <strong>{{ item.label }}</strong>
-                        {% if item.optional %}<span class="optional-pill">OPTIONAL</span>{% endif %}
+                        <span class="status-pill status-{{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span>
                     </div>
                     <p class="item-desc">{{ item.description }}</p>
                     {% if item.completed %}<p class="item-note">{{ item.completed_note }}</p>{% endif %}
                 </div>
                 {% if item.url %}
-                <a href="{{ item.url }}" {% if item.field in ['playbook_reviewed', 'transparency_reviewed'] %}onclick="markSetupChecklistStep('{{ item.field }}')"{% endif %} class="action-btn">
+                <a href="{{ item.url }}" class="action-btn">
                     {{ item.completed_action_label if item.completed else item.action_label }}
                 </a>
                 {% endif %}
             </div>
         </article>
         {% endfor %}
+        </div>
+    </section>
+
+    <section class="hero-card section-card">
+        <h2 class="section-title">Live Account Readiness</h2>
+        <p class="section-subtitle">Complete required functional and risk setup to connect a live broker account. Live execution still requires backend safety gates and account protections.</p>
+        <div class="checklist-grid">
+        {% for item in setup_checklist['live_items'] %}
+        <article class="check-card{% if item.completed %} completed{% endif %}">
+            <div class="item-row">
+                <div>
+                    <div class="item-title">
+                        <i class="fa-solid {{ item.icon }} item-icon"></i>
+                        <strong>{{ item.label }}</strong>
+                        <span class="status-pill status-{{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span>
+                    </div>
+                    <p class="item-desc">{{ item.description }}</p>
+                    {% if item.completed %}<p class="item-note">{{ item.completed_note }}</p>{% endif %}
+                </div>
+                <a href="{{ item.url }}" class="action-btn">{{ item.completed_action_label if item.completed else item.action_label }}</a>
+            </div>
+        </article>
+        {% endfor %}
+        </div>
+    </section>
+
+    <section class="hero-card section-card">
+        <h2 class="section-title">Recommended Reviews</h2>
+        <p class="section-subtitle">These are non-blocking references to help you evaluate workflow behavior and risks.</p>
+        <div class="checklist-grid">
+        {% for item in setup_checklist['recommended_items'] %}
+        <article class="check-card{% if item.completed %} completed{% endif %}">
+            <div class="item-row">
+                <div>
+                    <div class="item-title">
+                        <i class="fa-solid {{ item.icon }} item-icon"></i>
+                        <strong>{{ item.label }}</strong>
+                        <span class="status-pill status-{{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span>
+                    </div>
+                    <p class="item-desc">{{ item.description }}</p>
+                </div>
+                <a href="{{ item.url }}" class="action-btn">{{ item.action_label }}</a>
+            </div>
+        </article>
+        {% endfor %}
+        </div>
     </section>
 
     <div class="dashboard-link-wrap">
         <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:0.5rem;">
-            <i class="fa-solid fa-terminal"></i> Open Trading Dashboard
+            <i class="fa-solid fa-terminal"></i> Go to Dashboard
         </a>
     </div>
 </main>
-<script>
-async function markSetupChecklistStep(step) {
-    try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        await fetch('/api/setup-checklist/mark', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({ step })
-        });
-    } catch (err) {
-        console.warn('Unable to mark setup checklist step', err);
-    }
-}
-</script>
 {% include 'footer.html' %}
 </body>
 </html>

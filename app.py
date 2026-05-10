@@ -1456,15 +1456,15 @@ def format_subscription_status(user: User) -> dict:
     }
 
 def get_user_setup_checklist(user: User) -> dict:
-    required_items = [
+    paper_items = [
         {
             'field': 'alpaca_paper_connected',
             'label': 'Connect Alpaca Paper Account',
             'short_label': 'Alpaca Paper',
-            'description': 'Connect your Alpaca paper account first so XeanVI can route and monitor paper-mode orders before any live workflow is considered.',
+            'description': 'Connect your Alpaca paper account so paper-mode routing, monitoring, and workflow checks can run with your own broker credentials.',
             'completed': bool(getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_paper_account_id', None)),
             'required': True,
-            'optional': False,
+            'status': 'Complete' if bool(getattr(user, 'alpaca_paper_access_token', None) or getattr(user, 'alpaca_paper_account_id', None)) else 'Action Needed',
             'url': url_for('onboarding'),
             'action_label': 'Connect Paper Account',
             'completed_action_label': 'Review Paper Connection',
@@ -1473,54 +1473,26 @@ def get_user_setup_checklist(user: User) -> dict:
         },
         {
             'field': 'paper_bankroll_set',
-            'label': 'Set Paper Money',
+            'label': 'Configure Paper Bankroll',
             'short_label': 'Paper Money',
             'description': 'Set your starting paper bankroll so XeanVI can calculate simulated position sizing and paper-mode risk controls.',
             'completed': bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0),
             'required': True,
-            'optional': False,
+            'status': 'Complete' if bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0) else 'Required',
             'url': url_for('onboarding'),
-            'action_label': 'Set Paper Money',
-            'completed_action_label': 'Edit Paper Money',
+            'action_label': 'Configure Paper Bankroll',
+            'completed_action_label': 'Update Paper Bankroll',
             'completed_note': 'Paper bankroll saved.',
             'icon': 'fa-wallet',
-        },
-        {
-            'field': 'playbook_reviewed',
-            'label': 'Review Trading Playbook',
-            'short_label': 'Playbook',
-            'description': 'Review the user-defined rules that govern signal and execution behavior.',
-            'completed': bool(user.playbook_reviewed),
-            'required': True,
-            'optional': False,
-            'url': url_for('playbook'),
-            'action_label': 'Review Trading Playbook',
-            'completed_action_label': 'Review Trading Playbook',
-            'completed_note': 'Trading playbook reviewed.',
-            'icon': 'fa-book-open',
-        },
-        {
-            'field': 'transparency_reviewed',
-            'label': 'Review AI Logic',
-            'short_label': 'AI Logic',
-            'description': 'Review model logic, safeguards, and reporting transparency rules.',
-            'completed': bool(user.transparency_reviewed),
-            'required': True,
-            'optional': False,
-            'url': url_for('transparency'),
-            'action_label': 'Review AI Logic',
-            'completed_action_label': 'Review AI Logic',
-            'completed_note': 'AI logic reviewed.',
-            'icon': 'fa-circle-info',
         },
         {
             'field': 'first_scan_completed',
             'label': 'Run First Paper Scan',
             'short_label': 'First Scan',
-            'description': 'Run one paper scan to validate scanner output and workflow readiness.',
+            'description': 'Run a paper scan to validate your dashboard workflow before using real capital. This is recommended for onboarding confidence.',
             'completed': bool(getattr(user, 'first_scan_completed', False) or getattr(user, 'scan_preview_completed', False)),
-            'required': True,
-            'optional': False,
+            'required': False,
+            'status': 'Complete' if bool(getattr(user, 'first_scan_completed', False) or getattr(user, 'scan_preview_completed', False)) else 'Recommended',
             'url': url_for('dashboard'),
             'action_label': 'Run First Paper Scan',
             'completed_action_label': 'Review First Paper Scan',
@@ -1529,28 +1501,84 @@ def get_user_setup_checklist(user: User) -> dict:
         },
     ]
 
-    live_item = {
+    live_ready = bool((getattr(user, 'subscription_status', '') or '').lower() in {'pro', 'past_due'})
+    live_items = [
+        {
+        'field': 'live_plan_access',
+        'label': 'Live Plan Access',
+        'short_label': 'Plan Access',
+        'description': 'Live broker connection requires a PRO subscription status.',
+        'completed': live_ready,
+        'required': True,
+        'status': 'Complete' if live_ready else 'Required',
+        'url': url_for('pricing') if not live_ready else url_for('billing'),
+        'action_label': 'Upgrade for Live Access',
+        'completed_action_label': 'Manage Billing',
+        'completed_note': 'Live plan access is active.',
+        'icon': 'fa-shield-halved',
+        },
+        {
         'field': 'alpaca_live_connected',
         'label': 'Connect Alpaca Live Account',
         'short_label': 'Alpaca Live',
-        'description': 'Connect a live account only after paper-mode setup and checklist steps are complete. Live broker-connected workflows involve real capital.',
+        'description': 'Connect your live Alpaca account when you are ready for broker-linked live setup. Live execution stays protected by backend safety gates.',
         'completed': bool(getattr(user, 'alpaca_live_account_id', None) or getattr(user, 'alpaca_live_access_token', None)),
         'required': True,
-        'optional': False,
+        'status': 'Complete' if bool(getattr(user, 'alpaca_live_account_id', None) or getattr(user, 'alpaca_live_access_token', None)) else 'Action Needed',
         'url': url_for('onboarding'),
         'action_label': 'Connect Live Account',
         'completed_action_label': 'Review Live Connection',
         'completed_note': 'Live account connected.',
         'icon': 'fa-plug',
-    }
+        },
+        {
+        'field': 'live_risk_controls',
+        'label': 'Configure Live Risk Controls',
+        'short_label': 'Risk Controls',
+        'description': 'Confirm bankroll, sizing, and risk thresholds in onboarding before enabling any live-mode workflows.',
+        'completed': bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0),
+        'required': True,
+        'status': 'Complete' if bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0) else 'Required',
+        'url': url_for('onboarding'),
+        'action_label': 'Configure Live Risk Controls',
+        'completed_action_label': 'Review Risk Controls',
+        'completed_note': 'Risk controls are configured.',
+        'icon': 'fa-triangle-exclamation',
+        },
+    ]
 
-    items = list(required_items)
-    items.append(live_item)
+    recommended_items = [
+        {
+            'field': 'playbook_reviewed',
+            'label': 'Review Trading Playbook',
+            'description': 'Recommended: review playbook and setup criteria documentation.',
+            'completed': bool(user.playbook_reviewed),
+            'status': 'Complete' if bool(user.playbook_reviewed) else 'Recommended',
+            'url': url_for('playbook'),
+            'action_label': 'Review Trading Playbook',
+            'icon': 'fa-book-open',
+        },
+        {
+            'field': 'transparency_reviewed',
+            'label': 'Review AI Logic',
+            'description': 'Recommended: review model logic and transparency notes.',
+            'completed': bool(user.transparency_reviewed),
+            'status': 'Complete' if bool(user.transparency_reviewed) else 'Recommended',
+            'url': url_for('transparency'),
+            'action_label': 'Review Recommended Safety Notes',
+            'icon': 'fa-circle-info',
+        },
+    ]
+
+    items = list(paper_items) + list(live_items)
     total_required = sum(1 for item in items if item['required'])
     completed_required = sum(1 for item in items if item['required'] and item['completed'])
     percent_complete = int(round((completed_required / total_required) * 100)) if total_required else 0
     core_complete = completed_required == total_required
     return {
+        'paper_items': paper_items,
+        'live_items': live_items,
+        'recommended_items': recommended_items,
         'items': items,
         'completed_required': completed_required,
         'total_required': total_required,
