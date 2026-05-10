@@ -79,3 +79,57 @@ def test_blog_post_keeps_dynamic_seo_and_jsonld_support():
     assert '<meta property="og:title" content="{{ post.meta_title or post.title }}">' in html
     assert '<meta name="twitter:title" content="{{ post.meta_title or post.title }}">' in html
     assert '"@type":"BlogPosting"' in html
+
+
+def test_public_pages_cross_link_key_xeanvi_routes():
+    expected_links = {
+        'templates/landing.html': ['/features', '/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
+        'templates/features.html': ['/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
+        'templates/playbook.html': ['/features', '/broker-integration', '/signup?plan=monthly', '/transparency', '/blog'],
+        'templates/broker_integration.html': ['/playbook', '/pricing', '/signup?plan=monthly', '/transparency'],
+        'templates/upgrade.html': ['/features', '/broker-integration', '/signup?plan=monthly', '/transparency'],
+        'templates/transparency.html': ['/broker-integration', '/playbook', '/features', '/pricing'],
+        'templates/blog_index.html': ['/features', '/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
+        'templates/blog_post.html': ['/features', '/playbook', '/broker-integration', '/transparency', '/blog'],
+    }
+    for path, links in expected_links.items():
+        html = _read(path)
+        for link in links:
+            assert f'href="{link}"' in html, f"Missing expected link '{link}' in {path}"
+
+
+def test_audited_templates_have_no_broken_internal_href_targets():
+    audited_pages = [
+        'templates/landing.html',
+        'templates/features.html',
+        'templates/playbook.html',
+        'templates/broker_integration.html',
+        'templates/upgrade.html',
+        'templates/transparency.html',
+        'templates/blog_index.html',
+        'templates/blog_post.html',
+        'templates/signup.html',
+    ]
+    valid_prefixes = (
+        '/', '#', 'mailto:', 'http://', 'https://', '{{', '{%',
+    )
+    for path in audited_pages:
+        html = _read(path)
+        href_values = re.findall(r'href="([^"]+)"', html)
+        for href in href_values:
+            assert href.startswith(valid_prefixes), f"Unexpected href format '{href}' in {path}"
+
+
+def test_generic_anchor_text_spam_not_added_to_audited_templates():
+    audited_pages = [
+        'templates/landing.html',
+        'templates/features.html',
+        'templates/playbook.html',
+        'templates/broker_integration.html',
+        'templates/upgrade.html',
+        'templates/transparency.html',
+        'templates/blog_index.html',
+        'templates/blog_post.html',
+    ]
+    html = "\n".join(_read(path).lower() for path in audited_pages)
+    assert '>click here<' not in html
