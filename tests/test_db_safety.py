@@ -96,6 +96,8 @@ def test_app_imports_db_safety_functions():
 
 def test_diagnostic_script_does_not_import_real_app():
     src = Path('scripts/db_diagnose.py').read_text()
+    assert 'ROOT = Path(__file__).resolve().parents[1]' in src
+    assert 'sys.path.insert(0, str(ROOT))' in src
     assert 'from app import app' not in src
 
 
