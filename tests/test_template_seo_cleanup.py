@@ -151,7 +151,7 @@ def test_blog_post_keeps_dynamic_seo_and_jsonld_support():
 def test_public_pages_cross_link_key_xeanvi_routes():
     expected_links = {
         'templates/landing.html': ['/features', '/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
-        'templates/features.html': ['/playbook', '/broker-integration', '/pricing', '/signup?plan=monthly', '/transparency'],
+        'templates/features.html': ['/playbook', '/broker-integration', '/trading-automation', '/pricing', '/signup?plan=monthly', '/transparency'],
         'templates/playbook.html': ['/features', '/broker-integration', '/signup?plan=monthly', '/transparency', '/blog'],
         'templates/broker_integration.html': ['/playbook', '/pricing', '/signup?plan=monthly', '/transparency'],
         'templates/upgrade.html': ['/features', '/broker-integration', '/signup?plan=monthly', '/transparency'],
@@ -164,6 +164,16 @@ def test_public_pages_cross_link_key_xeanvi_routes():
         html = _read(path)
         for link in links:
             assert f'href="{link}"' in html, f"Missing expected link '{link}' in {path}"
+
+
+def test_trading_automation_inbound_links_are_contextual_not_sitewide_nav():
+    about_html = _read('templates/about.html')
+    features_html = _read('templates/features.html')
+    nav_html = _read('templates/nav.html')
+
+    assert 'href="/trading-automation"' in about_html
+    assert 'href="/trading-automation"' in features_html
+    assert 'href="/trading-automation"' not in nav_html
 
 
 def test_audited_templates_have_no_broken_internal_href_targets():

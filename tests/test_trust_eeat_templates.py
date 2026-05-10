@@ -17,8 +17,17 @@ def test_about_page_route_exists_and_template_present():
 
 def test_about_page_links_core_trust_routes():
     html = _read('templates/about.html')
-    for href in ['/transparency', '/playbook', '/broker-integration', '/pricing', '/contact']:
+    for href in ['/transparency', '/playbook', '/broker-integration', '/trading-automation', '/pricing', '/contact']:
         assert f'href="{href}"' in html
+
+
+def test_about_page_trust_links_use_readable_link_treatment():
+    html = _read('templates/about.html')
+    assert '.about-card-links a' in html
+    assert 'color: var(--accent-blue);' in html
+    assert 'text-decoration: underline;' in html
+    assert 'text-underline-offset: 0.2em;' in html
+    assert '.about-card-links a:focus-visible' in html
 
 
 def test_about_page_jsonld_is_valid_aboutpage():

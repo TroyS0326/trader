@@ -11,6 +11,17 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="About XeanVI | Trading Workflow Automation Software"><meta name="twitter:description" content="Understand what XeanVI does, what it does not do, and where to review trust and safeguard documentation."><meta name="twitter:image" content="https://xeanvi.com/static/seo-banner.webp">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","url":"https://xeanvi.com/about","name":"About XeanVI","description":"XeanVI is trading workflow automation software with user-defined rules, supported broker permission controls, and paper testing before live use.","isPartOf":{"@type":"WebSite","url":"https://xeanvi.com/","name":"XeanVI"}}</script>
 {% include 'partials/async_app_css.html' %}
+<style>
+  .about-card-links a {
+    color: var(--accent-blue);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .about-card-links a:hover,
+  .about-card-links a:focus-visible {
+    color: var(--accent);
+  }
+</style>
 </head>
 <body class="auth-body">{% include 'nav.html' %}
 <main class="container" style="padding:3rem 1rem;max-width:900px;">
@@ -30,7 +41,7 @@
   </section>
   <section class="card" style="padding:1.1rem;margin:1rem 0;">
     <h2>Review trust resources</h2>
-    <p>Continue with <a href="/transparency">Transparency</a>, <a href="/playbook">Playbook</a>, <a href="/broker-integration">Broker Integration</a>, <a href="/pricing">Pricing</a>, and <a href="/contact">Contact</a>.</p>
+    <p class="about-card-links">Continue with <a href="/transparency">Transparency</a>, <a href="/playbook">Playbook</a>, <a href="/broker-integration">Broker Integration</a>, <a href="/trading-automation">Trading Automation Guide</a>, <a href="/pricing">Pricing</a>, and <a href="/contact">Contact</a>.</p>
   </section>
 </main>
 {% include 'footer.html' %}
