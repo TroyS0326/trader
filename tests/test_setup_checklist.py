@@ -13,6 +13,7 @@ def _user(**overrides):
         alpaca_paper_account_id=None,
         paper_bankroll_set=False,
         paper_bankroll=0,
+        live_bankroll=0,
         playbook_reviewed=False,
         transparency_reviewed=False,
         first_scan_completed=False,
@@ -51,6 +52,7 @@ def test_recommended_reviews_are_non_blocking_for_required_completion():
             alpaca_paper_access_token='paper-token',
             paper_bankroll_set=True,
             paper_bankroll=1000,
+            live_bankroll=2500,
             subscription_status='pro',
             alpaca_live_access_token='live-token',
             playbook_reviewed=False,
@@ -60,6 +62,32 @@ def test_recommended_reviews_are_non_blocking_for_required_completion():
     assert checklist['total_required'] == 5
     assert checklist['completed_required'] == 5
     assert checklist['percent_complete'] == 100
+
+
+def test_live_risk_controls_not_completed_by_paper_bankroll_only():
+    with app_module.app.test_request_context('/'):
+        checklist = app_module.get_user_setup_checklist(_user(
+            paper_bankroll_set=True,
+            paper_bankroll=1000,
+            live_bankroll=0,
+            subscription_status='pro',
+            alpaca_live_access_token='live-token',
+        ))
+
+    live_risk = next(i for i in checklist['live_items'] if i['field'] == 'live_risk_controls')
+    assert live_risk['label'] == 'Configure Live Risk Controls'
+    assert live_risk['completed'] is False
+    assert live_risk['status'] == 'Required'
+
+
+def test_live_plan_access_past_due_counts_as_grace_period():
+    with app_module.app.test_request_context('/'):
+        checklist = app_module.get_user_setup_checklist(_user(subscription_status='past_due'))
+
+    live_plan = next(i for i in checklist['live_items'] if i['field'] == 'live_plan_access')
+    assert live_plan['completed'] is True
+    assert 'grace-period' in live_plan['description']
+    assert 'grace period' in live_plan['completed_note']
 
 
 def test_live_connect_cta_present_without_playbook_review():

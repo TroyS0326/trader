@@ -1501,20 +1501,23 @@ def get_user_setup_checklist(user: User) -> dict:
         },
     ]
 
-    live_ready = bool((getattr(user, 'subscription_status', '') or '').lower() in {'pro', 'past_due'})
+    raw_subscription_status = (getattr(user, 'subscription_status', '') or '').lower()
+    live_ready = bool(raw_subscription_status in {'pro', 'past_due'})
+    live_access_label = 'active' if raw_subscription_status == 'pro' else 'active (grace period)'
+    live_risk_configured = bool((getattr(user, 'live_bankroll', 0) or 0) > 0)
     live_items = [
         {
         'field': 'live_plan_access',
         'label': 'Live Plan Access',
         'short_label': 'Plan Access',
-        'description': 'Live broker connection requires a PRO subscription status.',
+        'description': 'Live broker connection requires active PRO access (including payment grace-period access when applicable).',
         'completed': live_ready,
         'required': True,
         'status': 'Complete' if live_ready else 'Required',
         'url': url_for('pricing') if not live_ready else url_for('billing'),
         'action_label': 'Upgrade for Live Access',
         'completed_action_label': 'Manage Billing',
-        'completed_note': 'Live plan access is active.',
+        'completed_note': f'Live plan access is {live_access_label}.',
         'icon': 'fa-shield-halved',
         },
         {
@@ -1535,14 +1538,14 @@ def get_user_setup_checklist(user: User) -> dict:
         'field': 'live_risk_controls',
         'label': 'Configure Live Risk Controls',
         'short_label': 'Risk Controls',
-        'description': 'Confirm bankroll, sizing, and risk thresholds in onboarding before enabling any live-mode workflows.',
-        'completed': bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0),
+        'description': 'Set a positive live bankroll baseline so live-mode position sizing and risk checks use live account equity.',
+        'completed': live_risk_configured,
         'required': True,
-        'status': 'Complete' if bool(user.paper_bankroll_set and (user.paper_bankroll or 0) > 0) else 'Required',
+        'status': 'Complete' if live_risk_configured else 'Required',
         'url': url_for('onboarding'),
         'action_label': 'Configure Live Risk Controls',
         'completed_action_label': 'Review Risk Controls',
-        'completed_note': 'Risk controls are configured.',
+        'completed_note': 'Live bankroll baseline is configured.',
         'icon': 'fa-triangle-exclamation',
         },
     ]
