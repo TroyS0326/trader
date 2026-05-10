@@ -35,3 +35,12 @@ def test_secondary_pages_remain_discoverable_outside_primary_nav():
     footer_html = _read('templates/footer.html')
     for href in ['/playbook', '/broker-integration', '/transparency']:
         assert f'href="{href}"' in footer_html
+
+
+def test_logged_out_pricing_link_uses_pricing_label():
+    nav_html = _read('templates/nav.html')
+    public_nav = _public_nav_block(nav_html)
+
+    assert 'href="/pricing"' in public_nav
+    assert '>Pricing</a>' in public_nav
+    assert '>Monthly PRO</a>' not in public_nav
