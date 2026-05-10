@@ -100,10 +100,11 @@
           return {};
         }
 
-        const firstNameInput = el.querySelector('input[name="first_name"], input[name="firstname"], input[name="given_name"]');
-        const lastNameInput = el.querySelector('input[name="last_name"], input[name="lastname"], input[name="family_name"]');
-        const emailInput = el.querySelector('input[type="email"], input[name="email"]');
-        const phoneInput = el.querySelector('input[type="tel"], input[name="phone"], input[name="phone_number"]');
+        const source = el.tagName === 'FORM' ? el : (el.closest('form') || el);
+        const firstNameInput = source.querySelector('input[name="first_name"], input[name="firstname"], input[name="given_name"]');
+        const lastNameInput = source.querySelector('input[name="last_name"], input[name="lastname"], input[name="family_name"]');
+        const emailInput = source.querySelector('input[type="email"], input[name="email"]');
+        const phoneInput = source.querySelector('input[type="tel"], input[name="phone"], input[name="phone_number"]');
 
         const currentUser = window.XEANVI_CURRENT_USER || {};
 
@@ -115,24 +116,49 @@
         };
       }
 
-      async function trackGoogleAdsConversion(el) {
+      function once(fn) {
+        let called = false;
+        return function () {
+          if (called) {
+            return;
+          }
+          called = true;
+          fn();
+        };
+      }
+
+      function submitFormWithoutTrackingLoop(form) {
+        try {
+          HTMLFormElement.prototype.submit.call(form);
+        } catch (err) {
+          form.submit();
+        }
+      }
+
+      async function trackGoogleAdsConversion(el, options) {
         try {
           if (typeof window.gtag !== 'function' || !el) {
-            return;
+            return false;
           }
 
           const conversionKey = (el.getAttribute('data-google-ads-conversion') || '').trim();
           if (!conversionKey) {
-            return;
+            return false;
           }
 
           const label = (conversionLabels[conversionKey] || '').trim();
           if (!googleAdsId || !label) {
-            return;
+            return false;
           }
 
+          const opts = options || {};
+
           if (conversionKey === 'checkout' && typeof window.xeanviTrackCheckoutStarted === 'function') {
-            await window.xeanviTrackCheckoutStarted(checkoutUserDataFromElement(el));
+            try {
+              await window.xeanviTrackCheckoutStarted(checkoutUserDataFromElement(el));
+            } catch (err) {
+              // no-op
+            }
           }
 
           const payload = {
@@ -152,16 +178,54 @@
             payload.currency = currency;
           }
 
+          if (typeof opts.onComplete === 'function') {
+            payload.event_callback = opts.onComplete;
+            payload.event_timeout = Number.isFinite(opts.eventTimeoutMs) ? opts.eventTimeoutMs : 1000;
+          }
+
           window.gtag('event', 'conversion', payload);
+          return true;
         } catch (err) {
-          // no-op
+          return false;
         }
       }
 
       document.querySelectorAll('[data-google-ads-conversion]').forEach(function (el) {
         if (el.tagName === 'FORM') {
-          el.addEventListener('submit', function () {
-            trackGoogleAdsConversion(el);
+          el.addEventListener('submit', function (event) {
+            const conversionKey = (el.getAttribute('data-google-ads-conversion') || '').trim();
+            if (conversionKey !== 'checkout') {
+              trackGoogleAdsConversion(el);
+              return;
+            }
+
+            if (el.dataset.googleAdsSubmitting === '1') {
+              event.preventDefault();
+              return;
+            }
+
+            event.preventDefault();
+            el.dataset.googleAdsSubmitting = '1';
+
+            const finishSubmit = once(function () {
+              submitFormWithoutTrackingLoop(el);
+            });
+
+            // Delay checkout briefly so enhanced-conversion hashing and conversion event can queue; hard timeout avoids blocking checkout.
+            const fallbackTimer = window.setTimeout(finishSubmit, 1000);
+
+            trackGoogleAdsConversion(el, {
+              onComplete: finishSubmit,
+              eventTimeoutMs: 1000,
+            }).then(function (attempted) {
+              if (!attempted) {
+                window.clearTimeout(fallbackTimer);
+                finishSubmit();
+              }
+            }).catch(function () {
+              window.clearTimeout(fallbackTimer);
+              finishSubmit();
+            });
           });
           return;
         }
