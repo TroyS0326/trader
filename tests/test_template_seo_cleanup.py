@@ -59,8 +59,16 @@ def _normalize_text(value: str) -> str:
     return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]+', ' ', value.lower())).strip()
 
 
+def _strip_non_visible_content(html: str) -> str:
+    without_comments = re.sub(r'<!--.*?-->', ' ', html, flags=re.DOTALL)
+    without_scripts = re.sub(r'<script\b[^>]*>.*?</script>', ' ', without_comments, flags=re.IGNORECASE | re.DOTALL)
+    without_styles = re.sub(r'<style\b[^>]*>.*?</style>', ' ', without_scripts, flags=re.IGNORECASE | re.DOTALL)
+    return without_styles
+
+
 def _contains_visible_question(html: str, question: str) -> bool:
-    visible_text = _normalize_text(re.sub(r'<[^>]+>', ' ', html))
+    visible_html = _strip_non_visible_content(html)
+    visible_text = _normalize_text(re.sub(r'<[^>]+>', ' ', visible_html))
     normalized_question = _normalize_text(question)
     if normalized_question in visible_text:
         return True
@@ -70,6 +78,25 @@ def _contains_visible_question(html: str, question: str) -> bool:
         return False
     matched = sum(token in visible_text for token in question_tokens)
     return matched / len(question_tokens) >= 0.8
+
+
+def test_visible_question_check_ignores_jsonld_and_accepts_visible_markup():
+    question = 'How does broker integration work?'
+    jsonld_only_html = f'''
+    <section>
+      <script type="application/ld+json">{{"@type":"FAQPage","mainEntity":[{{"@type":"Question","name":"{question}"}}]}}</script>
+    </section>
+    '''
+    visible_markup_html = f'''
+    <section>
+      <h3>{question}</h3>
+      <p>We connect by API keys.</p>
+      <script type="application/ld+json">{{"@type":"FAQPage","mainEntity":[{{"@type":"Question","name":"Different JSON-LD question"}}]}}</script>
+    </section>
+    '''
+
+    assert _contains_visible_question(jsonld_only_html, question) is False
+    assert _contains_visible_question(visible_markup_html, question) is True
 
 
 def test_public_pages_have_unique_titles_and_descriptions():
