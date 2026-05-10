@@ -12,6 +12,7 @@ from ai_catalyst import batch_process_premarket
 from scanner import get_refined_universe
 from analyze_performance import calculate_user_kelly_fraction
 import config
+from db_safety import assert_not_empty_production_database, validate_runtime_database_safety
 from sentry_setup import init_sentry
 from time_utils import utc_now_aware, utc_now_naive
 
@@ -40,6 +41,10 @@ _db_app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 _db_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 _db_app.config['SQLALCHEMY_ENGINE_OPTIONS'] = config.SQLALCHEMY_ENGINE_OPTIONS
 db.init_app(_db_app)
+
+with _db_app.app_context():
+    validate_runtime_database_safety(_db_app)
+    assert_not_empty_production_database(db)
 
 ALPACA_HEADERS = {
     'APCA-API-KEY-ID': config.ALPACA_API_KEY,

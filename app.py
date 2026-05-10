@@ -3701,8 +3701,10 @@ def ws_watchlist(ws):
 
 
 with app.app_context():
+    validate_runtime_database_safety(app)
     db.create_all() # This creates the 'user' table first
     ensure_schema_migrations()
+    assert_not_empty_production_database(db)
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
