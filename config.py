@@ -161,8 +161,10 @@ def validate_admin_daily_digest_config() -> list[str]:
         missing.append('ADMIN_DAILY_DIGEST_TEMPLATE_ID')
     return missing
 
-DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'veteran_trades.db')
+DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'app_local.db')
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+PROD_DB_ERROR = "Production must use Postgres; veteran_trades.db is decommissioned."
 
 
 def normalize_database_url(raw_url: str) -> str:
@@ -177,13 +179,22 @@ def normalize_database_url(raw_url: str) -> str:
 def build_database_uri() -> str:
     uri = normalize_database_url(DATABASE_URL)
 
-    if not uri:
-        if IS_PRODUCTION:
-            raise ValueError("DATABASE_URL is required in production and must point to PostgreSQL.")
-        return f"sqlite:///{os.path.abspath(DB_PATH)}"
+    if IS_PRODUCTION:
+        if not uri:
+            raise ValueError(PROD_DB_ERROR)
+        lowered = uri.lower()
+        if not uri.startswith("postgresql+psycopg://"):
+            raise ValueError(PROD_DB_ERROR)
+        if lowered.startswith('sqlite'):
+            raise ValueError(PROD_DB_ERROR)
+        if ':memory:' in lowered:
+            raise ValueError(PROD_DB_ERROR)
+        if 'veteran_trades.db' in lowered:
+            raise ValueError(PROD_DB_ERROR)
+        return uri
 
-    if IS_PRODUCTION and not uri.startswith("postgresql+psycopg://"):
-        raise ValueError("DATABASE_URL is required in production and must point to PostgreSQL.")
+    if not uri:
+        return f"sqlite:///{os.path.abspath(DB_PATH)}"
 
     return uri
 
