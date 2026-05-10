@@ -84,6 +84,39 @@
       ]
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "url": "https://xeanvi.com/broker-integration",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Which broker connections does XeanVI support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "XeanVI is designed for supported broker API integrations. Available integrations and account-type requirements should be reviewed from the dashboard or broker connection flow."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can XeanVI withdraw or transfer my funds?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. XeanVI is designed for broker-connected workflow and order-routing functionality, not custody or money movement. Funds remain with your supported broker. Users should still review the exact permissions shown by their broker before authorizing access."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I test before live routing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Paper testing is strongly recommended before live use. Paper mode lets you review scanning, validation, sizing, and routing behavior without live capital."
+          }
+        }
+      ]
+    }
+    </script>
 
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}

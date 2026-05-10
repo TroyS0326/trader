@@ -86,6 +86,39 @@
       ]
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "url": "https://xeanvi.com/transparency",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does the Transparency page measure?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It reports paper-mode performance metrics only when the public sample-size threshold is met, and explains building-state transparency before public metrics are active."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why are metrics hidden at first?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "To avoid misleading tiny-sample statistics. Public metrics activate only after enough completed trades exist."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are the metrics based on live capital?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Unless clearly labeled otherwise, metrics represent paper-mode/simulated workflow data, not live-capital performance."
+          }
+        }
+      ]
+    }
+    </script>
 
     {% include 'partials/async_app_css.html' %}
     {% include 'partials/async_fontawesome_css.html' %}
