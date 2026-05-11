@@ -15,43 +15,77 @@
 {% include 'partials/async_app_css.html' %}
 <style>
   .paid-lp {
-    --pad: clamp(1rem, 2.8vw, 2.2rem);
-    --radius: 16px;
-    background: radial-gradient(90rem 30rem at 50% -10%, color-mix(in srgb, var(--accent-blue) 20%, transparent), transparent 60%), var(--bg-main);
+    --pad: clamp(1rem, 2.8vw, 2.4rem);
+    --radius: 18px;
+    --card-bg: color-mix(in srgb, var(--bg-card) 90%, #030814);
+    --glass-bg: color-mix(in srgb, #0a1428 78%, transparent);
+    background:
+      radial-gradient(70rem 32rem at 8% -12%, color-mix(in srgb, var(--accent-blue) 26%, transparent), transparent 65%),
+      radial-gradient(48rem 26rem at 95% 5%, color-mix(in srgb, #7f5cff 18%, transparent), transparent 72%),
+      var(--bg-main);
+    overflow-x: clip;
   }
   .paid-lp * { box-sizing: border-box; }
-  .paid-lp .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--pad); }
-  .paid-lp section { padding: clamp(2.75rem, 7vw, 5rem) 0; border-bottom: 1px solid var(--border-color); }
+  .paid-lp .wrap { width: min(1180px, 100%); margin: 0 auto; padding: 0 var(--pad); }
+  .paid-lp section { padding: clamp(2.8rem, 7vw, 5.2rem) 0; }
   .paid-lp h1, .paid-lp h2, .paid-lp h3, .paid-lp p { margin: 0; }
-  .paid-lp h1 { font-size: clamp(2rem, 4.8vw, 4rem); line-height: 1.1; letter-spacing: -0.02em; margin-top: .75rem; }
-  .paid-lp h2 { font-size: clamp(1.45rem, 3.2vw, 2.35rem); line-height: 1.2; margin-bottom: .9rem; }
-  .paid-lp p, .paid-lp li { color: var(--text-muted); line-height: 1.65; }
-  .paid-lp .eyebrow { color: var(--accent-blue); font-size: .82rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
-  .paid-lp .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: clamp(1.25rem, 3vw, 2.5rem); align-items: center; }
-  .paid-lp .hero-copy p { font-size: clamp(1rem, 1.4vw, 1.14rem); margin-top: 1rem; max-width: 64ch; }
-  .paid-lp .hero-list { margin: 1.2rem 0 0; padding-left: 1rem; display: grid; gap: .45rem; }
-  .paid-lp .hero-list li { color: var(--text-main); }
+  .paid-lp h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1.05; letter-spacing: -0.03em; margin-top: .8rem; }
+  .paid-lp h2 { font-size: clamp(1.55rem, 3.3vw, 2.5rem); line-height: 1.12; letter-spacing: -0.01em; }
+  .paid-lp p, .paid-lp li { color: var(--text-muted); line-height: 1.6; }
+  .paid-lp .eyebrow { color: #8ed4ff; font-size: .8rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+  .paid-lp .shell { border: 1px solid color-mix(in srgb, var(--accent-blue) 24%, var(--border-color)); border-radius: calc(var(--radius) + 6px); background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 84%, #030915), color-mix(in srgb, var(--bg-main) 50%, #02050b)); box-shadow: 0 30px 65px color-mix(in srgb, #041023 64%, transparent); }
+  .paid-lp .hero-grid { display: grid; gap: clamp(1.3rem, 3vw, 2.4rem); grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); align-items: stretch; padding: clamp(1.2rem, 3vw, 2rem); }
+  .paid-lp .hero-copy p { font-size: clamp(1rem, 1.35vw, 1.14rem); margin-top: 1rem; max-width: 64ch; }
   .paid-lp .cta-row { display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0 .7rem; }
-  .paid-lp .btn-premium { padding: .85rem 1.2rem; border-radius: 999px; text-decoration: none; font-weight: 650; border: 1px solid transparent; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
-  .paid-lp .btn-primary-premium { background: linear-gradient(140deg, var(--accent-blue), #6ac7ff); color: #031b2a; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 10px 26px color-mix(in srgb, var(--accent-blue) 30%, transparent); }
-  .paid-lp .btn-secondary-premium { background: color-mix(in srgb, var(--bg-card) 90%, black); color: var(--text-main); border-color: var(--border-color); }
-  .paid-lp .btn-premium:hover, .paid-lp .btn-premium:focus-visible { transform: translateY(-1px); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 55%, transparent); outline: none; }
-  .paid-lp .microcopy { font-size: .92rem; }
-  .paid-lp .mockup { border: 1px solid color-mix(in srgb, var(--accent-blue) 40%, var(--border-color)); border-radius: var(--radius); background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 88%, black), color-mix(in srgb, var(--bg-main) 65%, black)); box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-blue) 20%, transparent); padding: 1rem; }
-  .paid-lp .mockup-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: .9rem; }
-  .paid-lp .chip { color: #05273b; background: color-mix(in srgb, var(--success) 40%, #d5fff0); border-radius: 999px; padding: .26rem .68rem; font-size: .75rem; font-weight: 700; }
-  .paid-lp .stack, .paid-lp .grid-cards { display:grid; gap:.75rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-  .paid-lp .card { background: color-mix(in srgb, var(--bg-card) 96%, black); border:1px solid var(--border-color); border-radius: 12px; padding: .9rem; }
-  .paid-lp .card strong { color: var(--text-main); display:block; margin-bottom: .35rem; }
-  .paid-lp .table-wrap { overflow-x: auto; }
-  .paid-lp table { width:100%; border-collapse: collapse; min-width: 680px; }
-  .paid-lp th, .paid-lp td { border:1px solid var(--border-color); padding:.8rem; text-align:left; }
+  .paid-lp .btn-premium { padding: .86rem 1.2rem; border-radius: 999px; text-decoration: none; font-weight: 650; border: 1px solid transparent; transition: transform .15s ease, box-shadow .15s ease; }
+  .paid-lp .btn-primary-premium { background: linear-gradient(145deg, #72d0ff, var(--accent-blue)); color: #041a2a; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-blue) 35%, transparent), 0 13px 30px color-mix(in srgb, var(--accent-blue) 38%, transparent); }
+  .paid-lp .btn-secondary-premium { background: color-mix(in srgb, var(--bg-card) 92%, #020409); color: var(--text-main); border-color: var(--border-color); }
+  .paid-lp .btn-premium:hover, .paid-lp .btn-premium:focus-visible { transform: translateY(-1px); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 56%, transparent); outline: none; }
+  .paid-lp .microcopy { font-size: .9rem; color: color-mix(in srgb, var(--text-muted) 86%, #c7e6ff); }
+  .paid-lp .mockup { background: linear-gradient(160deg, color-mix(in srgb, #0f172d 84%, transparent), color-mix(in srgb, #070d1d 90%, transparent)); border: 1px solid color-mix(in srgb, #79c9ff 24%, var(--border-color)); border-radius: var(--radius); padding: 1rem; }
+  .paid-lp .mockup-head { display: flex; justify-content: space-between; gap: .6rem; align-items: center; margin-bottom: .9rem; }
+  .paid-lp .chip-row { display: flex; gap: .45rem; flex-wrap: wrap; }
+  .paid-lp .chip { border-radius: 999px; padding: .28rem .62rem; font-size: .74rem; font-weight: 700; }
+  .paid-lp .chip-safe { background: color-mix(in srgb, var(--success) 36%, #d9fff1); color: #062f22; }
+  .paid-lp .chip-lock { background: color-mix(in srgb, #f4b0b0 30%, #1d0a0d); color: #ffd5d5; }
+  .paid-lp .console { display: grid; gap: .7rem; grid-template-columns: minmax(0, 1fr) minmax(0, 165px); }
+  .paid-lp .timeline { border: 1px solid var(--border-color); border-radius: 12px; background: var(--glass-bg); padding: .8rem; }
+  .paid-lp .timeline p { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .83rem; color: #cbe7ff; margin: .22rem 0; }
+  .paid-lp .control { border: 1px solid var(--border-color); border-radius: 12px; background: var(--glass-bg); padding: .8rem; }
+  .paid-lp .control strong { display: block; color: var(--text-main); margin-bottom: .4rem; }
+  .paid-lp .control ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+  .paid-lp .control li { color: var(--text-main); background: color-mix(in srgb, #15304e 54%, transparent); border: 1px solid color-mix(in srgb, #80cdfb 24%, transparent); border-radius: 10px; padding: .38rem .52rem; }
+  .paid-lp .block-shell { border: 1px solid var(--border-color); border-radius: calc(var(--radius) + 2px); padding: clamp(1.1rem, 2.2vw, 1.75rem); background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 88%, #03060c), color-mix(in srgb, #060d1a 84%, transparent)); }
+  .paid-lp .bento { display: grid; gap: .8rem; margin-top: 1.1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .paid-lp .bento .card { border: 1px solid var(--border-color); border-radius: 14px; padding: .95rem; background: var(--card-bg); }
+  .paid-lp .bento .mini { grid-column: span 3; }
+  .paid-lp .bento .feature { grid-column: span 6; border-color: color-mix(in srgb, var(--accent-blue) 48%, var(--border-color)); background: linear-gradient(140deg, color-mix(in srgb, #112242 82%, transparent), color-mix(in srgb, #0d1831 88%, transparent)); }
+  .paid-lp .workflow-line { margin-top: 1.2rem; display: grid; gap: .9rem; grid-template-columns: repeat(4, minmax(0, 1fr)); position: relative; }
+  .paid-lp .workflow-line::before { content: ""; position: absolute; top: 1.3rem; left: 8%; right: 8%; height: 2px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent-blue) 25%, transparent), color-mix(in srgb, var(--accent-blue) 72%, transparent), color-mix(in srgb, var(--accent-blue) 25%, transparent)); z-index: 0; }
+  .paid-lp .step { position: relative; z-index: 1; border: 1px solid var(--border-color); border-radius: 14px; background: var(--card-bg); padding: .92rem; }
+  .paid-lp .step .num { display:inline-block; margin-bottom: .45rem; background: color-mix(in srgb, var(--accent-blue) 30%, #e7f4ff); color: #04223a; border-radius: 999px; padding: .14rem .52rem; font-size: .74rem; font-weight: 700; }
+  .paid-lp .compare { display: grid; gap: .9rem; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); margin-top: 1rem; }
+  .paid-lp .pill-grid { display:grid; gap:.6rem; grid-template-columns:repeat(2, minmax(0,1fr)); margin-top:.9rem; }
+  .paid-lp .pill { border:1px solid var(--border-color); border-radius:999px; padding:.46rem .7rem; background:var(--card-bg); color:var(--text-main); font-size:.9rem; }
+  .paid-lp table { width:100%; border-collapse: collapse; }
+  .paid-lp th, .paid-lp td { border:1px solid var(--border-color); padding:.7rem; text-align:left; }
   .paid-lp th { background: color-mix(in srgb, var(--bg-card) 92%, black); color: var(--text-main); }
-  .paid-lp .split { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
-  .paid-lp details { background: color-mix(in srgb, var(--bg-card) 95%, black); border:1px solid var(--border-color); border-radius: 12px; padding: .8rem .95rem; }
+  .paid-lp .offer-grid, .paid-lp .fit-grid { display:grid; gap:.9rem; grid-template-columns: repeat(2, minmax(0,1fr)); margin-top: 1rem; }
+  .paid-lp .offer-card, .paid-lp .panel { border:1px solid var(--border-color); border-radius:14px; padding: 1rem; background: var(--card-bg); }
+  .paid-lp .price { font-size: clamp(1.45rem, 2.7vw, 2rem); color: var(--text-main); font-weight: 700; }
+  .paid-lp details { border:1px solid var(--border-color); border-radius:12px; background: color-mix(in srgb, var(--bg-card) 95%, black); padding:.8rem .95rem; }
   .paid-lp summary { cursor: pointer; color: var(--text-main); font-weight: 600; }
-  .paid-lp .sticky-cta { position: sticky; bottom: .5rem; z-index: 5; margin: 0 auto; width: fit-content; }
-  @media (min-width: 861px) { .paid-lp .sticky-cta { display:none; } }
+  .paid-lp .faq-list { margin-top:.95rem; display:grid; gap:.65rem; }
+  .paid-lp .compliance-strip { margin-top: .95rem; border:1px solid color-mix(in srgb, var(--border-color) 80%, #6a7688); border-radius: 12px; padding: .78rem .9rem; background: color-mix(in srgb, #0b111a 90%, transparent); font-size: .82rem; color: color-mix(in srgb, var(--text-muted) 78%, #d9e8f8); }
+  .paid-lp .legal-links { margin-top: .62rem; font-size: .84rem; }
+  @media (max-width: 980px) {
+    .paid-lp .hero-grid, .paid-lp .compare { grid-template-columns: 1fr; }
+    .paid-lp .workflow-line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .paid-lp .workflow-line::before { display:none; }
+  }
+  @media (max-width: 700px) {
+    .paid-lp .bento .mini, .paid-lp .bento .feature, .paid-lp .offer-grid, .paid-lp .fit-grid, .paid-lp .pill-grid, .paid-lp .workflow-line, .paid-lp .console { grid-template-columns: 1fr; grid-column: span 6; }
+  }
 </style>
 </head>
 <body>
@@ -60,15 +94,12 @@
 {% include 'partials/utm_persistence.html' %}
 {% include 'nav.html' %}
 <main class="paid-lp">
-  <section class="hero">
-    <div class="wrap hero-grid">
+  <section>
+    <div class="wrap shell hero-grid">
       <div class="hero-copy">
         <p class="eyebrow">PAPER-FIRST TRADING AUTOMATION</p>
         <h1>Stop Overriding Your Trading Plan When the Market Starts Moving.</h1>
-        <p>XeanVI helps turn your playbook into a rule-based workflow you can test in paper mode before supported broker-connected routing. Define the rules, review the gates, and keep execution tied to the process you set.</p>
-        <ul class="hero-list">
-          <li>Build rules before the trade</li><li>Test behavior in paper mode</li><li>Review risk gates and audit logs</li><li>Connect a supported broker only when ready</li>
-        </ul>
+        <p>XeanVI turns your trading playbook into a rule-based workflow you can test in paper mode before supported broker-connected routing. Build the rules, review the gates, and keep execution tied to the process you set.</p>
         <div class="cta-row">
           <a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a>
           <a href="#workflow" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">See the Workflow</a>
@@ -76,40 +107,104 @@
         <p class="microcopy">No live broker connection required to create an account. Start with paper-mode setup first.</p>
       </div>
       <aside class="mockup" aria-label="Paper workflow preview">
-        <div class="mockup-head"><strong>Paper Workflow Console</strong><span class="chip">Paper mode</span></div>
-        <div class="stack">
-          <div class="card"><strong>Playbook Gate</strong><p>User rules loaded</p></div>
-          <div class="card"><strong>Scan State</strong><p>Waiting for configured setup</p></div>
-          <div class="card"><strong>Risk Check</strong><p>Position size based on user settings</p></div>
-          <div class="card"><strong>Broker Routing</strong><p>Disabled until permissioned</p></div>
-          <div class="card"><strong>Audit Log</strong><p>Every action recorded</p></div>
-          <div class="card"><p>&gt; playbook rules loaded<br>&gt; paper scan initialized<br>&gt; risk gate required before routing<br>&gt; live routing locked until user enables broker permissions</p></div>
+        <div class="mockup-head">
+          <strong>Paper Workflow Console</strong>
+          <div class="chip-row"><span class="chip chip-safe">Paper mode</span><span class="chip chip-lock">Live routing locked</span></div>
+        </div>
+        <div class="console">
+          <div class="timeline">
+            <p>01 Playbook rules loaded</p><p>02 Paper scan waiting</p><p>03 Risk gate required</p><p>04 Broker routing locked until permissioned</p><p>05 Audit trail active</p>
+          </div>
+          <div class="control"><strong>Control Stack</strong><ul><li>Rules</li><li>Risk</li><li>Permissions</li><li>Logs</li></ul></div>
         </div>
       </aside>
     </div>
   </section>
 
-  <section><div class="wrap"><h2>Your trading plan is not the problem. Breaking it under pressure is.</h2><p>Most traders do not need more hype. They need a workflow that keeps entries, sizing, risk checks, and routing tied to rules they already chose.</p><div class="grid-cards" style="margin-top:1rem;"><div class="card">Hesitation on entries</div><div class="card">Rushed position sizing</div><div class="card">Manual order-management fatigue</div><div class="card">Inconsistent follow-through</div></div><p style="margin-top:.9rem;">XeanVI does not make trading profitable. It helps structure the workflow around user-defined rules and risk settings.</p></div></section>
+  <section>
+    <div class="wrap block-shell">
+      <h2>Your trading plan is not the problem. Breaking it under pressure is.</h2>
+      <p>Most traders do not need more hype. They need a workflow that keeps entries, sizing, risk checks, and routing tied to rules they already chose.</p>
+      <div class="bento">
+        <div class="card mini">Hesitation on entries</div><div class="card mini">Rushed sizing</div><div class="card mini">Manual order fatigue</div><div class="card mini">Inconsistent follow-through</div>
+        <div class="card feature">XeanVI helps turn the playbook into a paper-tested workflow before live broker routing is enabled.</div>
+      </div>
+      <p class="microcopy" style="margin-top:.8rem;">XeanVI does not make trading profitable. It helps structure workflow around user-defined rules and risk settings.</p>
+    </div>
+  </section>
 
-  <section id="workflow"><div class="wrap"><h2>From written playbook to paper-tested workflow.</h2><div class="grid-cards"><div class="card"><strong>1. Define the setup</strong><p>Set the criteria your workflow should check before anything can move forward.</p></div><div class="card"><strong>2. Run paper scans</strong><p>Review how your process behaves before live capital is involved.</p></div><div class="card"><strong>3. Require risk gates</strong><p>Position size and routing decisions stay tied to your configured controls.</p></div><div class="card"><strong>4. Monitor the trail</strong><p>Use dashboard visibility and logs to understand what the workflow did and why.</p></div></div></div></section>
+  <section id="workflow">
+    <div class="wrap block-shell">
+      <h2>From written playbook to paper-tested workflow.</h2>
+      <div class="workflow-line">
+        <article class="step"><span class="num">01</span><strong>Define the setup</strong><p>Set your criteria before any routing path can open.</p></article>
+        <article class="step"><span class="num">02</span><strong>Run paper scans</strong><p>Test behavior first with no live broker routing required.</p></article>
+        <article class="step"><span class="num">03</span><strong>Require risk gates</strong><p>Keep sizing and checks tied to user settings and permissions.</p></article>
+        <article class="step"><span class="num">04</span><strong>Monitor the trail</strong><p>Use logs and dashboard visibility to review each workflow action.</p></article>
+      </div>
+    </div>
+  </section>
 
-  <section><div class="wrap"><h2>Built for process-driven traders, not signal chasers.</h2><div class="grid-cards"><div class="card">Paper mode before live use</div><div class="card">User-defined playbook</div><div class="card">Supported broker permissions</div><div class="card">Risk controls before routing</div><div class="card">Audit visibility</div><div class="card">Software, not advice</div></div></div></section>
+  <section>
+    <div class="wrap block-shell compare">
+      <div>
+        <h2>Built for process-driven traders, not signal chasers.</h2>
+        <div class="pill-grid">
+          <div class="pill">Paper mode before live use</div><div class="pill">User-defined playbook</div><div class="pill">Supported broker permissions</div><div class="pill">Risk controls before routing</div><div class="pill">Audit visibility</div><div class="pill">Software, not advice</div>
+        </div>
+      </div>
+      <div>
+        <table>
+          <thead><tr><th>Manual</th><th>XeanVI workflow</th></tr></thead>
+          <tbody>
+            <tr><td>scattered alerts</td><td>scans tied to configured criteria</td></tr>
+            <tr><td>subjective validation</td><td>rules and risk gates</td></tr>
+            <tr><td>rushed sizing</td><td>sizing tied to user settings</td></tr>
+            <tr><td>manual tickets</td><td>supported broker routing after permissions</td></tr>
+            <tr><td>hard-to-review decisions</td><td>dashboard visibility and logs</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-  <section><div class="wrap"><h2>Manual vs. XeanVI workflow comparison</h2><div class="table-wrap"><table><thead><tr><th>Step</th><th>Manual</th><th>XeanVI workflow</th></tr></thead><tbody><tr><td>Market review</td><td>Scattered alerts and chart watching</td><td>Scans tied to configured criteria</td></tr><tr><td>Setup validation</td><td>Subjective decision-making under pressure</td><td>Rules and risk gates checked before routing</td></tr><tr><td>Position sizing</td><td>Rushed or inconsistent sizing</td><td>Calculated from user-defined risk settings</td></tr><tr><td>Broker workflow</td><td>Manual tickets and order-management fatigue</td><td>Supported broker-connected routing only after permissions</td></tr><tr><td>Review</td><td>Hard to reconstruct decisions</td><td>Dashboard visibility and audit logs</td></tr></tbody></table></div></div></section>
+  <section>
+    <div class="wrap block-shell">
+      <h2>Start with the workflow before risking live capital.</h2>
+      <div class="offer-grid">
+        <article class="offer-card"><strong>Monthly PRO</strong><p class="price">$19.99/month</p><p>Paper-first setup · Playbook rules · Dashboard monitoring · Supported broker-connected tools</p></article>
+        <article class="offer-card"><strong>Annual PRO</strong><p class="price">$199.99/year</p><p>Paper-first setup · Playbook rules · Dashboard monitoring · Supported broker-connected tools</p></article>
+      </div>
+      <div class="panel" style="margin-top:.9rem;"><h3>Your broker permissions stay under your control.</h3><ul><li>Funds remain at the supported broker</li><li>XeanVI is not a custodian</li><li>User controls broker connection permissions</li><li>Live routing should come after paper testing and setup review</li></ul></div>
+      <div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div>
+    </div>
+  </section>
 
-  <section><div class="wrap"><h2>Your broker permissions stay under your control.</h2><ul><li>Funds remain at the supported broker.</li><li>XeanVI is not a custodian.</li><li>User controls broker connection permissions.</li><li>Live routing should come after paper testing and setup review.</li></ul></div></section>
+  <section>
+    <div class="wrap block-shell">
+      <div class="fit-grid">
+        <div class="panel"><h3>For</h3><ul><li>Traders who want a defined process</li><li>Traders who want paper testing before live routing</li><li>Traders who want execution discipline and audit visibility</li><li>Traders who understand trading risk</li></ul></div>
+        <div class="panel"><h3>Not for</h3><ul><li>People seeking promised trading outcomes</li><li>People seeking financial advice</li><li>People seeking a broker, adviser, or custodian</li><li>People unwilling to accept possible trading losses</li></ul></div>
+      </div>
+      <div class="faq-list">
+        <details><summary>Does XeanVI promise trading outcomes?</summary><p>No. Trading outcomes are not promised.</p></details>
+        <details><summary>Is XeanVI financial advice?</summary><p>No. XeanVI is software and not financial advice.</p></details>
+        <details><summary>Can I test before using live capital?</summary><p>Yes. You can test paper mode before enabling live routing permissions.</p></details>
+        <details><summary>Does XeanVI hold my funds?</summary><p>No. Funds remain at the supported broker.</p></details>
+        <details><summary>Do I need a supported broker?</summary><p>You can start in paper mode. A supported broker is needed only for live broker-connected routing.</p></details>
+        <details><summary>What does PRO include?</summary><p>PRO includes paper-first setup, playbook rules, dashboard monitoring, and supported broker-connected tools.</p></details>
+      </div>
+    </div>
+  </section>
 
-  <section><div class="wrap"><h2>Start with the workflow before risking live capital.</h2><div class="split"><div class="card"><strong>Monthly PRO</strong><p>$19.99/month</p></div><div class="card"><strong>Annual PRO</strong><p>$199.99/year</p></div></div><ul class="hero-list"><li>Paper-first setup</li><li>Playbook rules</li><li>Dashboard monitoring</li><li>Supported broker-connected tools</li></ul><div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div></div></section>
-
-  <section><div class="wrap split"><div><h2>Who this is for</h2><ul><li>Traders who want a defined process</li><li>Traders who want paper testing before live routing</li><li>Traders who want execution discipline and audit visibility</li><li>Traders who understand trading risk</li></ul></div><div><h2>Who this is not for</h2><ul><li>People seeking promised trading outcomes</li><li>People seeking financial advice</li><li>People seeking a broker, adviser, or custodian</li><li>People unwilling to accept possible trading losses</li></ul></div></div></section>
-
-  <section><div class="wrap"><h2>FAQ</h2><div class="stack"><details><summary>Does XeanVI promise trading outcomes?</summary><p>No. Trading outcomes are never promised.</p></details><details><summary>Is XeanVI financial advice?</summary><p>No. XeanVI is software for workflow automation and not financial advice.</p></details><details><summary>Can I test before using live capital?</summary><p>Yes. You can set up and test in paper mode before enabling live routing permissions.</p></details><details><summary>Does XeanVI hold my funds?</summary><p>No. Funds remain with your supported broker.</p></details><details><summary>Do I need a supported broker?</summary><p>You can create an account and begin in paper mode first. A supported broker connection is needed only for live broker-connected routing.</p></details><details><summary>What does PRO include?</summary><p>PRO includes paper-first setup, playbook rules, dashboard monitoring, and supported broker-connected tools.</p></details></div></div></section>
-
-  <section><div class="wrap"><h2>Build the workflow first. Test it in paper mode. Then decide what comes next.</h2><div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div><p class="microcopy">Trading involves risk, including possible loss of capital. XeanVI is software for user-defined workflow automation and is not financial advice.</p></div></section>
-
-  <section><div class="wrap"><h2>Business &amp; Legal Disclosures</h2><p>XeanVI | admin@xeanvi.com | 941 529 7990 | 2900 Acline RD, Punta Gorda, FL 33950</p><p>Fees: $19.99/month and $199.99/year</p><p>Trading involves risk, including possible loss of capital. XeanVI is not financial advice, not broker-dealer, not investment adviser, and not custodian.</p><p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/pricing">Pricing</a></p></div></section>
-
-  <div class="sticky-cta wrap"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a></div>
+  <section>
+    <div class="wrap block-shell">
+      <h2>Build the workflow first. Test it in paper mode. Then decide what comes next.</h2>
+      <div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div>
+      <div class="compliance-strip">XeanVI · admin@xeanvi.com · 941 529 7990 · 2900 Acline RD, Punta Gorda, FL 33950 · Fees: $19.99/month and $199.99/year. Trading involves risk, including possible loss of capital. XeanVI is software for user-defined workflow automation and is not financial advice, not a broker-dealer, not an investment adviser, and not a custodian.</div>
+      <p class="legal-links"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/pricing">Pricing</a></p>
+    </div>
+  </section>
 </main>
 {% include 'footer.html' %}
 </body>
