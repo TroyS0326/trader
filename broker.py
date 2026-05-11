@@ -14,6 +14,7 @@ from config import (
     ENTRY_ORDER_POLL_SECONDS,
     ENTRY_ORDER_TIMEOUT_SECONDS,
     TARGET2_TRAILING_STOP_PCT,
+    STOCK_L2_ORDERBOOK_CHECK_ENABLED,
 )
 from db import get_current_market_regime
 
@@ -72,6 +73,7 @@ def _headers(token: str | None = None) -> Dict[str, str]:
 def _get_json(url: str, params: Dict[str, Any] | None = None, token: str | None = None) -> Any:
     resp = _request_with_retry('GET', url, params=params, token=token)
     if resp.status_code >= 400:
+        logger.error('Broker GET request failed (url=%s, status=%s).', url, resp.status_code)
         raise BrokerError(resp.text)
     return resp.json()
 
@@ -79,6 +81,7 @@ def _get_json(url: str, params: Dict[str, Any] | None = None, token: str | None 
 def _post_json(url: str, payload: Dict[str, Any], token: str | None = None) -> Any:
     resp = _request_with_retry('POST', url, payload=payload, token=token)
     if resp.status_code >= 400:
+        logger.error('Broker POST request failed (url=%s, status=%s).', url, resp.status_code)
         raise BrokerError(resp.text)
     return resp.json()
 
@@ -86,8 +89,20 @@ def _post_json(url: str, payload: Dict[str, Any], token: str | None = None) -> A
 def _patch_json(url: str, payload: Dict[str, Any], token: str | None = None) -> Any:
     resp = _request_with_retry('PATCH', url, payload=payload, token=token)
     if resp.status_code >= 400:
+        logger.error('Broker PATCH request failed (url=%s, status=%s).', url, resp.status_code)
         raise BrokerError(resp.text)
     return resp.json()
+
+
+def _neutral_order_book_metrics(reason: str = '') -> Dict[str, Any]:
+    if reason:
+        logger.warning('Using neutral stock L2 metrics: %s', reason)
+    return {
+        'imbalance_ratio': 1.0,
+        'dominant_side': 'unknown',
+        'institutional_wall_price': None,
+        'institutional_wall_side': None,
+    }
 
 
 @retry(
@@ -416,13 +431,25 @@ def place_managed_entry_order(
             response = _get_json(
                 f'{ALPACA_DATA_BASE}/v2/stocks/{orderbook_symbol.upper()}/orderbooks/latest',
                 params={'feed': _resolve_feed(self._user)},
-                token=self._token,
             )
             return (response or {}).get('orderbook', {})
 
+    def _safe_order_book_metrics(orderbook_symbol: str, token: str | None, user_obj: Any | None) -> Dict[str, Any]:
+        if not STOCK_L2_ORDERBOOK_CHECK_ENABLED:
+            return _neutral_order_book_metrics('STOCK_L2_ORDERBOOK_CHECK_ENABLED disabled')
+        try:
+            return analyze_order_book_imbalance(orderbook_symbol, _OrderBookApiClient(token, user_obj))
+        except BrokerError as exc:
+            message = str(exc)
+            if 'Not Found' in message or '404' in message:
+                return _neutral_order_book_metrics('stock orderbook unavailable (404/Not Found)')
+            raise
+        except requests.exceptions.RequestException as exc:
+            return _neutral_order_book_metrics(f'stock orderbook request error: {exc}')
+
     latest_quote = get_latest_quote(symbol, user=user)
     current_price = float(latest_quote.get('ap') or latest_quote.get('bp') or entry_price or 0)
-    order_book_metrics = analyze_order_book_imbalance(symbol, _OrderBookApiClient(user_token, user))
+    order_book_metrics = _safe_order_book_metrics(symbol, user_token, user)
     imbalance_ratio = float(order_book_metrics.get('imbalance_ratio') or 0.0)
     institutional_wall_price = order_book_metrics.get('institutional_wall_price')
     institutional_wall_side = (order_book_metrics.get('institutional_wall_side') or '').lower()
