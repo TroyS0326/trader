@@ -195,7 +195,10 @@ def run_central_scan_cycle(cycle_name: str) -> None:
             return
         fan_out_scan_to_users(shared_scan, users)
         if config.WATCH_RECHECK_ENABLED:
-            logger.info("Watch recheck summary=%s", recheck_active_watch_candidates(limit=max(1, config.WATCH_RECHECK_LIMIT)))
+            try:
+                logger.info("Watch recheck summary=%s", recheck_active_watch_candidates(limit=max(1, config.WATCH_RECHECK_LIMIT)))
+            except Exception:
+                logger.exception("Watch recheck failed after fan-out")
 
 
 def _handle_shutdown(signum, _frame):
