@@ -54,6 +54,21 @@ ALPACA_HEADERS = {
 }
 CHOP_RANGE_THRESHOLD_PCT = 0.006  # 0.6% daily range on SPY ~= tight/choppy market
 
+
+def _safe_log_exception(message, *args):
+    """Log exceptions without allowing logger failures to affect task flow."""
+    try:
+        celery_app.log.get_default_logger().exception(message, *args)
+        return
+    except Exception:
+        pass
+
+    try:
+        logging.getLogger(__name__).exception(message, *args)
+    except Exception:
+        pass
+
+
 @celery_app.task
 def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
     """
@@ -127,7 +142,7 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     try:
                         db_ops.insert_trade(trade_payload)
                     except Exception:
-                        celery_app.log.get_default_logger().exception(
+                        _safe_log_exception(
                             "execute_user_trade_task failed to persist trade row for order_id=%s user_id=%s",
                             order_id,
                             user_id,
