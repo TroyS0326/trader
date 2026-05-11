@@ -1,5 +1,6 @@
 from contextlib import nullcontext
 from types import ModuleType, SimpleNamespace
+import logging as real_logging
 import sys
 
 
@@ -345,10 +346,12 @@ def test_insert_trade_failure_still_audits_when_all_exception_logging_fails(monk
             raise RuntimeError("logger broken")
 
     monkeypatch.setattr(tasks.celery_app.log, "get_default_logger", lambda: _BrokenLogger())
-    monkeypatch.setattr(tasks.logging, "getLogger", lambda name: _BrokenLogger())
+    monkeypatch.setattr(tasks, "logging", SimpleNamespace(getLogger=lambda name=None: _BrokenLogger()))
 
     result = _call_task()
 
     assert calls["insert"] == 1
     assert audit_calls["count"] == 1
     assert "Success" in result and "oid-4" in result
+    assert callable(real_logging.getLogger)
+    assert real_logging.getLogger() is not None
