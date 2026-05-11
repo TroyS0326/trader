@@ -6,7 +6,15 @@ from typing import Any
 import config
 import db
 from app import app
-from broker import BrokerError, get_open_position, get_order, place_emergency_exit_order
+from broker import (
+    BrokerError,
+    extract_open_sell_order_coverage,
+    get_open_orders,
+    get_open_position,
+    get_order,
+    parse_broker_error_json,
+    place_emergency_exit_order,
+)
 from models import User
 
 TERMINAL_BROKER_STATUSES = {"canceled", "expired", "rejected", "done_for_day"}
@@ -41,7 +49,9 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                "grouped_position_count": 0, "emergency_exit_skipped_existing_count": 0,
                "emergency_exit_filled_count": 0, "emergency_exit_failed_count": 0,
                "emergency_exit_retry_blocked_count": 0, "emergency_exit_submitted_count": 0,
-               "emergency_exit_error_count": 0, "affected_orders": [], "affected_symbols": []}
+               "emergency_exit_error_count": 0, "emergency_exit_existing_held_count": 0,
+               "existing_protective_order_count": 0, "partial_existing_coverage_count": 0,
+               "emergency_exit_uncovered_qty_submitted_count": 0, "affected_orders": [], "affected_symbols": []}
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
 
     with app.app_context():
@@ -164,14 +174,66 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
             allowed = config.UNPROTECTED_POSITION_REPAIR_ENABLED if mode != "live" else config.UNPROTECTED_POSITION_REPAIR_LIVE_ENABLED
             if not allowed:
                 continue
+            open_orders = []
             try:
-                emergency = place_emergency_exit_order(symbol, pos_qty, user, reason="reconciliation_unprotected_position", reference_order_id=rows[0].get("order_id"))
-                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_order": emergency, "emergency_exit_order_id": emergency.get("id"), "emergency_exit_status": emergency.get("status")}, notes_append="emergency_exit_submitted:reconciliation_unprotected_position")
+                open_orders = get_open_orders(symbol=symbol, user=user, token=getattr(user, "alpaca_access_token", None))
+            except BrokerError:
+                summary["error_count"] += 1
+                continue
+            coverage = extract_open_sell_order_coverage(open_orders, symbol)
+            held_qty = int(coverage.get("held_qty") or 0)
+            if coverage.get("order_ids"):
+                summary["existing_protective_order_count"] += len(coverage["order_ids"])
+            if held_qty >= pos_qty and held_qty > 0:
+                db.update_trades_for_user_symbol(
+                    user_id=uid, symbol=symbol, updates={},
+                    raw_patch={
+                        "existing_protective_order_ids": coverage.get("order_ids", []),
+                        "existing_protective_orders": coverage.get("orders", []),
+                        "emergency_exit_status": "held_by_existing_orders",
+                        "held_for_orders_qty": held_qty,
+                        "broker_position_qty": pos_qty,
+                        "reconciliation": {"reason": "position_fully_held_by_existing_sell_orders"},
+                    },
+                    notes_append="emergency_exit_existing_held_orders",
+                )
+                summary["emergency_exit_skipped_existing_count"] += 1
+                summary["emergency_exit_existing_held_count"] += 1
+                continue
+            submit_qty = pos_qty
+            if 0 < held_qty < pos_qty:
+                submit_qty = pos_qty - held_qty
+                summary["partial_existing_coverage_count"] += 1
+            try:
+                emergency = place_emergency_exit_order(symbol, submit_qty, user, reason="reconciliation_unprotected_position", reference_order_id=rows[0].get("order_id"))
+                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_order": emergency, "emergency_exit_order_id": emergency.get("id"), "emergency_exit_status": emergency.get("status"), "existing_protective_order_ids": coverage.get("order_ids", [])}, notes_append="emergency_exit_submitted:reconciliation_unprotected_position")
                 summary["emergency_exit_submitted_count"] += 1
+                summary["emergency_exit_uncovered_qty_submitted_count"] += submit_qty
             except BrokerError as exc:
-                summary["emergency_exit_error_count"] += 1
                 message = str(exc)
                 if "403" in message:
+                    parsed = parse_broker_error_json(exc)
+                    try:
+                        available_qty = float(parsed.get("available"))
+                        held_for_orders = float(parsed.get("held_for_orders"))
+                        existing_qty = float(parsed.get("existing_qty"))
+                    except Exception:
+                        available_qty = held_for_orders = existing_qty = None
+                    related_orders = parsed.get("related_orders") if isinstance(parsed.get("related_orders"), list) else []
+                    if available_qty == 0 and held_for_orders is not None and existing_qty is not None and held_for_orders >= existing_qty and related_orders:
+                        db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={
+                            "emergency_exit_status": "held_by_existing_orders",
+                            "existing_protective_order_ids": related_orders,
+                            "held_for_orders_qty": held_for_orders,
+                            "broker_position_qty": existing_qty,
+                            "broker_available_qty": available_qty,
+                            "emergency_exit_403_payload": parsed,
+                            "reconciliation": {"reason": "broker_reports_position_held_for_orders"},
+                        }, notes_append="emergency_exit_existing_held_orders")
+                        summary["emergency_exit_existing_held_count"] += 1
+                        summary["emergency_exit_skipped_existing_count"] += 1
+                        continue
+                    summary["emergency_exit_error_count"] += 1
                     try:
                         refetched = get_open_position(symbol, user=user, token=getattr(user, "alpaca_access_token", None))
                     except Exception:
@@ -181,6 +243,7 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                     else:
                         db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_error": message, "broker_error_status_or_text": message, "unprotected_position_detected": True}, notes_append="emergency_exit_error")
                 else:
+                    summary["emergency_exit_error_count"] += 1
                     db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_error": message}, notes_append="emergency_exit_failed:reconciliation_unprotected_position")
             except Exception as exc:
                 summary["emergency_exit_error_count"] += 1

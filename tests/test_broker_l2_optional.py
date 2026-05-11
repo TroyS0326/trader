@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import json
 
 import broker
 
@@ -267,6 +268,58 @@ def test_poll_for_fill_timeout_cancels_and_callbacks_canceled(monkeypatch):
         assert False
     except broker.BrokerError:
         assert 'canceled' in seen
+
+
+def test_parse_broker_error_json_parses_held_payload():
+    payload = {"available": "0", "existing_qty": "8", "held_for_orders": "8", "related_orders": ["a"], "symbol": "NVDA"}
+    out = broker.parse_broker_error_json(broker.BrokerError(json.dumps(payload)))
+    assert out["available"] == "0"
+    assert out["related_orders"] == ["a"]
+
+
+def test_parse_broker_error_json_non_json_returns_empty():
+    assert broker.parse_broker_error_json("403 forbidden") == {}
+
+
+def test_get_open_orders_symbol_fallback_local_filter(monkeypatch):
+    calls = {"n": 0}
+    monkeypatch.setattr(broker, "get_execution_base_url", lambda user=None: "http://x")
+    class R:
+        def __init__(self, code, text, body):
+            self.status_code = code
+            self.text = text
+            self._body = body
+        def json(self):
+            return self._body
+    def _fake(method, url, params=None, payload=None, token=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return R(422, "bad symbol", [])
+        return R(200, "", [{"id": "1", "symbol": "NVDA"}, {"id": "2", "symbol": "AAPL"}])
+    monkeypatch.setattr(broker, "_request_with_retry", _fake)
+    out = broker.get_open_orders(symbol="NVDA")
+    assert [o["id"] for o in out] == ["1"]
+
+
+def test_extract_open_sell_order_coverage_active_only():
+    orders = [
+        {"id": "1", "symbol": "NVDA", "side": "sell", "status": "new", "qty": "10", "filled_qty": "2"},
+        {"id": "2", "symbol": "NVDA", "side": "sell", "status": "partially_filled", "qty": "5", "filled_qty": "1"},
+    ]
+    out = broker.extract_open_sell_order_coverage(orders, "NVDA")
+    assert out["held_qty"] == 12
+    assert out["order_ids"] == ["1", "2"]
+
+
+def test_extract_open_sell_order_coverage_ignores_non_matching():
+    orders = [
+        {"id": "1", "symbol": "NVDA", "side": "buy", "status": "new", "qty": "10", "filled_qty": "0"},
+        {"id": "2", "symbol": "NVDA", "side": "sell", "status": "canceled", "qty": "10", "filled_qty": "0"},
+        {"id": "3", "symbol": "AAPL", "side": "sell", "status": "new", "qty": "10", "filled_qty": "0"},
+    ]
+    out = broker.extract_open_sell_order_coverage(orders, "NVDA")
+    assert out["held_qty"] == 0
+    assert out["order_ids"] == []
 
 
 def test_poll_for_fill_timeout_get_order_error_still_callbacks_canceled(monkeypatch):
