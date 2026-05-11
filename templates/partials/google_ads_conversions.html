@@ -116,6 +116,31 @@
         };
       }
 
+      function maybeTrackOneTimeQueryConversion() {
+        try {
+          const url = new URL(window.location.href);
+          const signupSuccess = (url.searchParams.get('signup_success') || '').trim();
+          if (signupSuccess !== '1') {
+            return;
+          }
+
+          const storageKey = 'xeanvi_signup_conversion_fired';
+          if (window.sessionStorage.getItem(storageKey) === '1') {
+            return;
+          }
+
+          window.sessionStorage.setItem(storageKey, '1');
+          trackGoogleAdsConversion({
+            getAttribute: function (name) {
+              if (name === 'data-google-ads-conversion') return 'signup';
+              return '';
+            },
+          });
+        } catch (err) {
+          // no-op
+        }
+      }
+
       function once(fn) {
         let called = false;
         return function () {
@@ -234,6 +259,8 @@
           trackGoogleAdsConversion(el);
         });
       });
+
+      maybeTrackOneTimeQueryConversion();
     });
   })();
 </script>

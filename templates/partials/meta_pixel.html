@@ -40,6 +40,22 @@
         });
       }
     });
+
+    try {
+      var url = new URL(window.location.href);
+      if ((url.searchParams.get('signup_success') || '').trim() === '1') {
+        var key = 'xeanvi_signup_meta_conversion_fired';
+        if (window.sessionStorage.getItem(key) !== '1' && typeof fbq === 'function') {
+          window.sessionStorage.setItem(key, '1');
+          fbq('track', 'CompleteRegistration', {
+            content_name: 'XeanVI Account Signup',
+            content_category: 'Account',
+          });
+        }
+      }
+    } catch (err) {
+      // no-op
+    }
   });
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ meta_pixel_id|urlencode }}&ev=PageView&noscript=1" alt="" /></noscript>

@@ -1069,7 +1069,7 @@ def signup():
 
         # REDIRECT LOGIC: If they chose a plan, send them to upgrade first
         if intended_plan in ['monthly', 'annual']:
-            return redirect(url_for('upgrade', plan=intended_plan))
+            return redirect(url_for('upgrade', plan=intended_plan, signup_success='1'))
 
         # Otherwise, send them to standard onboarding
         return redirect(url_for('onboarding'))
