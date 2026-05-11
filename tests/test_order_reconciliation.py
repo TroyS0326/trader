@@ -21,6 +21,7 @@ def test_grouped_single_emergency_exit_and_capped_qty(monkeypatch):
     monkeypatch.setattr(recon.db.db.session, "get", lambda model, uid: SimpleNamespace(alpaca_access_token="t", trading_mode="paper"))
     monkeypatch.setattr(recon, "get_order", lambda *args, **kwargs: {"status": "filled", "filled_qty": "10"})
     monkeypatch.setattr(recon, "get_open_position", lambda *args, **kwargs: {"symbol": "NVDA", "qty": "5"})
+    monkeypatch.setattr(recon, "get_open_orders", lambda *args, **kwargs: [])
     placed = []
     monkeypatch.setattr(recon, "place_emergency_exit_order", lambda s, q, u, **k: placed.append((s, q)) or {"id": "e1", "status": "new"})
     updates = []
@@ -76,6 +77,7 @@ def test_rejected_retry_gate_and_403_paths(monkeypatch):
     monkeypatch.setattr(recon.db.db.session, "get", lambda *a, **k: SimpleNamespace(alpaca_access_token="t", trading_mode="paper"))
     monkeypatch.setattr(recon, "get_order", lambda oid, **k: {"status": "filled", "filled_qty": "1"} if oid == "oid-1" else {"id": "e1", "status": "rejected"})
     monkeypatch.setattr(recon, "get_open_position", lambda *a, **k: {"qty": "2"})
+    monkeypatch.setattr(recon, "get_open_orders", lambda *a, **k: [])
     monkeypatch.setattr(recon.db, "update_trade_status", lambda *a, **k: None)
     calls = []
     monkeypatch.setattr(recon.db, "update_trades_for_user_symbol", lambda *a, **k: calls.append(k) or 1)
@@ -90,6 +92,23 @@ def test_rejected_retry_gate_and_403_paths(monkeypatch):
     monkeypatch.setattr(recon, "get_open_position", lambda *a, **k: next(seq))
     recon.reconcile_active_trade_orders()
     assert len(submit_calls) == 1
+
+
+def test_open_orders_lookup_failure_still_attempts_emergency_exit(monkeypatch):
+    _ctx(monkeypatch)
+    trades = [_trade("oid-1")]
+    monkeypatch.setattr(recon.db, "get_active_trades", lambda **kwargs: trades)
+    monkeypatch.setattr(recon.db.db.session, "get", lambda *a, **k: SimpleNamespace(alpaca_access_token="t", trading_mode="paper"))
+    monkeypatch.setattr(recon, "get_order", lambda *a, **k: {"status": "filled", "filled_qty": "1"})
+    monkeypatch.setattr(recon, "get_open_position", lambda *a, **k: {"qty": "3"})
+    monkeypatch.setattr(recon, "get_open_orders", lambda *a, **k: (_ for _ in ()).throw(recon.BrokerError("open orders unavailable")))
+    monkeypatch.setattr(recon.db, "update_trade_status", lambda *a, **k: None)
+    monkeypatch.setattr(recon.db, "update_trades_for_user_symbol", lambda *a, **k: 1)
+    submitted = []
+    monkeypatch.setattr(recon, "place_emergency_exit_order", lambda s, q, *a, **k: submitted.append((s, q)) or {"id": "e1", "status": "new"})
+    out = recon.reconcile_active_trade_orders()
+    assert submitted == [("NVDA", 3)]
+    assert out["emergency_exit_submitted_count"] == 1
 
 
 def test_existing_open_sell_orders_full_cover_skips_submit(monkeypatch):
