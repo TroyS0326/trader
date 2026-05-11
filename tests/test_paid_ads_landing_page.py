@@ -18,11 +18,21 @@ def test_paid_landing_required_content_and_tracking():
     html = Path('templates/paid_ads_landing.html').read_text(encoding='utf-8')
     low = html.lower()
     assert '<meta name="robots" content="noindex, follow">' in html
-    assert 'Rule-Based Trading Automation Software You Can Test in Paper Mode First' in html
+    assert 'Stop Overriding Your Trading Plan When the Market Starts Moving.' in html
     assert '/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation' in html
     assert '/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation' in html
     assert 'data-meta-pixel-event="Lead"' in html
     assert 'data-google-ads-conversion="signup"' not in html
+
+    for required in [
+        'Paper Workflow Console',
+        'Your trading plan is not the problem',
+        'From written playbook to paper-tested workflow',
+        'Built for process-driven traders',
+        'Your broker permissions stay under your control',
+        'Start with the workflow before risking live capital',
+    ]:
+        assert required in html
     assert 'trading involves risk' in low
     assert 'not financial advice' in low
     assert 'not a broker-dealer' in low

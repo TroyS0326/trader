@@ -4,28 +4,54 @@
 {% include 'partials/google_ads_tag.html' %}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rule-Based Trading Automation | XeanVI</title>
-<meta name="description" content="Rule-based trading automation software with paper mode first, user-defined rules, risk controls, and broker permission controls.">
+<title>Paper-First Trading Automation Workflow | XeanVI</title>
+<meta name="description" content="Build user-defined trading rules, test in paper mode, review risk gates, and use supported broker-connected workflows only when ready.">
 <link rel="canonical" href="https://xeanvi.com/lp/rule-based-trading-automation">
 <meta name="robots" content="noindex, follow">
-<meta property="og:title" content="Rule-Based Trading Automation | XeanVI">
-<meta property="og:description" content="Test your workflow in paper mode first, then route through a supported broker under your permissions.">
-<meta name="twitter:title" content="Rule-Based Trading Automation | XeanVI">
-<meta name="twitter:description" content="Rule-based trading automation software you can test in paper mode first.">
+<meta property="og:title" content="Paper-First Trading Automation Workflow | XeanVI">
+<meta property="og:description" content="Build user-defined trading rules, test in paper mode, and keep broker-connected routing tied to your permissions.">
+<meta name="twitter:title" content="Paper-First Trading Automation Workflow | XeanVI">
+<meta name="twitter:description" content="Turn your playbook into a paper-first workflow with risk gates and supported broker-connected routing when ready.">
 {% include 'partials/async_app_css.html' %}
 <style>
-  .paid-lp { --pad: clamp(1rem, 2.5vw, 2rem); }
-  .paid-lp .wrap { max-width: 1100px; margin: 0 auto; padding: 0 var(--pad); }
-  .paid-lp section { padding: 2.5rem 0; border-bottom: 1px solid var(--border-color); }
-  .paid-lp h1 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 0.9rem; }
-  .paid-lp h2 { font-size: clamp(1.4rem, 3.5vw, 2rem); margin-bottom: 0.85rem; }
-  .paid-lp p, .paid-lp li { color: var(--text-muted); line-height: 1.6; }
-  .paid-lp .hero { padding-top: 3rem; }
-  .paid-lp .cta-row { display: flex; gap: 0.85rem; flex-wrap: wrap; margin: 1rem 0 0.5rem; }
-  .paid-lp .grid-2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-  .paid-lp .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; }
-  .paid-lp .trust-strip { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 1rem; }
-  .paid-lp .legal { font-size: 0.95rem; }
+  .paid-lp {
+    --pad: clamp(1rem, 2.8vw, 2.2rem);
+    --radius: 16px;
+    background: radial-gradient(90rem 30rem at 50% -10%, color-mix(in srgb, var(--accent-blue) 20%, transparent), transparent 60%), var(--bg-main);
+  }
+  .paid-lp * { box-sizing: border-box; }
+  .paid-lp .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--pad); }
+  .paid-lp section { padding: clamp(2.75rem, 7vw, 5rem) 0; border-bottom: 1px solid var(--border-color); }
+  .paid-lp h1, .paid-lp h2, .paid-lp h3, .paid-lp p { margin: 0; }
+  .paid-lp h1 { font-size: clamp(2rem, 4.8vw, 4rem); line-height: 1.1; letter-spacing: -0.02em; margin-top: .75rem; }
+  .paid-lp h2 { font-size: clamp(1.45rem, 3.2vw, 2.35rem); line-height: 1.2; margin-bottom: .9rem; }
+  .paid-lp p, .paid-lp li { color: var(--text-muted); line-height: 1.65; }
+  .paid-lp .eyebrow { color: var(--accent-blue); font-size: .82rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+  .paid-lp .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: clamp(1.25rem, 3vw, 2.5rem); align-items: center; }
+  .paid-lp .hero-copy p { font-size: clamp(1rem, 1.4vw, 1.14rem); margin-top: 1rem; max-width: 64ch; }
+  .paid-lp .hero-list { margin: 1.2rem 0 0; padding-left: 1rem; display: grid; gap: .45rem; }
+  .paid-lp .hero-list li { color: var(--text-main); }
+  .paid-lp .cta-row { display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0 .7rem; }
+  .paid-lp .btn-premium { padding: .85rem 1.2rem; border-radius: 999px; text-decoration: none; font-weight: 650; border: 1px solid transparent; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+  .paid-lp .btn-primary-premium { background: linear-gradient(140deg, var(--accent-blue), #6ac7ff); color: #031b2a; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 10px 26px color-mix(in srgb, var(--accent-blue) 30%, transparent); }
+  .paid-lp .btn-secondary-premium { background: color-mix(in srgb, var(--bg-card) 90%, black); color: var(--text-main); border-color: var(--border-color); }
+  .paid-lp .btn-premium:hover, .paid-lp .btn-premium:focus-visible { transform: translateY(-1px); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 55%, transparent); outline: none; }
+  .paid-lp .microcopy { font-size: .92rem; }
+  .paid-lp .mockup { border: 1px solid color-mix(in srgb, var(--accent-blue) 40%, var(--border-color)); border-radius: var(--radius); background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 88%, black), color-mix(in srgb, var(--bg-main) 65%, black)); box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-blue) 20%, transparent); padding: 1rem; }
+  .paid-lp .mockup-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: .9rem; }
+  .paid-lp .chip { color: #05273b; background: color-mix(in srgb, var(--success) 40%, #d5fff0); border-radius: 999px; padding: .26rem .68rem; font-size: .75rem; font-weight: 700; }
+  .paid-lp .stack, .paid-lp .grid-cards { display:grid; gap:.75rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .paid-lp .card { background: color-mix(in srgb, var(--bg-card) 96%, black); border:1px solid var(--border-color); border-radius: 12px; padding: .9rem; }
+  .paid-lp .card strong { color: var(--text-main); display:block; margin-bottom: .35rem; }
+  .paid-lp .table-wrap { overflow-x: auto; }
+  .paid-lp table { width:100%; border-collapse: collapse; min-width: 680px; }
+  .paid-lp th, .paid-lp td { border:1px solid var(--border-color); padding:.8rem; text-align:left; }
+  .paid-lp th { background: color-mix(in srgb, var(--bg-card) 92%, black); color: var(--text-main); }
+  .paid-lp .split { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+  .paid-lp details { background: color-mix(in srgb, var(--bg-card) 95%, black); border:1px solid var(--border-color); border-radius: 12px; padding: .8rem .95rem; }
+  .paid-lp summary { cursor: pointer; color: var(--text-main); font-weight: 600; }
+  .paid-lp .sticky-cta { position: sticky; bottom: .5rem; z-index: 5; margin: 0 auto; width: fit-content; }
+  @media (min-width: 861px) { .paid-lp .sticky-cta { display:none; } }
 </style>
 </head>
 <body>
@@ -33,40 +59,58 @@
 {% include 'partials/google_ads_conversions.html' %}
 {% include 'partials/utm_persistence.html' %}
 {% include 'nav.html' %}
-
 <main class="paid-lp">
   <section class="hero">
-    <div class="wrap">
-      <h1>Rule-Based Trading Automation Software You Can Test in Paper Mode First</h1>
-      <p>XeanVI is software for traders who want a defined process. Build your own rule set, validate in paper mode, and only enable supported broker-connected routing when you choose.</p>
-      <div class="cta-row">
-        <a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn btn-primary" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a>
-        <a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn btn-secondary" data-meta-pixel-event="ViewContent">View Pricing</a>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">PAPER-FIRST TRADING AUTOMATION</p>
+        <h1>Stop Overriding Your Trading Plan When the Market Starts Moving.</h1>
+        <p>XeanVI helps turn your playbook into a rule-based workflow you can test in paper mode before supported broker-connected routing. Define the rules, review the gates, and keep execution tied to the process you set.</p>
+        <ul class="hero-list">
+          <li>Build rules before the trade</li><li>Test behavior in paper mode</li><li>Review risk gates and audit logs</li><li>Connect a supported broker only when ready</li>
+        </ul>
+        <div class="cta-row">
+          <a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a>
+          <a href="#workflow" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">See the Workflow</a>
+        </div>
+        <p class="microcopy">No live broker connection required to create an account. Start with paper-mode setup first.</p>
       </div>
-      <div class="trust-strip">
-        <div class="card">Paper mode first</div>
-        <div class="card">User-defined rules</div>
-        <div class="card">Broker permissions stay under your control</div>
-        <div class="card">Software, not financial advice</div>
-      </div>
+      <aside class="mockup" aria-label="Paper workflow preview">
+        <div class="mockup-head"><strong>Paper Workflow Console</strong><span class="chip">Paper mode</span></div>
+        <div class="stack">
+          <div class="card"><strong>Playbook Gate</strong><p>User rules loaded</p></div>
+          <div class="card"><strong>Scan State</strong><p>Waiting for configured setup</p></div>
+          <div class="card"><strong>Risk Check</strong><p>Position size based on user settings</p></div>
+          <div class="card"><strong>Broker Routing</strong><p>Disabled until permissioned</p></div>
+          <div class="card"><strong>Audit Log</strong><p>Every action recorded</p></div>
+          <div class="card"><p>&gt; playbook rules loaded<br>&gt; paper scan initialized<br>&gt; risk gate required before routing<br>&gt; live routing locked until user enables broker permissions</p></div>
+        </div>
+      </aside>
     </div>
   </section>
 
-  <section><div class="wrap"><h2>How XeanVI Works</h2><div class="grid-2"><div class="card"><strong>1) Build rules</strong><p>Define setup, risk, and position-sizing logic for your playbook.</p></div><div class="card"><strong>2) Test in paper mode</strong><p>Run scans and validate behavior before any live routing.</p></div><div class="card"><strong>3) Connect supported broker</strong><p>Authorize only the permissions required for your workflow.</p></div><div class="card"><strong>4) Monitor activity</strong><p>Review logs and workflow steps for audit visibility.</p></div></div></div></section>
+  <section><div class="wrap"><h2>Your trading plan is not the problem. Breaking it under pressure is.</h2><p>Most traders do not need more hype. They need a workflow that keeps entries, sizing, risk checks, and routing tied to rules they already chose.</p><div class="grid-cards" style="margin-top:1rem;"><div class="card">Hesitation on entries</div><div class="card">Rushed position sizing</div><div class="card">Manual order-management fatigue</div><div class="card">Inconsistent follow-through</div></div><p style="margin-top:.9rem;">XeanVI does not make trading profitable. It helps structure the workflow around user-defined rules and risk settings.</p></div></section>
 
-  <section><div class="wrap"><h2>Who This Is For</h2><ul><li>Traders who document and follow a repeatable process.</li><li>Users who want paper testing before live capital.</li><li>Users who value risk controls and action visibility.</li></ul></div></section>
+  <section id="workflow"><div class="wrap"><h2>From written playbook to paper-tested workflow.</h2><div class="grid-cards"><div class="card"><strong>1. Define the setup</strong><p>Set the criteria your workflow should check before anything can move forward.</p></div><div class="card"><strong>2. Run paper scans</strong><p>Review how your process behaves before live capital is involved.</p></div><div class="card"><strong>3. Require risk gates</strong><p>Position size and routing decisions stay tied to your configured controls.</p></div><div class="card"><strong>4. Monitor the trail</strong><p>Use dashboard visibility and logs to understand what the workflow did and why.</p></div></div></div></section>
 
-  <section><div class="wrap"><h2>Who This Is Not For</h2><ul><li>People seeking promised trading outcomes.</li><li>People seeking financial advice or account management.</li><li>People unwilling to accept trading risk and possible losses.</li><li>People seeking a broker, custodian, or investment adviser service.</li></ul></div></section>
+  <section><div class="wrap"><h2>Built for process-driven traders, not signal chasers.</h2><div class="grid-cards"><div class="card">Paper mode before live use</div><div class="card">User-defined playbook</div><div class="card">Supported broker permissions</div><div class="card">Risk controls before routing</div><div class="card">Audit visibility</div><div class="card">Software, not advice</div></div></div></section>
 
-  <section><div class="wrap"><h2>Broker &amp; Permissions</h2><ul><li>Funds remain at your supported broker.</li><li>You control connection permissions.</li><li>XeanVI only operates within authorized access and configured rules.</li></ul></div></section>
+  <section><div class="wrap"><h2>Manual vs. XeanVI workflow comparison</h2><div class="table-wrap"><table><thead><tr><th>Step</th><th>Manual</th><th>XeanVI workflow</th></tr></thead><tbody><tr><td>Market review</td><td>Scattered alerts and chart watching</td><td>Scans tied to configured criteria</td></tr><tr><td>Setup validation</td><td>Subjective decision-making under pressure</td><td>Rules and risk gates checked before routing</td></tr><tr><td>Position sizing</td><td>Rushed or inconsistent sizing</td><td>Calculated from user-defined risk settings</td></tr><tr><td>Broker workflow</td><td>Manual tickets and order-management fatigue</td><td>Supported broker-connected routing only after permissions</td></tr><tr><td>Review</td><td>Hard to reconstruct decisions</td><td>Dashboard visibility and audit logs</td></tr></tbody></table></div></div></section>
 
-  <section><div class="wrap"><h2>Pricing</h2><p>Monthly PRO: $19.99/month. Annual PRO: $199.99/year. Plans renew until canceled before renewal.</p><p><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation">See full pricing details</a>.</p></div></section>
+  <section><div class="wrap"><h2>Your broker permissions stay under your control.</h2><ul><li>Funds remain at the supported broker.</li><li>XeanVI is not a custodian.</li><li>User controls broker connection permissions.</li><li>Live routing should come after paper testing and setup review.</li></ul></div></section>
 
-  <section><div class="wrap"><h2>FAQ</h2><p><strong>Does XeanVI promise trading outcomes?</strong> No.</p><p><strong>Is XeanVI financial advice?</strong> No. XeanVI is software and not financial advice.</p><p><strong>Can I test before using live capital?</strong> Yes, paper mode is available first.</p><p><strong>Does XeanVI hold my funds?</strong> No. Funds remain with your supported broker.</p></div></section>
+  <section><div class="wrap"><h2>Start with the workflow before risking live capital.</h2><div class="split"><div class="card"><strong>Monthly PRO</strong><p>$19.99/month</p></div><div class="card"><strong>Annual PRO</strong><p>$199.99/year</p></div></div><ul class="hero-list"><li>Paper-first setup</li><li>Playbook rules</li><li>Dashboard monitoring</li><li>Supported broker-connected tools</li></ul><div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div></div></section>
 
-  <section><div class="wrap legal"><h2>Business &amp; Legal Disclosures</h2><p>XeanVI | admin@xeanvi.com | 941 529 7990 | 2900 Acline RD, Punta Gorda, FL 33950</p><p>Fees: $19.99/month and $199.99/year.</p><p>Trading involves risk, including possible loss of capital. XeanVI is not financial advice, not a broker-dealer, not an investment adviser, and not a custodian.</p><p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/pricing">Pricing</a></p></div></section>
+  <section><div class="wrap split"><div><h2>Who this is for</h2><ul><li>Traders who want a defined process</li><li>Traders who want paper testing before live routing</li><li>Traders who want execution discipline and audit visibility</li><li>Traders who understand trading risk</li></ul></div><div><h2>Who this is not for</h2><ul><li>People seeking promised trading outcomes</li><li>People seeking financial advice</li><li>People seeking a broker, adviser, or custodian</li><li>People unwilling to accept possible trading losses</li></ul></div></div></section>
+
+  <section><div class="wrap"><h2>FAQ</h2><div class="stack"><details><summary>Does XeanVI promise trading outcomes?</summary><p>No. Trading outcomes are never promised.</p></details><details><summary>Is XeanVI financial advice?</summary><p>No. XeanVI is software for workflow automation and not financial advice.</p></details><details><summary>Can I test before using live capital?</summary><p>Yes. You can set up and test in paper mode before enabling live routing permissions.</p></details><details><summary>Does XeanVI hold my funds?</summary><p>No. Funds remain with your supported broker.</p></details><details><summary>Do I need a supported broker?</summary><p>You can create an account and begin in paper mode first. A supported broker connection is needed only for live broker-connected routing.</p></details><details><summary>What does PRO include?</summary><p>PRO includes paper-first setup, playbook rules, dashboard monitoring, and supported broker-connected tools.</p></details></div></div></section>
+
+  <section><div class="wrap"><h2>Build the workflow first. Test it in paper mode. Then decide what comes next.</h2><div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div><p class="microcopy">Trading involves risk, including possible loss of capital. XeanVI is software for user-defined workflow automation and is not financial advice.</p></div></section>
+
+  <section><div class="wrap"><h2>Business &amp; Legal Disclosures</h2><p>XeanVI | admin@xeanvi.com | 941 529 7990 | 2900 Acline RD, Punta Gorda, FL 33950</p><p>Fees: $19.99/month and $199.99/year</p><p>Trading involves risk, including possible loss of capital. XeanVI is not financial advice, not broker-dealer, not investment adviser, and not custodian.</p><p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/pricing">Pricing</a></p></div></section>
+
+  <div class="sticky-cta wrap"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a></div>
 </main>
-
 {% include 'footer.html' %}
 </body>
 </html>
