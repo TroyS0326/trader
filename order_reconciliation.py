@@ -107,7 +107,7 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                 continue
             pos_qty = _position_qty(position)
             if position is None or pos_qty <= 0:
-                db.update_trades_for_user_symbol(uid, symbol, {"status": "closed", "order_status": "closed", "outcome": "closed"}, raw_patch={"reconciliation": {"reason": "no_position_found"}}, notes_append="no_position_found")
+                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={"status": "closed", "order_status": "closed", "outcome": "closed"}, raw_patch={"reconciliation": {"reason": "no_position_found"}}, notes_append="no_position_found")
                 summary["no_position_count"] += 1
                 continue
 
@@ -134,7 +134,7 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
 
             def _close_group_from_exit(order: dict):
                 fill_px = order.get("filled_avg_price")
-                db.update_trades_for_user_symbol(uid, symbol, {"status": "closed", "order_status": "closed", "outcome": "closed", "exit_price": fill_px}, raw_patch={"emergency_exit_order": order, "emergency_exit_status": "filled"}, notes_append="emergency_exit_filled")
+                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={"status": "closed", "order_status": "closed", "outcome": "closed", "exit_price": fill_px}, raw_patch={"emergency_exit_order": order, "emergency_exit_status": "filled", "emergency_exit_filled_at": order.get("filled_at") or datetime.now(timezone.utc).isoformat(), "reconciliation": {"reason": "existing_emergency_exit_filled"}}, notes_append="emergency_exit_filled")
 
             if existing_id or (existing_status in PENDING_REPAIR_STATUSES):
                 summary["emergency_exit_skipped_existing_count"] += 1
@@ -144,15 +144,16 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                         estatus = (existing_order.get("status") or "").lower()
                         if estatus == "filled":
                             _close_group_from_exit(existing_order); summary["emergency_exit_filled_count"] += 1
+                            continue
                         elif estatus in FAILED_REPAIR_STATUSES:
                             summary["emergency_exit_failed_count"] += 1
-                            db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_order": existing_order, "emergency_exit_status": estatus}, notes_append=f"emergency_exit_failed:{estatus}")
+                            db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_order": existing_order, "emergency_exit_status": estatus}, notes_append=f"emergency_exit_failed:{estatus}")
                             if not config.EMERGENCY_EXIT_RETRY_FAILED_ENABLED:
                                 summary["emergency_exit_retry_blocked_count"] += 1
                                 continue
                             existing_id = None
                         else:
-                            db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_order": existing_order, "emergency_exit_status": estatus})
+                            db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_order": existing_order, "emergency_exit_status": estatus}, notes_append="emergency_exit_existing_active")
                             continue
                     except Exception:
                         continue
@@ -165,7 +166,7 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                 continue
             try:
                 emergency = place_emergency_exit_order(symbol, pos_qty, user, reason="reconciliation_unprotected_position", reference_order_id=rows[0].get("order_id"))
-                db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_order": emergency, "emergency_exit_order_id": emergency.get("id"), "emergency_exit_status": emergency.get("status")}, notes_append="emergency_exit_submitted:reconciliation_unprotected_position")
+                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_order": emergency, "emergency_exit_order_id": emergency.get("id"), "emergency_exit_status": emergency.get("status")}, notes_append="emergency_exit_submitted:reconciliation_unprotected_position")
                 summary["emergency_exit_submitted_count"] += 1
             except BrokerError as exc:
                 summary["emergency_exit_error_count"] += 1
@@ -176,14 +177,14 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                     except Exception:
                         refetched = position
                     if refetched is None or _position_qty(refetched) <= 0:
-                        db.update_trades_for_user_symbol(uid, symbol, {"status": "closed", "order_status": "closed", "outcome": "closed"}, raw_patch={"reconciliation": {"reason": "no_position_found"}}, notes_append="no_position_found")
+                        db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={"status": "closed", "order_status": "closed", "outcome": "closed"}, raw_patch={"reconciliation": {"reason": "no_position_found"}}, notes_append="no_position_found")
                     else:
-                        db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_error": message, "broker_error_status_or_text": message, "unprotected_position_detected": True}, notes_append="emergency_exit_error")
+                        db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_error": message, "broker_error_status_or_text": message, "unprotected_position_detected": True}, notes_append="emergency_exit_error")
                 else:
-                    db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_error": message}, notes_append="emergency_exit_failed:reconciliation_unprotected_position")
+                    db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_error": message}, notes_append="emergency_exit_failed:reconciliation_unprotected_position")
             except Exception as exc:
                 summary["emergency_exit_error_count"] += 1
-                db.update_trades_for_user_symbol(uid, symbol, {}, raw_patch={"emergency_exit_error": str(exc)}, notes_append="emergency_exit_failed:reconciliation_unprotected_position")
+                db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={"emergency_exit_error": str(exc)}, notes_append="emergency_exit_failed:reconciliation_unprotected_position")
 
     summary["affected_orders"] = sorted(set(summary["affected_orders"]))
     summary["affected_symbols"] = sorted(set(summary["affected_symbols"]))

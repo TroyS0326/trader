@@ -58,8 +58,15 @@ def test_existing_filled_closes_group(monkeypatch):
     monkeypatch.setattr(recon.db, "update_trade_status", lambda *a, **k: None)
     calls = []
     monkeypatch.setattr(recon.db, "update_trades_for_user_symbol", lambda *a, **k: calls.append(k) or 1)
-    recon.reconcile_active_trade_orders()
+    submit_calls = []
+    quote_calls = []
+    monkeypatch.setattr(recon, "place_emergency_exit_order", lambda *a, **k: submit_calls.append((a, k)))
+    monkeypatch.setattr(recon, "get_latest_quote", lambda *a, **k: quote_calls.append((a, k)), raising=False)
+    out = recon.reconcile_active_trade_orders()
     assert any(c["updates"].get("status") == "closed" for c in calls)
+    assert not submit_calls
+    assert not quote_calls
+    assert out["emergency_exit_filled_count"] == 1
 
 
 def test_rejected_retry_gate_and_403_paths(monkeypatch):
@@ -77,8 +84,10 @@ def test_rejected_retry_gate_and_403_paths(monkeypatch):
     assert out["emergency_exit_retry_blocked_count"] == 1
 
     monkeypatch.setattr(recon.config, "EMERGENCY_EXIT_RETRY_FAILED_ENABLED", True)
-    monkeypatch.setattr(recon, "place_emergency_exit_order", lambda *a, **k: (_ for _ in ()).throw(recon.BrokerError("403 forbidden")))
-    seq = iter([None, {"qty": "2"}])
+    submit_calls = []
+    monkeypatch.setattr(recon, "place_emergency_exit_order", lambda *a, **k: submit_calls.append((a, k)) or (_ for _ in ()).throw(recon.BrokerError("403 forbidden")))
+    seq = iter([{"qty": "2"}, None])
     monkeypatch.setattr(recon, "get_open_position", lambda *a, **k: next(seq))
     recon.reconcile_active_trade_orders()
+    assert len(submit_calls) == 1
 
