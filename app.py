@@ -3106,6 +3106,9 @@ def api_execution_readiness():
         latest_payload = {}
 
     diag = evaluate_execution_readiness(current_user, latest_payload)
+    contract_diag = diag.get('scan_contract')
+    if not isinstance(contract_diag, dict):
+        contract_diag = validate_scan_payload_contract(latest_payload if isinstance(latest_payload, dict) else {})
     if no_recent_scan:
         no_scan_reason = {'code': 'NO_RECENT_SCAN', 'message': 'No recent scan found for current user.'}
 

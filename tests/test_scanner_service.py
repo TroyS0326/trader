@@ -161,6 +161,7 @@ def test_execution_readiness_endpoint_no_secrets_and_no_recent_scan(monkeypatch)
         assert 'paper_blocked_reasons' in data
         assert 'live_blocked_reasons' in data
         assert 'active_mode_blocked_reasons' in data
+        assert 'scan_contract' in data
 
 
 def test_diagnose_logs_contract_diagnostics(monkeypatch):
@@ -359,3 +360,18 @@ def test_central_scan_cycle_runs_watch_recheck(monkeypatch):
     monkeypatch.setattr(scanner_service.config, "WATCH_RECHECK_LIMIT", 25)
     scanner_service.run_central_scan_cycle("x")
     assert calls["recheck"] == 1
+
+
+def test_central_scan_cycle_recheck_failure_does_not_crash_or_skip_fanout(monkeypatch):
+    calls = {'fanout': 0}
+
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: [SimpleNamespace(id=1, trading_mode='paper', subscription_status='pro')])
+    monkeypatch.setattr(scanner_service, 'run_shared_market_scan', lambda: {'best_pick': {}, 'watchlist': []})
+    monkeypatch.setattr(scanner_service, 'fan_out_scan_to_users', lambda *_: calls.__setitem__('fanout', calls['fanout'] + 1))
+    monkeypatch.setattr(scanner_service, 'recheck_active_watch_candidates', lambda **kwargs: (_ for _ in ()).throw(RuntimeError('boom')))
+    monkeypatch.setattr(scanner_service.config, 'WATCH_RECHECK_ENABLED', True)
+    monkeypatch.setattr(scanner_service.config, 'WATCH_RECHECK_LIMIT', 25)
+
+    scanner_service.run_central_scan_cycle('recheck_failure')
+
+    assert calls['fanout'] == 1
