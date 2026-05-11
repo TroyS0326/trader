@@ -298,6 +298,7 @@
 </head>
 <body>
     {% include 'partials/meta_pixel.html' %}
+    {% include 'partials/utm_persistence.html' %}
 
 {% include 'nav.html' %}
 
@@ -390,7 +391,7 @@
                     <p style="margin-bottom: 0;">Trading involves risk. XeanVI is software for user-defined workflow automation and is not financial advice.</p>
                 </div>
                 <div style="display: flex; gap: 0.7rem; flex-wrap: wrap;">
-                    <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Mid Page Signup CTA","content_category":"Landing Funnel","funnel_step":"midpage_signup_click"}'>Create Account & Start Paper Mode</a>
+                    <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Mid Page Signup CTA","content_category":"Landing Funnel","funnel_step":"midpage_signup_click"}'>Create Account & Test Paper Mode</a>
                     <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
                 </div>
             </div>
@@ -401,7 +402,7 @@
         <div class="container">
             <div class="automation-header">
                 <div class="section-badge"><i class="fas fa-diagram-project" aria-hidden="true"></i>RULE-DRIVEN AUTOMATION</div>
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Turns Your Playbook Into Automated Execution</h2>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How XeanVI Applies Your User-Defined Playbook</h2>
                 <p class="automation-subhead">
                     Define your rules once, complete onboarding, connect your supported broker, then launch scans that validate setups, calculate position size, prepare bracket-order instructions when conditions pass, and log every action around your risk controls.
                 </p>
@@ -410,7 +411,7 @@
                 <div class="automation-pipeline">
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">01</span><span class="step-icon"><i class="fas fa-sliders" aria-hidden="true"></i></span></div>
-                        <h3>Build Your Playbook</h3>
+                        <h3>See How It Works</h3>
                         <p>Complete onboarding, then define your setup rules, risk limits, sizing preferences, and trade criteria so automation follows your plan.</p>
                     </article>
                     <article class="flow-step">
@@ -425,7 +426,7 @@
                     </article>
                     <article class="flow-step">
                         <div class="step-pill"><span class="step-number">04</span><span class="step-icon"><i class="fas fa-gears" aria-hidden="true"></i></span></div>
-                        <h3>Automation Takes Over</h3>
+                        <h3>Rule-Based Automation Runs</h3>
                         <p>When your rules pass, XeanVI can calculate position size, prepare and route bracket orders, manage the trade workflow, and log each action according to your defined controls.</p>
                     </article>
                 </div>
@@ -439,7 +440,7 @@
                         <li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Paper testing before live use</span></li>
                     </ul>
                     <div class="automation-cta">
-                        <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Automation Section Signup CTA","content_category":"Landing Funnel","funnel_step":"automation_signup_click"}'>Start Automating</a>
+                        <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Automation Section Signup CTA","content_category":"Landing Funnel","funnel_step":"automation_signup_click"}'>See How It Works</a>
                         <a href="/features" class="btn btn-secondary">Review Features</a>
                     </div>
                 </aside>
@@ -509,7 +510,7 @@
                     <a href="/features" class="btn btn-secondary" style="font-size: 1.05rem; padding: 1rem 2rem; display: flex; align-items: center; gap: 10px;">
                         Review Full Features <span style="color: var(--accent-blue);">→</span>
                     </a>
-                    <a href="/playbook" class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2rem;">Build Your Playbook</a>
+                    <a href="/playbook" class="btn btn-primary" style="font-size: 1.05rem; padding: 1rem 2rem;">See How It Works</a>
                 </div>
             </div>
         </div>
@@ -683,10 +684,10 @@
             </div>
 
             <section style="margin-top: 3rem; background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(2,6,23,0.55)); border: 1px solid var(--border-color); border-radius: 16px; padding: 2rem; text-align: center;">
-                <h3 style="font-size: 1.6rem; margin-bottom: 0.8rem;">Ready to turn your trading rules into an automated workflow?</h3>
+                <h3 style="font-size: 1.6rem; margin-bottom: 0.8rem;">Ready to turn your trading rules into an rule-based workflow?</h3>
                 <p style="max-width: 800px; margin: 0 auto 1.4rem;">Start with paper mode, define your playbook, and see how XeanVI handles scanning, validation, sizing, and execution workflow around the controls you set.</p>
                 <div style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="/signup?plan=monthly" class="btn btn-primary">Start Automating</a>
+                    <a href="/signup?plan=monthly" class="btn btn-primary">See How It Works</a>
                     <a href="/features" class="btn btn-secondary">Review Features</a>
                 </div>
             </section>
@@ -704,7 +705,7 @@
     </section>
 </main>
 <div class="mobile-sticky-cta" aria-label="Quick mobile signup call to action">
-    <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Mobile Sticky Signup CTA","content_category":"Landing Funnel","funnel_step":"mobile_sticky_signup_click"}'>Start Paper Mode</a>
+    <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Mobile Sticky Signup CTA","content_category":"Landing Funnel","funnel_step":"mobile_sticky_signup_click"}'>Create Account & Test Paper Mode</a>
 </div>
 
 {% include 'footer.html' %}
