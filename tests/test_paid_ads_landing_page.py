@@ -26,6 +26,8 @@ def test_paid_landing_required_content_and_tracking():
 
     for required in [
         'Paper Workflow Console',
+        'Live routing locked',
+        'Control Stack',
         'Your trading plan is not the problem',
         'From written playbook to paper-tested workflow',
         'Built for process-driven traders',
@@ -43,6 +45,8 @@ def test_paid_landing_required_content_and_tracking():
     assert '2900 Acline RD, Punta Gorda, FL 33950' in html
     assert '$19.99/month' in html
     assert '$199.99/year' in html
+    assert 'Business &amp; Legal Disclosures' not in html
+    assert 'Business & Legal Disclosures' not in html
 
 
 def test_banned_phrases_absent_from_paid_landing():
