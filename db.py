@@ -419,6 +419,64 @@ def update_trade_status(order_id: str, updates: Dict[str, Any]) -> None:
     db.session.commit()
 
 
+def _deep_merge_dict(base: dict, patch: dict) -> dict:
+    merged = dict(base)
+    for key, value in (patch or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def update_trade_raw_json_by_order_id(order_id: str, patch: dict, notes_append: str | None = None) -> None:
+    trade = Trade.query.filter_by(order_id=order_id).first()
+    if not trade:
+        return
+    payload = _load_json_payload(getattr(trade, 'raw_json', None))
+    if not isinstance(payload, dict):
+        payload = {}
+    payload = _deep_merge_dict(payload, patch or {})
+    trade.raw_json = json.dumps(payload)
+    if notes_append:
+        existing = (getattr(trade, 'notes', None) or '').strip()
+        trade.notes = f"{existing}; {notes_append}" if existing else notes_append
+    trade.updated_at = utc_now()
+    db.session.commit()
+
+
+def update_trades_for_user_symbol(user_id: int, symbol: str, updates: dict, raw_patch: dict | None = None, notes_append: str | None = None) -> int:
+    normalized_symbol = (symbol or '').upper().strip()
+    if not normalized_symbol:
+        return 0
+    allowed = {
+        'order_status', 'status', 'filled_avg_price', 'filled_qty', 'exit_price', 'pnl', 'pnl_source',
+        'closed_at', 'outcome', 'notes', 'current_price', 'entry_price', 'stop_price', 'target_1', 'target_2', 'qty'
+    }
+    trades = Trade.query.filter_by(user_id=user_id, symbol=normalized_symbol).all()
+    updated = 0
+    for trade in trades:
+        if not _is_trade_active(trade):
+            continue
+        for key, value in (updates or {}).items():
+            if key in allowed:
+                setattr(trade, key, value)
+        if isinstance(raw_patch, dict):
+            payload = _load_json_payload(getattr(trade, 'raw_json', None))
+            if not isinstance(payload, dict):
+                payload = {}
+            trade.raw_json = json.dumps(_deep_merge_dict(payload, raw_patch))
+        if notes_append:
+            existing = (getattr(trade, 'notes', None) or '').strip()
+            trade.notes = f"{existing}; {notes_append}" if existing else notes_append
+        trade.updated_at = utc_now()
+        maybe_store_realized_pnl(trade)
+        updated += 1
+    if updated:
+        db.session.commit()
+    return updated
+
+
 def get_recent_scans(limit: int = 10) -> Iterable[Dict[str, Any]]:
     scans = Scan.query.order_by(Scan.id.desc()).limit(limit).all()
     return [_model_to_dict(s) for s in scans]
