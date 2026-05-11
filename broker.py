@@ -264,10 +264,13 @@ def _poll_for_fill(
     timeout_seconds: float,
     token: str | None = None,
     user: Any | None = None,
+    on_status: Any | None = None,
 ) -> Dict[str, Any]:
     started = time.time()
     while True:
         order = get_order(order_id, token=token, user=user)
+        if callable(on_status):
+            on_status(order)
         status = (order.get('status') or '').lower()
         if status == 'filled':
             return order
@@ -275,6 +278,8 @@ def _poll_for_fill(
             raise BrokerError(f'Entry order {order_id} ended as {status}.')
         if time.time() - started >= timeout_seconds:
             cancel_order(order_id, token=token, user=user)
+            if callable(on_status):
+                on_status({'id': order_id, 'status': 'canceled'})
             raise BrokerError(
                 f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.'
             )
@@ -317,9 +322,42 @@ def _background_leg_placement(
     user: Any | None,
 ) -> None:
     """Runs asynchronously to prevent blocking the main Flask API thread."""
+    def _update_entry_trade_status_safely(target_order_id: str, updates: Dict[str, Any]) -> None:
+        try:
+            from app import app
+            from db import update_trade_status
+            with app.app_context():
+                update_trade_status(target_order_id, updates)
+        except Exception as exc:
+            logger.error('Failed updating entry trade status for %s: %s', target_order_id, exc)
+
+    def _entry_status_callback(order_payload: Dict[str, Any]) -> None:
+        raw_payload = {'latest_entry_order': order_payload}
+        updates = {
+            'status': order_payload.get('status'),
+            'order_status': order_payload.get('status'),
+            'filled_avg_price': order_payload.get('filled_avg_price'),
+            'filled_qty': order_payload.get('filled_qty'),
+            'raw_json': raw_payload,
+        }
+        _update_entry_trade_status_safely(entry_id, updates)
+
     try:
         _ = entry_price
-        filled_entry = _poll_for_fill(entry_id, ENTRY_ORDER_TIMEOUT_SECONDS, token=user_token, user=user)
+        filled_entry = _poll_for_fill(
+            entry_id,
+            ENTRY_ORDER_TIMEOUT_SECONDS,
+            token=user_token,
+            user=user,
+            on_status=_entry_status_callback,
+        )
+        _update_entry_trade_status_safely(entry_id, {
+            'status': 'filled',
+            'order_status': 'filled',
+            'filled_avg_price': filled_entry.get('filled_avg_price'),
+            'filled_qty': filled_entry.get('filled_qty'),
+            'raw_json': {'latest_entry_order': filled_entry},
+        })
         filled_qty = int(float(filled_entry.get('filled_qty') or qty))
         if filled_qty < 1:
             return
@@ -384,7 +422,26 @@ def _background_leg_placement(
         except Exception as exc:
             logger.error('Failed persisting managed leg IDs for %s: %s', entry_id, exc)
     except BrokerError as exc:
+        message = str(exc).lower()
+        if 'ended as canceled' in message or 'ended as expired' in message or 'ended as rejected' in message or 'ended as done_for_day' in message:
+            status = message.split('ended as ', 1)[-1].rstrip('.')
+            _update_entry_trade_status_safely(entry_id, {'status': status, 'order_status': status})
+        if 'was not filled' in message and 'was canceled' in message:
+            _update_entry_trade_status_safely(entry_id, {
+                'status': 'canceled',
+                'order_status': 'canceled',
+                'notes': 'entry timeout cancellation',
+                'raw_json': {'managed_leg_placement_failed': 'entry_timeout_cancellation'},
+            })
         logger.error('Failed to execute background legs for %s: %s', entry_id, exc)
+    except Exception as exc:
+        logger.error('Managed leg placement failed after entry fill for %s: %s', entry_id, exc)
+        _update_entry_trade_status_safely(entry_id, {
+            'status': 'filled',
+            'order_status': 'filled',
+            'notes': 'managed_leg_placement_failed',
+            'raw_json': {'managed_leg_placement_failed': str(exc)},
+        })
 
 
 def place_managed_entry_order(

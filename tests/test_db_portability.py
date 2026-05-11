@@ -12,7 +12,7 @@ os.environ.setdefault('FLASK_DEBUG', '1')
 
 from flask import Flask
 from models import db, Trade
-from db import get_trade_by_target1_id, insert_trade_audit_log, ensure_trade_audit_table, get_recent_trade_audit_logs
+from db import get_trade_by_target1_id, insert_trade_audit_log, ensure_trade_audit_table, get_recent_trade_audit_logs, get_active_trade_for_user_symbol
 
 
 def _make_test_app(db_path: Path):
@@ -78,4 +78,30 @@ def test_trade_audit_logs_postgres_path_uses_scalar_one_not_lastrowid(monkeypatc
         new_id = insert_trade_audit_log({'symbol': 'MSFT', 'raw_json': {'ok': True}})
         assert new_id == 987
 
+        db.drop_all()
+
+
+def test_get_active_trade_for_user_symbol_sqlite(tmp_path):
+    app = _make_test_app(tmp_path / 'portability4.db')
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        rows = [
+            Trade(user_id=1, symbol='AAPL', status='pending_new', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', status='partially_filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', status='closed', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', order_status='canceled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', outcome='rejected', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', status='expired', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='MSFT', status='pending_new', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=2, symbol='AAPL', status='pending_new', entry_price=10, stop_price=9, target_1=11, target_2=12),
+        ]
+        db.session.add_all(rows)
+        db.session.commit()
+        got = get_active_trade_for_user_symbol(1, 'aapl')
+        assert got is not None
+        assert got['symbol'] == 'AAPL'
+        assert got['user_id'] == 1
+        assert got['status'] in {'pending_new', 'filled', 'partially_filled'}
         db.drop_all()

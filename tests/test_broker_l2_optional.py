@@ -208,3 +208,36 @@ def test_background_thread_path_does_not_touch_original_user(monkeypatch):
     monkeypatch.setattr(broker.threading, 'Thread', _CaptureThread)
     out = broker.place_managed_entry_order('AAPL', 5, 100, 98, 105, 110, user=user)
     assert out['id'] == 'entry-1'
+
+
+def test_poll_for_fill_calls_status_callback(monkeypatch):
+    seen = []
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o1', 'status': 'accepted'} if not seen else {'id': 'o1', 'status': 'filled'})
+    monkeypatch.setattr(broker.time, 'sleep', lambda *_: None)
+    out = broker._poll_for_fill('o1', 2, on_status=lambda order: seen.append(order.get('status')))
+    assert out['status'] == 'filled'
+    assert 'accepted' in seen
+
+
+def test_poll_for_fill_terminal_status_raises_after_callback(monkeypatch):
+    seen = []
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o2', 'status': 'rejected'})
+    try:
+        broker._poll_for_fill('o2', 1, on_status=lambda order: seen.append(order.get('status')))
+        assert False
+    except broker.BrokerError:
+        assert seen == ['rejected']
+
+
+def test_poll_for_fill_timeout_cancels_and_callbacks_canceled(monkeypatch):
+    seen = []
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o3', 'status': 'new'})
+    monkeypatch.setattr(broker, 'cancel_order', lambda *args, **kwargs: None)
+    ticks = {'n': 0}
+    monkeypatch.setattr(broker.time, 'time', lambda: (ticks.__setitem__('n', ticks['n'] + 2) or ticks['n']))
+    monkeypatch.setattr(broker.time, 'sleep', lambda *_: None)
+    try:
+        broker._poll_for_fill('o3', 1, on_status=lambda order: seen.append(order.get('status')))
+        assert False
+    except broker.BrokerError:
+        assert 'canceled' in seen
