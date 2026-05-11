@@ -376,3 +376,86 @@ def test_central_scan_cycle_recheck_failure_does_not_crash_or_skip_fanout(monkey
     scanner_service.run_central_scan_cycle('recheck_failure')
 
     assert calls['fanout'] == 1
+
+def _mk_user(**overrides):
+    base = {"id": 7, "subscription_status": "pro", "trading_mode": "paper", "exclude_penny_stocks": False}
+    base.update(overrides)
+    return SimpleNamespace(**base)
+
+
+def _mk_result(**pick_overrides):
+    pick = {
+        "symbol": "AAPL", "decision": "SKIP", "qty": 5,
+        "entry_price": 100.0, "stop_price": 95.0, "target_1": 102.0, "target_2": 104.0,
+    }
+    pick.update(pick_overrides)
+    return {"best_pick": pick, "watchlist": [{"symbol": pick["symbol"], "decision": pick.get("decision", "SKIP")}]}
+
+
+def test_aggressive_promotion_flow_and_guards(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+
+    # default disabled
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", False)
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result())
+    assert out["best_pick"]["decision"] == "SKIP"
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+
+    # aggressive disabled
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", False)
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result())
+    assert out["best_pick"]["decision"] == "SKIP"
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+
+    # promotes with metadata + watchlist updates
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result())
+    assert out["best_pick"]["decision"] == "BUY NOW"
+    assert out["best_pick"]["aggressive_intraday_promoted"] is True
+    assert out["best_pick"]["aggressive_intraday_promoted_from_decision"] == "SKIP"
+    assert out["watchlist"][0]["decision"] == "BUY NOW"
+
+    # non-pro not promoted
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(subscription_status="free"), _mk_result())
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    # live gating
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(trading_mode="live"), _mk_result())
+    assert out["best_pick"]["decision"] == "SKIP"
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", True)
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(trading_mode="live"), _mk_result())
+    assert out["best_pick"]["decision"] == "BUY NOW"
+
+    # missing fields
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(qty=None))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    # geometry invalid
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(stop_price=101.0))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    # risk too high
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(stop_price=80.0))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    # hard blockers + no trade
+    for overrides in [
+        {"data_stale": True}, {"below_stop": True}, {"vwap_failure": True}, {"buy_window_closed": True}, {"setup_broken": True},
+        {"too_extended": True, "pullback_reclaim": False}, {"decision": "NO TRADE"},
+    ]:
+        out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(**overrides))
+        assert out["best_pick"]["decision"] != "BUY NOW"
+
+
+def test_promoted_pick_contract_executable_ready(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result())
+    diag = scanner_service.validate_scan_payload_contract({"best_pick": out["best_pick"]})
+    assert diag.get("executable_payload_ready") is True

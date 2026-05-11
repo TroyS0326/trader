@@ -83,6 +83,124 @@ def run_shared_market_scan() -> Dict[str, Any]:
 
 
 
+
+
+def _aggressive_promote_decision_allowlist() -> set[str]:
+    raw = getattr(config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
+    parsed = {item.strip().upper() for item in str(raw).split(",") if item.strip()}
+    return parsed or {"SKIP", "WATCH", "WATCH FOR BREAKOUT"}
+
+
+def _flatten_reason_values(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        flattened: list[str] = []
+        for v in value.values():
+            flattened.extend(_flatten_reason_values(v))
+        return flattened
+    if isinstance(value, (list, tuple, set)):
+        flattened: list[str] = []
+        for item in value:
+            flattened.extend(_flatten_reason_values(item))
+        return flattened
+    return [str(value)]
+
+
+def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -> Dict[str, Any]:
+    if not (config.AGGRESSIVE_INTRADAY_ENABLED and config.AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED):
+        return result
+    if str(getattr(user, "subscription_status", "")).lower() != "pro":
+        return result
+    trading_mode = str(getattr(user, "trading_mode", "paper")).lower()
+    if trading_mode == "live" and not config.AGGRESSIVE_PROMOTION_LIVE_ENABLED:
+        return result
+    if trading_mode not in {"paper", "live"}:
+        return result
+
+    best_pick = result.get("best_pick")
+    if not isinstance(best_pick, dict):
+        return result
+
+    symbol = str(best_pick.get("symbol") or "").strip().upper()
+    old_decision = str(best_pick.get("decision") or "").strip()
+
+    hard_terms = {"stale", "below_stop", "vwap_failure", "setup_broken", "spread_too_wide", "insufficient_liquidity", "price_out_of_range", "dilution", "not_tradeable", "buy_window_closed"}
+
+    def blocked(reason: str) -> Dict[str, Any]:
+        logger.info("Aggressive intraday promotion skipped user_id=%s symbol=%s reason=%s", getattr(user, "id", None), symbol, reason)
+        return result
+
+    decision_u = old_decision.upper()
+    if decision_u in {"DATA STALE", "NO TRADE"} or decision_u.startswith("SETUP BROKEN"):
+        return blocked(f"decision={decision_u}")
+
+    for source in (best_pick, best_pick.get("details") or {}, best_pick.get("momentum_meta") or {}):
+        if not isinstance(source, dict):
+            continue
+        for flag in ("data_stale", "below_stop", "vwap_failure", "buy_window_closed", "setup_broken"):
+            if bool(source.get(flag)):
+                return blocked(flag)
+    if str(best_pick.get("live_signal") or "").strip().upper().startswith("SETUP BROKEN"):
+        return blocked("live_signal_setup_broken")
+
+    too_extended = bool(best_pick.get("too_extended"))
+    pullback_reclaim = bool(best_pick.get("pullback_reclaim"))
+    if too_extended and not pullback_reclaim:
+        return blocked("too_extended_without_pullback_reclaim")
+
+    for key in ("skip_reason_codes", "rejection_reason", "rejection_reasons", "missing_buy_confirmations", "missing_buy_confirmations_json"):
+        for text in _flatten_reason_values(best_pick.get(key)):
+            lowered = text.lower()
+            if any(term in lowered for term in hard_terms):
+                return blocked(f"reason_field:{key}")
+
+    contract_diag = validate_scan_payload_contract({"best_pick": best_pick})
+    if contract_diag.get("missing_order_fields"):
+        return result
+
+    try:
+        qty = int(best_pick.get("qty"))
+        entry = float(best_pick.get("entry_price"))
+        stop = float(best_pick.get("stop_price"))
+        target_1 = float(best_pick.get("target_1"))
+        target_2 = float(best_pick.get("target_2"))
+    except (TypeError, ValueError):
+        return result
+
+    if not symbol or qty < 1 or entry <= 0 or stop <= 0 or target_1 <= entry or target_2 < target_1 or stop >= entry:
+        return result
+
+    risk_per_share = entry - stop
+    if risk_per_share <= 0:
+        return result
+    risk_pct = risk_per_share / entry
+    if risk_pct > float(config.AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT):
+        return result
+
+    allowed = _aggressive_promote_decision_allowlist()
+    decision_candidates = {str(best_pick.get(k) or "").strip().upper() for k in ("decision", "action", "setup_grade")}
+    if not any(c in allowed for c in decision_candidates if c):
+        return result
+
+    best_pick["decision"] = "BUY NOW"
+    best_pick["aggressive_intraday_promoted_from_decision"] = old_decision
+    best_pick["aggressive_intraday_promoted"] = True
+    best_pick["aggressive_intraday_promotion_reason"] = "Aggressive intraday promotion: complete numeric order contract passed."
+    result["best_pick"] = best_pick
+
+    for item in result.get("watchlist") or []:
+        if isinstance(item, dict) and str(item.get("symbol") or "").strip().upper() == symbol:
+            item["decision"] = "BUY NOW"
+            item["aggressive_intraday_promoted_from_decision"] = old_decision
+            item["aggressive_intraday_promoted"] = True
+            item["aggressive_intraday_promotion_reason"] = best_pick["aggressive_intraday_promotion_reason"]
+
+    logger.warning("Aggressive intraday pick promoted user_id=%s symbol=%s from_decision=%s entry=%s stop=%s target_1=%s target_2=%s qty=%s risk_per_share_pct=%.4f", getattr(user, "id", None), symbol, old_decision, entry, stop, target_1, target_2, qty, risk_pct)
+    return result
+
 def _pick_is_allowed_for_user(user: Any, pick: Dict[str, Any]) -> bool:
     symbol = str((pick or {}).get("symbol") or "").upper().strip()
     if not symbol:
@@ -121,6 +239,7 @@ def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[st
     if not isinstance(best_pick, dict) or not _pick_is_allowed_for_user(user, best_pick):
         result["best_pick"] = watchlist[0] if watchlist else {}
 
+    result = _maybe_promote_aggressive_intraday_pick(user, result)
     return result
 
 
