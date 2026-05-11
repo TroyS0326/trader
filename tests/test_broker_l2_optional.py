@@ -267,3 +267,26 @@ def test_poll_for_fill_timeout_cancels_and_callbacks_canceled(monkeypatch):
         assert False
     except broker.BrokerError:
         assert 'canceled' in seen
+
+
+def test_poll_for_fill_timeout_get_order_error_still_callbacks_canceled(monkeypatch):
+    seen = []
+    calls = {'n': 0}
+
+    def _get_order(*args, **kwargs):
+        calls['n'] += 1
+        if calls['n'] == 1:
+            return {'id': 'o7', 'status': 'new'}
+        raise broker.BrokerError('transient read error')
+
+    monkeypatch.setattr(broker, 'get_order', _get_order)
+    monkeypatch.setattr(broker, 'cancel_order', lambda *args, **kwargs: None)
+    ticks = {'n': 0}
+    monkeypatch.setattr(broker.time, 'time', lambda: (ticks.__setitem__('n', ticks['n'] + 2) or ticks['n']))
+    monkeypatch.setattr(broker.time, 'sleep', lambda *_: None)
+
+    try:
+        broker._poll_for_fill('o7', 1, on_status=lambda order: seen.append(order.get('status')))
+        assert False
+    except broker.BrokerError:
+        assert seen[-1] == 'canceled'

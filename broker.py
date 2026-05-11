@@ -304,11 +304,25 @@ def _poll_for_fill(
             raise BrokerError(f'Entry order {order_id} ended as {status}.')
         if time.time() - started >= timeout_seconds:
             cancel_order(order_id, token=token, user=user)
-            final_order = get_order(order_id, token=token, user=user)
-            if callable(on_status):
-                on_status(final_order)
+            try:
+                final_order = get_order(order_id, token=token, user=user)
+            except BrokerError:
+                if callable(on_status):
+                    on_status({'id': order_id, 'status': 'canceled', 'order_status': 'canceled'})
+                raise BrokerError(f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.')
             if _order_filled_qty(final_order) > 0:
+                if callable(on_status):
+                    on_status(final_order)
                 return final_order
+            if isinstance(final_order, dict):
+                canceled_payload = dict(final_order)
+                canceled_payload['status'] = 'canceled'
+                canceled_payload['order_status'] = 'canceled'
+                canceled_payload.setdefault('id', order_id)
+            else:
+                canceled_payload = {'id': order_id, 'status': 'canceled', 'order_status': 'canceled'}
+            if callable(on_status):
+                on_status(canceled_payload)
             raise BrokerError(f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.')
         time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
 
