@@ -77,7 +77,11 @@
   .paid-lp summary { cursor: pointer; color: var(--text-main); font-weight: 600; }
   .paid-lp .faq-list { margin-top:.95rem; display:grid; gap:.65rem; }
   .paid-lp .compliance-strip { margin-top: .95rem; border:1px solid color-mix(in srgb, var(--border-color) 80%, #6a7688); border-radius: 12px; padding: .78rem .9rem; background: color-mix(in srgb, #0b111a 90%, transparent); font-size: .82rem; color: color-mix(in srgb, var(--text-muted) 78%, #d9e8f8); }
-  .paid-lp .legal-links { margin-top: .62rem; font-size: .84rem; }
+  .paid-lp .legal-links { margin-top: .72rem; font-size: .84rem; display: flex; flex-wrap: wrap; gap: .45rem .55rem; align-items: center; }
+  .paid-lp .legal-links .legal-label { color: color-mix(in srgb, var(--text-muted) 85%, #d3e6f9); font-weight: 600; margin-right: .2rem; }
+  .paid-lp .legal-links a { color: color-mix(in srgb, var(--accent-blue) 88%, #cbe7ff); text-decoration: underline; text-underline-offset: .18em; text-decoration-thickness: 1.5px; border: 1px solid color-mix(in srgb, var(--accent-blue) 38%, transparent); border-radius: 999px; background: color-mix(in srgb, #11213a 72%, transparent); display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .38rem .82rem; font-weight: 600; line-height: 1.2; transition: color .15s ease, background-color .15s ease, border-color .15s ease, box-shadow .15s ease; }
+  .paid-lp .legal-links a:hover { color: #dff3ff; background: color-mix(in srgb, var(--accent-blue) 18%, #0d1a2c); border-color: color-mix(in srgb, var(--accent-blue) 62%, transparent); }
+  .paid-lp .legal-links a:focus-visible { outline: none; color: #eaf7ff; border-color: color-mix(in srgb, var(--accent-blue) 72%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 42%, transparent); }
   @media (max-width: 980px) {
     .paid-lp .hero-grid, .paid-lp .compare { grid-template-columns: 1fr; }
     .paid-lp .workflow-line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -202,7 +206,7 @@
       <h2>Build the workflow first. Test it in paper mode. Then decide what comes next.</h2>
       <div class="cta-row"><a href="/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-primary-premium" data-meta-pixel-event="Lead">Create Account &amp; Test Paper Mode</a><a href="/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation" class="btn-premium btn-secondary-premium" data-meta-pixel-event="ViewContent">View Pricing</a></div>
       <div class="compliance-strip">XeanVI · admin@xeanvi.com · 941 529 7990 · 2900 Acline RD, Punta Gorda, FL 33950 · Fees: $19.99/month and $199.99/year. Trading involves risk, including possible loss of capital. XeanVI is software for user-defined workflow automation and is not financial advice, not a broker-dealer, not an investment adviser, and not a custodian.</div>
-      <p class="legal-links"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a> · <a href="/pricing">Pricing</a></p>
+      <p class="legal-links"><span class="legal-label">Review:</span> <a href="/terms">Terms</a> <a href="/privacy">Privacy</a> <a href="/contact">Contact</a> <a href="/pricing">Pricing</a></p>
     </div>
   </section>
 </main>
