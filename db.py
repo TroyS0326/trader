@@ -394,7 +394,7 @@ def get_failed_trades_today() -> int:
 
 
 def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
-    dialect = db.session.bind.dialect.name if db.session.bind is not None else ""
+    dialect = _current_dialect_name()
     if dialect == "sqlite":
         query = Trade.query.filter(
             func.json_extract(Trade.raw_json, '$.order_bundle.target_1_order_id') == target_1_id
@@ -414,6 +414,22 @@ def get_trade_by_target1_id(target_1_id: str, user_id: Optional[int] = None) -> 
             return _model_to_dict(trade)
     return None
 
+
+
+def _current_dialect_name() -> str:
+    try:
+        bind = db.session.get_bind()
+    except Exception:
+        bind = None
+
+    if bind is not None and getattr(bind, "dialect", None) is not None:
+        return str(bind.dialect.name or "").lower()
+
+    session_bind = getattr(db.session, "bind", None)
+    if session_bind is not None and getattr(session_bind, "dialect", None) is not None:
+        return str(session_bind.dialect.name or "").lower()
+
+    return ""
 
 
 
@@ -447,8 +463,8 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
     raw_json = payload.get('raw_json', {})
     raw_json_str = raw_json if isinstance(raw_json, str) else json.dumps(raw_json)
 
-    dialect = db.session.bind.dialect.name if db.session.bind is not None else ""
-    insert_sql = """
+    dialect = _current_dialect_name()
+    base_sql = """
             INSERT INTO trade_audit_logs (
                 created_at, user_id, email, trading_mode, subscription_status,
                 symbol, scan_id, qty, entry_price, stop_price, target_1, target_2,
@@ -460,32 +476,52 @@ def insert_trade_audit_log(payload: Dict[str, Any]) -> int:
                 :order_id, :order_status, :raw_json
             )
         """
-    if dialect == "postgresql":
-        insert_sql += " RETURNING id"
-    result = db.session.execute(
-        text(insert_sql),
-        {
-            'created_at': payload.get('created_at') or utc_now().isoformat(),
-            'user_id': payload.get('user_id'),
-            'email': payload.get('email'),
-            'trading_mode': payload.get('trading_mode'),
-            'subscription_status': payload.get('subscription_status'),
-            'symbol': payload.get('symbol'),
-            'scan_id': payload.get('scan_id'),
-            'qty': payload.get('qty'),
-            'entry_price': payload.get('entry_price'),
-            'stop_price': payload.get('stop_price'),
-            'target_1': payload.get('target_1'),
-            'target_2': payload.get('target_2'),
-            'order_id': payload.get('order_id'),
-            'order_status': payload.get('order_status'),
-            'raw_json': raw_json_str,
-        },
-    )
-    inserted_id = result.scalar_one() if dialect == "postgresql" else result.lastrowid
-    db.session.commit()
-    return int(inserted_id)
+    params = {
+        'created_at': payload.get('created_at') or utc_now().isoformat(),
+        'user_id': payload.get('user_id'),
+        'email': payload.get('email'),
+        'trading_mode': payload.get('trading_mode'),
+        'subscription_status': payload.get('subscription_status'),
+        'symbol': payload.get('symbol'),
+        'scan_id': payload.get('scan_id'),
+        'qty': payload.get('qty'),
+        'entry_price': payload.get('entry_price'),
+        'stop_price': payload.get('stop_price'),
+        'target_1': payload.get('target_1'),
+        'target_2': payload.get('target_2'),
+        'order_id': payload.get('order_id'),
+        'order_status': payload.get('order_status'),
+        'raw_json': raw_json_str,
+    }
 
+    try:
+        inserted_id = None
+        if dialect == "postgresql":
+            result = db.session.execute(text(base_sql + " RETURNING id"), params)
+            inserted_id = result.scalar_one()
+        elif dialect == "sqlite":
+            result = db.session.execute(text(base_sql), params)
+            inserted_id = getattr(result, 'lastrowid', None)
+            if inserted_id is None:
+                inserted_id = db.session.execute(text('SELECT last_insert_rowid()')).scalar_one()
+        else:
+            try:
+                result = db.session.execute(text(base_sql + " RETURNING id"), params)
+                inserted_id = result.scalar_one()
+            except Exception:
+                result = db.session.execute(text(base_sql), params)
+                inserted_id = getattr(result, 'lastrowid', None)
+                if inserted_id is None:
+                    inserted_id = db.session.execute(text('SELECT MAX(id) FROM trade_audit_logs')).scalar_one()
+
+        if inserted_id is None:
+            raise RuntimeError(f'Unable to determine inserted trade audit log id for dialect={dialect or "unknown"}')
+
+        db.session.commit()
+        return int(inserted_id)
+    except Exception as exc:
+        db.session.rollback()
+        raise RuntimeError(f'insert_trade_audit_log failed to persist audit row: {exc}') from exc
 
 def get_recent_trade_audit_logs(limit: int = 50) -> Iterable[Dict[str, Any]]:
     ensure_trade_audit_table()

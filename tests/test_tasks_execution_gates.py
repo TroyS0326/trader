@@ -80,11 +80,35 @@ def _install_import_stubs():
     sentry_stub = ModuleType("sentry_setup")
     sentry_stub.init_sentry = lambda name: None
     sys.modules.setdefault("sentry_setup", sentry_stub)
+    db_stub = ModuleType("db")
+    db_stub.get_trade_by_order_id = lambda order_id: None
+    db_stub.insert_trade = lambda payload: 1
+    sys.modules.setdefault("db", db_stub)
+
 
 
 _install_import_stubs()
 
 import tasks
+
+
+def _install_db_ops_stubs(monkeypatch, *, existing_trade=None, insert_raises=False):
+    calls = {"get": 0, "insert": 0, "insert_payload": None}
+
+    def _get_trade(order_id):
+        calls["get"] += 1
+        return existing_trade
+
+    def _insert_trade(payload):
+        calls["insert"] += 1
+        calls["insert_payload"] = payload
+        if insert_raises:
+            raise RuntimeError("insert failed")
+        return 123
+
+    monkeypatch.setattr(tasks.db_ops, "get_trade_by_order_id", _get_trade)
+    monkeypatch.setattr(tasks.db_ops, "insert_trade", _insert_trade)
+    return calls
 
 
 def _call_task(**overrides):
@@ -192,3 +216,73 @@ def test_exception_path_returns_error_message(monkeypatch):
     result = _call_task()
     assert "Execution failed" in result
     assert "broker down" in result
+
+
+def test_order_with_id_inserts_trade_before_audit(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-1", "status": "pending_new"})
+    calls = _install_db_ops_stubs(monkeypatch)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    result = _call_task()
+
+    assert calls["get"] == 1 and calls["insert"] == 1
+    assert calls["insert_payload"]["order_id"] == "oid-1"
+    assert calls["insert_payload"]["status"] == "pending_new"
+    assert calls["insert_payload"]["qty"] == 5
+    assert calls["insert_payload"]["entry_price"] == 101.5
+    assert calls["insert_payload"]["stop_price"] == 99.0
+    assert audit_calls["count"] == 1
+    assert "Success" in result and "oid-1" in result
+
+
+def test_existing_trade_by_order_id_skips_duplicate_insert(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-2", "status": "pending_new"})
+    calls = _install_db_ops_stubs(monkeypatch, existing_trade={"id": 55})
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+
+    _call_task()
+
+    assert calls["get"] == 1 and calls["insert"] == 0
+
+
+def test_rejected_order_without_id_audits_without_trade_insert(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"status": "rejected", "reason": "no buying power"})
+    calls = _install_db_ops_stubs(monkeypatch)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    result = _call_task()
+
+    assert calls["get"] == 0 and calls["insert"] == 0
+    assert audit_calls["count"] == 1
+    assert "Success" in result
+
+
+def test_insert_trade_failure_does_not_block_audit_or_success(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-3", "status": "pending_new"})
+    calls = _install_db_ops_stubs(monkeypatch, insert_raises=True)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    result = _call_task()
+
+    assert calls["insert"] == 1
+    assert audit_calls["count"] == 1
+    assert "Success" in result and "oid-3" in result
