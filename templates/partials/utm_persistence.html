@@ -1,0 +1,24 @@
+<script>
+(function(){
+  const keys=["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid"];
+  const storageKey="xeanvi_attribution_params";
+  const url=new URL(window.location.href);
+  const current={};
+  keys.forEach(k=>{const v=url.searchParams.get(k); if(v) current[k]=v;});
+  const storedRaw=sessionStorage.getItem(storageKey)||localStorage.getItem(storageKey)||"{}";
+  let stored={}; try{stored=JSON.parse(storedRaw)||{};}catch(e){stored={};}
+  const merged=Object.assign({},stored,current);
+  sessionStorage.setItem(storageKey,JSON.stringify(merged));
+  localStorage.setItem(storageKey,JSON.stringify(merged));
+  const targets=["/signup","/pricing","/api/create-checkout-session"];
+  document.querySelectorAll('a[href]').forEach(a=>{
+    const href=a.getAttribute('href')||'';
+    if(!href || href.startsWith('mailto:')||href.startsWith('tel:')||href.includes('/logout')) return;
+    if(href.startsWith('http://')||href.startsWith('https://')){ try{ const u=new URL(href); if(u.origin!==window.location.origin) return;}catch(e){return;} }
+    const u=new URL(href,window.location.origin);
+    if(!targets.some(t=>u.pathname===t)) return;
+    keys.forEach(k=>{if(merged[k] && !u.searchParams.has(k)) u.searchParams.set(k,merged[k]);});
+    a.setAttribute('href',u.pathname+u.search+u.hash);
+  });
+})();
+</script>

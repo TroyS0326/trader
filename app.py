@@ -1174,6 +1174,11 @@ def reset_password_with_token(token):
     return render_template('reset_password.html', token=token)
 
 
+
+@app.route('/lp/rule-based-trading-automation')
+def paid_ads_landing():
+    return render_template('paid_ads_landing.html')
+
 @app.route('/features')
 def features():
     return render_template('features.html')

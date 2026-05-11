@@ -14,6 +14,17 @@ BANNED_PHRASES = [
     'foolproof',
     'set it and forget it',
     'effortless profits',
+    'cheat code',
+    'guaranteed profit',
+    'beat wall street',
+    'takes the profit',
+    'passive income',
+    'no risk',
+    'win rate',
+    'sure thing',
+    'get rich',
+    'hands-free profits',
+    'ai picks winners',
 ]
 
 PAGE_EXPECTATIONS = {
@@ -27,6 +38,7 @@ PAGE_EXPECTATIONS = {
     'templates/transparency.html': 'https://xeanvi.com/transparency',
     'templates/blog_index.html': 'https://xeanvi.com/blog',
     'templates/trading_automation.html': 'https://xeanvi.com/trading-automation',
+    'templates/paid_ads_landing.html': 'https://xeanvi.com/lp/rule-based-trading-automation',
 }
 FAQ_SCHEMA_PAGES = {
     'templates/landing.html',
