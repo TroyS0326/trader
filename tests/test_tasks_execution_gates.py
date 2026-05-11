@@ -1,4 +1,5 @@
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from types import ModuleType, SimpleNamespace
 import logging as real_logging
 import sys
@@ -414,6 +415,26 @@ def test_active_duplicate_blocks_order_and_audits(monkeypatch):
     assert captured["order_result"]["reason"] == "duplicate_active_trade"
 
 
+def test_parse_utc_datetime_parses_naive_iso_string():
+    parsed = tasks._parse_utc_datetime("2026-01-02T03:04:05")
+    assert parsed == datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+
+
+def test_parse_utc_datetime_parses_aware_iso_string():
+    parsed = tasks._parse_utc_datetime("2026-01-02T03:04:05+02:00")
+    assert parsed == datetime(2026, 1, 2, 1, 4, 5, tzinfo=timezone.utc)
+
+
+def test_parse_utc_datetime_parses_trailing_z_string():
+    parsed = tasks._parse_utc_datetime("2026-01-02T03:04:05Z")
+    assert parsed == datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+
+
+def test_parse_utc_datetime_returns_none_for_invalid_input():
+    assert tasks._parse_utc_datetime("not-a-date") is None
+    assert tasks._parse_utc_datetime(None) is None
+
+
 def test_duplicate_helper_exception_does_not_block_order(monkeypatch):
     _patch_context(monkeypatch)
     user = SimpleNamespace(subscription_status="pro", id=7)
@@ -457,6 +478,48 @@ def test_duplicate_old_trade_reconciles_then_allows(monkeypatch):
     assert "Success" in out and called["recon"] == 1
 
 
+def test_duplicate_active_trade_with_naive_created_at_blocks_without_order(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1, "order_id": "o1", "created_at": "2999-01-01T00:00:00"})
+    order_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    out = _call_task()
+    assert "Duplicate active trade blocked" in out
+    assert order_calls["count"] == 0
+
+
+def test_duplicate_active_trade_with_aware_created_at_blocks_without_order(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1, "order_id": "o1", "created_at": "2999-01-01T00:00:00+00:00"})
+    order_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    out = _call_task()
+    assert "Duplicate active trade blocked" in out
+    assert order_calls["count"] == 0
+
+
+def test_duplicate_active_trade_with_invalid_created_at_blocks_without_order(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1, "order_id": "o1", "created_at": "invalid-date"})
+    order_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    out = _call_task()
+    assert "Duplicate active trade blocked" in out
+    assert order_calls["count"] == 0
+
+
 def test_duplicate_recent_trade_still_blocks(monkeypatch):
     _patch_context(monkeypatch)
     user = SimpleNamespace(subscription_status="pro", id=7)
@@ -465,4 +528,25 @@ def test_duplicate_recent_trade_still_blocks(monkeypatch):
     monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1, "order_id": "o1", "created_at": "2999-01-01T00:00:00+00:00"})
     monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
     out = _call_task()
+    assert "Duplicate active trade blocked" in out
+
+
+def test_duplicate_stale_trade_reconciles_rechecks_and_blocks_if_still_active(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    old = "2020-01-01T00:00:00"
+    seq = [{"id": 1, "order_id": "o1", "created_at": old}, {"id": 1, "order_id": "o1", "created_at": old}]
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: seq.pop(0))
+    called = {"recon": 0, "order": 0}
+    import order_reconciliation
+    monkeypatch.setattr(order_reconciliation, "reconcile_active_trade_orders", lambda **kwargs: called.__setitem__("recon", called["recon"] + 1) or {})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: called.__setitem__("order", called["order"] + 1))
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    monkeypatch.setattr(tasks.config, "ORDER_RECONCILIATION_STALE_MINUTES", 60)
+    monkeypatch.setattr(tasks.config, "ORDER_RECONCILIATION_ACTIVE_LIMIT", 100)
+    out = _call_task()
+    assert called["recon"] == 1
+    assert called["order"] == 0
     assert "Duplicate active trade blocked" in out

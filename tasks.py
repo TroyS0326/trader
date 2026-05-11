@@ -1,7 +1,7 @@
 import redis
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from celery import Celery
 from celery.schedules import crontab
 from flask import Flask
@@ -54,6 +54,25 @@ ALPACA_HEADERS = {
     'APCA-API-SECRET-KEY': config.ALPACA_API_SECRET,
 }
 CHOP_RANGE_THRESHOLD_PCT = 0.006  # 0.6% daily range on SPY ~= tight/choppy market
+
+
+def _parse_utc_datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    else:
+        return None
+
+    try:
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
 
 
 def _safe_log_exception(message, *args):
@@ -152,14 +171,9 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
 
             if active_trade:
                 created_at = active_trade.get("created_at")
-                stale_cutoff = utc_now_aware() - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
-                try_reconcile = False
-                if isinstance(created_at, str):
-                    try:
-                        created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                        try_reconcile = created_dt <= stale_cutoff
-                    except ValueError:
-                        try_reconcile = False
+                stale_cutoff = utc_now_aware().astimezone(timezone.utc) - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
+                created_dt = _parse_utc_datetime(created_at)
+                try_reconcile = created_dt is not None and created_dt <= stale_cutoff
                 if try_reconcile:
                     try:
                         from order_reconciliation import reconcile_active_trade_orders
