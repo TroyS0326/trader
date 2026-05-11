@@ -88,7 +88,73 @@
     .paid-lp .workflow-line::before { display:none; }
   }
   @media (max-width: 700px) {
-    .paid-lp .bento .mini, .paid-lp .bento .feature, .paid-lp .offer-grid, .paid-lp .fit-grid, .paid-lp .pill-grid, .paid-lp .workflow-line, .paid-lp .console { grid-template-columns: 1fr; grid-column: span 6; }
+    .paid-lp section { padding: clamp(2.3rem, 9vw, 3.4rem) 0; }
+    .paid-lp .wrap { padding: 0 clamp(.9rem, 4.5vw, 1.2rem); }
+    .paid-lp .shell, .paid-lp .block-shell { border-radius: 16px; }
+    .paid-lp .hero-grid { padding: 1rem; gap: 1rem; }
+    .paid-lp h1 { font-size: clamp(1.8rem, 8.4vw, 2.25rem); line-height: 1.08; }
+    .paid-lp h2 { font-size: clamp(1.35rem, 6.9vw, 1.7rem); line-height: 1.18; }
+    .paid-lp .hero-copy p,
+    .paid-lp .card,
+    .paid-lp .step p,
+    .paid-lp .offer-card p,
+    .paid-lp .panel li,
+    .paid-lp details p,
+    .paid-lp td,
+    .paid-lp th { font-size: .98rem; }
+    .paid-lp .microcopy { font-size: .9rem; line-height: 1.55; }
+
+    .paid-lp .cta-row { margin: 1.1rem 0 .5rem; gap: .62rem; }
+    .paid-lp .btn-premium {
+      border-radius: 12px;
+      min-height: 46px;
+      padding: .78rem .95rem;
+      font-size: .95rem;
+      line-height: 1.2;
+      text-align: center;
+      justify-content: center;
+      flex: 1 1 100%;
+      width: 100%;
+    }
+
+    .paid-lp .mockup { padding: .85rem; }
+    .paid-lp .mockup-head { gap: .45rem; margin-bottom: .65rem; }
+    .paid-lp .chip { font-size: .72rem; padding: .22rem .54rem; }
+    .paid-lp .console { gap: .62rem; }
+    .paid-lp .timeline, .paid-lp .control { padding: .74rem; }
+    .paid-lp .timeline p { margin: .28rem 0; font-size: .8rem; }
+
+    .paid-lp .bento { gap: .72rem; margin-top: .95rem; }
+    .paid-lp .bento .card,
+    .paid-lp .step,
+    .paid-lp .offer-card,
+    .paid-lp .panel,
+    .paid-lp details { padding: .88rem; }
+
+    .paid-lp .workflow-line,
+    .paid-lp .offer-grid,
+    .paid-lp .fit-grid,
+    .paid-lp .pill-grid,
+    .paid-lp .console,
+    .paid-lp .compare,
+    .paid-lp .bento { grid-template-columns: 1fr; }
+    .paid-lp .bento .mini,
+    .paid-lp .bento .feature { grid-column: auto; }
+
+    .paid-lp .compare { gap: .82rem; }
+    .paid-lp table { font-size: .9rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .paid-lp th, .paid-lp td { min-width: 150px; padding: .6rem .58rem; }
+
+    .paid-lp .price { font-size: clamp(1.35rem, 8vw, 1.62rem); }
+    .paid-lp .panel[style] { margin-top: .75rem !important; }
+
+    .paid-lp .legal-links { font-size: .82rem; gap: .45rem; }
+    .paid-lp .legal-links a {
+      min-height: 40px;
+      padding: .32rem .7rem;
+      border-radius: 10px;
+      font-size: .82rem;
+    }
   }
 </style>
 </head>
