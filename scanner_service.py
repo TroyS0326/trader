@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 import config
+import db
 from app import app, redis_client
 from db import insert_scan
 from execution_guard import approve_scan_for_user
@@ -128,7 +129,7 @@ def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -
     symbol = str(best_pick.get("symbol") or "").strip().upper()
     old_decision = str(best_pick.get("decision") or "").strip()
 
-    hard_terms = {"stale", "below_stop", "vwap_failure", "setup_broken", "spread_too_wide", "insufficient_liquidity", "price_out_of_range", "dilution", "not_tradeable", "buy_window_closed"}
+    hard_terms = {"stale", "below_stop", "vwap_failure", "setup_broken", "spread_too_wide", "insufficient_liquidity", "price_out_of_range", "dilution", "not_tradeable", "buy_window_closed", "duplicate_active_trade"}
 
     def blocked(reason: str) -> Dict[str, Any]:
         logger.info("Aggressive intraday promotion skipped user_id=%s symbol=%s reason=%s", getattr(user, "id", None), symbol, reason)
@@ -146,6 +147,8 @@ def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -
                 return blocked(flag)
     if str(best_pick.get("live_signal") or "").strip().upper().startswith("SETUP BROKEN"):
         return blocked("live_signal_setup_broken")
+    if bool(best_pick.get("active_trade_blocked")):
+        return blocked("active_trade_blocked")
 
     too_extended = bool(best_pick.get("too_extended"))
     pullback_reclaim = bool(best_pick.get("pullback_reclaim"))
@@ -258,6 +261,22 @@ def _pick_is_allowed_for_user(user: Any, pick: Dict[str, Any]) -> bool:
 
     return True
 
+
+def _candidate_symbol(candidate: Any) -> str:
+    if not isinstance(candidate, dict):
+        return ""
+    return str(candidate.get("symbol") or "").strip().upper()
+
+
+def _active_trade_for_user_symbol(user: Any, symbol: str) -> Dict[str, Any] | None:
+    if not symbol:
+        return None
+    try:
+        return db.get_active_trade_for_user_symbol(getattr(user, "id", None), symbol)
+    except Exception:
+        logger.warning("Active trade duplicate check failed user_id=%s symbol=%s", getattr(user, "id", None), symbol, exc_info=True)
+        return None
+
 def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[str, Any]:
     """Build a user-specific scan payload from a shared market scan result."""
     result = dict(shared_scan or {})
@@ -269,12 +288,62 @@ def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[st
     result["scan_attribution_version"] = 1
 
     # Preserve user-level exclusion safety without re-running the expensive market scan.
-    watchlist = [item for item in (result.get("watchlist") or []) if isinstance(item, dict) and _pick_is_allowed_for_user(user, item)]
-    result["watchlist"] = watchlist
-
+    candidate_pool: List[Dict[str, Any]] = []
     best_pick = result.get("best_pick") or {}
-    if not isinstance(best_pick, dict) or not _pick_is_allowed_for_user(user, best_pick):
-        result["best_pick"] = watchlist[0] if watchlist else {}
+    if isinstance(best_pick, dict):
+        candidate_pool.append(best_pick)
+    candidate_pool.extend(item for item in (result.get("watchlist") or []) if isinstance(item, dict))
+
+    candidates: List[Dict[str, Any]] = []
+    seen_symbols: set[str] = set()
+    for item in candidate_pool:
+        symbol = _candidate_symbol(item)
+        if not symbol or symbol in seen_symbols or not _pick_is_allowed_for_user(user, item):
+            continue
+        seen_symbols.add(symbol)
+        candidates.append(item)
+
+    if not candidates:
+        result["watchlist"] = []
+        result["best_pick"] = {}
+    elif not config.ACTIVE_SYMBOL_ROTATION_ENABLED:
+        result["watchlist"] = candidates
+        result["best_pick"] = candidates[0]
+    else:
+        non_active_candidates: List[Dict[str, Any]] = []
+        active_blocked_candidates: List[Dict[str, Any]] = []
+        blocked_symbols: List[str] = []
+        for item in candidates:
+            symbol = _candidate_symbol(item)
+            if _active_trade_for_user_symbol(user, symbol):
+                active_blocked_candidates.append(item)
+                blocked_symbols.append(symbol)
+            else:
+                non_active_candidates.append(item)
+
+        result["active_symbol_rotation_blocked_symbols"] = blocked_symbols
+        original_best_symbol = _candidate_symbol(candidates[0]) if candidates else ""
+
+        if non_active_candidates:
+            result["best_pick"] = non_active_candidates[0]
+            result["watchlist"] = non_active_candidates + active_blocked_candidates
+            result["active_symbol_rotation_applied"] = bool(
+                original_best_symbol and blocked_symbols and original_best_symbol in blocked_symbols and _candidate_symbol(result["best_pick"]) != original_best_symbol
+            )
+        else:
+            blocked_pick = dict(active_blocked_candidates[0])
+            blocked_pick["decision"] = "SKIP"
+            blocked_pick["active_trade_blocked"] = True
+            blocked_pick["active_trade_block_reason"] = "duplicate_active_trade"
+            reasons = _flatten_reason_values(blocked_pick.get("skip_reason_codes"))
+            if "duplicate_active_trade" not in reasons:
+                reasons.append("duplicate_active_trade")
+            blocked_pick["skip_reason_codes"] = reasons
+            if "aggressive_intraday_promoted" in blocked_pick:
+                blocked_pick["aggressive_intraday_promoted"] = False
+            result["best_pick"] = blocked_pick
+            result["watchlist"] = active_blocked_candidates
+            result["active_symbol_rotation_all_candidates_blocked"] = True
 
     result = _maybe_promote_aggressive_intraday_pick(user, result)
     return result
@@ -319,6 +388,21 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
         return
 
     from tasks import execute_user_trade_task
+    try:
+        active_trade = db.get_active_trade_for_user_symbol(user.id, str(diag.get("symbol") or "").strip().upper())
+        if active_trade:
+            logger.info(
+                "Execution skipped. reason=DUPLICATE_ACTIVE_TRADE user_id=%s scan_id=%s symbol=%s existing_trade_id=%s existing_order_id=%s",
+                getattr(user, "id", None),
+                scan_payload.get("scan_id"),
+                str(diag.get("symbol") or "").strip().upper(),
+                active_trade.get("id"),
+                active_trade.get("order_id"),
+            )
+            return
+    except Exception:
+        logger.warning("Pre-dispatch duplicate active trade check failed user_id=%s scan_id=%s symbol=%s", getattr(user, "id", None), scan_payload.get("scan_id"), str(diag.get("symbol") or "").strip().upper(), exc_info=True)
+
     best_pick = (scan_payload.get("best_pick") or scan_payload.get("best") or scan_payload.get("top_pick") or {})
     target_1 = best_pick.get("target_1", best_pick.get("target_1_price"))
     target_2 = best_pick.get("target_2", best_pick.get("target_2_price"))
