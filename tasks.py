@@ -188,6 +188,14 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
 
             if active_trade:
                 existing_order_id = active_trade.get("order_id")
+                blocked_order_result = {
+                    "id": existing_order_id,
+                    "status": "blocked",
+                    "reason": "duplicate_active_trade",
+                    "existing_trade_id": active_trade.get("id"),
+                    "existing_order_id": existing_order_id,
+                    "symbol": symbol,
+                }
                 audit_trade_log(
                     logger=celery_app.log.get_default_logger(),
                     user=user,
@@ -198,15 +206,7 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     stop_price=stop_price,
                     target_1=target_1_price,
                     target_2=target_2_price,
-                    order_id=existing_order_id,
-                    order_status="blocked",
-                    order_result={
-                        "status": "blocked",
-                        "reason": "duplicate_active_trade",
-                        "existing_trade_id": active_trade.get("id"),
-                        "existing_order_id": existing_order_id,
-                        "symbol": symbol,
-                    },
+                    order_result=blocked_order_result,
                 )
                 return (
                     f'Duplicate active trade blocked for User {user_id}: {symbol} '
