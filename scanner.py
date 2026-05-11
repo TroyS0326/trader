@@ -57,6 +57,7 @@ from config import (
     PULLBACK_MAX_RETRACE_PCT,
     KELLY_FRACTION,
     SCAN_CANDIDATE_LIMIT,
+    BROAD_UNIVERSE_SCAN_ENABLED, BROAD_UNIVERSE_CACHE_TTL_MINUTES, BROAD_UNIVERSE_MAX_SYMBOLS, BROAD_SNAPSHOT_BATCH_SIZE, BROAD_SCAN_TOP_N, DEEP_ANALYSIS_TOP_N, MIN_BROAD_PRICE, MAX_BROAD_PRICE, MIN_BROAD_DOLLAR_VOLUME, MIN_BROAD_INTRADAY_CHANGE_PCT, MAX_BROAD_SPREAD_PCT, BROAD_INCLUDE_ETFS,
     TIMEZONE_LABEL,
     VA_PERCENT,
     VIX_CIRCUIT_BREAKER_PCT,
@@ -69,6 +70,7 @@ TIMEOUT = 20
 HIGH_GAP_THRESHOLD_PCT = 20.0
 HIGH_GAP_MIN_PREMARKET_DOLLAR_VOL = 5_000_000
 logger = logging.getLogger(__name__)
+_BROAD_UNIVERSE_CACHE: Dict[str, Any] = {"symbols": [], "expires_at": None}
 
 VETERAN_BLACKLIST = {
     'NVD', 'NVDL', 'NVDX', 'NVDQ', 'TQQQ', 'SQQQ', 'QLD', 'QID', 'SOXL', 'SOXS',
@@ -380,6 +382,9 @@ def apply_user_symbol_filters(
 
 
 def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] = None) -> List[str]:
+    if BROAD_UNIVERSE_SCAN_ENABLED:
+        return get_refined_broad_universe(limit=limit, user=user)
+
     candidates = set()
     candidates.update(get_alpaca_movers(limit))
     candidates.update(get_premarket_leaders(limit))
@@ -435,6 +440,80 @@ def get_refined_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] 
     if 'SPY' not in valid:
         valid.append('SPY')
     return valid[: max(limit, 12)]
+
+
+def _discover_broad_universe_symbols() -> List[str]:
+    now = now_utc()
+    expires_at = _BROAD_UNIVERSE_CACHE.get("expires_at")
+    if expires_at and isinstance(expires_at, datetime) and now < expires_at:
+        return list(_BROAD_UNIVERSE_CACHE.get("symbols") or [])
+    try:
+        assets = _get_json(
+            f"{config.ALPACA_ASSETS_BASE}/v2/assets",
+            params={"status": "active", "asset_class": "us_equity"},
+            headers=_alpaca_headers(),
+        )
+    except Exception:
+        return list(_BROAD_UNIVERSE_CACHE.get("symbols") or [])
+    symbols: List[str] = []
+    for asset in (assets or []):
+        if not isinstance(asset, dict):
+            continue
+        symbol = str(asset.get("symbol") or "").strip().upper()
+        if not symbol or not asset.get("tradable"):
+            continue
+        if not BROAD_INCLUDE_ETFS and bool(asset.get("easy_to_borrow")) is False and str(asset.get("exchange") or "").upper() in {"ARCA", "BATS"}:
+            # heuristic ETF skip when ETF inclusion is disabled
+            continue
+        symbols.append(symbol)
+        if len(symbols) >= BROAD_UNIVERSE_MAX_SYMBOLS:
+            break
+    _BROAD_UNIVERSE_CACHE["symbols"] = symbols
+    _BROAD_UNIVERSE_CACHE["expires_at"] = now + timedelta(minutes=max(BROAD_UNIVERSE_CACHE_TTL_MINUTES, 1))
+    return symbols
+
+
+def get_refined_broad_universe(limit: int = SCAN_CANDIDATE_LIMIT, user: Optional[Any] = None) -> List[str]:
+    feed = resolve_data_feed(user)
+    broad_symbols = _discover_broad_universe_symbols()
+    top_n = max(DEEP_ANALYSIS_TOP_N, BROAD_SCAN_TOP_N, limit, 12)
+    scored: List[Tuple[float, str]] = []
+    batch_size = max(1, BROAD_SNAPSHOT_BATCH_SIZE)
+    for idx in range(0, len(broad_symbols), batch_size):
+        batch = broad_symbols[idx: idx + batch_size]
+        snapshots = get_snapshots(batch, feed=feed)
+        quotes = get_latest_quotes(batch, feed=feed)
+        for symbol in batch:
+            snap = snapshots.get(symbol, {}) or {}
+            quote = quotes.get(symbol, {}) or {}
+            daily = snap.get('dailyBar', {}) or {}
+            minute = snap.get('minuteBar', {}) or {}
+            prev = snap.get('prevDailyBar', {}) or {}
+            price = safe_num(quote.get('ap')) or safe_num(minute.get('c')) or safe_num(daily.get('c')) or safe_num(prev.get('c'))
+            if price < MIN_BROAD_PRICE or price > MAX_BROAD_PRICE:
+                continue
+            vol = safe_num(daily.get('v')) or safe_num(prev.get('v'))
+            dollar_volume = vol * max(price, 0)
+            if dollar_volume < MIN_BROAD_DOLLAR_VOLUME:
+                continue
+            prev_close = safe_num(prev.get('c'))
+            intraday_change_pct = (((price - prev_close) / prev_close) * 100.0) if prev_close > 0 else 0.0
+            if abs(intraday_change_pct) < MIN_BROAD_INTRADAY_CHANGE_PCT:
+                continue
+            bid = safe_num(quote.get('bp'))
+            ask = safe_num(quote.get('ap'))
+            spread_pct = calc_spread_pct(bid, ask, price)
+            if spread_pct > MAX_BROAD_SPREAD_PCT:
+                continue
+            score = abs(intraday_change_pct) * 2.0 + (dollar_volume / 1_000_000.0) - (spread_pct * 100.0)
+            scored.append((score, symbol))
+    ranked = [sym for _, sym in sorted(scored, key=lambda x: x[0], reverse=True)[:top_n]]
+    ranked = list(dict.fromkeys(ranked))
+    ranked.extend(get_news_catalyst_list(ranked[:BROAD_SCAN_TOP_N]))
+    ranked = list(dict.fromkeys(ranked))
+    if 'SPY' not in ranked:
+        ranked.append('SPY')
+    return ranked[:top_n]
 
 
 def get_snapshots(symbols: List[str], feed: str = 'iex') -> Dict[str, Any]:
