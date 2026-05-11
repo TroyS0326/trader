@@ -216,6 +216,8 @@ RISK_PCT_PER_TRADE = 0.02
 KELLY_FRACTION = float(os.getenv('KELLY_FRACTION', '0.25'))  # We will risk 25% of the mathematically optimal Full Kelly size
 MAX_PORTFOLIO_HEAT = float(os.getenv('MAX_PORTFOLIO_HEAT', '0.06'))  # Hard cap single-trade risk at 6% of portfolio equity
 STOCK_L2_ORDERBOOK_CHECK_ENABLED = os.getenv("STOCK_L2_ORDERBOOK_CHECK_ENABLED", "0") == "1"
+ORDER_RECONCILIATION_ACTIVE_LIMIT = int(os.getenv("ORDER_RECONCILIATION_ACTIVE_LIMIT", "100"))
+ORDER_RECONCILIATION_STALE_MINUTES = int(os.getenv("ORDER_RECONCILIATION_STALE_MINUTES", "60"))
 VIX_PENALTY_MULTIPLIER = float(os.getenv('VIX_PENALTY_MULTIPLIER', '0.5'))  # Cut Kelly sizing in half if VIX circuit breaker triggers
 
 # Kept as a fallback for any legacy references.
