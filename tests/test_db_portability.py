@@ -48,3 +48,34 @@ def test_trade_audit_logs_sqlite_insert(tmp_path):
         logs = list(get_recent_trade_audit_logs(limit=5))
         assert any(row['id'] == new_id for row in logs)
         db.drop_all()
+
+
+def test_trade_audit_logs_postgres_path_uses_scalar_one_not_lastrowid(monkeypatch, tmp_path):
+    app = _make_test_app(tmp_path / 'portability3.db')
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        ensure_trade_audit_table()
+
+        class _Dialect:
+            name = "postgresql"
+
+        class _Bind:
+            dialect = _Dialect()
+
+        class _Result:
+            @property
+            def lastrowid(self):
+                raise AssertionError("lastrowid should not be used for postgresql path")
+
+            def scalar_one(self):
+                return 987
+
+        monkeypatch.setattr(db.session, "get_bind", lambda *args, **kwargs: _Bind())
+        monkeypatch.setattr(db.session, "execute", lambda *args, **kwargs: _Result())
+        monkeypatch.setattr(db.session, "commit", lambda: None)
+
+        new_id = insert_trade_audit_log({'symbol': 'MSFT', 'raw_json': {'ok': True}})
+        assert new_id == 987
+
+        db.drop_all()
