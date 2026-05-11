@@ -56,3 +56,29 @@ free, guaranteed, get rich, passive income, no risk, signals, pump, crypto milli
 - Pause ad sets with spend >2x target CPA and no signup/checkout.
 - Pause creatives with high CTR but no signup.
 - Review and add search-term negatives daily in week 1.
+
+## Safe Ad Copy Examples
+
+### Google Search Headlines
+- Rule-Based Trading Software
+- Test in Paper Mode First
+- User-Defined Trading Rules
+- Broker Permissions Stay With You
+- Risk Controls Before Live Use
+- Trading Workflow Visibility
+
+### Google Search Descriptions
+- Build your own trading rules, test in paper mode, and monitor each step before live routing.
+- XeanVI is software for rule-based workflow automation with broker-permission controls and audit visibility.
+- Start with paper testing, configure risk settings, and use supported broker-connected tools when ready.
+
+### Meta Primary Text
+- XeanVI helps you structure your process with user-defined rules, paper mode testing, and risk controls before live use.
+- Keep broker permissions in your control while using software to run a rules-based workflow you can monitor.
+- Built for traders who want documented process, audit visibility, and paper-first validation.
+
+### Meta Headline
+- Paper-First Trading Workflow Software
+
+### Meta Description
+- Rule-based software with paper mode, risk controls, and broker-permission safeguards.

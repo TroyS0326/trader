@@ -1,24 +1,74 @@
 <script>
-(function(){
-  const keys=["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid"];
-  const storageKey="xeanvi_attribution_params";
-  const url=new URL(window.location.href);
-  const current={};
-  keys.forEach(k=>{const v=url.searchParams.get(k); if(v) current[k]=v;});
-  const storedRaw=sessionStorage.getItem(storageKey)||localStorage.getItem(storageKey)||"{}";
-  let stored={}; try{stored=JSON.parse(storedRaw)||{};}catch(e){stored={};}
-  const merged=Object.assign({},stored,current);
-  sessionStorage.setItem(storageKey,JSON.stringify(merged));
-  localStorage.setItem(storageKey,JSON.stringify(merged));
-  const targets=["/signup","/pricing","/api/create-checkout-session"];
-  document.querySelectorAll('a[href]').forEach(a=>{
-    const href=a.getAttribute('href')||'';
-    if(!href || href.startsWith('mailto:')||href.startsWith('tel:')||href.includes('/logout')) return;
-    if(href.startsWith('http://')||href.startsWith('https://')){ try{ const u=new URL(href); if(u.origin!==window.location.origin) return;}catch(e){return;} }
-    const u=new URL(href,window.location.origin);
-    if(!targets.some(t=>u.pathname===t)) return;
-    keys.forEach(k=>{if(merged[k] && !u.searchParams.has(k)) u.searchParams.set(k,merged[k]);});
-    a.setAttribute('href',u.pathname+u.search+u.hash);
+(function () {
+  const KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid"];
+  const STORAGE_KEY = "xeanvi_attribution_params";
+  const TARGET_PATHS = new Set(["/signup", "/pricing"]);
+
+  function safeReadStored() {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) || "{}";
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function safeWriteStored(value) {
+    try {
+      const serialized = JSON.stringify(value);
+      sessionStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(STORAGE_KEY, serialized);
+    } catch (e) {
+      // ignore storage limitations
+    }
+  }
+
+  function captureAttributionParams() {
+    const current = {};
+    const url = new URL(window.location.href);
+    KEYS.forEach((key) => {
+      const value = url.searchParams.get(key);
+      if (value) current[key] = value;
+    });
+
+    const stored = safeReadStored();
+    const merged = Object.assign({}, stored, current);
+    safeWriteStored(merged);
+    return merged;
+  }
+
+  function isSkippableHref(rawHref) {
+    if (!rawHref || rawHref.startsWith("#")) return true;
+    const lower = rawHref.toLowerCase();
+    return lower.startsWith("mailto:") || lower.startsWith("tel:") || lower.includes("/logout");
+  }
+
+  function appendAttributionToEligibleLinks() {
+    const storedParams = safeReadStored();
+    if (!Object.keys(storedParams).length) return;
+
+    document.querySelectorAll("a[href]").forEach((anchor) => {
+      const rawHref = anchor.getAttribute("href") || "";
+      if (isSkippableHref(rawHref)) return;
+
+      const url = new URL(rawHref, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+      if (!TARGET_PATHS.has(url.pathname)) return;
+
+      KEYS.forEach((key) => {
+        if (storedParams[key] && !url.searchParams.has(key)) {
+          url.searchParams.set(key, storedParams[key]);
+        }
+      });
+
+      anchor.setAttribute("href", url.pathname + url.search + url.hash);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    captureAttributionParams();
+    appendAttributionToEligibleLinks();
   });
 })();
 </script>
