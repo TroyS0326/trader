@@ -436,3 +436,33 @@ def test_terminal_prior_trade_does_not_block_order(monkeypatch):
     monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
     result = _call_task()
     assert "Success" in result and "oid-y" in result
+
+
+def test_duplicate_old_trade_reconciles_then_allows(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    old = "2020-01-01T00:00:00+00:00"
+    seq = [{"id": 1, "order_id": "o1", "created_at": old}, None]
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: seq.pop(0))
+    called = {"recon": 0}
+    import order_reconciliation
+    monkeypatch.setattr(order_reconciliation, "reconcile_active_trade_orders", lambda **kwargs: called.__setitem__("recon", called["recon"] + 1) or {})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "new-order"})
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    monkeypatch.setattr(tasks.config, "ORDER_RECONCILIATION_STALE_MINUTES", 60)
+    monkeypatch.setattr(tasks.config, "ORDER_RECONCILIATION_ACTIVE_LIMIT", 100)
+    out = _call_task()
+    assert "Success" in out and called["recon"] == 1
+
+
+def test_duplicate_recent_trade_still_blocks(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1, "order_id": "o1", "created_at": "2999-01-01T00:00:00+00:00"})
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    out = _call_task()
+    assert "Duplicate active trade blocked" in out

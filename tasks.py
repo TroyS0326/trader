@@ -1,6 +1,7 @@
 import redis
 import logging
 import requests
+from datetime import datetime, timedelta
 from celery import Celery
 from celery.schedules import crontab
 from flask import Flask
@@ -148,6 +149,28 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     user_id,
                     symbol,
                 )
+
+            if active_trade:
+                created_at = active_trade.get("created_at")
+                stale_cutoff = utc_now_aware() - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
+                try_reconcile = False
+                if isinstance(created_at, str):
+                    try:
+                        created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        try_reconcile = created_dt <= stale_cutoff
+                    except ValueError:
+                        try_reconcile = False
+                if try_reconcile:
+                    try:
+                        from order_reconciliation import reconcile_active_trade_orders
+                        reconcile_active_trade_orders(user_id=user_id, limit=config.ORDER_RECONCILIATION_ACTIVE_LIMIT)
+                        active_trade = db_ops.get_active_trade_for_user_symbol(user_id, symbol)
+                    except Exception:
+                        _safe_log_exception(
+                            "execute_user_trade_task stale reconciliation failed user_id=%s symbol=%s",
+                            user_id,
+                            symbol,
+                        )
 
             if active_trade:
                 existing_order_id = active_trade.get("order_id")

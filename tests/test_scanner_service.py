@@ -459,3 +459,23 @@ def test_promoted_pick_contract_executable_ready(monkeypatch):
     out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result())
     diag = scanner_service.validate_scan_payload_contract({"best_pick": out["best_pick"]})
     assert diag.get("executable_payload_ready") is True
+
+def test_central_cycle_calls_reconciliation_once(monkeypatch):
+    calls = {"recon": 0, "fanout": 0}
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: [])
+    monkeypatch.setattr(scanner_service, 'run_shared_market_scan', lambda: {'best_pick': {}, 'watchlist': []})
+    monkeypatch.setattr(scanner_service, 'fan_out_scan_to_users', lambda *_: calls.__setitem__('fanout', calls['fanout'] + 1))
+    monkeypatch.setattr(scanner_service, 'reconcile_active_trade_orders', lambda **kwargs: calls.__setitem__('recon', calls['recon'] + 1) or {})
+    monkeypatch.setattr(scanner_service.config, 'ORDER_RECONCILIATION_ACTIVE_LIMIT', 10)
+    scanner_service.run_central_scan_cycle('x')
+    assert calls['recon'] == 1 and calls['fanout'] == 1
+
+
+def test_central_cycle_reconciliation_failure_nonfatal(monkeypatch):
+    calls = {"fanout": 0}
+    monkeypatch.setattr(scanner_service, '_eligible_users', lambda: [])
+    monkeypatch.setattr(scanner_service, 'run_shared_market_scan', lambda: {'best_pick': {}, 'watchlist': []})
+    monkeypatch.setattr(scanner_service, 'fan_out_scan_to_users', lambda *_: calls.__setitem__('fanout', calls['fanout'] + 1))
+    monkeypatch.setattr(scanner_service, 'reconcile_active_trade_orders', lambda **kwargs: (_ for _ in ()).throw(RuntimeError('boom')))
+    scanner_service.run_central_scan_cycle('x')
+    assert calls['fanout'] == 1

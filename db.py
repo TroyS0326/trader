@@ -71,6 +71,7 @@ TERMINAL_TRADE_STATUSES = {
     'target2_hit',
     'win',
     'loss',
+    'stale',
 }
 
 NON_REALIZED_TRADE_STATES = {
@@ -430,6 +431,54 @@ def get_active_trade_for_user_symbol(user_id: int, symbol: str) -> Optional[Dict
         if statuses.intersection(ACTIVE_TRADE_STATUSES):
             return _model_to_dict(trade)
     return None
+
+
+def get_active_trades(limit: int = 100, user_id: int | None = None) -> list[dict]:
+    query = Trade.query
+    if user_id is not None:
+        query = query.filter_by(user_id=user_id)
+
+    trades = query.order_by(Trade.id.desc()).limit(max(1, int(limit))).all()
+    active: list[dict] = []
+    for trade in trades:
+        statuses = {
+            (getattr(trade, 'status', None) or '').strip().lower(),
+            (getattr(trade, 'order_status', None) or '').strip().lower(),
+            (getattr(trade, 'outcome', None) or '').strip().lower(),
+        }
+        statuses.discard('')
+        if statuses.intersection(TERMINAL_TRADE_STATUSES):
+            continue
+        if statuses.intersection(ACTIVE_TRADE_STATUSES):
+            active.append(_model_to_dict(trade))
+    return active
+
+
+def mark_stale_active_trade(order_id: str, reason: str, raw_update: dict | None = None) -> None:
+    if not order_id:
+        return
+    trade = Trade.query.filter_by(order_id=order_id).order_by(Trade.id.desc()).first()
+    if not trade:
+        return
+
+    payload = _load_json_payload(getattr(trade, 'raw_json', None))
+    if not isinstance(payload, dict):
+        payload = {}
+    payload.setdefault('reconciliation', {})
+    if isinstance(payload.get('reconciliation'), dict):
+        payload['reconciliation'].update({'reason': reason, 'marked_at': utc_now().isoformat()})
+    if isinstance(raw_update, dict):
+        payload.update(raw_update)
+
+    existing_notes = (getattr(trade, 'notes', None) or '').strip()
+    note = f"stale_reconciled:{reason}"
+    trade.notes = f"{existing_notes}; {note}" if existing_notes else note
+    trade.status = 'stale'
+    trade.order_status = 'stale'
+    trade.outcome = 'stale'
+    trade.raw_json = json.dumps(payload)
+    trade.updated_at = utc_now()
+    db.session.commit()
 
 
 def get_failed_trades_today() -> int:

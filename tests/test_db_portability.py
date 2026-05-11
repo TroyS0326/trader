@@ -12,7 +12,7 @@ os.environ.setdefault('FLASK_DEBUG', '1')
 
 from flask import Flask
 from models import db, Trade
-from db import get_trade_by_target1_id, insert_trade_audit_log, ensure_trade_audit_table, get_recent_trade_audit_logs, get_active_trade_for_user_symbol
+from db import get_trade_by_target1_id, insert_trade_audit_log, ensure_trade_audit_table, get_recent_trade_audit_logs, get_active_trade_for_user_symbol, get_active_trades, mark_stale_active_trade, ACTIVE_TRADE_STATUSES
 
 
 def _make_test_app(db_path: Path):
@@ -104,4 +104,29 @@ def test_get_active_trade_for_user_symbol_sqlite(tmp_path):
         assert got['symbol'] == 'AAPL'
         assert got['user_id'] == 1
         assert got['status'] in {'pending_new', 'filled', 'partially_filled'}
+        db.drop_all()
+
+
+def test_stale_not_active_status():
+    assert "stale" not in ACTIVE_TRADE_STATUSES
+
+
+def test_get_active_trades_and_mark_stale(tmp_path):
+    app = _make_test_app(tmp_path / "portability5.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        rows = [
+            Trade(user_id=1, symbol="AAPL", order_id="o1", status="pending_new", entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol="AAPL", order_id="o2", status="accepted", entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol="AAPL", order_id="o3", status="filled", entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol="AAPL", order_id="o4", status="rejected", entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol="AAPL", order_id="o5", status="stale", entry_price=10, stop_price=9, target_1=11, target_2=12),
+        ]
+        db.session.add_all(rows); db.session.commit()
+        active = get_active_trades(limit=10, user_id=1)
+        assert {r["order_id"] for r in active} == {"o1", "o2", "o3"}
+        mark_stale_active_trade("o1", "test_reason", {"foo": "bar"})
+        t = Trade.query.filter_by(order_id="o1").first()
+        assert t.status == "stale" and t.order_status == "stale" and t.outcome == "stale"
+        assert "test_reason" in (t.notes or "")
         db.drop_all()

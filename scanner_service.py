@@ -19,6 +19,7 @@ from scanner import run_scan, recheck_active_watch_candidates
 from daily_report import run_daily_reports
 from execution_diagnostics import evaluate_execution_readiness
 from scan_contract import validate_scan_payload_contract
+from order_reconciliation import reconcile_active_trade_orders
 import json
 from db import get_recent_scans
 from scanner_effectiveness import build_scanner_effectiveness_report
@@ -316,6 +317,11 @@ def run_central_scan_cycle(cycle_name: str) -> None:
         if not isinstance(shared_scan, dict):
             logger.warning("Shared scan returned invalid payload type=%s; skipping cycle before fan-out", type(shared_scan).__name__)
             return
+        try:
+            summary = reconcile_active_trade_orders(limit=max(1, config.ORDER_RECONCILIATION_ACTIVE_LIMIT))
+            logger.info("Order reconciliation summary=%s", summary)
+        except Exception:
+            logger.exception("Order reconciliation failed before fan-out")
         fan_out_scan_to_users(shared_scan, users)
         if config.WATCH_RECHECK_ENABLED:
             try:
