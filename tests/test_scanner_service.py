@@ -524,6 +524,69 @@ def test_promoted_pick_contract_executable_ready(monkeypatch):
     diag = scanner_service.validate_scan_payload_contract({"best_pick": out["best_pick"]})
     assert diag.get("executable_payload_ready") is True
 
+
+def test_personalize_rotates_active_best_pick_to_non_active_and_tracks_blocked(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "ACTIVE_SYMBOL_ROTATION_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", False)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 11} if symbol == "NVDA" else None)
+    user = _mk_user()
+    payload = {
+        "best_pick": {"symbol": "NVDA", "decision": "WATCH"},
+        "watchlist": [{"symbol": "NVDA", "decision": "WATCH"}, {"symbol": "MSFT", "decision": "WATCH"}],
+    }
+    out = scanner_service.personalize_scan_for_user(user, payload)
+    assert out["best_pick"]["symbol"] == "MSFT"
+    assert out["watchlist"][0]["symbol"] == "MSFT"
+    assert out["active_symbol_rotation_applied"] is True
+    assert out["active_symbol_rotation_blocked_symbols"] == ["NVDA"]
+
+
+def test_rotated_candidate_can_be_promoted_buy_now(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "ACTIVE_SYMBOL_ROTATION_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 1} if symbol == "NVDA" else None)
+    user = _mk_user()
+    payload = {
+        "best_pick": {"symbol": "NVDA", "decision": "WATCH", "qty": 5, "entry_price": 100.0, "stop_price": 95.0, "target_1": 103.0, "target_2": 106.0},
+        "watchlist": [{"symbol": "MSFT", "decision": "WATCH", "qty": 5, "entry_price": 50.0, "stop_price": 48.0, "target_1": 52.0, "target_2": 54.0}],
+    }
+    out = scanner_service.personalize_scan_for_user(user, payload)
+    assert out["best_pick"]["symbol"] == "MSFT"
+    assert out["best_pick"]["decision"] == "BUY NOW"
+    assert out["best_pick"]["aggressive_intraday_promoted"] is True
+
+
+def test_personalize_all_candidates_active_marks_skip(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "ACTIVE_SYMBOL_ROTATION_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", False)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *_: {"id": 1, "order_id": "abc"})
+    out = scanner_service.personalize_scan_for_user(
+        _mk_user(),
+        {"best_pick": {"symbol": "NVDA", "decision": "WATCH", "skip_reason_codes": ["x"]}, "watchlist": [{"symbol": "AMD", "decision": "WATCH"}]},
+    )
+    assert out["best_pick"]["decision"] == "SKIP"
+    assert out["best_pick"]["active_trade_blocked"] is True
+    assert "duplicate_active_trade" in out["best_pick"]["skip_reason_codes"]
+    assert out["active_symbol_rotation_all_candidates_blocked"] is True
+    assert out["active_symbol_rotation_blocked_symbols"] == ["NVDA", "AMD"]
+
+
+def test_aggressive_promotion_blocked_for_active_trade_blocked_pick(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH")
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(
+        _mk_user(),
+        {"best_pick": {"symbol": "AAPL", "decision": "WATCH", "qty": 5, "entry_price": 100, "stop_price": 95, "target_1": 103, "target_2": 106, "active_trade_blocked": True}, "watchlist": []},
+    )
+    assert out["best_pick"]["decision"] == "WATCH"
+
 def test_central_cycle_calls_reconciliation_once(monkeypatch):
     calls = {"recon": 0, "fanout": 0}
     monkeypatch.setattr(scanner_service, '_eligible_users', lambda: [])
@@ -533,6 +596,54 @@ def test_central_cycle_calls_reconciliation_once(monkeypatch):
     monkeypatch.setattr(scanner_service.config, 'ORDER_RECONCILIATION_ACTIVE_LIMIT', 10)
     scanner_service.run_central_scan_cycle('x')
     assert calls['recon'] == 1 and calls['fanout'] == 1
+
+
+def test_dispatch_ready_duplicate_active_trade_skips_celery(monkeypatch):
+    called = {"v": False}
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            called["v"] = True
+
+    diag = {"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol": "AAPL", "qty": 1, "entry_price": 10.0, "stop_price": 9.0, "target_1": 11.0, "target_2": 12.0}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: {"id": 5, "order_id": "ord-1"})
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id": 1, "best_pick": {}})
+    assert called["v"] is False
+
+
+def test_dispatch_ready_no_active_trade_dispatches(monkeypatch):
+    called = {"v": False}
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            called["v"] = True
+
+    diag = {"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol": "AAPL", "qty": 1, "entry_price": 10.0, "stop_price": 9.0, "target_1": 11.0, "target_2": 12.0}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id": 1, "best_pick": {}})
+    assert called["v"] is True
+
+
+def test_dispatch_duplicate_check_error_still_dispatches(monkeypatch):
+    called = {"v": False}
+
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs):
+            called["v"] = True
+
+    diag = {"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol": "AAPL", "qty": 1, "entry_price": 10.0, "stop_price": 9.0, "target_1": 11.0, "target_2": 12.0}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id": 1, "best_pick": {}})
+    assert called["v"] is True
 
 
 def test_central_cycle_reconciliation_failure_nonfatal(monkeypatch):
