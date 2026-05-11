@@ -229,6 +229,32 @@ def test_poll_for_fill_terminal_status_raises_after_callback(monkeypatch):
         assert seen == ['rejected']
 
 
+def test_poll_for_fill_canceled_with_partial_returns(monkeypatch):
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o4', 'status': 'canceled', 'filled_qty': '1'})
+    out = broker._poll_for_fill('o4', 1)
+    assert out['status'] == 'canceled'
+
+
+def test_poll_for_fill_canceled_with_zero_raises(monkeypatch):
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o5', 'status': 'canceled', 'filled_qty': '0'})
+    try:
+        broker._poll_for_fill('o5', 1)
+        assert False
+    except broker.BrokerError:
+        assert True
+
+
+def test_poll_for_fill_timeout_returns_final_partial(monkeypatch):
+    seq = [{'id': 'o6', 'status': 'new', 'filled_qty': '0'}, {'id': 'o6', 'status': 'canceled', 'filled_qty': '1'}]
+    monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: seq.pop(0))
+    monkeypatch.setattr(broker, 'cancel_order', lambda *args, **kwargs: None)
+    ticks = {'n': 0}
+    monkeypatch.setattr(broker.time, 'time', lambda: (ticks.__setitem__('n', ticks['n'] + 2) or ticks['n']))
+    monkeypatch.setattr(broker.time, 'sleep', lambda *_: None)
+    out = broker._poll_for_fill('o6', 1)
+    assert out['filled_qty'] == '1'
+
+
 def test_poll_for_fill_timeout_cancels_and_callbacks_canceled(monkeypatch):
     seen = []
     monkeypatch.setattr(broker, 'get_order', lambda *args, **kwargs: {'id': 'o3', 'status': 'new'})
