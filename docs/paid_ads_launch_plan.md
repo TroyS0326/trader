@@ -86,10 +86,11 @@ free, guaranteed, get rich, passive income, no risk, signals, pump, crypto milli
 ## Conversion Tracking Readiness
 
 ### What is tracked now
-- **Paid landing CTA to signup intent:** `/lp/rule-based-trading-automation` links carry UTM parameters and include click-level conversion attributes.
-- **Completed signup (not just click/submit):** successful signup redirects planned buyers to `/pricing?plan=...&signup_success=1`, and one-time client-side guards fire:
+- **Paid landing CTA to signup intent:** `/lp/rule-based-trading-automation` links carry UTM parameters, but CTA clicks are **not** counted as completed signup conversions.
+- **Completed signup (not click or form submit):** successful account creation redirects planned buyers to `/pricing?plan=...&signup_success=1`, and one-time client-side guards fire:
   - Meta Pixel `CompleteRegistration`
   - Google Ads conversion key `signup`
+- **Signup form submit is not completed signup:** form submission alone does not fire completed-signup conversion events; conversion fires only after successful account creation via `signup_success=1`.
 - **Checkout started:** monthly and annual pricing checkout forms fire:
   - Meta Pixel `InitiateCheckout`
   - Google Ads conversion key `checkout` with value/currency metadata
@@ -111,5 +112,7 @@ free, guaranteed, get rich, passive income, no risk, signals, pump, crypto milli
 
 ### Optimization guidance
 - Start optimization on **completed signup** (or **checkout started** if signup volume is noisy).
+- Google Ads optimization should target completed signup or checkout-start, **not** signup button clicks.
 - Move primary optimization to **paid subscription/purchase** only when reliable conversion volume exists and truthful purchase measurement is verified.
 - Do **not** optimize on raw clicks, traffic, or follower counts.
+

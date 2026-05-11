@@ -22,7 +22,7 @@ def test_paid_landing_required_content_and_tracking():
     assert '/signup?plan=monthly&utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation' in html
     assert '/pricing?utm_source=paid&utm_medium=landing&utm_campaign=rule_based_automation' in html
     assert 'data-meta-pixel-event="Lead"' in html
-    assert 'data-google-ads-conversion="signup"' in html
+    assert 'data-google-ads-conversion="signup"' not in html
     assert 'trading involves risk' in low
     assert 'not financial advice' in low
     assert 'not a broker-dealer' in low
