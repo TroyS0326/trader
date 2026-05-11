@@ -3,6 +3,7 @@ import time
 import threading
 import contextlib
 from typing import Any, Dict, List
+from types import SimpleNamespace
 
 import requests
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
@@ -24,6 +25,19 @@ logger = logging.getLogger(__name__)
 
 class BrokerError(Exception):
     pass
+
+
+def _snapshot_execution_user_context(user: Any | None, token: str | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        trading_mode=getattr(user, 'trading_mode', 'paper'),
+        subscription_status=getattr(user, 'subscription_status', 'free'),
+        alpaca_data_feed=getattr(user, 'alpaca_data_feed', None),
+        alpaca_access_token=(
+            token
+            if token is not None
+            else (getattr(user, 'alpaca_access_token', None) if user is not None else None)
+        ),
+    )
 
 
 def get_execution_base_url(user: Any | None = None) -> str:
@@ -386,6 +400,8 @@ def place_managed_entry_order(
     regime_data = get_current_market_regime() or {}
     regime_status = (regime_data.get('regime_status') or 'normal').lower()
     user_token = getattr(user, 'alpaca_access_token', None) if user else None
+    execution_user = _snapshot_execution_user_context(user, token=user_token)
+    user_token = execution_user.alpaca_access_token
 
     if regime_status in {'high_volatility', 'chop'}:
         qty = max(1, qty // 2)
@@ -405,7 +421,7 @@ def place_managed_entry_order(
     # Reality check: ensure intended trade cost does not exceed live broker buying power.
     actual_buying_power: float | None = None
     try:
-        account_data = _get_json(f'{get_execution_base_url(user)}/v2/account', token=user_token)
+        account_data = _get_json(f'{get_execution_base_url(execution_user)}/v2/account', token=user_token)
         actual_buying_power = float(account_data.get('buying_power') or 0.0)
     except (BrokerError, TypeError, ValueError) as exc:
         logger.warning('Unable to validate buying power for %s: %s', symbol, exc)
@@ -447,9 +463,9 @@ def place_managed_entry_order(
         except requests.exceptions.RequestException as exc:
             return _neutral_order_book_metrics(f'stock orderbook request error: {exc}')
 
-    latest_quote = get_latest_quote(symbol, user=user)
+    latest_quote = get_latest_quote(symbol, user=execution_user)
     current_price = float(latest_quote.get('ap') or latest_quote.get('bp') or entry_price or 0)
-    order_book_metrics = _safe_order_book_metrics(symbol, user_token, user)
+    order_book_metrics = _safe_order_book_metrics(symbol, user_token, execution_user)
     imbalance_ratio = float(order_book_metrics.get('imbalance_ratio') or 0.0)
     institutional_wall_price = order_book_metrics.get('institutional_wall_price')
     institutional_wall_side = (order_book_metrics.get('institutional_wall_side') or '').lower()
@@ -472,14 +488,14 @@ def place_managed_entry_order(
         }
 
     _ = target_2_price  # reserved for external broker adapters and journaling.
-    entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy', user=user)
+    entry = _pegged_limit_entry(symbol=symbol, qty=qty, side='buy', user=execution_user)
     entry_id = entry.get('id')
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
 
     thread = threading.Thread(
         target=_background_leg_placement,
-        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, user),
+        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user),
         daemon=True,
     )
     thread.start()
