@@ -73,6 +73,7 @@ TERMINAL_TRADE_STATUSES = {
     'loss',
     'stale',
 }
+TERMINAL_CLOSING_OUTCOMES = {'closed', 'stopped_out', 'target_hit', 'target1_hit', 'target2_hit', 'win', 'loss', 'stale'}
 
 NON_REALIZED_TRADE_STATES = {
     'open',
@@ -124,6 +125,32 @@ def _safe_float(value: Any) -> Optional[float]:
         return None
 
     return result
+
+
+def numeric_filled_qty(value: Any) -> float:
+    parsed = _safe_float(value)
+    if parsed is None or parsed < 0:
+        return 0.0
+    return parsed
+
+
+def _is_trade_active(trade: Trade) -> bool:
+    status = (getattr(trade, 'status', None) or '').strip().lower()
+    order_status = (getattr(trade, 'order_status', None) or '').strip().lower()
+    outcome = (getattr(trade, 'outcome', None) or '').strip().lower()
+    filled_qty = numeric_filled_qty(getattr(trade, 'filled_qty', None))
+
+    if outcome in TERMINAL_CLOSING_OUTCOMES:
+        return False
+
+    if filled_qty > 0 and status in {'filled', 'partially_filled', 'working_or_filled'}:
+        return True
+
+    statuses = {status, order_status, outcome}
+    statuses.discard('')
+    if statuses.intersection(TERMINAL_TRADE_STATUSES):
+        return False
+    return bool(statuses.intersection(ACTIVE_TRADE_STATUSES))
 
 
 def _load_json_payload(value: Any) -> Any:
@@ -419,16 +446,7 @@ def get_active_trade_for_user_symbol(user_id: int, symbol: str) -> Optional[Dict
     )
 
     for trade in trades:
-        statuses = {
-            (getattr(trade, 'status', None) or '').strip().lower(),
-            (getattr(trade, 'order_status', None) or '').strip().lower(),
-            (getattr(trade, 'outcome', None) or '').strip().lower(),
-        }
-        statuses.discard('')
-
-        if statuses.intersection(TERMINAL_TRADE_STATUSES):
-            continue
-        if statuses.intersection(ACTIVE_TRADE_STATUSES):
+        if _is_trade_active(trade):
             return _model_to_dict(trade)
     return None
 
@@ -441,15 +459,7 @@ def get_active_trades(limit: int = 100, user_id: int | None = None) -> list[dict
     trades = query.order_by(Trade.id.desc()).limit(max(1, int(limit))).all()
     active: list[dict] = []
     for trade in trades:
-        statuses = {
-            (getattr(trade, 'status', None) or '').strip().lower(),
-            (getattr(trade, 'order_status', None) or '').strip().lower(),
-            (getattr(trade, 'outcome', None) or '').strip().lower(),
-        }
-        statuses.discard('')
-        if statuses.intersection(TERMINAL_TRADE_STATUSES):
-            continue
-        if statuses.intersection(ACTIVE_TRADE_STATUSES):
+        if _is_trade_active(trade):
             active.append(_model_to_dict(trade))
     return active
 

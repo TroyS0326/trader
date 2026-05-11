@@ -130,3 +130,25 @@ def test_get_active_trades_and_mark_stale(tmp_path):
         assert t.status == "stale" and t.order_status == "stale" and t.outcome == "stale"
         assert "test_reason" in (t.notes or "")
         db.drop_all()
+
+
+def test_partial_filled_canceled_with_fill_is_active(tmp_path):
+    app = _make_test_app(tmp_path / "portability6.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        t = Trade(user_id=1, symbol="AAPL", order_id="p1", status="partially_filled", order_status="canceled", filled_qty="1", entry_price=10, stop_price=9, target_1=11, target_2=12)
+        db.session.add(t); db.session.commit()
+        assert get_active_trade_for_user_symbol(1, "AAPL")["order_id"] == "p1"
+        assert any(r["order_id"] == "p1" for r in get_active_trades(limit=10, user_id=1))
+
+
+def test_canceled_with_zero_fill_inactive_and_outcome_override(tmp_path):
+    app = _make_test_app(tmp_path / "portability7.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        t1 = Trade(user_id=1, symbol="AAPL", order_id="c0", status="canceled", order_status="canceled", filled_qty="0", entry_price=10, stop_price=9, target_1=11, target_2=12)
+        t2 = Trade(user_id=1, symbol="AAPL", order_id="c1", status="filled", order_status="filled", filled_qty="2", outcome="closed", entry_price=10, stop_price=9, target_1=11, target_2=12)
+        db.session.add_all([t1, t2]); db.session.commit()
+        active_ids = {r["order_id"] for r in get_active_trades(limit=10, user_id=1)}
+        assert "c0" not in active_ids
+        assert "c1" not in active_ids

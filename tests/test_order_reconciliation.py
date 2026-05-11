@@ -20,13 +20,27 @@ def _trade(status="pending_new", created_at=None):
 def test_terminal_statuses_update(monkeypatch):
     monkeypatch.setattr(recon, "app", SimpleNamespace(app_context=lambda: __import__("contextlib").nullcontext()))
     monkeypatch.setattr(recon.db, "get_active_trades", lambda **kwargs: [_trade()])
-    monkeypatch.setattr(recon.db.db.session, "get", lambda model, user_id: SimpleNamespace(alpaca_access_token="t"))
+    monkeypatch.setattr(recon.db.db.session, "get", lambda model, user_id: SimpleNamespace(alpaca_access_token="t", trading_mode="paper"))
     updates = []
     monkeypatch.setattr(recon.db, "update_trade_status", lambda order_id, payload: updates.append(payload))
     monkeypatch.setattr(recon, "get_order", lambda *args, **kwargs: {"status": "canceled", "filled_avg_price": None, "filled_qty": None})
+    monkeypatch.setattr(recon, "get_open_position", lambda *args, **kwargs: None)
     out = recon.reconcile_active_trade_orders()
     assert out["updated_count"] == 1
     assert updates[0]["status"] == "canceled"
+
+
+def test_terminal_canceled_with_fill_becomes_partial_active(monkeypatch):
+    monkeypatch.setattr(recon, "app", SimpleNamespace(app_context=lambda: __import__("contextlib").nullcontext()))
+    monkeypatch.setattr(recon.db, "get_active_trades", lambda **kwargs: [_trade(status="filled")])
+    monkeypatch.setattr(recon.db.db.session, "get", lambda model, user_id: SimpleNamespace(alpaca_access_token="t", trading_mode="paper"))
+    updates = []
+    monkeypatch.setattr(recon.db, "update_trade_status", lambda order_id, payload: updates.append(payload))
+    monkeypatch.setattr(recon, "get_order", lambda *args, **kwargs: {"status": "canceled", "filled_qty": "1"})
+    monkeypatch.setattr(recon, "get_open_position", lambda *args, **kwargs: {"symbol": "AAPL", "qty": "1"})
+    recon.reconcile_active_trade_orders()
+    assert updates[0]["status"] == "partially_filled"
+    assert "outcome" not in updates[0]
 
 
 def test_not_found_old_marks_stale(monkeypatch):

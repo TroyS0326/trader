@@ -16,6 +16,9 @@ from config import (
     ENTRY_ORDER_TIMEOUT_SECONDS,
     TARGET2_TRAILING_STOP_PCT,
     STOCK_L2_ORDERBOOK_CHECK_ENABLED,
+    UNPROTECTED_POSITION_REPAIR_ENABLED,
+    UNPROTECTED_POSITION_REPAIR_LIVE_ENABLED,
+    EMERGENCY_EXIT_SLIPPAGE_PCT,
 )
 from db import get_current_market_regime
 
@@ -259,6 +262,24 @@ def get_orders(order_ids: List[str]) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+def _order_filled_qty(order: dict) -> float:
+    try:
+        value = float((order or {}).get('filled_qty') or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, value)
+
+
+def get_open_position(symbol: str, user: Any | None = None, token: str | None = None) -> dict | None:
+    base_url = get_execution_base_url(user)
+    resp = _request_with_retry('GET', f'{base_url}/v2/positions/{symbol.upper()}', token=token)
+    if resp.status_code == 404:
+        return None
+    if resp.status_code >= 400:
+        raise BrokerError(resp.text)
+    return resp.json()
+
+
 def _poll_for_fill(
     order_id: str,
     timeout_seconds: float,
@@ -272,17 +293,23 @@ def _poll_for_fill(
         if callable(on_status):
             on_status(order)
         status = (order.get('status') or '').lower()
+        filled_qty = _order_filled_qty(order)
         if status == 'filled':
             return order
-        if status in {'canceled', 'expired', 'rejected', 'done_for_day'}:
+        if status in {'canceled', 'expired', 'done_for_day'} and filled_qty > 0:
+            return order
+        if status in {'rejected'} and filled_qty <= 0:
+            raise BrokerError(f'Entry order {order_id} ended as {status}.')
+        if status in {'canceled', 'expired', 'done_for_day'}:
             raise BrokerError(f'Entry order {order_id} ended as {status}.')
         if time.time() - started >= timeout_seconds:
             cancel_order(order_id, token=token, user=user)
+            final_order = get_order(order_id, token=token, user=user)
             if callable(on_status):
-                on_status({'id': order_id, 'status': 'canceled'})
-            raise BrokerError(
-                f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.'
-            )
+                on_status(final_order)
+            if _order_filled_qty(final_order) > 0:
+                return final_order
+            raise BrokerError(f'Entry order was not filled in {int(timeout_seconds)} seconds and was canceled to avoid slippage.')
         time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
 
 
@@ -331,6 +358,16 @@ def _background_leg_placement(
         except Exception as exc:
             logger.error('Failed updating entry trade status for %s: %s', target_order_id, exc)
 
+    def _is_emergency_exit_allowed() -> bool:
+        mode = getattr(user, 'trading_mode', 'paper')
+        return UNPROTECTED_POSITION_REPAIR_ENABLED if mode != 'live' else UNPROTECTED_POSITION_REPAIR_LIVE_ENABLED
+
+    def _record_unprotected(reason: str, payload: dict | None = None) -> None:
+        _update_entry_trade_status_safely(entry_id, {
+            'notes': f'unprotected_position_detected:{reason}',
+            'raw_json': {'unprotected_position_detected': {'reason': reason, 'payload': payload or {}}},
+        })
+
     def _entry_status_callback(order_payload: Dict[str, Any]) -> None:
         raw_payload = {'latest_entry_order': order_payload}
         updates = {
@@ -351,15 +388,25 @@ def _background_leg_placement(
             user=user,
             on_status=_entry_status_callback,
         )
+        status = (filled_entry.get('status') or 'filled').lower()
         _update_entry_trade_status_safely(entry_id, {
-            'status': 'filled',
-            'order_status': 'filled',
+            'status': 'filled' if status == 'filled' else 'partially_filled',
+            'order_status': status,
             'filled_avg_price': filled_entry.get('filled_avg_price'),
             'filled_qty': filled_entry.get('filled_qty'),
             'raw_json': {'latest_entry_order': filled_entry},
         })
-        filled_qty = int(float(filled_entry.get('filled_qty') or qty))
+        filled_qty = int(_order_filled_qty(filled_entry) or qty)
         if filled_qty < 1:
+            return
+        quote = get_latest_quote(symbol, user=user)
+        current_sellable = float(quote.get('bp') or quote.get('ap') or filled_entry.get('filled_avg_price') or entry_price or 0)
+        if stop_price >= current_sellable > 0:
+            if _is_emergency_exit_allowed():
+                emergency = place_emergency_exit_order(symbol, filled_qty, user, reason='invalid_stop_for_current_price', reference_order_id=entry_id)
+                _update_entry_trade_status_safely(entry_id, {'notes': 'emergency_exit_submitted:invalid_stop_for_current_price', 'raw_json': {'emergency_exit_order': emergency, 'reason': 'invalid_stop_for_current_price', 'source': 'background_leg_placement'}})
+            else:
+                _record_unprotected('invalid_stop_for_current_price', {'stop_price': stop_price, 'current_sellable': current_sellable})
             return
 
         qty_target_1 = max(1, filled_qty // 2)
@@ -436,12 +483,24 @@ def _background_leg_placement(
         logger.error('Failed to execute background legs for %s: %s', entry_id, exc)
     except Exception as exc:
         logger.error('Managed leg placement failed after entry fill for %s: %s', entry_id, exc)
-        _update_entry_trade_status_safely(entry_id, {
-            'status': 'filled',
-            'order_status': 'filled',
-            'notes': 'managed_leg_placement_failed',
-            'raw_json': {'managed_leg_placement_failed': str(exc)},
-        })
+        _update_entry_trade_status_safely(entry_id, {'notes': 'managed_leg_placement_failed', 'raw_json': {'managed_leg_placement_failed': str(exc)}})
+        try:
+            if _is_emergency_exit_allowed():
+                emergency = place_emergency_exit_order(symbol, qty, user, reason='managed_leg_placement_failed', reference_order_id=entry_id)
+                _update_entry_trade_status_safely(entry_id, {'notes': 'emergency_exit_submitted:managed_leg_placement_failed', 'raw_json': {'managed_leg_placement_failed': str(exc), 'emergency_exit_order': emergency, 'source': 'background_leg_placement'}})
+        except Exception as emergency_exc:
+            logger.error('Emergency exit attempt failed for %s: %s', entry_id, emergency_exc)
+            _update_entry_trade_status_safely(entry_id, {'raw_json': {'managed_leg_placement_failed': str(exc), 'emergency_exit_error': str(emergency_exc)}})
+
+
+def place_emergency_exit_order(symbol, qty, user, reason, reference_order_id=None) -> dict:
+    quote = get_latest_quote(symbol, user=user)
+    anchor = float(quote.get('bp') or quote.get('ap') or 0)
+    if anchor <= 0:
+        raise BrokerError(f'No valid quote available for emergency exit on {symbol}.')
+    limit_price = max(0.01, round(anchor * (1 - EMERGENCY_EXIT_SLIPPAGE_PCT), 2))
+    token = getattr(user, 'alpaca_access_token', None) if user else None
+    return submit_order({'symbol': symbol.upper(), 'qty': str(int(max(1, qty))), 'side': 'sell', 'type': 'limit', 'time_in_force': 'day', 'limit_price': limit_price}, token=token, user=user)
 
 
 def place_managed_entry_order(
