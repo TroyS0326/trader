@@ -404,15 +404,27 @@ def test_active_duplicate_blocks_order_and_audits(monkeypatch):
     user = SimpleNamespace(subscription_status="pro", id=7)
     monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
     monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
-    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda user_id, symbol: {"id": 9, "order_id": "existing-1"})
+    monkeypatch.setattr(
+        tasks.db_ops,
+        "get_active_trade_for_user_symbol",
+        lambda user_id, symbol: {"id": 9, "order_id": "existing-1"},
+    )
     order_calls = {"count": 0}
     monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
-    captured = {}
-    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: captured.update(kwargs))
+    audit_calls = []
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.append(kwargs))
     result = _call_task()
-    assert "Duplicate active trade blocked" in result
+    assert result == "Duplicate active trade blocked for User 7: AAPL existing_order_id=existing-1"
     assert order_calls["count"] == 0
-    assert captured["order_result"]["reason"] == "duplicate_active_trade"
+    assert len(audit_calls) == 1
+    audit_kwargs = audit_calls[0]
+    assert "order_id" not in audit_kwargs
+    assert "order_status" not in audit_kwargs
+    assert audit_kwargs["order_result"]["id"] == "existing-1"
+    assert audit_kwargs["order_result"]["status"] == "blocked"
+    assert audit_kwargs["order_result"]["reason"] == "duplicate_active_trade"
+    assert audit_kwargs["order_result"]["existing_trade_id"] == 9
+    assert audit_kwargs["order_result"]["existing_order_id"] == "existing-1"
 
 
 def test_parse_utc_datetime_parses_naive_iso_string():
