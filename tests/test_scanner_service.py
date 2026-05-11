@@ -389,7 +389,7 @@ def _mk_result(**pick_overrides):
         "entry_price": 100.0, "stop_price": 95.0, "target_1": 102.0, "target_2": 104.0,
     }
     pick.update(pick_overrides)
-    return {"best_pick": pick, "watchlist": [{"symbol": pick["symbol"], "decision": pick.get("decision", "SKIP")}]}
+    return {"best_pick": pick, "watchlist": [{"symbol": pick["symbol"], "decision": pick.get("decision", "SKIP"), "stop_price": pick.get("stop_price")}]}
 
 
 def test_aggressive_promotion_flow_and_guards(monkeypatch):
@@ -398,6 +398,9 @@ def test_aggressive_promotion_flow_and_guards(monkeypatch):
     monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", False)
     monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
     monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_PLAN_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_MIN_RR_TARGET_1", 1.20)
 
     # default disabled
     monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", False)
@@ -437,7 +440,7 @@ def test_aggressive_promotion_flow_and_guards(monkeypatch):
     out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(stop_price=101.0))
     assert out["best_pick"]["decision"] == "SKIP"
 
-    # risk too high
+    # risk too high remains unpromoted when tightening disabled
     out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(stop_price=80.0))
     assert out["best_pick"]["decision"] == "SKIP"
 
@@ -448,6 +451,67 @@ def test_aggressive_promotion_flow_and_guards(monkeypatch):
     ]:
         out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(**overrides))
         assert out["best_pick"]["decision"] != "BUY NOW"
+
+
+def test_aggressive_tighten_promotion_paper_and_watchlist(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_PLAN_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_MIN_RR_TARGET_1", 1.20)
+
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(
+        _mk_user(trading_mode="paper"),
+        _mk_result(entry_price=14.00, stop_price=12.35, target_1=15.50, target_2=16.00),
+    )
+    bp = out["best_pick"]
+    assert bp["decision"] == "BUY NOW"
+    assert bp["stop_price"] == 12.88
+    assert bp["aggressive_intraday_original_stop_price"] == 12.35
+    assert bp["aggressive_intraday_stop_tightened"] is True
+    assert bp["aggressive_intraday_tightened_risk_pct"] <= 0.08
+    assert bp["aggressive_intraday_promoted"] is True
+    assert out["watchlist"][0]["stop_price"] == 12.88
+    assert out["watchlist"][0]["aggressive_intraday_original_stop_price"] == 12.35
+    assert out["watchlist"][0]["aggressive_intraday_stop_tightened"] is True
+
+
+def test_aggressive_tighten_live_gating_and_rr_validation(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_PLAN_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", False)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_MIN_RR_TARGET_1", 1.20)
+
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(trading_mode="live"), _mk_result(entry_price=100, stop_price=80, target_1=112, target_2=120))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", True)
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(trading_mode="live"), _mk_result(entry_price=100, stop_price=80, target_1=109, target_2=120))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+
+def test_aggressive_tighten_invalid_tightened_stop_and_hard_blockers(monkeypatch):
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_INTRADAY_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_LIVE_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTE_SCAN_DECISIONS", "SKIP,WATCH,WATCH FOR BREAKOUT")
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT", 0.08)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_PLAN_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", True)
+    monkeypatch.setattr(scanner_service.config, "AGGRESSIVE_TIGHTEN_PROMOTION_MIN_RR_TARGET_1", 1.20)
+
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(entry_price=0.01, stop_price=0.0001, target_1=0.02, target_2=0.03))
+    assert out["best_pick"]["decision"] == "SKIP"
+
+    out = scanner_service._maybe_promote_aggressive_intraday_pick(_mk_user(), _mk_result(entry_price=14.00, stop_price=12.35, target_1=15.50, target_2=16.00, below_stop=True))
+    assert out["best_pick"]["decision"] != "BUY NOW"
 
 
 def test_promoted_pick_contract_executable_ready(monkeypatch):

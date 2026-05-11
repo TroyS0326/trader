@@ -178,8 +178,28 @@ def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -
     if risk_per_share <= 0:
         return result
     risk_pct = risk_per_share / entry
-    if risk_pct > float(config.AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT):
-        return result
+    max_risk_pct = float(config.AGGRESSIVE_PROMOTION_MAX_RISK_PER_SHARE_PCT)
+    tightened_stop = None
+    if risk_pct > max_risk_pct:
+        if not bool(getattr(config, "AGGRESSIVE_TIGHTEN_PROMOTION_PLAN_ENABLED", False)):
+            return result
+        if trading_mode == "live" and not bool(getattr(config, "AGGRESSIVE_TIGHTEN_PROMOTION_LIVE_ENABLED", False)):
+            return blocked("tightening_live_disabled")
+
+        tightened_stop = round(entry * (1 - max_risk_pct), 2)
+        if tightened_stop <= 0:
+            return blocked("tightened_stop_non_positive")
+        if tightened_stop >= entry:
+            return blocked("tightened_stop_gte_entry")
+        if tightened_stop <= stop:
+            return blocked("tightened_stop_not_above_original")
+
+        tightened_risk_per_share = entry - tightened_stop
+        if tightened_risk_per_share <= 0:
+            return blocked("tightened_risk_non_positive")
+        rr_to_target_1 = (target_1 - entry) / tightened_risk_per_share
+        if rr_to_target_1 < float(getattr(config, "AGGRESSIVE_TIGHTEN_PROMOTION_MIN_RR_TARGET_1", 1.20)):
+            return blocked("tightened_rr_below_min")
 
     allowed = _aggressive_promote_decision_allowlist()
     decision_candidates = {str(best_pick.get(k) or "").strip().upper() for k in ("decision", "action", "setup_grade")}
@@ -189,7 +209,17 @@ def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -
     best_pick["decision"] = "BUY NOW"
     best_pick["aggressive_intraday_promoted_from_decision"] = old_decision
     best_pick["aggressive_intraday_promoted"] = True
-    best_pick["aggressive_intraday_promotion_reason"] = "Aggressive intraday promotion: complete numeric order contract passed."
+    if tightened_stop is not None:
+        tightened_risk_per_share = entry - tightened_stop
+        rr_to_target_1 = (target_1 - entry) / tightened_risk_per_share
+        best_pick["aggressive_intraday_original_stop_price"] = stop
+        best_pick["stop_price"] = tightened_stop
+        best_pick["aggressive_intraday_stop_tightened"] = True
+        best_pick["aggressive_intraday_tightened_risk_pct"] = tightened_risk_per_share / entry
+        best_pick["aggressive_intraday_tightened_rr_to_target_1"] = rr_to_target_1
+        best_pick["aggressive_intraday_promotion_reason"] = "Aggressive intraday promotion: oversized stop tightened to capped risk."
+    else:
+        best_pick["aggressive_intraday_promotion_reason"] = "Aggressive intraday promotion: complete numeric order contract passed."
     result["best_pick"] = best_pick
 
     for item in result.get("watchlist") or []:
@@ -198,8 +228,14 @@ def _maybe_promote_aggressive_intraday_pick(user: Any, result: Dict[str, Any]) -
             item["aggressive_intraday_promoted_from_decision"] = old_decision
             item["aggressive_intraday_promoted"] = True
             item["aggressive_intraday_promotion_reason"] = best_pick["aggressive_intraday_promotion_reason"]
+            if tightened_stop is not None:
+                item["aggressive_intraday_original_stop_price"] = stop
+                item["stop_price"] = tightened_stop
+                item["aggressive_intraday_stop_tightened"] = True
+                item["aggressive_intraday_tightened_risk_pct"] = best_pick.get("aggressive_intraday_tightened_risk_pct")
+                item["aggressive_intraday_tightened_rr_to_target_1"] = best_pick.get("aggressive_intraday_tightened_rr_to_target_1")
 
-    logger.warning("Aggressive intraday pick promoted user_id=%s symbol=%s from_decision=%s entry=%s stop=%s target_1=%s target_2=%s qty=%s risk_per_share_pct=%.4f", getattr(user, "id", None), symbol, old_decision, entry, stop, target_1, target_2, qty, risk_pct)
+    logger.warning("Aggressive intraday pick promoted user_id=%s symbol=%s from_decision=%s entry=%s stop=%s target_1=%s target_2=%s qty=%s risk_per_share_pct=%.4f", getattr(user, "id", None), symbol, old_decision, entry, best_pick.get("stop_price"), target_1, target_2, qty, risk_pct)
     return result
 
 def _pick_is_allowed_for_user(user: Any, pick: Dict[str, Any]) -> bool:
