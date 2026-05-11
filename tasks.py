@@ -139,6 +139,43 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
             if not guard.get("ok"):
                 return f'LIVE trade blocked for User {user_id}: {guard.get("error")}'
 
+            active_trade = None
+            try:
+                active_trade = db_ops.get_active_trade_for_user_symbol(user_id, symbol)
+            except Exception:
+                _safe_log_exception(
+                    "execute_user_trade_task active-trade duplicate check failed for user_id=%s symbol=%s",
+                    user_id,
+                    symbol,
+                )
+
+            if active_trade:
+                existing_order_id = active_trade.get("order_id")
+                audit_trade_log(
+                    logger=celery_app.log.get_default_logger(),
+                    user=user,
+                    symbol=symbol,
+                    scan_id=scan_id,
+                    qty=qty,
+                    entry_price=entry_price,
+                    stop_price=stop_price,
+                    target_1=target_1_price,
+                    target_2=target_2_price,
+                    order_id=existing_order_id,
+                    order_status="blocked",
+                    order_result={
+                        "status": "blocked",
+                        "reason": "duplicate_active_trade",
+                        "existing_trade_id": active_trade.get("id"),
+                        "existing_order_id": existing_order_id,
+                        "symbol": symbol,
+                    },
+                )
+                return (
+                    f'Duplicate active trade blocked for User {user_id}: {symbol} '
+                    f'existing_order_id={existing_order_id}'
+                )
+
             # Route through the same bracket logic used in manual testing
             order = place_managed_entry_order(
                 symbol=symbol,

@@ -44,6 +44,35 @@ CLOSED_TRADE_OUTCOMES = {
     'breakeven_or_small_win',
 }
 
+ACTIVE_TRADE_STATUSES = {
+    'pending',
+    'working',
+    'working_or_filled',
+    'new',
+    'accepted',
+    'pending_new',
+    'accepted_for_bidding',
+    'partially_filled',
+    'filled',
+    'held',
+}
+
+TERMINAL_TRADE_STATUSES = {
+    'canceled',
+    'cancelled',
+    'expired',
+    'rejected',
+    'failed',
+    'closed',
+    'done_for_day',
+    'stopped_out',
+    'target_hit',
+    'target1_hit',
+    'target2_hit',
+    'win',
+    'loss',
+}
+
 NON_REALIZED_TRADE_STATES = {
     'open',
     'pending',
@@ -375,6 +404,32 @@ def get_recent_trades(limit: int = 20) -> Iterable[Dict[str, Any]]:
 def get_trade_by_order_id(order_id: str) -> Optional[Dict[str, Any]]:
     trade = Trade.query.filter_by(order_id=order_id).order_by(Trade.id.desc()).first()
     return _model_to_dict(trade) if trade else None
+
+
+def get_active_trade_for_user_symbol(user_id: int, symbol: str) -> Optional[Dict[str, Any]]:
+    normalized_symbol = (symbol or '').upper().strip()
+    if not normalized_symbol:
+        return None
+
+    trades = (
+        Trade.query.filter_by(user_id=user_id, symbol=normalized_symbol)
+        .order_by(Trade.id.desc())
+        .all()
+    )
+
+    for trade in trades:
+        statuses = {
+            (getattr(trade, 'status', None) or '').strip().lower(),
+            (getattr(trade, 'order_status', None) or '').strip().lower(),
+            (getattr(trade, 'outcome', None) or '').strip().lower(),
+        }
+        statuses.discard('')
+
+        if statuses.intersection(TERMINAL_TRADE_STATUSES):
+            continue
+        if statuses.intersection(ACTIVE_TRADE_STATUSES):
+            return _model_to_dict(trade)
+    return None
 
 
 def get_failed_trades_today() -> int:
