@@ -1,4 +1,5 @@
 import logging
+import json
 import time
 import threading
 import contextlib
@@ -270,6 +271,73 @@ def _order_filled_qty(order: dict) -> float:
     return max(0.0, value)
 
 
+
+
+def parse_broker_error_json(exc_or_text: Any) -> dict:
+    text = str(exc_or_text)
+    if isinstance(exc_or_text, BrokerError):
+        text = str(exc_or_text)
+    if not isinstance(text, str):
+        return {}
+    payload = text.strip()
+    if not payload:
+        return {}
+    try:
+        parsed = json.loads(payload)
+    except Exception:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def get_open_orders(symbol: str | None = None, user: Any | None = None, token: str | None = None) -> list[dict]:
+    base_url = get_execution_base_url(user)
+
+    def _fetch(params: dict[str, Any]) -> list[dict]:
+        resp = _request_with_retry('GET', f'{base_url}/v2/orders', params=params, token=token)
+        if resp.status_code >= 400:
+            raise BrokerError(resp.text)
+        data = resp.json()
+        if not data:
+            return []
+        return data if isinstance(data, list) else []
+
+    params = {'status': 'open', 'nested': 'true', 'limit': 500}
+    if symbol:
+        params['symbol'] = symbol.upper()
+        try:
+            return _fetch(params)
+        except BrokerError:
+            all_open = _fetch({'status': 'open', 'nested': 'true', 'limit': 500})
+            return [o for o in all_open if (o.get('symbol') or '').upper() == symbol.upper()]
+    return _fetch(params)
+
+
+def extract_open_sell_order_coverage(open_orders: list[dict], symbol: str) -> dict:
+    active_statuses = {'new', 'accepted', 'pending_new', 'accepted_for_bidding', 'partially_filled', 'held'}
+    target = (symbol or '').upper()
+    held_qty = 0.0
+    order_ids: list[str] = []
+    orders: list[dict] = []
+    for order in open_orders or []:
+        if (order.get('symbol') or '').upper() != target:
+            continue
+        if (order.get('side') or '').lower() != 'sell':
+            continue
+        if (order.get('status') or '').lower() not in active_statuses:
+            continue
+        try:
+            qty = float(order.get('qty') or 0)
+            filled_qty = float(order.get('filled_qty') or 0)
+        except Exception:
+            continue
+        remaining_qty = max(qty - filled_qty, 0.0)
+        if remaining_qty <= 0:
+            continue
+        held_qty += remaining_qty
+        if order.get('id'):
+            order_ids.append(order.get('id'))
+        orders.append(order)
+    return {'held_qty': held_qty, 'order_ids': order_ids, 'orders': orders}
 def get_open_position(symbol: str, user: Any | None = None, token: str | None = None) -> dict | None:
     base_url = get_execution_base_url(user)
     resp = _request_with_retry('GET', f'{base_url}/v2/positions/{symbol.upper()}', token=token)
