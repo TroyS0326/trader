@@ -13,19 +13,37 @@ class _FakeCelery:
         return fn
 
 
-def _install_import_stubs():
-    sys.modules.setdefault("redis", ModuleType("redis"))
-    sys.modules["redis"].Redis = SimpleNamespace(from_url=lambda *args, **kwargs: object())
+_MODULE_SENTINEL = object()
 
-    sys.modules.setdefault("requests", ModuleType("requests"))
+
+def _install_import_stubs():
+    inserted_modules = {}
+
+    def _set_or_get(name, module):
+        existing = sys.modules.get(name, _MODULE_SENTINEL)
+        if existing is _MODULE_SENTINEL:
+            sys.modules[name] = module
+            inserted_modules[name] = module
+            return module
+        return existing
+
+    redis_module = _set_or_get("redis", ModuleType("redis"))
+    redis_module.Redis = SimpleNamespace(from_url=lambda *args, **kwargs: object())
+
+    _set_or_get("requests", ModuleType("requests"))
+
+    sqlalchemy_stub = ModuleType("sqlalchemy")
+    sqlalchemy_stub.inspect = lambda *args, **kwargs: SimpleNamespace(get_table_names=lambda: [])
+    sqlalchemy_stub.text = lambda query: query
+    _set_or_get("sqlalchemy", sqlalchemy_stub)
 
     celery_stub = ModuleType("celery")
     celery_stub.Celery = _FakeCelery
-    sys.modules.setdefault("celery", celery_stub)
+    _set_or_get("celery", celery_stub)
 
     schedules_stub = ModuleType("celery.schedules")
     schedules_stub.crontab = lambda *args, **kwargs: None
-    sys.modules.setdefault("celery.schedules", schedules_stub)
+    _set_or_get("celery.schedules", schedules_stub)
 
     flask_stub = ModuleType("flask")
 
@@ -37,7 +55,7 @@ def _install_import_stubs():
             return nullcontext()
 
     flask_stub.Flask = _FakeFlask
-    sys.modules.setdefault("flask", flask_stub)
+    _set_or_get("flask", flask_stub)
 
     models_stub = ModuleType("models")
     models_stub.User = object()
@@ -46,28 +64,28 @@ def _install_import_stubs():
         init_app=lambda app: None,
         session=SimpleNamespace(get=lambda model, user_id: None),
     )
-    sys.modules.setdefault("models", models_stub)
+    _set_or_get("models", models_stub)
 
     broker_stub = ModuleType("broker")
     broker_stub.place_managed_entry_order = lambda **kwargs: {"id": "stub"}
-    sys.modules.setdefault("broker", broker_stub)
+    _set_or_get("broker", broker_stub)
 
     guard_stub = ModuleType("execution_guard")
     guard_stub.validate_execution_against_approved_scan = lambda **kwargs: {"ok": True}
     guard_stub.audit_trade_log = lambda **kwargs: None
-    sys.modules.setdefault("execution_guard", guard_stub)
+    _set_or_get("execution_guard", guard_stub)
 
     ai_stub = ModuleType("ai_catalyst")
     ai_stub.batch_process_premarket = lambda symbols: None
-    sys.modules.setdefault("ai_catalyst", ai_stub)
+    _set_or_get("ai_catalyst", ai_stub)
 
     scanner_stub = ModuleType("scanner")
     scanner_stub.get_refined_universe = lambda: []
-    sys.modules.setdefault("scanner", scanner_stub)
+    _set_or_get("scanner", scanner_stub)
 
     perf_stub = ModuleType("analyze_performance")
     perf_stub.calculate_user_kelly_fraction = lambda user_id: None
-    sys.modules.setdefault("analyze_performance", perf_stub)
+    _set_or_get("analyze_performance", perf_stub)
 
     config_stub = ModuleType("config")
     config_stub.REDIS_URL = "redis://example"
@@ -75,21 +93,45 @@ def _install_import_stubs():
     config_stub.SQLALCHEMY_ENGINE_OPTIONS = {}
     config_stub.ALPACA_API_KEY = ""
     config_stub.ALPACA_API_SECRET = ""
-    sys.modules.setdefault("config", config_stub)
+    config_stub.IS_PRODUCTION = False
+    config_stub.IS_TESTING = True
+    config_stub.FLASK_ENV = "testing"
+    _set_or_get("config", config_stub)
 
     sentry_stub = ModuleType("sentry_setup")
     sentry_stub.init_sentry = lambda name: None
-    sys.modules.setdefault("sentry_setup", sentry_stub)
+    _set_or_get("sentry_setup", sentry_stub)
     db_stub = ModuleType("db")
     db_stub.get_trade_by_order_id = lambda order_id: None
     db_stub.insert_trade = lambda payload: 1
-    sys.modules.setdefault("db", db_stub)
+    _set_or_get("db", db_stub)
+    return inserted_modules
 
 
+_inserted_stub_modules = _install_import_stubs()
+try:
+    import tasks
+finally:
+    def _cleanup_import_stubs():
+        for name, module in _inserted_stub_modules.items():
+            if sys.modules.get(name) is module:
+                sys.modules.pop(name)
 
-_install_import_stubs()
+    _cleanup_import_stubs()
 
-import tasks
+
+def test_tasks_stub_import_cleanup_keeps_real_module_imports_available():
+    from filters import passes_hard_gatekeeper
+    from models import SymbolMarketStats
+
+    assert callable(passes_hard_gatekeeper)
+    assert SymbolMarketStats is not None
+
+
+def test_tasks_stub_import_cleanup_keeps_real_app_imports_available():
+    import app
+
+    assert hasattr(app, "app")
 
 
 def _install_db_ops_stubs(monkeypatch, *, existing_trade=None, insert_raises=False):
