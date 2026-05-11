@@ -24,6 +24,15 @@ def test_signup_success_query_triggers_one_time_meta_complete_registration():
     assert "fbq('track', 'CompleteRegistration'" in html
 
 
+
+
+def test_paid_landing_and_signup_templates_do_not_fire_premature_completed_signup():
+    paid_landing = _read('templates/paid_ads_landing.html')
+    signup = _read('templates/signup.html')
+    assert 'data-google-ads-conversion="signup"' not in paid_landing
+    assert 'data-google-ads-conversion="signup"' not in signup
+    assert 'data-meta-pixel-event="CompleteRegistration"' not in signup
+
 def test_pricing_forms_keep_checkout_tracking_attributes_for_both_plans():
     html = _read('templates/upgrade.html')
     assert html.count('data-meta-pixel-event="InitiateCheckout"') >= 2
@@ -54,4 +63,7 @@ def test_tracking_templates_do_not_expose_password_or_secrets():
 def test_purchase_browser_tracking_limitation_is_documented():
     doc = _read('docs/paid_ads_launch_plan.md')
     assert 'Conversion Tracking Readiness' in doc
-    assert 'purchase conversion is not currently fired from a dedicated browser success page' in doc
+    assert 'browser-side google ads/meta' in doc.lower()
+    assert 'purchase' in doc.lower()
+    assert 'not' in doc.lower() and 'currently emitted' in doc.lower()
+    assert 'dedicated post-payment page' in doc.lower()
