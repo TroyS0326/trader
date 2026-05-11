@@ -328,3 +328,27 @@ def test_insert_trade_failure_does_not_block_audit_or_success(monkeypatch):
     assert calls["insert"] == 1
     assert audit_calls["count"] == 1
     assert "Success" in result and "oid-3" in result
+
+
+def test_insert_trade_failure_still_audits_when_all_exception_logging_fails(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-4", "status": "pending_new"})
+    calls = _install_db_ops_stubs(monkeypatch, insert_raises=True)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    class _BrokenLogger:
+        def exception(self, *args, **kwargs):
+            raise RuntimeError("logger broken")
+
+    monkeypatch.setattr(tasks.celery_app.log, "get_default_logger", lambda: _BrokenLogger())
+    monkeypatch.setattr(tasks.logging, "getLogger", lambda name: _BrokenLogger())
+
+    result = _call_task()
+
+    assert calls["insert"] == 1
+    assert audit_calls["count"] == 1
+    assert "Success" in result and "oid-4" in result
