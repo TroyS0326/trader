@@ -135,11 +135,13 @@ def test_tasks_stub_import_cleanup_keeps_real_app_imports_available():
     assert hasattr(app, "app")
 
 
-def _install_db_ops_stubs(monkeypatch, *, existing_trade=None, insert_raises=False):
+def _install_db_ops_stubs(monkeypatch, *, existing_trade=None, get_raises=False, insert_raises=False):
     calls = {"get": 0, "insert": 0, "insert_payload": None}
 
     def _get_trade(order_id):
         calls["get"] += 1
+        if get_raises:
+            raise RuntimeError("lookup failed")
         return existing_trade
 
     def _insert_trade(payload):
@@ -355,3 +357,40 @@ def test_insert_trade_failure_still_audits_when_all_exception_logging_fails(monk
     assert "Success" in result and "oid-4" in result
     assert callable(real_logging.getLogger)
     assert real_logging.getLogger() is not None
+
+
+def test_get_trade_by_order_id_failure_does_not_block_audit_or_success(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-5", "status": "pending_new"})
+    calls = _install_db_ops_stubs(monkeypatch, get_raises=True)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    result = _call_task()
+
+    assert calls["get"] == 1
+    assert calls["insert"] == 0
+    assert audit_calls["count"] == 1
+    assert "Success" in result and "oid-5" in result
+
+
+def test_minimal_order_dict_still_audits_and_returns_success(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "oid-6"})
+    calls = _install_db_ops_stubs(monkeypatch)
+    audit_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audit_calls.__setitem__("count", audit_calls["count"] + 1))
+
+    result = _call_task()
+
+    assert calls["get"] == 1
+    assert calls["insert"] == 1
+    assert calls["insert_payload"]["order_status"] == "submitted"
+    assert audit_calls["count"] == 1
+    assert "Success" in result and "oid-6" in result

@@ -69,6 +69,50 @@ def _safe_log_exception(message, *args):
         pass
 
 
+def _persist_submitted_trade_safely(*, user, user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price, order, order_id, order_status):
+    try:
+        existing_trade = db_ops.get_trade_by_order_id(order_id)
+        if existing_trade:
+            return False
+
+        risk_per_share = None
+        try:
+            risk_per_share = float(entry_price) - float(stop_price)
+        except (TypeError, ValueError):
+            pass
+
+        trade_payload = {
+            "user_id": user.id,
+            "scan_id": scan_id,
+            "symbol": symbol,
+            "side": "buy",
+            "decision": "BUY NOW",
+            "status": order_status,
+            "order_status": order_status,
+            "order_id": order_id,
+            "entry_price": entry_price,
+            "stop_price": stop_price,
+            "target_1": target_1_price,
+            "target_2": target_2_price,
+            "qty": qty,
+            "risk_per_share": risk_per_share,
+            "raw_json": {
+                "order_result": order,
+                "order_bundle": order.get("order_bundle") if isinstance(order, dict) else None,
+                "source": "execute_user_trade_task",
+            },
+        }
+        db_ops.insert_trade(trade_payload)
+        return True
+    except Exception:
+        _safe_log_exception(
+            "execute_user_trade_task failed to persist trade row for order_id=%s user_id=%s",
+            order_id,
+            user_id,
+        )
+        return False
+
+
 @celery_app.task
 def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
     """
@@ -110,43 +154,20 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
             order_status = (order.get("status") if isinstance(order, dict) else None) or "submitted"
 
             if order_id:
-                existing_trade = db_ops.get_trade_by_order_id(order_id)
-                if not existing_trade:
-                    risk_per_share = None
-                    try:
-                        risk_per_share = float(entry_price) - float(stop_price)
-                    except (TypeError, ValueError):
-                        pass
-
-                    trade_payload = {
-                        "user_id": user.id,
-                        "scan_id": scan_id,
-                        "symbol": symbol,
-                        "side": "buy",
-                        "decision": "BUY NOW",
-                        "status": order_status,
-                        "order_status": order_status,
-                        "order_id": order_id,
-                        "entry_price": entry_price,
-                        "stop_price": stop_price,
-                        "target_1": target_1_price,
-                        "target_2": target_2_price,
-                        "qty": qty,
-                        "risk_per_share": risk_per_share,
-                        "raw_json": {
-                            "order_result": order,
-                            "order_bundle": order.get("order_bundle") if isinstance(order, dict) else None,
-                            "source": "execute_user_trade_task",
-                        },
-                    }
-                    try:
-                        db_ops.insert_trade(trade_payload)
-                    except Exception:
-                        _safe_log_exception(
-                            "execute_user_trade_task failed to persist trade row for order_id=%s user_id=%s",
-                            order_id,
-                            user_id,
-                        )
+                _persist_submitted_trade_safely(
+                    user=user,
+                    user_id=user_id,
+                    scan_id=scan_id,
+                    symbol=symbol,
+                    qty=qty,
+                    entry_price=entry_price,
+                    stop_price=stop_price,
+                    target_1_price=target_1_price,
+                    target_2_price=target_2_price,
+                    order=order,
+                    order_id=order_id,
+                    order_status=order_status,
+                )
 
             audit_trade_log(
                 logger=celery_app.log.get_default_logger(),
