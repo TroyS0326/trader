@@ -152,3 +152,38 @@ def test_canceled_with_zero_fill_inactive_and_outcome_override(tmp_path):
         active_ids = {r["order_id"] for r in get_active_trades(limit=10, user_id=1)}
         assert "c0" not in active_ids
         assert "c1" not in active_ids
+
+
+def test_update_trade_raw_json_merge_and_notes(tmp_path):
+    from db import update_trade_raw_json_by_order_id
+    app = _make_test_app(tmp_path / 'portability8.db')
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        t = Trade(user_id=1, symbol='AAPL', order_id='m1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12, notes='old', raw_json=json.dumps({'order_result': {'a': 1}, 'order_bundle': {'x': 2}}))
+        db.session.add(t); db.session.commit()
+        update_trade_raw_json_by_order_id('m1', {'emergency_exit_order': {'id': 'e1'}}, notes_append='new')
+        t = Trade.query.filter_by(order_id='m1').first()
+        payload = json.loads(t.raw_json)
+        assert payload['order_result']['a'] == 1 and payload['order_bundle']['x'] == 2
+        assert payload['emergency_exit_order']['id'] == 'e1'
+        assert 'old' in (t.notes or '') and 'new' in (t.notes or '')
+
+
+def test_update_trades_for_user_symbol_scope(tmp_path):
+    from db import update_trades_for_user_symbol
+    app = _make_test_app(tmp_path / 'portability9.db')
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        rows = [
+            Trade(user_id=1, symbol='AAPL', order_id='u1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12, notes='a'),
+            Trade(user_id=1, symbol='AAPL', order_id='u2', status='accepted', entry_price=10, stop_price=9, target_1=11, target_2=12, notes='b'),
+            Trade(user_id=2, symbol='AAPL', order_id='u3', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12, notes='c'),
+            Trade(user_id=1, symbol='MSFT', order_id='u4', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12, notes='d'),
+        ]
+        db.session.add_all(rows); db.session.commit()
+        n = update_trades_for_user_symbol(1, 'AAPL', {'status': 'closed'}, raw_patch={'k': 1}, notes_append='append')
+        assert n == 2
+        assert Trade.query.filter_by(order_id='u1').first().status == 'closed'
+        assert Trade.query.filter_by(order_id='u2').first().status == 'closed'
+        assert Trade.query.filter_by(order_id='u3').first().status != 'closed'
+        assert Trade.query.filter_by(order_id='u4').first().status != 'closed'

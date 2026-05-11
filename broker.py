@@ -508,13 +508,19 @@ def _background_leg_placement(
 
 
 def place_emergency_exit_order(symbol, qty, user, reason, reference_order_id=None) -> dict:
+    try:
+        numeric_qty = int(float(qty))
+    except (TypeError, ValueError):
+        raise BrokerError(f'Invalid emergency exit qty for {symbol}: {qty}')
+    if numeric_qty <= 0:
+        raise BrokerError(f'Invalid emergency exit qty for {symbol}: {qty}')
     quote = get_latest_quote(symbol, user=user)
     anchor = float(quote.get('bp') or quote.get('ap') or 0)
     if anchor <= 0:
         raise BrokerError(f'No valid quote available for emergency exit on {symbol}.')
     limit_price = max(0.01, round(anchor * (1 - EMERGENCY_EXIT_SLIPPAGE_PCT), 2))
     token = getattr(user, 'alpaca_access_token', None) if user else None
-    return submit_order({'symbol': symbol.upper(), 'qty': str(int(max(1, qty))), 'side': 'sell', 'type': 'limit', 'time_in_force': 'day', 'limit_price': limit_price}, token=token, user=user)
+    return submit_order({'symbol': symbol.upper(), 'qty': str(numeric_qty), 'side': 'sell', 'type': 'limit', 'time_in_force': 'day', 'limit_price': limit_price}, token=token, user=user)
 
 
 def place_managed_entry_order(
