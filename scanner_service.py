@@ -58,7 +58,11 @@ def _decision_allowlist() -> set[str]:
 
 def _run_scan_for_user(user: Any) -> Dict[str, Any]:
     sig = inspect.signature(run_scan)
-    if "user" in sig.parameters:
+    accepts_kwargs = any(
+        param.kind == inspect.Parameter.VAR_KEYWORD
+        for param in sig.parameters.values()
+    )
+    if "user" in sig.parameters or accepts_kwargs:
         return run_scan(user=user)
     return run_scan()
 
