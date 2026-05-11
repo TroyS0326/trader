@@ -179,7 +179,7 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                 open_orders = get_open_orders(symbol=symbol, user=user, token=getattr(user, "alpaca_access_token", None))
             except BrokerError:
                 summary["error_count"] += 1
-                continue
+                open_orders = []
             coverage = extract_open_sell_order_coverage(open_orders, symbol)
             held_qty = int(coverage.get("held_qty") or 0)
             if coverage.get("order_ids"):
@@ -211,28 +211,29 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                 summary["emergency_exit_uncovered_qty_submitted_count"] += submit_qty
             except BrokerError as exc:
                 message = str(exc)
+                parsed = parse_broker_error_json(exc)
+                try:
+                    available_qty = float(parsed.get("available"))
+                    held_for_orders = float(parsed.get("held_for_orders"))
+                    existing_qty = float(parsed.get("existing_qty"))
+                except Exception:
+                    available_qty = held_for_orders = existing_qty = None
+                related_orders = parsed.get("related_orders") if isinstance(parsed.get("related_orders"), list) else []
+                if available_qty == 0 and held_for_orders is not None and existing_qty is not None and held_for_orders >= existing_qty and related_orders:
+                    db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={
+                        "emergency_exit_status": "held_by_existing_orders",
+                        "existing_protective_order_ids": related_orders,
+                        "held_for_orders_qty": held_for_orders,
+                        "broker_position_qty": pos_qty or existing_qty,
+                        "broker_available_qty": available_qty,
+                        "emergency_exit_403_payload": parsed,
+                        "broker_error_payload": parsed,
+                        "reconciliation": {"reason": "broker_reports_position_held_for_orders"},
+                    }, notes_append="emergency_exit_existing_held_orders")
+                    summary["emergency_exit_existing_held_count"] += 1
+                    summary["emergency_exit_skipped_existing_count"] += 1
+                    continue
                 if "403" in message:
-                    parsed = parse_broker_error_json(exc)
-                    try:
-                        available_qty = float(parsed.get("available"))
-                        held_for_orders = float(parsed.get("held_for_orders"))
-                        existing_qty = float(parsed.get("existing_qty"))
-                    except Exception:
-                        available_qty = held_for_orders = existing_qty = None
-                    related_orders = parsed.get("related_orders") if isinstance(parsed.get("related_orders"), list) else []
-                    if available_qty == 0 and held_for_orders is not None and existing_qty is not None and held_for_orders >= existing_qty and related_orders:
-                        db.update_trades_for_user_symbol(user_id=uid, symbol=symbol, updates={}, raw_patch={
-                            "emergency_exit_status": "held_by_existing_orders",
-                            "existing_protective_order_ids": related_orders,
-                            "held_for_orders_qty": held_for_orders,
-                            "broker_position_qty": existing_qty,
-                            "broker_available_qty": available_qty,
-                            "emergency_exit_403_payload": parsed,
-                            "reconciliation": {"reason": "broker_reports_position_held_for_orders"},
-                        }, notes_append="emergency_exit_existing_held_orders")
-                        summary["emergency_exit_existing_held_count"] += 1
-                        summary["emergency_exit_skipped_existing_count"] += 1
-                        continue
                     summary["emergency_exit_error_count"] += 1
                     try:
                         refetched = get_open_position(symbol, user=user, token=getattr(user, "alpaca_access_token", None))
