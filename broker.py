@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import requests
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
+import config
 from config import (
     ALPACA_API_KEY,
     ALPACA_API_SECRET,
@@ -110,6 +111,29 @@ def _patch_json(url: str, payload: Dict[str, Any], token: str | None = None) -> 
         logger.error('Broker PATCH request failed (url=%s, status=%s).', url, resp.status_code)
         raise BrokerError(resp.text)
     return resp.json()
+
+
+
+
+def _quote_mid_or_usable_price(quote: dict) -> float | None:
+    if not isinstance(quote, dict):
+        return None
+    try:
+        ask = float(quote.get('ap') or 0)
+    except (TypeError, ValueError):
+        ask = 0
+    try:
+        bid = float(quote.get('bp') or 0)
+    except (TypeError, ValueError):
+        bid = 0
+
+    if bid > 0 and ask > 0:
+        return (bid + ask) / 2
+    if ask > 0:
+        return ask
+    if bid > 0:
+        return bid
+    return None
 
 
 def _neutral_order_book_metrics(reason: str = '') -> Dict[str, Any]:
@@ -668,7 +692,20 @@ def place_managed_entry_order(
             return _neutral_order_book_metrics(f'stock orderbook request error: {exc}')
 
     latest_quote = get_latest_quote(symbol, user=execution_user)
-    current_price = float(latest_quote.get('ap') or latest_quote.get('bp') or entry_price or 0)
+    quote_price = _quote_mid_or_usable_price(latest_quote)
+    if config.EXECUTION_QUOTE_DRIFT_GUARD_ENABLED and float(entry_price or 0) > 0 and quote_price is not None:
+        drift_pct = abs(float(quote_price) - float(entry_price)) / float(entry_price)
+        if drift_pct > config.EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT:
+            return {
+                'status': 'rejected',
+                'symbol': symbol.upper(),
+                'reason': 'entry_quote_drift_exceeded',
+                'entry_price': entry_price,
+                'quote_price': quote_price,
+                'drift_pct': drift_pct,
+                'max_allowed_drift_pct': config.EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT,
+            }
+    current_price = float((quote_price if quote_price is not None else 0) or entry_price or 0)
     order_book_metrics = _safe_order_book_metrics(symbol, user_token, execution_user)
     imbalance_ratio = float(order_book_metrics.get('imbalance_ratio') or 0.0)
     institutional_wall_price = order_book_metrics.get('institutional_wall_price')

@@ -89,6 +89,39 @@ def _safe_log_exception(message, *args):
         pass
 
 
+
+
+def _trade_cooldown_block(user_id, symbol) -> dict | None:
+    try:
+        latest_trade = db_ops.latest_trade_for_user_symbol(user_id, symbol)
+        if latest_trade:
+            created_dt = _parse_utc_datetime(latest_trade.get("created_at"))
+            if created_dt is not None:
+                cutoff = utc_now_aware().astimezone(timezone.utc) - timedelta(minutes=config.EXECUTION_SYMBOL_COOLDOWN_MINUTES)
+                if created_dt > cutoff:
+                    return {
+                        "status": "blocked",
+                        "reason": "symbol_cooldown",
+                        "symbol": str(symbol or "").strip().upper(),
+                        "latest_trade_id": latest_trade.get("id"),
+                        "latest_order_id": latest_trade.get("order_id"),
+                        "cooldown_minutes": config.EXECUTION_SYMBOL_COOLDOWN_MINUTES,
+                    }
+
+        trade_count_today = db_ops.count_trades_for_user_symbol_today(user_id, symbol)
+        if trade_count_today >= config.EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY:
+            return {
+                "status": "blocked",
+                "reason": "same_symbol_daily_limit",
+                "symbol": str(symbol or "").strip().upper(),
+                "trade_count_today": trade_count_today,
+                "limit": config.EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY,
+            }
+    except Exception:
+        _safe_log_exception("trade cooldown guard lookup failed user_id=%s symbol=%s", user_id, symbol)
+    return None
+
+
 def _persist_submitted_trade_safely(*, user, user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price, order, order_id, order_status):
     try:
         existing_trade = db_ops.get_trade_by_order_id(order_id)
@@ -212,6 +245,22 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     f'Duplicate active trade blocked for User {user_id}: {symbol} '
                     f'existing_order_id={existing_order_id}'
                 )
+
+            cooldown_block = _trade_cooldown_block(user_id, symbol)
+            if cooldown_block:
+                audit_trade_log(
+                    logger=celery_app.log.get_default_logger(),
+                    user=user,
+                    symbol=symbol,
+                    scan_id=scan_id,
+                    qty=qty,
+                    entry_price=entry_price,
+                    stop_price=stop_price,
+                    target_1=target_1_price,
+                    target_2=target_2_price,
+                    order_result=cooldown_block,
+                )
+                return f'Execution blocked for User {user_id}: {symbol} reason={cooldown_block.get("reason")}'
 
             # Route through the same bracket logic used in manual testing
             order = place_managed_entry_order(

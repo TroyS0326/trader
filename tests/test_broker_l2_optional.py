@@ -343,3 +343,41 @@ def test_poll_for_fill_timeout_get_order_error_still_callbacks_canceled(monkeypa
         assert False
     except broker.BrokerError:
         assert seen[-1] == 'canceled'
+
+def test_quote_mid_or_usable_price_variants():
+    assert broker._quote_mid_or_usable_price({'bp': 9, 'ap': 11}) == 10
+    assert broker._quote_mid_or_usable_price({'ap': 11}) == 11
+    assert broker._quote_mid_or_usable_price({'bp': 9}) == 9
+    assert broker._quote_mid_or_usable_price({}) is None
+
+
+def test_quote_drift_rejects_and_no_submit(monkeypatch):
+    _base_patches(monkeypatch)
+    monkeypatch.setattr(broker, 'STOCK_L2_ORDERBOOK_CHECK_ENABLED', False)
+    monkeypatch.setattr(broker.config, 'EXECUTION_QUOTE_DRIFT_GUARD_ENABLED', True)
+    monkeypatch.setattr(broker.config, 'EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT', 0.01)
+    monkeypatch.setattr(broker, '_get_json', lambda url, **kwargs: {'buying_power': '100000'} if '/v2/account' in url else {'quotes': {'AAPL': {'ap': 120, 'bp': 119}}})
+    calls={'submit':0}
+    monkeypatch.setattr(broker, 'submit_order', lambda *a, **k: calls.__setitem__('submit', calls['submit']+1) or {'id':'x'})
+    out = broker.place_managed_entry_order('AAPL', 5, 100, 98, 105, 110, user=_user())
+    assert out['reason'] == 'entry_quote_drift_exceeded'
+    assert calls['submit'] == 0
+
+
+def test_quote_drift_within_threshold_allows(monkeypatch):
+    _base_patches(monkeypatch)
+    monkeypatch.setattr(broker, 'STOCK_L2_ORDERBOOK_CHECK_ENABLED', False)
+    monkeypatch.setattr(broker.config, 'EXECUTION_QUOTE_DRIFT_GUARD_ENABLED', True)
+    monkeypatch.setattr(broker.config, 'EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT', 0.5)
+    monkeypatch.setattr(broker, '_get_json', lambda url, **kwargs: {'buying_power': '100000'} if '/v2/account' in url else {'quotes': {'AAPL': {'ap': 120, 'bp': 119}}})
+    out = broker.place_managed_entry_order('AAPL', 5, 100, 98, 105, 110, user=_user())
+    assert out['id'] == 'entry-1'
+
+
+def test_quote_drift_disabled_allows_high_drift(monkeypatch):
+    _base_patches(monkeypatch)
+    monkeypatch.setattr(broker, 'STOCK_L2_ORDERBOOK_CHECK_ENABLED', False)
+    monkeypatch.setattr(broker.config, 'EXECUTION_QUOTE_DRIFT_GUARD_ENABLED', False)
+    monkeypatch.setattr(broker, '_get_json', lambda url, **kwargs: {'buying_power': '100000'} if '/v2/account' in url else {'quotes': {'AAPL': {'ap': 140, 'bp': 139}}})
+    out = broker.place_managed_entry_order('AAPL', 5, 100, 98, 105, 110, user=_user())
+    assert out['id'] == 'entry-1'
