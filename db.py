@@ -492,6 +492,51 @@ def get_trade_by_order_id(order_id: str) -> Optional[Dict[str, Any]]:
     return _model_to_dict(trade) if trade else None
 
 
+def latest_trade_for_user_symbol(user_id: int, symbol: str) -> Optional[Dict[str, Any]]:
+    normalized_symbol = (symbol or '').upper().strip()
+    if not normalized_symbol:
+        return None
+    trade = (
+        Trade.query.filter_by(user_id=user_id, symbol=normalized_symbol)
+        .order_by(Trade.id.desc())
+        .first()
+    )
+    return _model_to_dict(trade) if trade else None
+
+
+def get_recent_trades_for_user_symbol(user_id: int, symbol: str, limit: int = 20) -> list[dict]:
+    normalized_symbol = (symbol or '').upper().strip()
+    if not normalized_symbol:
+        return []
+    trades = (
+        Trade.query.filter_by(user_id=user_id, symbol=normalized_symbol)
+        .order_by(Trade.id.desc())
+        .limit(max(1, int(limit)))
+        .all()
+    )
+    return [_model_to_dict(t) for t in trades]
+
+
+def count_trades_for_user_symbol_today(user_id: int, symbol: str) -> int:
+    normalized_symbol = (symbol or '').upper().strip()
+    if not normalized_symbol:
+        return 0
+
+    et_zone = ZoneInfo(config.TIMEZONE_LABEL)
+    now_et = datetime.now(et_zone)
+    start_et = datetime.combine(now_et.date(), time.min, tzinfo=et_zone)
+    end_et = datetime.combine(now_et.date(), time.max, tzinfo=et_zone)
+    start_utc = start_et.astimezone(timezone.utc)
+    end_utc = end_et.astimezone(timezone.utc)
+
+    return Trade.query.filter(
+        Trade.user_id == user_id,
+        Trade.symbol == normalized_symbol,
+        Trade.created_at >= start_utc,
+        Trade.created_at <= end_utc,
+    ).count()
+
+
 def get_active_trade_for_user_symbol(user_id: int, symbol: str) -> Optional[Dict[str, Any]]:
     normalized_symbol = (symbol or '').upper().strip()
     if not normalized_symbol:

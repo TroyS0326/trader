@@ -187,3 +187,47 @@ def test_update_trades_for_user_symbol_scope(tmp_path):
         assert Trade.query.filter_by(order_id='u2').first().status == 'closed'
         assert Trade.query.filter_by(order_id='u3').first().status != 'closed'
         assert Trade.query.filter_by(order_id='u4').first().status != 'closed'
+
+
+def test_latest_trade_for_user_symbol_returns_newest(tmp_path):
+    from db import latest_trade_for_user_symbol
+    app = _make_test_app(tmp_path / "portability10.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        db.session.add_all([
+            Trade(user_id=1, symbol='AAPL', order_id='old', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', order_id='new', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='MSFT', order_id='x', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+        ])
+        db.session.commit()
+        got = latest_trade_for_user_symbol(1, 'aapl')
+        assert got['order_id'] == 'new'
+
+def test_get_recent_trades_for_user_symbol_scope(tmp_path):
+    from db import get_recent_trades_for_user_symbol
+    app = _make_test_app(tmp_path / "portability11.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        db.session.add_all([
+            Trade(user_id=1, symbol='AAPL', order_id='a1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', order_id='a2', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=2, symbol='AAPL', order_id='a3', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='MSFT', order_id='m1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+        ])
+        db.session.commit()
+        got = get_recent_trades_for_user_symbol(1, 'aapl', limit=10)
+        assert [r['order_id'] for r in got] == ['a2', 'a1']
+
+def test_count_trades_for_user_symbol_today_scope(tmp_path):
+    from db import count_trades_for_user_symbol_today
+    app = _make_test_app(tmp_path / "portability12.db")
+    with app.app_context():
+        db.drop_all(); db.create_all()
+        db.session.add_all([
+            Trade(user_id=1, symbol='AAPL', order_id='a1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='AAPL', order_id='a2', status='closed', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=2, symbol='AAPL', order_id='a3', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+            Trade(user_id=1, symbol='MSFT', order_id='m1', status='filled', entry_price=10, stop_price=9, target_1=11, target_2=12),
+        ])
+        db.session.commit()
+        assert count_trades_for_user_symbol_today(1, 'AAPL') == 2

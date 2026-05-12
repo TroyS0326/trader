@@ -1,6 +1,6 @@
 import inspect
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import signal
 import time
@@ -402,6 +402,26 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
             return
     except Exception:
         logger.warning("Pre-dispatch duplicate active trade check failed user_id=%s scan_id=%s symbol=%s", getattr(user, "id", None), scan_payload.get("scan_id"), str(diag.get("symbol") or "").strip().upper(), exc_info=True)
+
+    try:
+        normalized_symbol = str(diag.get("symbol") or "").strip().upper()
+        latest_trade = db.latest_trade_for_user_symbol(user.id, normalized_symbol)
+        if latest_trade:
+            created_at = latest_trade.get("created_at")
+            created_dt = datetime.fromisoformat(str(created_at).replace("Z", "+00:00")) if created_at else None
+            if created_dt is not None:
+                now_utc = datetime.now(ZoneInfo("UTC"))
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=ZoneInfo("UTC"))
+                if created_dt > (now_utc - timedelta(minutes=config.EXECUTION_SYMBOL_COOLDOWN_MINUTES)):
+                    logger.info("Execution skipped. reason=SYMBOL_COOLDOWN ctx=%s", base_ctx)
+                    return
+        count_today = db.count_trades_for_user_symbol_today(user.id, normalized_symbol)
+        if count_today >= config.EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY:
+            logger.info("Execution skipped. reason=SAME_SYMBOL_DAILY_LIMIT ctx=%s", base_ctx)
+            return
+    except Exception:
+        logger.warning("Pre-dispatch symbol churn check failed user_id=%s scan_id=%s symbol=%s", getattr(user, "id", None), scan_payload.get("scan_id"), str(diag.get("symbol") or "").strip().upper(), exc_info=True)
 
     best_pick = (scan_payload.get("best_pick") or scan_payload.get("best") or scan_payload.get("top_pick") or {})
     target_1 = best_pick.get("target_1", best_pick.get("target_1_price"))

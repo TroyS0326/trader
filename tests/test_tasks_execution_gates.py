@@ -562,3 +562,52 @@ def test_duplicate_stale_trade_reconciles_rechecks_and_blocks_if_still_active(mo
     assert called["recon"] == 1
     assert called["order"] == 0
     assert "Duplicate active trade blocked" in out
+
+def test_cooldown_recent_trade_blocks_before_broker(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(tasks.db_ops, "latest_trade_for_user_symbol", lambda *a, **k: {"id": 10, "order_id": "o10", "created_at": "2999-01-01T00:00:00+00:00"})
+    monkeypatch.setattr(tasks.db_ops, "count_trades_for_user_symbol_today", lambda *a, **k: 0)
+    order_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
+    audits = []
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audits.append(kwargs))
+    out = _call_task()
+    assert "reason=symbol_cooldown" in out
+    assert order_calls["count"] == 0
+    assert audits[0]["order_result"]["reason"] == "symbol_cooldown"
+
+
+def test_daily_limit_blocks_before_broker(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(tasks.db_ops, "latest_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(tasks.db_ops, "count_trades_for_user_symbol_today", lambda *a, **k: 5)
+    monkeypatch.setattr(tasks.config, "EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY", 3)
+    order_calls = {"count": 0}
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: order_calls.__setitem__("count", order_calls["count"] + 1))
+    audits = []
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: audits.append(kwargs))
+    out = _call_task()
+    assert "reason=same_symbol_daily_limit" in out
+    assert order_calls["count"] == 0
+    assert audits[0]["order_result"]["reason"] == "same_symbol_daily_limit"
+
+
+def test_cooldown_helper_exception_does_not_block(monkeypatch):
+    _patch_context(monkeypatch)
+    user = SimpleNamespace(subscription_status="pro", id=7)
+    monkeypatch.setattr(tasks.db.session, "get", lambda model, user_id: user)
+    monkeypatch.setattr(tasks, "validate_execution_against_approved_scan", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(tasks.db_ops, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(tasks.db_ops, "latest_trade_for_user_symbol", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(tasks, "place_managed_entry_order", lambda **kwargs: {"id": "ok-1"})
+    monkeypatch.setattr(tasks, "audit_trade_log", lambda **kwargs: None)
+    out = _call_task()
+    assert "Success" in out

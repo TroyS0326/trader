@@ -654,3 +654,47 @@ def test_central_cycle_reconciliation_failure_nonfatal(monkeypatch):
     monkeypatch.setattr(scanner_service, 'reconcile_active_trade_orders', lambda **kwargs: (_ for _ in ()).throw(RuntimeError('boom')))
     scanner_service.run_central_scan_cycle('x')
     assert calls['fanout'] == 1
+
+def test_dispatch_skips_on_symbol_cooldown_precheck(monkeypatch):
+    called={"v":False}
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs): called["v"]=True
+    diag={"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol":"AAPL","qty":1,"entry_price":10,"stop_price":9,"target_1":11,"target_2":12}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service.db, "latest_trade_for_user_symbol", lambda *a, **k: {"created_at":"2999-01-01T00:00:00+00:00"})
+    monkeypatch.setattr(scanner_service.db, "count_trades_for_user_symbol_today", lambda *a, **k: 0)
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id":1, "best_pick":{}})
+    assert called["v"] is False
+
+
+def test_dispatch_skips_on_daily_limit_precheck(monkeypatch):
+    called={"v":False}
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs): called["v"]=True
+    diag={"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol":"AAPL","qty":1,"entry_price":10,"stop_price":9,"target_1":11,"target_2":12}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service.db, "latest_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service.db, "count_trades_for_user_symbol_today", lambda *a, **k: 5)
+    monkeypatch.setattr(scanner_service.config, "EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY", 3)
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id":1, "best_pick":{}})
+    assert called["v"] is False
+
+
+def test_dispatch_precheck_error_still_dispatches(monkeypatch):
+    called={"v":False}
+    class FakeTask:
+        @staticmethod
+        def delay(*args, **kwargs): called["v"]=True
+    diag={"execution_ready": True, "trading_mode": "paper", "symbol": "AAPL", "decision": "BUY NOW", "qty": 1, "order_fields": {"symbol":"AAPL","qty":1,"entry_price":10,"stop_price":9,"target_1":11,"target_2":12}}
+    monkeypatch.setattr(scanner_service, "evaluate_execution_readiness", lambda *a, **k: diag)
+    monkeypatch.setattr(scanner_service.db, "get_active_trade_for_user_symbol", lambda *a, **k: None)
+    monkeypatch.setattr(scanner_service.db, "latest_trade_for_user_symbol", lambda *a, **k: (_ for _ in ()).throw(RuntimeError('x')))
+    monkeypatch.setitem(__import__('sys').modules, 'tasks', SimpleNamespace(execute_user_trade_task=FakeTask))
+    scanner_service._dispatch_execution_if_allowed(SimpleNamespace(id=1), {"scan_id":1, "best_pick":{}})
+    assert called["v"] is True
