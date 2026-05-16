@@ -39,22 +39,14 @@ def test_about_page_jsonld_is_valid_aboutpage():
     assert data.get('url') == 'https://xeanvi.com/about'
 
 
-def test_blog_post_supports_byline_dates_disclosure_and_safeguard_links():
+def test_blog_post_supports_byline_and_dates_without_repeated_safeguard_block():
     html = _read('templates/blog_post.html')
     assert "post.author_name" in html
     assert "Published" in html
     assert "Updated" in html
-    assert "not financial advice" in html.lower()
-    assert "trading involves risk" in html.lower()
-    for href in ['/transparency', '/playbook', '/broker-integration', '/about']:
-        assert f'href="{href}"' in html
-
-
-def test_blog_post_safeguards_section_appears_before_footer_include():
-    html = _read('templates/blog_post.html')
-    safeguards_index = html.index('Explore XeanVI safeguards')
-    footer_index = html.index("{% include 'footer.html' %}")
-    assert safeguards_index < footer_index
+    assert "This article is for product education" not in html
+    assert "Explore XeanVI safeguards" not in html
+    assert "Review Transparency, Playbook, Broker Integration" not in html
 
 
 def test_banned_risky_phrases_absent_from_trust_templates():
