@@ -769,3 +769,40 @@ def get_recent_trade_audit_logs(limit: int = 50) -> Iterable[Dict[str, Any]]:
 def get_current_market_regime() -> Optional[Dict[str, Any]]:
     regime = MarketRegime.query.order_by(MarketRegime.updated_at.desc(), MarketRegime.id.desc()).first()
     return _model_to_dict(regime) if regime else None
+
+
+def get_realized_pnl_today_for_user(user_id: int) -> float:
+    """
+    Sums Trade.pnl for all closed trades today in ET time for a given user.
+
+    IMPORTANT:
+    - Uses Trade.closed_at for the time boundary (not created_at). A trade
+      opened yesterday but closed today counts toward today's drawdown.
+    - Returns a float that will be NEGATIVE when the user is net down.
+    - Returns 0.0 when there are no closed trades today or on any query error.
+    - Does NOT include open/pending positions — only realized P&L.
+    """
+    from zoneinfo import ZoneInfo
+    try:
+        et_zone = ZoneInfo("America/New_York")
+        now_et = datetime.now(et_zone)
+
+        # Start of today in ET, converted to UTC for the DB query.
+        # Trade.closed_at is stored as a naive UTC datetime.
+        today_start_et = datetime(now_et.year, now_et.month, now_et.day, tzinfo=et_zone)
+        today_start_utc_naive = today_start_et.astimezone(timezone.utc).replace(tzinfo=None)
+
+        result = db.session.query(func.sum(Trade.pnl)).filter(
+            Trade.user_id == user_id,
+            Trade.pnl.isnot(None),
+            Trade.closed_at >= today_start_utc_naive,
+        ).scalar()
+
+        return float(result or 0.0)
+    except Exception:
+        # Never let a query failure block a gate check — log and return 0.
+        import logging
+        logging.getLogger(__name__).exception(
+            "get_realized_pnl_today_for_user failed for user_id=%s — returning 0.0", user_id
+        )
+        return 0.0
