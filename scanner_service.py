@@ -277,6 +277,84 @@ def _active_trade_for_user_symbol(user: Any, symbol: str) -> Dict[str, Any] | No
         logger.warning("Active trade duplicate check failed user_id=%s symbol=%s", getattr(user, "id", None), symbol, exc_info=True)
         return None
 
+def _resize_best_pick_for_user(user: Any, best_pick: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    P1: Replaces the shared-scan qty (sized against global CURRENT_BANKROLL)
+    with a qty calculated from the user's actual live bankroll.
+
+    This is the authoritative per-user sizing for automated execution.
+    The shared scan qty is only a market-discovery signal — it must be
+    re-stamped here before the payload is approved and dispatched.
+
+    Safe-fails to the original shared qty on any error so a bankroll
+    lookup failure never silently zeroes out a valid setup.
+    """
+    try:
+        from analyze_performance import calculate_user_kelly_fraction
+
+        entry_price = float(best_pick.get("entry_price") or 0.0)
+        stop_price  = float(best_pick.get("stop_price")  or 0.0)
+
+        if entry_price <= 0 or stop_price <= 0 or entry_price <= stop_price:
+            return best_pick
+
+        risk_per_share = max(0.01, entry_price - stop_price)
+
+        # Prefer active_bankroll (mode-aware) then fall back to legacy bankroll
+        user_bankroll = float(
+            getattr(user, "active_bankroll", None)
+            or getattr(user, "bankroll", 0.0)
+        )
+        if user_bankroll <= 0:
+            return best_pick
+
+        # Kelly fraction from trade history, fall back to user risk_pct setting
+        kelly_fraction = calculate_user_kelly_fraction(getattr(user, "id", None))
+        if kelly_fraction is None:
+            user_risk_pct = float(getattr(user, "risk_pct", 1.0))
+            dollar_risk = user_bankroll * (user_risk_pct / 100.0)
+        elif kelly_fraction == 0:
+            # Negative expected value — zero the position, let gate block it
+            best_pick = dict(best_pick)
+            best_pick["qty"] = 0
+            best_pick["qty_source"] = "kelly_zero_ev"
+            return best_pick
+        else:
+            dollar_risk = user_bankroll * kelly_fraction
+
+        # Hard cap: 7% of bankroll OR config absolute ceiling, whichever is lower
+        max_dollar_risk = min(
+            dollar_risk,
+            user_bankroll * getattr(config, "PER_TRADE_LOSS_CAP_PCT", 0.07),
+            getattr(config, "MAX_DOLLAR_LOSS_PER_TRADE", 5.0),
+        )
+
+        user_qty = int(max_dollar_risk // risk_per_share)
+        user_qty = max(0, min(getattr(config, "MAX_BUY_SHARES", 999), user_qty))
+
+        best_pick = dict(best_pick)  # shallow copy — never mutate shared scan
+        best_pick["qty"]        = user_qty
+        best_pick["qty_source"] = "user_bankroll_kelly"
+        best_pick["qty_bankroll_used"] = round(user_bankroll, 2)
+        best_pick["qty_dollar_risk"]   = round(max_dollar_risk, 2)
+
+        logger.debug(
+            "personalize qty user_id=%s symbol=%s bankroll=$%s kelly=%s qty=%s",
+            getattr(user, "id", None),
+            best_pick.get("symbol"),
+            round(user_bankroll, 2),
+            kelly_fraction,
+            user_qty,
+        )
+        return best_pick
+
+    except Exception:
+        logger.exception(
+            "_resize_best_pick_for_user failed for user_id=%s — using shared scan qty",
+            getattr(user, "id", None),
+        )
+        return best_pick
+
 def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[str, Any]:
     """Build a user-specific scan payload from a shared market scan result."""
     result = dict(shared_scan or {})
