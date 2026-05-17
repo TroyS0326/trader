@@ -236,68 +236,110 @@ def _persist_submitted_trade_safely(*, user, user_id, scan_id, symbol, qty, entr
 
 
 @celery_app.task
-def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price):
+def execute_user_trade_task(
+    user_id, scan_id, symbol, qty, entry_price, stop_price, target_1_price, target_2_price
+):
     """
     Worker task for parallel execution of AI-triggered setups.
-    Updated to utilize the modern `place_managed_entry_order` from broker.py.
+
+    Gate execution order — each gate must pass before the next runs:
+      1. User exists and is PRO
+      2. qty >= 1
+      3. Redis scan approval  (validate_execution_against_approved_scan)
+      4. Active trade duplicate check + stale reconciliation
+      5. Daily drawdown ceiling  [P0 NEW]
+      6. Symbol cooldown / daily trade limit
+      7. Broker order placement
     """
     with _db_app.app_context():
         user = db.session.get(User, user_id)
-        # Target only upgraded accounts for automated execution
+
+        # ── Gate 1: user exists and is PRO ───────────────────────────────
         if not user or user.subscription_status != 'pro':
             return f'User {user_id} inactive or non-PRO. Trade aborted.'
 
+        # ── Gate 2: meaningful qty ────────────────────────────────────────
         if qty < 1:
             return f'Risk sizing too small for User {user_id}'
 
         try:
+            # ── Gate 3: Redis scan approval ───────────────────────────────
             guard = validate_execution_against_approved_scan(
                 redis_client=redis_client,
                 user=user,
                 symbol=symbol,
                 scan_id=scan_id,
             )
-
             if not guard.get("ok"):
                 return f'LIVE trade blocked for User {user_id}: {guard.get("error")}'
 
+            # ── Gate 4: active trade duplicate + stale reconciliation ─────
             active_trade = None
             try:
                 active_trade = db_ops.get_active_trade_for_user_symbol(user_id, symbol)
             except Exception:
                 _safe_log_exception(
-                    "execute_user_trade_task active-trade duplicate check failed for user_id=%s symbol=%s",
-                    user_id,
-                    symbol,
+                    "execute_user_trade_task active-trade duplicate check failed "
+                    "user_id=%s symbol=%s",
+                    user_id, symbol,
                 )
 
             if active_trade:
                 created_at = active_trade.get("created_at")
-                stale_cutoff = utc_now_aware().astimezone(timezone.utc) - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
+                stale_cutoff = (
+                    utc_now_aware().astimezone(timezone.utc)
+                    - timedelta(minutes=config.ORDER_RECONCILIATION_STALE_MINUTES)
+                )
                 created_dt = _parse_utc_datetime(created_at)
                 try_reconcile = created_dt is not None and created_dt <= stale_cutoff
                 if try_reconcile:
                     try:
                         from order_reconciliation import reconcile_active_trade_orders
-                        reconcile_active_trade_orders(user_id=user_id, limit=config.ORDER_RECONCILIATION_ACTIVE_LIMIT)
+                        reconcile_active_trade_orders(
+                            user_id=user_id,
+                            limit=config.ORDER_RECONCILIATION_ACTIVE_LIMIT,
+                        )
                         active_trade = db_ops.get_active_trade_for_user_symbol(user_id, symbol)
                     except Exception:
                         _safe_log_exception(
-                            "execute_user_trade_task stale reconciliation failed user_id=%s symbol=%s",
-                            user_id,
-                            symbol,
+                            "execute_user_trade_task stale reconciliation failed "
+                            "user_id=%s symbol=%s",
+                            user_id, symbol,
                         )
 
-            if active_trade:
-                existing_order_id = active_trade.get("order_id")
-                blocked_order_result = {
-                    "id": existing_order_id,
-                    "status": "blocked",
-                    "reason": "duplicate_active_trade",
-                    "existing_trade_id": active_trade.get("id"),
-                    "existing_order_id": existing_order_id,
-                    "symbol": symbol,
-                }
+                if active_trade:
+                    audit_trade_log(
+                        logger=celery_app.log.get_default_logger(),
+                        user=user,
+                        symbol=symbol,
+                        scan_id=scan_id,
+                        qty=qty,
+                        entry_price=entry_price,
+                        stop_price=stop_price,
+                        target_1=target_1_price,
+                        target_2=target_2_price,
+                        order_result={
+                            "reason": "duplicate_active_trade",
+                            "active_trade_id": active_trade.get("id"),
+                        },
+                    )
+                    return (
+                        f'Execution blocked for User {user_id}: {symbol} already '
+                        f'has an active trade id={active_trade.get("id")}'
+                    )
+
+            # ── Gate 5: daily drawdown ceiling [P0 NEW] ───────────────────
+            drawdown_block = _daily_drawdown_check(user)
+            if drawdown_block:
+                celery_app.log.get_default_logger().critical(
+                    "DAILY_DRAWDOWN_CEILING_BREACHED user_id=%s symbol=%s "
+                    "realized_loss=$%s ceiling=$%s bankroll=$%s",
+                    user_id,
+                    symbol,
+                    drawdown_block.get("realized_loss_today"),
+                    drawdown_block.get("ceiling_dollars"),
+                    drawdown_block.get("bankroll"),
+                )
                 audit_trade_log(
                     logger=celery_app.log.get_default_logger(),
                     user=user,
@@ -308,13 +350,15 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     stop_price=stop_price,
                     target_1=target_1_price,
                     target_2=target_2_price,
-                    order_result=blocked_order_result,
+                    order_result=drawdown_block,
                 )
                 return (
-                    f'Duplicate active trade blocked for User {user_id}: {symbol} '
-                    f'existing_order_id={existing_order_id}'
+                    f'Execution blocked for User {user_id}: daily drawdown ceiling breached. '
+                    f'Loss today=${drawdown_block.get("realized_loss_today")} '
+                    f'Ceiling=${drawdown_block.get("ceiling_dollars")}'
                 )
 
+            # ── Gate 6: symbol cooldown / daily trade limit ───────────────
             cooldown_block = _trade_cooldown_block(user_id, symbol)
             if cooldown_block:
                 audit_trade_log(
@@ -329,9 +373,12 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                     target_2=target_2_price,
                     order_result=cooldown_block,
                 )
-                return f'Execution blocked for User {user_id}: {symbol} reason={cooldown_block.get("reason")}'
+                return (
+                    f'Execution blocked for User {user_id}: {symbol} '
+                    f'reason={cooldown_block.get("reason")}'
+                )
 
-            # Route through the same bracket logic used in manual testing
+            # ── Gate 7: place the managed bracket order ───────────────────
             order = place_managed_entry_order(
                 symbol=symbol,
                 qty=qty,
@@ -339,11 +386,14 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                 stop_price=stop_price,
                 target_1_price=target_1_price,
                 target_2_price=target_2_price,
-                user=user
+                user=user,
+                scan_id=scan_id,  # P0: passed through for client_order_id stamping
             )
 
             order_id = order.get("id") if isinstance(order, dict) else None
-            order_status = (order.get("status") if isinstance(order, dict) else None) or "submitted"
+            order_status = (
+                (order.get("status") if isinstance(order, dict) else None) or "submitted"
+            )
 
             if order_id:
                 _persist_submitted_trade_safely(
@@ -373,11 +423,13 @@ def execute_user_trade_task(user_id, scan_id, symbol, qty, entry_price, stop_pri
                 target_2=target_2_price,
                 order_result=order,
             )
-            return f'Success: {qty} shares of {symbol} executed for User {user_id}. Order ID: {order.get("id")}'
+            return (
+                f'Success: {qty} shares of {symbol} executed for User {user_id}. '
+                f'Order ID: {order.get("id")}'
+            )
+
         except Exception as e:
             return f'Execution failed for User {user_id}: {str(e)}'
-
-
 def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
     """
     Called by the master scanner when an A/A+ setup is found.
