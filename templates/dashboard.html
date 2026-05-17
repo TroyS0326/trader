@@ -695,6 +695,7 @@
         const chartState = { chart: null, series: null };
         const state = { ws: null };
         const userRefreshRate = {{ current_user.refresh_interval or 30000 }};
+        const userTradingMode = "{{ current_user.trading_mode|default('paper') }}";
         let activeTrade = null; 
 
         function money(v) {
@@ -802,7 +803,7 @@
             if (upgradeRequiredForExecution) {
                 setText('automation-mode-card', 'Preview Only');
                 setPill('automation-mode-pill', 'warning', 'Preview');
-            } else if (automationMode === 'live' || automationMode === 'full_automation') {
+            } else if (userTradingMode === 'live') {
                 setText('automation-mode-card', 'Live Workflow');
                 setPill('automation-mode-pill', 'live', 'Live Mode');
             } else {
@@ -1170,6 +1171,12 @@
             document.getElementById('ai-confidence').textContent = '—';
             const gateResult = document.getElementById('gate-result-card');
             if (gateResult) gateResult.textContent = 'Scanning';
+            const gateResultPill = document.getElementById('gate-result-pill');
+            if (gateResultPill) {
+                gateResultPill.classList.remove('ready', 'warning', 'blocked', 'live');
+                gateResultPill.classList.add('warning');
+                gateResultPill.textContent = 'Scanning';
+            }
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
