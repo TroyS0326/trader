@@ -334,50 +334,51 @@
     <main class="dashboard-shell">
         <div class="dashboard-header-wrap">
             <div class="command-header-bar">
-            <div class="header-profile">
-                <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
-                    {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
-                </div>
-                <div class="profile-text">
-                    <span class="profile-name">{{ current_user.full_name }}</span>
-                    <span class="profile-tier">
-                        PLAN STATUS // <span style="color: {{ 'var(--accent-blue)' if plan_access.is_pro else 'var(--warning)' }};">{{ plan_access.plan_label }}</span>
-                    </span>
-                </div>
-            </div>
-
-            <div class="header-actions">
-                {% if not plan_access.is_pro %}
-                <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
-                    <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock PRO Workflow
-                </a>
-                {% endif %}
-
-            <div class="mode-selector" style="display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap: wrap;">
-                <div class="execution-mode-container" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <div onclick="setMode('paper')"
-                         style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--border-color)' }}; background: {{ 'rgba(56, 189, 248, 0.1)' if current_user.trading_mode != 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
-                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--text-main)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
-                            PAPER
-                        </span>
+                <div class="header-profile">
+                    <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                        {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
                     </div>
-
-                    <div onclick="setMode('live')"
-                         style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--border-color)' }}; background: {{ 'rgba(16, 185, 129, 0.1)' if current_user.trading_mode == 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
-                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
-                            LIVE
+                    <div class="profile-text">
+                        <span class="profile-name">{{ current_user.full_name }}</span>
+                        <span class="profile-tier">
+                            PLAN STATUS // <span style="color: {{ 'var(--accent-blue)' if plan_access.is_pro else 'var(--warning)' }};">{{ plan_access.plan_label }}</span>
                         </span>
                     </div>
                 </div>
-                {% set caution_regime = market_regime_status in ['high_volatility', 'chop'] %}
-                <span class="market-health-badge {% if caution_regime %}caution{% else %}aligned{% endif %}">
-                    {% if caution_regime %}
-                        MARKET: HIGH VOLATILITY (RISK HALVED)
-                    {% else %}
-                        MARKET: ALIGNED
+
+                <div class="header-actions">
+                    {% if not plan_access.is_pro %}
+                    <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
+                        <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock PRO Workflow
+                    </a>
                     {% endif %}
-                </span>
-            </div>
+
+                    <div class="mode-selector" style="display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap: wrap;">
+                        <div class="execution-mode-container" style="display: flex; gap: 10px; margin-top: 15px;">
+                            <div onclick="setMode('paper')"
+                                 style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--accent-blue)' if current_user.trading_mode != 'live' else 'var(--border-color)' }}; background: {{ 'rgba(56, 189, 248, 0.1)' if current_user.trading_mode != 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--text-main)' if current_user.trading_mode != 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
+                                    PAPER
+                                </span>
+                            </div>
+
+                            <div onclick="setMode('live')"
+                                 style="cursor: pointer; flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--border-color)' }}; background: {{ 'rgba(16, 185, 129, 0.1)' if current_user.trading_mode == 'live' else 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;">
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: {{ 'var(--success)' if current_user.trading_mode == 'live' else 'var(--text-muted)' }}; font-weight: 800; letter-spacing: 1px;">
+                                    LIVE
+                                </span>
+                            </div>
+                        </div>
+                        {% set caution_regime = market_regime_status in ['high_volatility', 'chop'] %}
+                        <span class="market-health-badge {% if caution_regime %}caution{% else %}aligned{% endif %}">
+                            {% if caution_regime %}
+                                MARKET: HIGH VOLATILITY (RISK HALVED)
+                            {% else %}
+                                MARKET: ALIGNED
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
