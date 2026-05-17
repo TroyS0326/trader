@@ -70,14 +70,29 @@ def flatten_book():
         ).all()
 
         for user in users:
-            token = user.alpaca_access_token
-            # Verify the decrypted token is valid
-            if token and token.strip():
-                users_data.append({
-                    'id': user.id,
-                    'base_url': get_execution_base_url(user),
-                    'token': token
-                })
+            # P1: Only flatten live PRO accounts at EOD.
+            # Paper users don't need EOD liquidation — their positions are
+            # simulated and carry no real capital risk overnight.
+            # Sending DELETE to the paper API for paper users is wasteful
+            # and risks hitting rate limits that affect live users.
+            if getattr(user, 'trading_mode', 'paper') != 'live':
+                continue
+            if getattr(user, 'subscription_status', 'free') != 'pro':
+                continue
+
+            token = user.alpaca_live_access_token  # explicit live token only
+            if not token or not token.strip():
+                logger.warning(
+                    'flatten_book: live PRO user %s has no live token — skipping',
+                    user.id,
+                )
+                continue
+
+            users_data.append({
+                'id': user.id,
+                'base_url': get_execution_base_url(user),
+                'token': token,
+            })
 
     if not users_data:
         logger.info('No active users with tokens found for kill switch.')
@@ -103,8 +118,72 @@ class SaaSExecutionManager:
         self.running = True
 
     async def handle_fill(self, user_id: int, order: dict):
-        """Processes fills for a specific user."""
-        from app import app
+        """
+        Processes fills for a specific user.
+
+        P1: Redis idempotency lock per order_id prevents duplicate trailing
+        stop placement when the same fill event fires twice during a
+        WebSocket reconnect storm.
+
+        Lock TTL is 60 seconds — long enough to cover any reconnect window,
+        short enough to not permanently block a legitimate re-delivery after
+        a true system restart.
+        """
+        from app import app, redis_client as _redis
+
+        order_id = order.get('id')
+        logger.info('USER %s FILL: Order %s filled.', user_id, order_id)
+        if not order_id:
+            return
+
+        # ── Idempotency gate ──────────────────────────────────────────────
+        lock_key = f"fill_processed:{user_id}:{order_id}"
+        try:
+            # SET NX EX: only succeeds if key doesn't exist. Returns True on
+            # first call, None/False on duplicate — atomic in Redis.
+            acquired = _redis.set(lock_key, '1', nx=True, ex=60)
+            if not acquired:
+                logger.warning(
+                    'handle_fill: duplicate fill event suppressed '
+                    'user_id=%s order_id=%s lock_key=%s',
+                    user_id, order_id, lock_key,
+                )
+                return
+        except Exception as lock_exc:
+            # Redis unavailable — log and proceed rather than dropping the fill.
+            logger.error(
+                'handle_fill: Redis lock check failed user_id=%s order_id=%s '
+                'error=%s — proceeding without lock',
+                user_id, order_id, lock_exc,
+            )
+
+        # ── Process the fill ──────────────────────────────────────────────
+        with app.app_context():
+            from models import db, User
+            user = db.session.get(User, user_id)
+            trade = get_trade_by_target1_id(order_id, user_id=user_id)
+            if not trade:
+                return
+
+            raw_json = trade.get('raw_json')
+            if isinstance(raw_json, str):
+                try:
+                    raw_json = json.loads(raw_json)
+                except json.JSONDecodeError:
+                    raw_json = {}
+            raw_json = raw_json or {}
+
+            bundle = raw_json.get('order_bundle', {})
+            entry_price = float(trade.get('entry_price') or 0.0)
+            updated_bundle = maybe_activate_runner_trailing(
+                bundle,
+                breakeven_price=entry_price,
+                token=getattr(user, "alpaca_access_token", None),
+                user=user,
+            )
+
+            raw_json['order_bundle'] = updated_bundle
+            update_trade_status(trade['order_id'], {'raw_json': raw_json})
 
         order_id = order.get('id')
         logger.info('USER %s FILL: Order %s filled.', user_id, order_id)
