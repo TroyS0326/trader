@@ -88,7 +88,76 @@ def _safe_log_exception(message, *args):
     except Exception:
         pass
 
+def _compute_max_dollar_risk_for_user(user) -> float:
+    """
+    Returns the maximum dollar risk allowed on a single trade for this user.
 
+    Priority:
+      1. PER_TRADE_LOSS_CAP_PCT × user.active_bankroll  (scales with account size)
+      2. Capped at config.MAX_DOLLAR_LOSS_PER_TRADE      (absolute ceiling)
+      3. Falls back to config.MAX_DOLLAR_LOSS_PER_TRADE  when bankroll is unknown
+
+    Examples:
+      $10,000 live bankroll × 7% = $700 cap
+      $300 paper bankroll   × 7% = $21  (small account, uses smaller cap)
+    """
+    bankroll = float(
+        getattr(user, 'active_bankroll', None) or getattr(user, 'bankroll', 0.0)
+    )
+    if bankroll > 0:
+        pct_cap = bankroll * config.PER_TRADE_LOSS_CAP_PCT
+        # Respect the absolute ceiling from config as an upper bound
+        return min(pct_cap, config.MAX_DOLLAR_LOSS_PER_TRADE)
+    # Bankroll unknown — fall back to the static config cap
+    return config.MAX_DOLLAR_LOSS_PER_TRADE
+
+
+def _daily_drawdown_check(user) -> dict | None:
+    """
+    Compares today's realized P&L against the user's active bankroll.
+
+    Returns a block dict  → execution is halted for the day.
+    Returns None          → execution is allowed to proceed.
+
+    Safe-fails OPEN (returns None) on any error so a DB hiccup never
+    accidentally prevents a legitimate hedge or exit order.
+    """
+    try:
+        bankroll = float(
+            getattr(user, 'active_bankroll', None) or getattr(user, 'bankroll', 0.0)
+        )
+        if bankroll <= 0:
+            return None
+
+        realized_pnl_today = db_ops.get_realized_pnl_today_for_user(user.id)
+
+        # P&L is negative when the user is down money; take the loss magnitude
+        realized_loss_today = abs(min(realized_pnl_today, 0.0))
+
+        # Percentage ceiling derived from live equity
+        pct_ceiling = bankroll * config.DAILY_DRAWDOWN_LIMIT_PCT
+
+        # Never trigger on losses below the hard floor — protects small paper
+        # accounts from tripping the gate on a $6 loss with a $120 bankroll
+        effective_ceiling = max(pct_ceiling, config.DAILY_DRAWDOWN_HARD_FLOOR)
+
+        if realized_loss_today >= effective_ceiling:
+            return {
+                "status": "blocked",
+                "reason": "daily_drawdown_ceiling_breached",
+                "realized_loss_today": round(realized_loss_today, 2),
+                "ceiling_dollars": round(effective_ceiling, 2),
+                "ceiling_pct": config.DAILY_DRAWDOWN_LIMIT_PCT,
+                "bankroll": round(bankroll, 2),
+            }
+
+    except Exception:
+        _safe_log_exception(
+            "_daily_drawdown_check failed for user_id=%s — allowing trade to proceed (fail-open)",
+            getattr(user, 'id', 'unknown'),
+        )
+
+    return None
 
 
 def _trade_cooldown_block(user_id, symbol) -> dict | None:
