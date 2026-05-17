@@ -157,7 +157,7 @@ def _get_json_with_retry(
     url: str,
     params: Dict[str, Any] | None = None,
     headers: Dict[str, str] | None = None,
-) -> requests.Response:
+) -> Any:
     resp = requests.get(url, params=params or {}, headers=headers or {}, timeout=TIMEOUT)
     if resp.status_code >= 500:
         resp.raise_for_status()
