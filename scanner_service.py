@@ -461,6 +461,55 @@ def fan_out_scan_to_users(shared_scan: Dict[str, Any], users: Iterable[Any]) -> 
         except Exception:
             logger.exception("Central scanner cycle user failure. user_id=%s", getattr(user, "id", None))
 
+_CIRCUIT_FAIL_KEY   = "scanner:dispatch_fail_count"
+_CIRCUIT_OPEN_KEY   = "scanner:dispatch_circuit_open"
+_CIRCUIT_FAIL_TTL   = 300   # 5 minutes — failure counter window
+_CIRCUIT_OPEN_TTL   = 300   # 5 minutes — breaker hold-open window
+_CIRCUIT_FAIL_LIMIT = int(os.getenv("SCANNER_CIRCUIT_BREAKER_FAIL_LIMIT", "5"))
+
+
+def _circuit_breaker_is_open() -> bool:
+    """Returns True if the circuit breaker is tripped — dispatch should halt."""
+    try:
+        return bool(redis_client.exists(_CIRCUIT_OPEN_KEY))
+    except Exception as exc:
+        logger.warning("circuit_breaker_is_open Redis check failed: %s — allowing dispatch", exc)
+        return False  # fail open: never block on Redis unavailability
+
+
+def _record_dispatch_failure(user_id: Any, symbol: Any, exc: Exception) -> None:
+    """Increments the failure counter and trips the breaker if threshold is hit."""
+    try:
+        count = redis_client.incr(_CIRCUIT_FAIL_KEY)
+        redis_client.expire(_CIRCUIT_FAIL_KEY, _CIRCUIT_FAIL_TTL)
+        logger.error(
+            "DISPATCH_FAILURE user_id=%s symbol=%s error=%s consecutive_failures=%s limit=%s",
+            user_id, symbol, exc, count, _CIRCUIT_FAIL_LIMIT,
+        )
+        if int(count) >= _CIRCUIT_FAIL_LIMIT:
+            redis_client.setex(_CIRCUIT_OPEN_KEY, _CIRCUIT_OPEN_TTL, '1')
+            logger.critical(
+                "CIRCUIT_BREAKER_TRIPPED consecutive_failures=%s — "
+                "all scan dispatch halted for %ss. Check Celery/Redis broker.",
+                count, _CIRCUIT_OPEN_TTL,
+            )
+    except Exception as redis_exc:
+        logger.warning("_record_dispatch_failure Redis write failed: %s", redis_exc)
+
+
+def _reset_dispatch_circuit_breaker(user_id: Any, symbol: Any) -> None:
+    """Resets the failure counter on every successful dispatch."""
+    try:
+        existing = redis_client.get(_CIRCUIT_FAIL_KEY)
+        if existing and int(existing) > 0:
+            redis_client.delete(_CIRCUIT_FAIL_KEY)
+            logger.info(
+                "CIRCUIT_BREAKER_RESET user_id=%s symbol=%s — failure counter cleared",
+                user_id, symbol,
+            )
+    except Exception as exc:
+        logger.warning("_reset_dispatch_circuit_breaker Redis write failed: %s", exc)
+
 
 def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> None:
     diag = evaluate_execution_readiness(user, scan_payload)
@@ -529,7 +578,32 @@ def _dispatch_execution_if_allowed(user: Any, scan_payload: Dict[str, Any]) -> N
         float(order_fields.get("target_1", target_1)),
         float(order_fields.get("target_2", target_2)),
     )
-    logger.warning("Execution task dispatched. ctx=%s", base_ctx)
+    # ── P2-A: Circuit breaker check before dispatch ───────────────────────
+    if _circuit_breaker_is_open():
+        logger.critical(
+            "CIRCUIT_BREAKER_OPEN — dispatch suppressed user_id=%s symbol=%s. "
+            "Celery broker may be degraded. Will retry next scan cycle.",
+            getattr(user, "id", None),
+            str(diag.get("symbol") or "").strip().upper(),
+        )
+        return
+
+    try:
+        execute_user_trade_task.delay(
+            user.id,
+            scan_payload.get("scan_id"),
+            order_fields.get("symbol", diag["symbol"]),
+            order_fields.get("qty", diag["qty"]),
+            float(order_fields.get("entry_price", best_pick.get("entry_price"))),
+            float(order_fields.get("stop_price", best_pick.get("stop_price"))),
+            float(order_fields.get("target_1", target_1)),
+            float(order_fields.get("target_2", target_2)),
+        )
+        _reset_dispatch_circuit_breaker(
+            getattr(user, "id", None),
+            str(diag.get("symbol") or "").strip().upper(),
+        )
+        logger.warning("Execution task dispatched.
 
 
 def _eligible_users() -> Iterable[Any]:
