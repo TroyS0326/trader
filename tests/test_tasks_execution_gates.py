@@ -98,6 +98,14 @@ def _install_import_stubs():
     config_stub.IS_PRODUCTION = False
     config_stub.IS_TESTING = True
     config_stub.FLASK_ENV = "testing"
+    config_stub.ORDER_RECONCILIATION_STALE_MINUTES = 60
+    config_stub.ORDER_RECONCILIATION_ACTIVE_LIMIT = 100
+    config_stub.DAILY_DRAWDOWN_LIMIT_PCT = 0.05
+    config_stub.DAILY_DRAWDOWN_HARD_FLOOR = 25.0
+    config_stub.PER_TRADE_LOSS_CAP_PCT = 0.07
+    config_stub.MAX_DOLLAR_LOSS_PER_TRADE = 5.0
+    config_stub.EXECUTION_SYMBOL_COOLDOWN_MINUTES = 60
+    config_stub.EXECUTION_MAX_SAME_SYMBOL_TRADES_PER_DAY = 3
     _set_or_get("config", config_stub)
 
     sentry_stub = ModuleType("sentry_setup")
@@ -107,6 +115,9 @@ def _install_import_stubs():
     db_stub.get_trade_by_order_id = lambda order_id: None
     db_stub.get_active_trade_for_user_symbol = lambda user_id, symbol: None
     db_stub.insert_trade = lambda payload: 1
+    db_stub.latest_trade_for_user_symbol = lambda user_id, symbol: None
+    db_stub.count_trades_for_user_symbol_today = lambda user_id, symbol: 0
+    db_stub.get_realized_pnl_today_for_user = lambda user_id: 0.0
     _set_or_get("db", db_stub)
     return inserted_modules
 

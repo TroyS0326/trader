@@ -177,7 +177,7 @@ def _request_with_retry(
     params: Dict[str, Any] | None = None,
     payload: Dict[str, Any] | None = None,
     token: str | None = None,
-) -> requests.Response:
+) -> Any:
     resp = requests.request(
         method=method,
         url=url,
@@ -500,7 +500,7 @@ def _background_leg_placement(
         mode = getattr(user, 'trading_mode', 'paper')
         return UNPROTECTED_POSITION_REPAIR_ENABLED if mode != 'live' else UNPROTECTED_POSITION_REPAIR_LIVE_ENABLED
 
-def _record_unprotected(reason: str, payload: dict | None = None) -> None:
+    def _record_unprotected(reason: str, payload: dict | None = None) -> None:
         """
         P0: Upgraded from a silent DB note to a CRITICAL-level alert.
         Writes to DB, emits CRITICAL log, and sets a Redis alert key so the

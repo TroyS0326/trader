@@ -320,12 +320,15 @@ def execute_user_trade_task(
                         target_2=target_2_price,
                         order_result={
                             "reason": "duplicate_active_trade",
-                            "active_trade_id": active_trade.get("id"),
+                            "status": "blocked",
+                            "existing_trade_id": active_trade.get("id"),
+                            "existing_order_id": active_trade.get("order_id"),
+                            "id": active_trade.get("order_id"),
                         },
                     )
                     return (
-                        f'Execution blocked for User {user_id}: {symbol} already '
-                        f'has an active trade id={active_trade.get("id")}'
+                        f'Duplicate active trade blocked for User {user_id}: {symbol} '
+                        f'existing_order_id={active_trade.get("order_id")}'
                     )
 
             # ── Gate 5: daily drawdown ceiling [P0 NEW] ───────────────────

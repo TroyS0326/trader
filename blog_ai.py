@@ -61,7 +61,7 @@ def _strip_json_fences(text: str) -> str:
     return cleaned
 
 
-def _gemini_error_summary(response: requests.Response) -> str:
+def _gemini_error_summary(response: Any) -> str:
     status_summary = f"HTTP {response.status_code}"
     try:
         payload = response.json()
