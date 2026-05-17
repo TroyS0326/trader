@@ -437,7 +437,18 @@ def _poll_for_fill(
         time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
 
 
-def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | None = None) -> Dict[str, Any]:
+def _pegged_limit_entry(
+    symbol: str,
+    qty: int,
+    side: str = 'buy',
+    user: Any | None = None,
+    client_order_id: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Submits a pegged limit entry order.
+    P0: Stamps client_order_id on every submission for broker-side
+    deduplication and cross-reference during reconciliation.
+    """
     user_token = getattr(user, 'alpaca_access_token', None) if user else None
     quote = get_latest_quote(symbol, user=user)
     ask = float(quote.get('ap') or 0)
@@ -448,18 +459,21 @@ def _pegged_limit_entry(symbol: str, qty: int, side: str = 'buy', user: Any | No
         peg_price = bid or ask
     if peg_price <= 0:
         raise BrokerError(f'No valid quote available to peg entry order for {symbol}.')
-    return submit_order(
-        {
-            'symbol': symbol.upper(),
-            'qty': str(qty),
-            'side': side,
-            'type': 'limit',
-            'time_in_force': 'day',
-            'limit_price': round(peg_price, 2),
-        },
-        token=user_token,
-        user=user,
-    )
+
+    order_payload: Dict[str, Any] = {
+        'symbol': symbol.upper(),
+        'qty': str(qty),
+        'side': side,
+        'type': 'limit',
+        'time_in_force': 'day',
+        'limit_price': round(peg_price, 2),
+    }
+
+    # Stamp client_order_id for broker-side dedup and audit trail
+    if client_order_id:
+        order_payload['client_order_id'] = client_order_id
+
+    return submit_order(order_payload, token=user_token, user=user)
 
 
 def _background_leg_placement(
