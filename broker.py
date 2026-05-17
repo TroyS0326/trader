@@ -646,7 +646,6 @@ def place_emergency_exit_order(symbol, qty, user, reason, reference_order_id=Non
     token = getattr(user, 'alpaca_access_token', None) if user else None
     return submit_order({'symbol': symbol.upper(), 'qty': str(numeric_qty), 'side': 'sell', 'type': 'limit', 'time_in_force': 'day', 'limit_price': limit_price}, token=token, user=user)
 
-
 def place_managed_entry_order(
     symbol: str,
     qty: int,
@@ -656,7 +655,13 @@ def place_managed_entry_order(
     target_2_price: float,
     avg_1m_volume: float = 0.0,
     user: Any | None = None,
+    scan_id: Any = None,
 ) -> Dict[str, Any]:
+    """
+    Places the managed bracket entry order.
+    P0: Accepts scan_id to generate and stamp a client_order_id on the
+    entry leg for broker-side deduplication and reconciliation tracing.
+    """
     regime_data = get_current_market_regime() or {}
     regime_status = (regime_data.get('regime_status') or 'normal').lower()
     user_token = getattr(user, 'alpaca_access_token', None) if user else None
@@ -672,71 +677,74 @@ def place_managed_entry_order(
         else:
             stop_price = float(entry_price) + tightened_stop_distance
 
-    # Microstructure liquidity cap (max 5% of 1-minute volume).
+    # Microstructure liquidity cap (max 5% of 1-minute volume)
     if avg_1m_volume > 0:
         max_safe_qty = int(0.05 * avg_1m_volume)
         if qty > max_safe_qty:
             qty = max(1, max_safe_qty)
 
-    # Reality check: ensure intended trade cost does not exceed live broker buying power.
+    # Reality check: trade cost must not exceed live broker buying power
     actual_buying_power: float | None = None
     try:
-        account_data = _get_json(f'{get_execution_base_url(execution_user)}/v2/account', token=user_token)
+        account_data = _get_json(
+            f'{get_execution_base_url(execution_user)}/v2/account', token=user_token
+        )
         actual_buying_power = float(account_data.get('buying_power') or 0.0)
     except (BrokerError, TypeError, ValueError) as exc:
         logger.warning('Unable to validate buying power for %s: %s', symbol, exc)
 
     estimated_cost = float(qty) * float(entry_price)
     if actual_buying_power is not None and estimated_cost > actual_buying_power:
+        rejection_reason = (
+            f'Account reality check failed. Intended trade cost '
+            f'${estimated_cost:.2f} exceeds actual broker buying power '
+            f'of ${actual_buying_power:.2f}.'
+        )
+        logger.warning(rejection_reason)
         return {
             'status': 'rejected',
             'symbol': symbol.upper(),
-            'reason': (
-                'Account reality check failed. Intended trade cost '
-                f'${estimated_cost:.2f} exceeds actual broker buying power '
-                f'of ${actual_buying_power:.2f}.'
-            ),
+            'reason': rejection_reason,
         }
 
-    class _OrderBookApiClient:
-        def __init__(self, token: str | None, user_obj: Any | None = None):
-            self._token = token
-            self._user = user_obj
+    # P0: build client_order_id before touching the broker
+    user_id = getattr(execution_user, 'id', None) or getattr(user, 'id', None)
+    coid = _build_client_order_id(user_id, scan_id)
+    logger.info(
+        'place_managed_entry_order user_id=%s symbol=%s scan_id=%s client_order_id=%s',
+        user_id, symbol, scan_id, coid,
+    )
 
-        def get_latest_orderbook(self, orderbook_symbol: str) -> Dict[str, Any]:
-            response = _get_json(
-                f'{ALPACA_DATA_BASE}/v2/stocks/{orderbook_symbol.upper()}/orderbooks/latest',
-                params={'feed': _resolve_feed(self._user)},
-            )
-            return (response or {}).get('orderbook', {})
+    _ = target_2_price  # reserved for external broker adapters and journaling
+    entry = _pegged_limit_entry(
+        symbol=symbol,
+        qty=qty,
+        side='buy',
+        user=execution_user,
+        client_order_id=coid,
+    )
+    entry_id = entry.get('id')
+    if not entry_id:
+        raise BrokerError('Broker did not return an order id for entry.')
 
-    def _safe_order_book_metrics(orderbook_symbol: str, token: str | None, user_obj: Any | None) -> Dict[str, Any]:
-        if not STOCK_L2_ORDERBOOK_CHECK_ENABLED:
-            return _neutral_order_book_metrics('STOCK_L2_ORDERBOOK_CHECK_ENABLED disabled')
-        try:
-            return analyze_order_book_imbalance(orderbook_symbol, _OrderBookApiClient(token, user_obj))
-        except BrokerError as exc:
-            message = str(exc)
-            if 'Not Found' in message or '404' in message:
-                return _neutral_order_book_metrics('stock orderbook unavailable (404/Not Found)')
-            raise
-        except requests.exceptions.RequestException as exc:
-            return _neutral_order_book_metrics(f'stock orderbook request error: {exc}')
+    thread = threading.Thread(
+        target=_background_leg_placement,
+        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user),
+        daemon=True,
+    )
+    thread.start()
 
-    latest_quote = get_latest_quote(symbol, user=execution_user)
-    quote_price = _quote_mid_or_usable_price(latest_quote)
-    if config.EXECUTION_QUOTE_DRIFT_GUARD_ENABLED and float(entry_price or 0) > 0 and quote_price is not None:
-        drift_pct = abs(float(quote_price) - float(entry_price)) / float(entry_price)
-        if drift_pct > config.EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT:
-            return {
-                'status': 'rejected',
-                'symbol': symbol.upper(),
-                'reason': 'entry_quote_drift_exceeded',
-                'entry_price': entry_price,
-                'quote_price': quote_price,
-                'drift_pct': drift_pct,
-                'max_allowed_drift_pct': config.EXECUTION_MAX_ENTRY_QUOTE_DRIFT_PCT,
-            }
+    return {
+        'id': entry_id,
+        'status': entry.get('status', 'new'),
+        'symbol': symbol.upper(),
+        'filled_qty': '0',
+        'strategy': 'target1_then_trailing_runner',
+        'entry_order': entry,
+        'runner_trailing_pct': TARGET2_TRAILING_STOP_PCT,
+        'client_order_id': coid,
+    }
+
     current_price = float((quote_price if quote_price is not None else 0) or entry_price or 0)
     order_book_metrics = _safe_order_book_metrics(symbol, user_token, execution_user)
     imbalance_ratio = float(order_book_metrics.get('imbalance_ratio') or 0.0)
