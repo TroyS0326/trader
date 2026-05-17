@@ -433,29 +433,41 @@ def execute_user_trade_task(
 def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
     """
     Called by the master scanner when an A/A+ setup is found.
-    Calculates dynamic sizing per user based on their specific risk tolerances
-    before pushing to the Celery broker.
+
+    Calculates dynamic per-user sizing before pushing to the Celery broker.
+    P0: Uses _compute_max_dollar_risk_for_user() so the cap is derived from
+    each user's live bankroll × PER_TRADE_LOSS_CAP_PCT instead of the static
+    MAX_DOLLAR_LOSS_PER_TRADE env var.
     """
     with _db_app.app_context():
         active_users = User.query.filter_by(subscription_status='pro').all()
+        dispatched = 0
 
         for user in active_users:
             risk_per_share = entry - stop
             if risk_per_share <= 0:
                 continue
 
+            # P0: bankroll-derived per-trade ceiling (replaces static config)
+            user_max_dollar_risk = _compute_max_dollar_risk_for_user(user)
+
             kelly_fraction = calculate_user_kelly_fraction(user.id)
+
+            bankroll = float(
+                getattr(user, 'active_bankroll', None) or getattr(user, 'bankroll', 0.0)
+            )
 
             if kelly_fraction is None:
                 user_risk_pct = getattr(user, 'risk_pct', 1.0)
-                dollar_risk = user.bankroll * (user_risk_pct / 100.0)
+                dollar_risk = bankroll * (user_risk_pct / 100.0)
             elif kelly_fraction == 0:
                 continue
             else:
-                dollar_risk = user.bankroll * kelly_fraction
+                dollar_risk = bankroll * kelly_fraction
 
-            if dollar_risk > config.MAX_DOLLAR_LOSS_PER_TRADE:
-                dollar_risk = config.MAX_DOLLAR_LOSS_PER_TRADE
+            # Cap against the dynamic bankroll-derived ceiling
+            if dollar_risk > user_max_dollar_risk:
+                dollar_risk = user_max_dollar_risk
 
             qty = int(dollar_risk // risk_per_share)
 
@@ -470,9 +482,12 @@ def trigger_system_wide_buy(scan_id, symbol, entry, stop, target_1, target_2):
                     target_1,
                     target_2,
                 )
+                dispatched += 1
 
-        logger.info('Dispatched %s parallel execution tasks for %s', len(active_users), symbol)
-
+        logger.info(
+            'trigger_system_wide_buy dispatched %s tasks for %s scan_id=%s',
+            dispatched, symbol, scan_id,
+        )
 
 def morning_pre_processing():
     """
