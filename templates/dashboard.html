@@ -164,6 +164,17 @@
 
         /* Mini Metric Grid */
         .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .cockpit-hero { background: linear-gradient(145deg, rgba(56,189,248,0.08), rgba(2,6,23,0.5)); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.25rem; }
+        .cockpit-status-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap:.9rem; }
+        .cockpit-status-card, .gate-card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(2,6,23,0.55)); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: .95rem; min-height: 120px; display:flex; flex-direction:column; gap:.4rem; }
+        .gate-ribbon { display:grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap:.75rem; }
+        .status-pill { margin-top:auto; display:inline-flex; width:fit-content; padding:4px 10px; border-radius:999px; font-size:.68rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid transparent; }
+        .status-pill.ready { color: var(--success); background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.5); }
+        .status-pill.warning { color: var(--warning); background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.45); }
+        .status-pill.blocked { color: var(--danger); background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.45); }
+        .status-pill.live { color: #fda4af; background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.5); }
+
         .mini-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; text-align: center; }
         .mini-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
         .mini-card .value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
@@ -353,7 +364,7 @@
                 <div class="h-divider"></div>
                 <div class="h-metric">
                     <span class="h-label">Risk Baseline</span>
-                    <span class="h-value" id="capital-auth-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
+                    <span class="h-value" id="capital-auth-value">${{ "{:,.2f}".format(current_user.live_bankroll if current_user.trading_mode == "live" else current_user.paper_bankroll) }}</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
@@ -418,25 +429,31 @@
         </div>
 
         <div class="workspace">
-        <section class="card" style="padding:1.25rem;">
+        {% set is_live_mode = current_user.trading_mode == 'live' %}
+        {% set paper_connected = (current_user.alpaca_paper_account_id or current_user.alpaca_paper_access_token) %}
+        {% set live_connected = (current_user.alpaca_live_account_id or current_user.alpaca_live_access_token) %}
+        {% set paper_ready = paper_connected and (current_user.paper_bankroll|float > 0) %}
+        {% set broker_status_text = 'Live Connected' if is_live_mode and live_connected else ('Paper Connected' if paper_connected else 'Not Connected') %}
+        {% set risk_ready = (current_user.live_bankroll|float > 0) if is_live_mode else (current_user.paper_bankroll|float > 0) %}
+        <section class="cockpit-hero">
             <div class="sys-tag" style="margin-bottom:8px; display:inline-block;">Execution Command Center</div>
             <h2 style="margin:0 0 8px; font-size:1.6rem;">Monitor the workflow before capital moves.</h2>
             <p style="margin:0; font-size:0.95rem; color:var(--text-muted);">Run scans, review gate results, check risk sizing, and inspect the audit trail before broker-connected routing is allowed.</p>
             <p style="margin:8px 0 0; font-size:0.8rem; color:var(--text-muted);">Trading involves risk. XeanVI follows configured rules and permissions; it does not guarantee results.</p>
         </section>
-        <section class="bottom-row" style="grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap:0.9rem;">
-            <div class="mini-card"><div class="label">Automation Mode</div><div class="value" id="automation-mode-card">{{ 'PRO Workflow Active' if current_user.trading_mode == 'full_automation' else ('Live' if current_user.trading_mode == 'live' else ('Preview' if not plan_access.is_pro else 'Paper')) }}</div></div>
-            <div class="mini-card"><div class="label">Broker Status</div><div class="value">{{ 'Live Connected' if current_user.alpaca_live_account_id and current_user.alpaca_live_access_token else ('Paper Connected' if current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token else 'Not Connected') }}</div></div>
-            <div class="mini-card"><div class="label">Setup Progress</div><div class="value">{{ setup_checklist.percent_complete if setup_checklist else 0 }}%{% if setup_checklist %} ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}){% endif %}</div></div>
-            <div class="mini-card"><div class="label">Risk Baseline</div><div class="value">{{ "${:,.2f}".format(current_user.live_bankroll if current_user.trading_mode == 'live' else current_user.paper_bankroll) }}</div></div>
-            <div class="mini-card"><div class="label">Gate Result</div><div class="value" id="gate-result-card">Awaiting scan</div></div>
+        <section class="cockpit-status-grid">
+            <article class="cockpit-status-card"><div class="label">Automation Mode</div><div class="value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
+            <article class="cockpit-status-card"><div class="label">Broker Status</div><div class="value">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
+            <article class="cockpit-status-card"><div class="label">Setup Progress</div><div class="value">{{ setup_checklist.percent_complete if setup_checklist else 0 }}%{% if setup_checklist %} ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}){% endif %}</div><span class="status-pill {{ 'ready' if (setup_checklist and setup_checklist.percent_complete >= 100) else 'warning' }}">{{ 'Checked' if (setup_checklist and setup_checklist.percent_complete >= 100) else 'In Progress' }}</span></article>
+            <article class="cockpit-status-card"><div class="label">Risk Baseline</div><div class="value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><span class="status-pill {{ 'ready' if risk_ready else 'warning' }}">{{ 'Checked' if risk_ready else 'Setup Needed' }}</span></article>
+            <article class="cockpit-status-card"><div class="label">Gate Result</div><div class="value" id="gate-result-card">Awaiting scan</div><span class="status-pill warning" id="gate-result-pill">Waiting</span></article>
         </section>
-        <section class="bottom-row" style="grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:0.75rem;">
-            <div class="mini-card"><div class="label">Rule Gate</div><div class="value" id="gate-rule">{{ 'Ready' if current_user.playbook_reviewed else 'Review Playbook' }}</div></div>
-            <div class="mini-card"><div class="label">Validation Gate</div><div class="value" id="gate-validation">Available</div></div>
-            <div class="mini-card"><div class="label">Risk Gate</div><div class="value" id="gate-risk">{{ 'Ready' if (current_user.paper_bankroll or current_user.live_bankroll) else 'Risk Setup Needed' }}</div></div>
-            <div class="mini-card"><div class="label">Paper Gate</div><div class="value" id="gate-paper">{{ 'Ready' if (current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token and current_user.paper_bankroll) else 'Paper Setup Needed' }}</div></div>
-            <div class="mini-card"><div class="label">Broker Gate</div><div class="value" id="gate-broker">{{ 'Live Connected' if current_user.alpaca_live_account_id and current_user.alpaca_live_access_token else ('Paper Connected' if current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token else 'Not Connected') }}</div></div>
+        <section class="gate-ribbon">
+            <article class="gate-card"><div class="label">Rule Gate</div><div class="value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Awaiting Scan' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
+            <article class="gate-card"><div class="label">Validation Gate</div><div class="value" id="gate-validation">Awaiting Scan</div><span class="status-pill warning" id="gate-validation-pill">Waiting</span></article>
+            <article class="gate-card"><div class="label">Risk Gate</div><div class="value" id="gate-risk">{{ 'Checked' if risk_ready else 'Risk Setup Needed' }}</div><span class="status-pill {{ 'ready' if risk_ready else 'blocked' }}" id="gate-risk-pill">{{ 'Checked' if risk_ready else 'Blocked' }}</span></article>
+            <article class="gate-card"><div class="label">Paper Gate</div><div class="value" id="gate-paper">{{ 'Ready' if paper_ready else 'Paper Setup Needed' }}</div><span class="status-pill {{ 'ready' if paper_ready else 'warning' }}" id="gate-paper-pill">{{ 'Checked' if paper_ready else 'Setup Needed' }}</span></article>
+            <article class="gate-card"><div class="label">Broker Gate</div><div class="value" id="gate-broker">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}" id="gate-broker-pill">{{ 'Checked' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Blocked' }}</span></article>
         </section>
         {% if setup_checklist and setup_checklist['completed_required'] < setup_checklist['total_required'] %}
         <section class="setup-banner" aria-label="Setup checklist reminder">
@@ -754,14 +771,44 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
         function updateGateCards(best, upgradeRequiredForExecution, automationMode) {
-            const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-            const blocked = Array.isArray(best?.skip_reasons) && best.skip_reasons.length > 0;
-            set('gate-result-card', upgradeRequiredForExecution ? 'Preview Only' : (best?.decision || best?.setup_grade || 'Watching / No route'));
-            set('gate-rule', blocked ? 'Checked' : 'Checked');
-            set('gate-validation', blocked ? 'Blocked' : 'Checked');
-            set('gate-risk', blocked ? 'Blocked' : 'Checked');
-            if (automationMode === 'full_automation') set('automation-mode-card', 'PRO Workflow Active');
-            if (upgradeRequiredForExecution) set('automation-mode-card', 'Preview Only');
+            const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+            const setPill = (id, cls, text) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.remove('ready', 'warning', 'blocked', 'live');
+                if (cls) el.classList.add(cls);
+                if (text) el.textContent = text;
+            };
+            const details = best?.details || {};
+            const skipReasons = Array.isArray(details.skip_reasons) ? details.skip_reasons : [];
+            const decision = best?.decision || 'WATCH';
+            const hasBest = !!best;
+            const riskBlocked = skipReasons.some(reason => /risk|sizing|stop|spread|liquidity/i.test(String(reason)));
+
+            let gateResult = 'Watching / No Route';
+            if (upgradeRequiredForExecution) gateResult = 'Preview Only';
+            else if (decision === 'CRITERIA MET') gateResult = 'Route Ready';
+            else if (decision === 'WAIT') gateResult = 'Safety Wait';
+            setText('gate-result-card', gateResult);
+            setPill('gate-result-pill', upgradeRequiredForExecution ? 'warning' : (decision === 'CRITERIA MET' ? 'ready' : 'warning'), upgradeRequiredForExecution ? 'Preview' : (decision === 'CRITERIA MET' ? 'Ready' : 'Waiting'));
+
+            setText('gate-rule', hasBest ? 'Checked' : 'Awaiting Scan');
+            setPill('gate-rule-pill', hasBest ? 'ready' : 'warning', hasBest ? 'Checked' : 'Waiting');
+            setText('gate-validation', skipReasons.length > 0 ? 'Blocked' : (hasBest ? 'Checked' : 'Awaiting Scan'));
+            setPill('gate-validation-pill', skipReasons.length > 0 ? 'blocked' : (hasBest ? 'ready' : 'warning'), skipReasons.length > 0 ? 'Blocked' : (hasBest ? 'Checked' : 'Waiting'));
+            setText('gate-risk', riskBlocked ? 'Blocked' : (hasBest ? 'Checked' : 'Awaiting Scan'));
+            setPill('gate-risk-pill', riskBlocked ? 'blocked' : (hasBest ? 'ready' : 'warning'), riskBlocked ? 'Blocked' : (hasBest ? 'Checked' : 'Waiting'));
+
+            if (upgradeRequiredForExecution) {
+                setText('automation-mode-card', 'Preview Only');
+                setPill('automation-mode-pill', 'warning', 'Preview');
+            } else if (automationMode === 'live' || automationMode === 'full_automation') {
+                setText('automation-mode-card', 'Live Workflow');
+                setPill('automation-mode-pill', 'live', 'Live Mode');
+            } else {
+                setText('automation-mode-card', 'PRO Paper Workflow');
+                setPill('automation-mode-pill', 'ready', 'Ready');
+            }
         }
 
         async function updateLiveMetrics() {
@@ -1120,7 +1167,9 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> COMPILING...';
             btn.disabled = true;
             statusHeader.innerText = "> Executing scan routine...";
-            document.getElementById('ai-confidence').textContent = '--';
+            document.getElementById('ai-confidence').textContent = '—';
+            const gateResult = document.getElementById('gate-result-card');
+            if (gateResult) gateResult.textContent = 'Scanning';
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';

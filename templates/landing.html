@@ -308,10 +308,10 @@
             <div class="hero-content">
                 <div class="hero-badge">RULE-DRIVEN AUTOMATION</div>
                 <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1rem;">
-                    A Trading Automation Workflow You Can Set Up, Test, and Monitor Before Emotion Takes Over
+                    A Trading Automation Workflow You Can Set Up, Test, and Monitor
                 </h1>
                 <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">
-                    XeanVI is rule-driven trading automation software: build your playbook, run paper scans first, and connect a supported broker only when you are ready. It helps scan market data, check validation gates, calculate size from your risk settings, prepare bracket-order workflows for routing, and log each action based on your controls.
+                    Create an account, set your paper bankroll, run a scan, review the gate-by-gate decision, and connect a supported broker only when you are ready. XeanVI handles scanning, rule checks, risk-based sizing, bracket-order workflow, and audit logs around the controls you set.
                 </p>
                 
 {% include 'partials/launch_promo.html' %}
@@ -344,6 +344,13 @@
                 <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
                     <div style="color: var(--text-muted);">> Paper sandbox loaded. $10,000 simulated balance available.</div>
                 </div>
+                <div class="grid-3" style="padding: 1rem; gap: .6rem; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); border-top: 1px solid var(--border-color);">
+                    <div class="quick-card"><strong>Mode:</strong> <span id="sim-mode-status">Paper</span></div>
+                    <div class="quick-card"><strong>Broker:</strong> <span id="sim-broker-status">Not required to start</span></div>
+                    <div class="quick-card"><strong>Gate:</strong> <span id="sim-gate-status">Awaiting scan</span></div>
+                    <div class="quick-card"><strong>Risk:</strong> <span id="sim-risk-status">Simulated only</span></div>
+                    <div class="quick-card"><strong>Audit:</strong> <span id="sim-audit-status">Ready</span></div>
+                </div>
 
                 <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
                     <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run paper trading sandbox simulation" data-meta-pixel-event="ViewContent" data-meta-pixel-params='{"content_name":"Paper Scan Demo Started","content_category":"Landing Funnel","funnel_step":"paper_scan_demo_started"}'>
@@ -356,13 +363,15 @@
     <section class="quick-start-cards">
         <div class="container">
             <div style="text-align: center; max-width: 860px; margin: 0 auto 2rem;">
-                <h2 style="font-size: 2rem; margin-bottom: 0.7rem;">What happens after you sign up</h2>
-                <p style="margin-bottom: 0;">Start low-risk with paper mode. Broker connection is optional until you decide to go live.</p>
+                <h2 style="font-size: 2rem; margin-bottom: 0.7rem;">The beginner path is simple.</h2>
+                <p style="margin-bottom: 0;">No coding required. No live broker connection required to start.</p>
             </div>
-            <div class="grid-3" style="gap: 1rem;">
-                <article class="quick-card"><h3>1) Build your playbook</h3><p style="margin: 0;">Set setup criteria, risk limits, and position sizing rules that match your process.</p></article>
-                <article class="quick-card"><h3>2) Run paper scans</h3><p style="margin: 0;">Use simulated workflow to review how scans and rule checks behave before live capital.</p></article>
-                <article class="quick-card"><h3>3) Connect broker only when ready</h3><p style="margin: 0;">Enable supported broker routing after your rules and permissions are configured.</p></article>
+            <div class="grid-3" style="gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <article class="quick-card"><h3>1. Create account</h3><p style="margin: 0;">Open your account and access the workflow dashboard.</p></article>
+                <article class="quick-card"><h3>2. Set paper bankroll</h3><p style="margin: 0;">Define your simulated baseline before any live workflow.</p></article>
+                <article class="quick-card"><h3>3. Run paper scan</h3><p style="margin: 0;">Scan for setups in paper mode first.</p></article>
+                <article class="quick-card"><h3>4. Review gate decision</h3><p style="margin: 0;">Check rule, validation, and risk gate outcomes before routing.</p></article>
+                <article class="quick-card"><h3>5. Connect broker when ready</h3><p style="margin: 0;">Enable broker connectivity only after your process is tested.</p></article>
             </div>
         </div>
     </section>
@@ -445,6 +454,12 @@
                     </div>
                 </aside>
             </div>
+        </div>
+    </section>
+    <section style="padding: 3rem 0; border-top: 1px solid var(--border-color);">
+        <div class="container">
+            <h2 style="font-size: 2rem; margin-bottom: .8rem;">Guided workflow, user-controlled rules.</h2>
+            <p style="margin: 0;">XeanVI handles the repeatable workflow: scan, validate, size, prepare, and log. You control the playbook, broker permissions, account mode, and live use.</p>
         </div>
     </section>
 
@@ -592,27 +607,39 @@
     <section style="padding: 3.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h2 style="font-size: 2rem;">Built for / Not built for</h2>
+                <h2 style="font-size: 2rem;">For beginners and serious traders</h2>
             </div>
             <div class="fit-grid">
                 <article class="fit-card">
-                    <h3 style="margin-bottom: 0.75rem;">Built for</h3>
+                    <h3 style="margin-bottom: 0.75rem;">For beginners</h3>
                     <ul>
-                        <li>Retail traders with defined setups</li>
-                        <li>Traders who want rule discipline</li>
-                        <li>Traders who want paper testing before live automation</li>
+                        <li>Paper mode first</li>
+                        <li>No coding required</li>
+                        <li>Guided setup path</li>
+                        <li>No live broker connection required to create an account</li>
+                        <li>Clear gate decisions before routing</li>
                     </ul>
                 </article>
                 <article class="fit-card">
-                    <h3 style="margin-bottom: 0.75rem;">Not built for</h3>
+                    <h3 style="margin-bottom: 0.75rem;">For serious traders</h3>
                     <ul>
-                        <li>Get-rich-quick trading</li>
-                        <li>Blind signal following</li>
-                        <li>Profit promises</li>
-                        <li>Financial advice</li>
+                        <li>Rule gate, validation gate, risk gate, paper gate, broker gate</li>
+                        <li>Position sizing from risk settings</li>
+                        <li>Skipped setup reasons</li>
+                        <li>Broker permission boundaries</li>
+                        <li>Audit trail and decision logs</li>
                     </ul>
                 </article>
             </div>
+            <article class="fit-card" style="margin-top: 1rem;">
+                <h3 style="margin-bottom: 0.75rem;">Not built for</h3>
+                <ul>
+                    <li>Get-rich-quick trading</li>
+                    <li>Blind signal following</li>
+                    <li>Profit promises</li>
+                    <li>Financial advice</li>
+                </ul>
+            </article>
         </div>
     </section>
 
@@ -757,6 +784,12 @@
         status.style.color = '#f59e0b';
         dot.style.background = '#f59e0b';
         status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Paper Data...`;
+        const simGate = document.getElementById('sim-gate-status');
+        const simRisk = document.getElementById('sim-risk-status');
+        const simAudit = document.getElementById('sim-audit-status');
+        if (simGate) simGate.textContent = 'Checking';
+        if (simRisk) simRisk.textContent = 'Calculating';
+        if (simAudit) simAudit.textContent = 'Ready';
 
         document.getElementById('sim-terminal').innerHTML = '';
         addSimLog("> Scan started: connecting to simulated market data feed...", "var(--accent-blue)");
@@ -774,6 +807,9 @@
             addSimLog("> Audit log recorded: paper workflow event captured.", "var(--accent-blue)");
             addSimLog("> <strong>Paper workflow complete: scan, validation, sizing, bracket preparation, and audit log recorded.</strong>", "var(--success)");
             addSimLog("> Demo complete: no live capital used.", "var(--text-muted)");
+            if (simGate) simGate.textContent = 'Checked';
+            if (simRisk) simRisk.textContent = 'Calculated';
+            if (simAudit) simAudit.textContent = 'Recorded';
 
             status.style.color = 'var(--success)';
             status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Paper Cycle Completed`;
