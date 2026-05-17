@@ -500,11 +500,56 @@ def _background_leg_placement(
         mode = getattr(user, 'trading_mode', 'paper')
         return UNPROTECTED_POSITION_REPAIR_ENABLED if mode != 'live' else UNPROTECTED_POSITION_REPAIR_LIVE_ENABLED
 
-    def _record_unprotected(reason: str, payload: dict | None = None) -> None:
+def _record_unprotected(reason: str, payload: dict | None = None) -> None:
+        """
+        P0: Upgraded from a silent DB note to a CRITICAL-level alert.
+        Writes to DB, emits CRITICAL log, and sets a Redis alert key so the
+        dashboard can surface an active warning banner for this user.
+        """
+        # 1. DB note (existing behavior preserved)
         _update_entry_trade_status_safely(entry_id, {
             'notes': f'unprotected_position_detected:{reason}',
-            'raw_json': {'unprotected_position_detected': {'reason': reason, 'payload': payload or {}}},
+            'raw_json': {
+                'unprotected_position_detected': {
+                    'reason': reason,
+                    'payload': payload or {},
+                }
+            },
         })
+
+        # 2. CRITICAL log — surfaces in all production log aggregators
+        logger.critical(
+            "UNPROTECTED_POSITION_DETECTED user_id=%s symbol=%s entry_id=%s "
+            "reason=%s repair_enabled=%s — MANUAL INTERVENTION MAY BE REQUIRED",
+            getattr(user, 'id', 'unknown'),
+            symbol,
+            entry_id,
+            reason,
+            _is_emergency_exit_allowed(),
+        )
+
+        # 3. Redis alert key — 4-hour TTL, dashboard polls this for warning banner
+        try:
+            from app import redis_client as _redis
+            import json as _json
+            alert_key = (
+                f"unprotected_position:{getattr(user, 'id', 'unknown')}:{symbol.upper()}"
+            )
+            _redis.setex(
+                alert_key,
+                4 * 3600,
+                _json.dumps({
+                    'reason': reason,
+                    'entry_id': entry_id,
+                    'symbol': symbol,
+                    'user_id': getattr(user, 'id', None),
+                    'repair_enabled': _is_emergency_exit_allowed(),
+                }),
+            )
+        except Exception as _redis_exc:
+            logger.error(
+                'Failed to write unprotected_position Redis alert key: %s', _redis_exc
+            )
 
     def _entry_status_callback(order_payload: Dict[str, Any]) -> None:
         raw_payload = {'latest_entry_order': order_payload}
