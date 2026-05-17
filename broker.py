@@ -2,6 +2,7 @@ import logging
 import json
 import time
 import threading
+import uuid
 import contextlib
 from typing import Any, Dict, List
 from types import SimpleNamespace
@@ -31,6 +32,23 @@ logger = logging.getLogger(__name__)
 class BrokerError(Exception):
     pass
 
+def _build_client_order_id(user_id: Any, scan_id: Any) -> str:
+    """
+    Generates a stable, traceable client_order_id for every Alpaca submission.
+
+    Format : xvi-{user_id}-{scan_id}-{8-char uuid hex}
+    Example: xvi-42-1891-a3f2c9d1
+
+    Alpaca deduplicates on client_order_id within a short window, so if Celery
+    retries the same task the second broker call returns the existing order
+    rather than creating a duplicate position.
+
+    Max 50 chars — well within Alpaca's 128-char limit.
+    """
+    short_uid = uuid.uuid4().hex[:8]
+    safe_user = str(user_id or 'u')
+    safe_scan = str(scan_id or '0')
+    return f"xvi-{safe_user}-{safe_scan}-{short_uid}"
 
 def _snapshot_execution_user_context(user: Any | None, token: str | None = None) -> SimpleNamespace:
     return SimpleNamespace(
