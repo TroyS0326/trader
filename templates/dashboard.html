@@ -67,19 +67,15 @@
             padding: 3px 6px; border-radius: 4px; width: fit-content; margin-top: 4px; letter-spacing: 0.05em;
         }
 
-        .header-metrics { display: flex; align-items: center; gap: 30px; flex-grow: 1; justify-content: center; }
-        .h-metric { display: flex; flex-direction: column; align-items: center; }
-        .h-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
-        .h-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.15rem; color: var(--text-main); text-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .h-divider { width: 1px; height: 35px; background: var(--border-color); }
+        .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 
         /* --- Workspace Layout --- */
         .dashboard-shell { width: 100%; flex: 1 0 auto; display: flex; flex-direction: column; }
-        .dashboard-header-wrap { padding: 1.5rem 2rem 0 2rem; flex-shrink: 0; }
-        .workspace { width: 100%; flex: 1 0 auto; overflow: visible; padding: 1.5rem 2rem 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .dashboard-header-wrap { padding: 1rem 2rem 0 2rem; flex-shrink: 0; }
+        .workspace { width: 100%; flex: 1 0 auto; overflow: visible; padding: 1rem 2rem 2.5rem; display: flex; flex-direction: column; gap: 1rem; }
         
-        .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; height: 500px; flex-shrink: 0; }
-        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 2rem; }
+        .top-row { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; height: 500px; flex-shrink: 0; }
+        .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; padding-bottom: 2rem; }
         .bottom-row > .full-width { grid-column: 1 / -1; }
 
         /* --- Global Card Aesthetics --- */
@@ -87,7 +83,7 @@
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1.2rem;
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -165,11 +161,14 @@
         /* Mini Metric Grid */
         .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-        .cockpit-hero { background: linear-gradient(145deg, rgba(56,189,248,0.08), rgba(2,6,23,0.5)); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.25rem; }
-        .cockpit-status-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap:.9rem; }
-        .cockpit-status-card, .gate-card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(2,6,23,0.55)); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: .95rem; min-height: 120px; display:flex; flex-direction:column; gap:.4rem; }
-        .gate-ribbon { display:grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap:.75rem; }
-        .status-pill { margin-top:auto; display:inline-flex; width:fit-content; padding:4px 10px; border-radius:999px; font-size:.68rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid transparent; }
+        .ops-status-strip { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:.7rem; background: rgba(15,23,42,0.55); border:1px solid var(--border-color); border-radius:12px; padding:.8rem; }
+        .ops-status-item { background: rgba(2,6,23,.45); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:.65rem .75rem; display:flex; flex-direction:column; gap:.35rem; min-height:88px; }
+        .ops-label { font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); }
+        .ops-value { font-family: var(--font-mono); font-size:.88rem; color:var(--text-main); }
+        .ops-pill { margin-top:auto; }
+        .compact-gate-ribbon { display:flex; gap:.55rem; flex-wrap:wrap; overflow-x:auto; padding-bottom:.15rem; }
+        .compact-gate-chip { background: rgba(15,23,42,.6); border:1px solid rgba(255,255,255,.09); border-radius:999px; padding:.42rem .65rem; display:flex; align-items:center; gap:.45rem; }
+        .status-pill { display:inline-flex; width:fit-content; padding:4px 10px; border-radius:999px; font-size:.66rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid transparent; }
         .status-pill.ready { color: var(--success); background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.5); }
         .status-pill.warning { color: var(--warning); background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.45); }
         .status-pill.blocked { color: var(--danger); background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.45); }
@@ -225,8 +224,7 @@
 
         @media (max-width: 992px) {
             .command-header-bar { flex-direction: column; padding: 1rem; gap: 1rem; }
-            .header-metrics { flex-wrap: wrap; gap: 15px; }
-            .h-divider { display: none; }
+            .header-actions { width: 100%; justify-content: flex-start; }
             .workspace { padding: 1rem; }
             .top-row { display: flex; flex-direction: column; height: auto; }
             .chart-panel { height: 350px; }
@@ -348,51 +346,6 @@
                 </div>
             </div>
 
-            <div class="header-metrics">
-                <div class="h-metric">
-                    <span class="h-label">Environment</span>
-                    {% if current_user.trading_mode == 'live' %}
-                        <span class="h-value" style="color: var(--danger);">
-                            <i class="fas fa-broadcast-tower" style="font-size: 0.8rem; margin-right: 6px;"></i>Live Mode
-                        </span>
-                    {% else %}
-                        <span class="h-value" style="color: var(--success);">
-                            <i class="fas fa-flask" style="font-size: 0.8rem; margin-right: 6px;"></i>Paper
-                        </span>
-                    {% endif %}
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Risk Baseline</span>
-                    <span class="h-value" id="capital-auth-value">${{ "{:,.2f}".format(current_user.live_bankroll if current_user.trading_mode == "live" else current_user.paper_bankroll) }}</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Paper Equity</span>
-                    <span class="h-value">${{ "{:,.2f}".format(current_user.paper_bankroll) }}</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Live Equity</span>
-                    <span class="h-value">${{ "{:,.2f}".format(current_user.live_bankroll) }}</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Setup Score</span>
-                    <span class="h-value" id="ai-confidence" style="color: var(--accent-blue);">--%</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Gate Result</span>
-                    <span class="h-value" id="setup-grade">--</span>
-                </div>
-                <div class="h-divider"></div>
-                <div class="h-metric">
-                    <span class="h-label">Max Allowed Risk</span>
-                    <span class="h-value" id="risk-amount" style="color: var(--warning);">--</span>
-                </div>
-            </div>
-
             <div class="header-actions">
                 {% if not plan_access.is_pro %}
                 <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
@@ -435,25 +388,18 @@
         {% set paper_ready = paper_connected and (current_user.paper_bankroll|float > 0) %}
         {% set broker_status_text = 'Live Connected' if is_live_mode and live_connected else ('Paper Connected' if paper_connected else 'Not Connected') %}
         {% set risk_ready = (current_user.live_bankroll|float > 0) if is_live_mode else (current_user.paper_bankroll|float > 0) %}
-        <section class="cockpit-hero">
-            <div class="sys-tag" style="margin-bottom:8px; display:inline-block;">Execution Command Center</div>
-            <h2 style="margin:0 0 8px; font-size:1.6rem;">Monitor the workflow before capital moves.</h2>
-            <p style="margin:0; font-size:0.95rem; color:var(--text-muted);">Run scans, review gate results, check risk sizing, and inspect the audit trail before broker-connected routing is allowed.</p>
-            <p style="margin:8px 0 0; font-size:0.8rem; color:var(--text-muted);">Trading involves risk. XeanVI follows configured rules and permissions; it does not guarantee results.</p>
+        <section class="ops-status-strip">
+            <article class="ops-status-item"><div class="ops-label">Mode</div><div class="ops-value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill ops-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
+            <article class="ops-status-item"><div class="ops-label">Broker</div><div class="ops-value">{{ broker_status_text }}</div><span class="status-pill ops-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
+            <article class="ops-status-item"><div class="ops-label">Risk Baseline</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
+            <article class="ops-status-item"><div class="ops-label">Scan State</div><div class="ops-value" id="gate-result-card">Awaiting Scan</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
         </section>
-        <section class="cockpit-status-grid">
-            <article class="cockpit-status-card"><div class="label">Automation Mode</div><div class="value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
-            <article class="cockpit-status-card"><div class="label">Broker Status</div><div class="value">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
-            <article class="cockpit-status-card"><div class="label">Setup Progress</div><div class="value">{{ setup_checklist.percent_complete if setup_checklist else 0 }}%{% if setup_checklist %} ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}){% endif %}</div><span class="status-pill {{ 'ready' if (setup_checklist and setup_checklist.percent_complete >= 100) else 'warning' }}">{{ 'Checked' if (setup_checklist and setup_checklist.percent_complete >= 100) else 'In Progress' }}</span></article>
-            <article class="cockpit-status-card"><div class="label">Risk Baseline</div><div class="value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><span class="status-pill {{ 'ready' if risk_ready else 'warning' }}">{{ 'Checked' if risk_ready else 'Setup Needed' }}</span></article>
-            <article class="cockpit-status-card"><div class="label">Gate Result</div><div class="value" id="gate-result-card">Awaiting scan</div><span class="status-pill warning" id="gate-result-pill">Waiting</span></article>
-        </section>
-        <section class="gate-ribbon">
-            <article class="gate-card"><div class="label">Rule Gate</div><div class="value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Awaiting Scan' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
-            <article class="gate-card"><div class="label">Validation Gate</div><div class="value" id="gate-validation">Awaiting Scan</div><span class="status-pill warning" id="gate-validation-pill">Waiting</span></article>
-            <article class="gate-card"><div class="label">Risk Gate</div><div class="value" id="gate-risk">{{ 'Checked' if risk_ready else 'Risk Setup Needed' }}</div><span class="status-pill {{ 'ready' if risk_ready else 'blocked' }}" id="gate-risk-pill">{{ 'Checked' if risk_ready else 'Blocked' }}</span></article>
-            <article class="gate-card"><div class="label">Paper Gate</div><div class="value" id="gate-paper">{{ 'Ready' if paper_ready else 'Paper Setup Needed' }}</div><span class="status-pill {{ 'ready' if paper_ready else 'warning' }}" id="gate-paper-pill">{{ 'Checked' if paper_ready else 'Setup Needed' }}</span></article>
-            <article class="gate-card"><div class="label">Broker Gate</div><div class="value" id="gate-broker">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}" id="gate-broker-pill">{{ 'Checked' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Blocked' }}</span></article>
+        <section class="compact-gate-ribbon">
+            <article class="compact-gate-chip"><div class="ops-label">Rule</div><div class="ops-value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Awaiting Scan' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Validation</div><div class="ops-value" id="gate-validation">Awaiting Scan</div><span class="status-pill warning" id="gate-validation-pill">Waiting</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Risk</div><div class="ops-value" id="gate-risk">{{ 'Checked' if risk_ready else 'Risk Setup Needed' }}</div><span class="status-pill {{ 'ready' if risk_ready else 'blocked' }}" id="gate-risk-pill">{{ 'Checked' if risk_ready else 'Blocked' }}</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Paper</div><div class="ops-value" id="gate-paper">{{ 'Ready' if paper_ready else 'Paper Setup Needed' }}</div><span class="status-pill {{ 'ready' if paper_ready else 'warning' }}" id="gate-paper-pill">{{ 'Checked' if paper_ready else 'Setup Needed' }}</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Broker</div><div class="ops-value" id="gate-broker">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}" id="gate-broker-pill">{{ 'Checked' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Blocked' }}</span></article>
         </section>
         {% if setup_checklist and setup_checklist['completed_required'] < setup_checklist['total_required'] %}
         <section class="setup-banner" aria-label="Setup checklist reminder">
@@ -477,16 +423,9 @@
                 </div>
 
                 <div style="margin-top: auto;">
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-align: center; font-family: var(--font-mono);">
-                        > Plan Mode: {{ plan_access.plan_label }} | Automatic scans active during market hours.
-                    </p>
                     <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; line-height: 1.5;">
-                        Beginner path: run in paper mode first, inspect gate checks, and only enable broker routing when rules, risk, and permissions pass.
+                        Paper-first workflow. Broker routing requires rules, risk, and permissions to pass.
                     </p>
-                    <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:12px; border:1px solid var(--border-color); border-radius:8px; padding:10px; line-height:1.5;">
-                        <strong style="color:var(--text-main); display:block; margin-bottom:6px;">How this works</strong>
-                        1. Choose playbook mode<br>2. Run paper scan<br>3. Review gate result<br>4. Broker routing only if rules, risk, and permissions pass
-                    </div>
                     <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
                         <i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now
                     </button>
@@ -497,13 +436,13 @@
             <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
-                        Focused Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
+                        Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
 
 
 
                     </div>
                     <div id="liveIndicator" style="display:none; color: var(--success); font-family: var(--font-mono); font-size: 0.75rem;">
-                        <span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success);"></span>DATA_STREAM_ACTIVE
+                        <span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success);"></span>Stream Active
 
                     </div>
                 </div>
@@ -546,17 +485,6 @@
 
 
             
-            {% if not plan_access.is_pro %}
-            <div class="data-card" style="border-color: rgba(245, 158, 11, 0.45);">
-                <div class="card-header">
-                    PRO Workflow Locked
-                    <span class="sys-tag">LOCKED</span>
-                </div>
-                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
-                    Scan preview is available in FREE PREVIEW. Broker-connected paper order routing, monitored execution workflows, and trade logging are locked until PRO is active.
-                </p>
-            </div>
-            {% endif %}
             <div class="data-card" id="news-panel">
                 <div class="card-header">
                     Setup Inputs
@@ -570,16 +498,6 @@
                     > Waiting for data feed...
                 </div>
 
-            </div>
-            <div class="data-card">
-                <div class="card-header">Controls &amp; Audit <span class="sys-tag">RISK_CONTROLS</span></div>
-                <ul style="margin:0; padding-left:1rem; color:var(--text-muted); line-height:1.6;">
-                    <li>Rule checks are required before broker-connected routing.</li>
-                    <li>Position sizing is derived from your risk settings.</li>
-                    <li>Broker permissions and account mode define workflow boundaries.</li>
-                    <li>Skipped or blocked setups remain visible with reasons.</li>
-                    <li>Audit trail records what happened and why.</li>
-                </ul>
             </div>
 
             <div class="data-card" id="watchlist-panel">
@@ -832,7 +750,6 @@
 
         setInterval(() => {
             updateLiveMetrics();
-            addLog("> Pinging exchange for updated tick data...", "#52525b");
         }, userRefreshRate);
 
         function initChart() {
