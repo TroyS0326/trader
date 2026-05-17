@@ -171,6 +171,7 @@
         margin-bottom: 1rem;
     }
     .landing-page .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .landing-page .hero-actions.centered-promo { justify-content: center; }
     .landing-page .hero-helper { margin-top: 0.9rem; font-size: 0.95rem; margin-bottom: 0; }
     .landing-page .hero-trust-strip {
         display: grid;
@@ -335,7 +336,7 @@
                 </p>
                 
 {% include 'partials/launch_promo.html' %}
-<div class="hero-actions">
+<div class="hero-actions{% if launch_promo_active %} centered-promo{% endif %}">
                     <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Hero Signup CTA","content_category":"Landing Funnel","funnel_step":"hero_signup_click"}'>{{ "Claim 2 Months for $19.99" if launch_promo_active else "Create Account & Test Paper Mode" }}</a>
                 </div>
                 <p class="hero-helper">No live broker connection required to create an account. Start in paper mode first.</p>
@@ -343,7 +344,7 @@
                     <div class="hero-trust-item">No live broker connection required to create your account</div>
                     <div class="hero-trust-item">Start in paper mode first</div>
                     <div class="hero-trust-item">You define the rules and risk limits</div>
-                    <div class="hero-trust-item">Trading involves risk; XeanVI is software, not financial advice</div>
+                    <div class="hero-trust-item">Clear gate-by-gate workflow visibility</div>
                 </div>
             </div>
 
@@ -364,15 +365,7 @@
                 <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
                     <div style="color: var(--text-muted);">> Paper sandbox loaded. $10,000 simulated balance available.</div>
                 </div>
-                <div class="grid-3" style="padding: 1rem; gap: .6rem; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); border-top: 1px solid var(--border-color);">
-                    <div class="quick-card"><strong>Mode:</strong> <span id="sim-mode-status">Paper</span></div>
-                    <div class="quick-card"><strong>Broker:</strong> <span id="sim-broker-status">Not required to start</span></div>
-                    <div class="quick-card"><strong>Gate:</strong> <span id="sim-gate-status">Awaiting scan</span></div>
-                    <div class="quick-card"><strong>Risk:</strong> <span id="sim-risk-status">Simulated only</span></div>
-                    <div class="quick-card"><strong>Audit:</strong> <span id="sim-audit-status">Ready</span></div>
-                </div>
-
-                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
                     <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run paper trading sandbox simulation" data-meta-pixel-event="ViewContent" data-meta-pixel-params='{"content_name":"Paper Scan Demo Started","content_category":"Landing Funnel","funnel_step":"paper_scan_demo_started"}'>
                         <i class="fas fa-play" aria-hidden="true"></i> Run Paper Scan
                     </button>
@@ -407,8 +400,6 @@
                 <article class="quick-card"><h3>Stop guessing whether rules passed</h3><p style="margin: 0;">See clear pass/fail outcomes so you know whether a setup can move forward.</p></article>
                 <article class="quick-card"><h3>Size trades from predefined risk settings</h3><p style="margin: 0;">Keep position size tied to your configured risk limits before routing.</p></article>
                 <article class="quick-card"><h3>Review why setups were skipped</h3><p style="margin: 0;">Understand which gate blocked the workflow and what condition was missing.</p></article>
-                <article class="quick-card"><h3>Test the workflow in paper mode first</h3><p style="margin: 0;">Validate process behavior in simulated conditions before live routing.</p></article>
-                <article class="quick-card"><h3>Keep routing tied to broker permissions</h3><p style="margin: 0;">Only run broker-connected actions inside the permissions you explicitly authorize.</p></article>
                 <article class="quick-card"><h3>Audit each workflow decision</h3><p style="margin: 0;">Review logs and dashboard visibility to see what happened and when.</p></article>
             </div>
             <div style="margin-top: 1.25rem; text-align: center;">
@@ -458,27 +449,6 @@
             </div>
         </div>
     </section>
-
-    <section style="padding: 3.5rem 0; border-bottom: 1px solid var(--border-color);">
-        <div class="container">
-            <div style="text-align: center; max-width: 920px; margin: 0 auto 1.75rem;">
-                <h2 style="font-size: 2rem; margin-bottom: 0.75rem;">Proof should come from process, not promises.</h2>
-            </div>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 720px;">
-                    <thead><tr><th style="text-align:left; border: 1px solid var(--border-color); padding: 0.85rem; background: rgba(239, 68, 68, 0.08);">Weak trading-bot proof</th><th style="text-align:left; border: 1px solid var(--border-color); padding: 0.85rem; background: rgba(16, 185, 129, 0.1);">XeanVI proof</th></tr></thead>
-                    <tbody>
-                        <tr><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Backtested profit screenshots</td><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Gate-by-gate decision visibility</td></tr>
-                        <tr><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Black-box signals</td><td style="border: 1px solid var(--border-color); padding: 0.8rem;">User-defined playbook rules</td></tr>
-                        <tr><td style="border: 1px solid var(--border-color); padding: 0.8rem;">“Trust the algo”</td><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Audit trail and skipped setup reasons</td></tr>
-                        <tr><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Live account pressure</td><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Paper-first workflow testing</td></tr>
-                        <tr><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Broad claims</td><td style="border: 1px solid var(--border-color); padding: 0.8rem;">Broker permission boundaries and risk settings</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p style="margin-top: 1rem; font-size: 0.95rem;">XeanVI does not guarantee trading results. The platform is designed to make rules, risk, and workflow decisions visible before live use.</p>
-        </div>
-    </section>
     <section class="features" style="padding: 4.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
             <div style="text-align: center; max-width: 860px; margin: 0 auto 2.5rem;">
@@ -492,20 +462,6 @@
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Inconsistent position sizing</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Broken stop-loss discipline</strong></article>
                 <article style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1rem 1.1rem;"><strong>Manual order-management fatigue</strong></article>
-            </div>
-        </div>
-    </section>
-    <section class="mid-cta">
-        <div class="container">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.2rem;">
-                <div style="max-width: 680px;">
-                    <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Test your rules before you trust them live.</h2>
-                    <p style="margin-bottom: 0;">Trading involves risk. XeanVI is software for user-defined workflow automation and is not financial advice.</p>
-                </div>
-                <div style="display: flex; gap: 0.7rem; flex-wrap: wrap;">
-                    <a href="/signup?plan=monthly" class="btn btn-primary" data-meta-pixel-event="Lead" data-meta-pixel-params='{"content_name":"Mid Page Signup CTA","content_category":"Landing Funnel","funnel_step":"midpage_signup_click"}'>Create Account & Test Paper Mode</a>
-                    <a href="/broker-integration" class="btn btn-secondary">Review Broker Integration</a>
-                </div>
             </div>
         </div>
     </section>
@@ -887,12 +843,6 @@
         status.style.color = '#f59e0b';
         dot.style.background = '#f59e0b';
         status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Scanning Paper Data...`;
-        const simGate = document.getElementById('sim-gate-status');
-        const simRisk = document.getElementById('sim-risk-status');
-        const simAudit = document.getElementById('sim-audit-status');
-        if (simGate) simGate.textContent = 'Checking';
-        if (simRisk) simRisk.textContent = 'Calculating';
-        if (simAudit) simAudit.textContent = 'Ready';
 
         document.getElementById('sim-terminal').innerHTML = '';
         addSimLog("> Scan started: connecting to simulated market data feed...", "var(--accent-blue)");
@@ -910,10 +860,6 @@
             addSimLog("> Audit log recorded: paper workflow event captured.", "var(--accent-blue)");
             addSimLog("> <strong>Paper workflow complete: scan, validation, sizing, bracket preparation, and audit log recorded.</strong>", "var(--success)");
             addSimLog("> Demo complete: no live capital used.", "var(--text-muted)");
-            if (simGate) simGate.textContent = 'Checked';
-            if (simRisk) simRisk.textContent = 'Calculated';
-            if (simAudit) simAudit.textContent = 'Recorded';
-
             status.style.color = 'var(--success)';
             status.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span> Paper Cycle Completed`;
 
