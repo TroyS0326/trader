@@ -342,7 +342,7 @@
                     <span class="h-label">Environment</span>
                     {% if current_user.trading_mode == 'live' %}
                         <span class="h-value" style="color: var(--danger);">
-                            <i class="fas fa-broadcast-tower" style="font-size: 0.8rem; margin-right: 6px;"></i>LIVE MONEY
+                            <i class="fas fa-broadcast-tower" style="font-size: 0.8rem; margin-right: 6px;"></i>Live Mode
                         </span>
                     {% else %}
                         <span class="h-value" style="color: var(--success);">
@@ -352,7 +352,7 @@
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Capital Auth</span>
+                    <span class="h-label">Risk Baseline</span>
                     <span class="h-value" id="capital-auth-value">${{ "{:,.2f}".format(current_user.bankroll) }}</span>
                 </div>
                 <div class="h-divider"></div>
@@ -367,12 +367,12 @@
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Model Confidence</span>
+                    <span class="h-label">Setup Score</span>
                     <span class="h-value" id="ai-confidence" style="color: var(--accent-blue);">--%</span>
                 </div>
                 <div class="h-divider"></div>
                 <div class="h-metric">
-                    <span class="h-label">Logic Alignment</span>
+                    <span class="h-label">Gate Result</span>
                     <span class="h-value" id="setup-grade">--</span>
                 </div>
                 <div class="h-divider"></div>
@@ -385,7 +385,7 @@
             <div class="header-actions">
                 {% if not plan_access.is_pro %}
                 <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
-                    <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock Pro Logic
+                    <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock PRO Workflow
                 </a>
                 {% endif %}
 
@@ -418,6 +418,26 @@
         </div>
 
         <div class="workspace">
+        <section class="card" style="padding:1.25rem;">
+            <div class="sys-tag" style="margin-bottom:8px; display:inline-block;">Execution Command Center</div>
+            <h2 style="margin:0 0 8px; font-size:1.6rem;">Monitor the workflow before capital moves.</h2>
+            <p style="margin:0; font-size:0.95rem; color:var(--text-muted);">Run scans, review gate results, check risk sizing, and inspect the audit trail before broker-connected routing is allowed.</p>
+            <p style="margin:8px 0 0; font-size:0.8rem; color:var(--text-muted);">Trading involves risk. XeanVI follows configured rules and permissions; it does not guarantee results.</p>
+        </section>
+        <section class="bottom-row" style="grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap:0.9rem;">
+            <div class="mini-card"><div class="label">Automation Mode</div><div class="value" id="automation-mode-card">{{ 'PRO Workflow Active' if current_user.trading_mode == 'full_automation' else ('Live' if current_user.trading_mode == 'live' else ('Preview' if not plan_access.is_pro else 'Paper')) }}</div></div>
+            <div class="mini-card"><div class="label">Broker Status</div><div class="value">{{ 'Live Connected' if current_user.alpaca_live_account_id and current_user.alpaca_live_access_token else ('Paper Connected' if current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token else 'Not Connected') }}</div></div>
+            <div class="mini-card"><div class="label">Setup Progress</div><div class="value">{{ setup_checklist.percent_complete if setup_checklist else 0 }}%{% if setup_checklist %} ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}){% endif %}</div></div>
+            <div class="mini-card"><div class="label">Risk Baseline</div><div class="value">{{ "${:,.2f}".format(current_user.live_bankroll if current_user.trading_mode == 'live' else current_user.paper_bankroll) }}</div></div>
+            <div class="mini-card"><div class="label">Gate Result</div><div class="value" id="gate-result-card">Awaiting scan</div></div>
+        </section>
+        <section class="bottom-row" style="grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:0.75rem;">
+            <div class="mini-card"><div class="label">Rule Gate</div><div class="value" id="gate-rule">{{ 'Ready' if current_user.playbook_reviewed else 'Review Playbook' }}</div></div>
+            <div class="mini-card"><div class="label">Validation Gate</div><div class="value" id="gate-validation">Available</div></div>
+            <div class="mini-card"><div class="label">Risk Gate</div><div class="value" id="gate-risk">{{ 'Ready' if (current_user.paper_bankroll or current_user.live_bankroll) else 'Risk Setup Needed' }}</div></div>
+            <div class="mini-card"><div class="label">Paper Gate</div><div class="value" id="gate-paper">{{ 'Ready' if (current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token and current_user.paper_bankroll) else 'Paper Setup Needed' }}</div></div>
+            <div class="mini-card"><div class="label">Broker Gate</div><div class="value" id="gate-broker">{{ 'Live Connected' if current_user.alpaca_live_account_id and current_user.alpaca_live_access_token else ('Paper Connected' if current_user.alpaca_paper_account_id and current_user.alpaca_paper_access_token else 'Not Connected') }}</div></div>
+        </section>
         {% if setup_checklist and setup_checklist['completed_required'] < setup_checklist['total_required'] %}
         <section class="setup-banner" aria-label="Setup checklist reminder">
             <p>Setup incomplete: {{ setup_checklist.percent_complete }}% core complete ({{ setup_checklist.completed_required }}/{{ setup_checklist.total_required }}). Finish setup tasks before using the automated paper workflow.</p>
@@ -428,14 +448,14 @@
         <div class="top-row">
             <div class="control-panel">
                 <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
-                    Command Input <span class="sys-tag">INPUT_REQ</span>
+                    Workflow Controls <span class="sys-tag">INPUT_REQ</span>
                 </div>
                 
                 <div>
-                    <label style="font-size: 0.75rem; margin-bottom: 8px;">Risk Profile Selection</label>
+                    <label style="font-size: 0.75rem; margin-bottom: 8px;">Playbook Mode</label>
                     <select id="strategy-select" class="strategy-select">
-                        <option value="balanced">PROFILE_01: Balanced Growth</option>
-                        <option value="aggressive">PROFILE_02: High Volatility Edge</option>
+                        <option value="balanced">Balanced Rules</option>
+                        <option value="aggressive">Higher Volatility Criteria</option>
                     </select>
                 </div>
 
@@ -444,8 +464,12 @@
                         > Plan Mode: {{ plan_access.plan_label }} | Automatic scans active during market hours.
                     </p>
                     <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; line-height: 1.5;">
-                        XeanVI scans automatically during market hours. Use this button anytime you want an immediate refresh.
+                        Beginner path: run in paper mode first, inspect gate checks, and only enable broker routing when rules, risk, and permissions pass.
                     </p>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:12px; border:1px solid var(--border-color); border-radius:8px; padding:10px; line-height:1.5;">
+                        <strong style="color:var(--text-main); display:block; margin-bottom:6px;">How this works</strong>
+                        1. Choose playbook mode<br>2. Run paper scan<br>3. Review gate result<br>4. Broker routing only if rules, risk, and permissions pass
+                    </div>
                     <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
                         <i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now
                     </button>
@@ -456,7 +480,7 @@
             <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
-                        TARGET_ASSET: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
+                        Focused Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
 
 
 
@@ -488,7 +512,7 @@
             </div>
             <div class="data-card">
                 <div class="card-header">
-                    Logic Execution Plan
+                    Execution Plan
                     <span id="decisionPill" class="table-pill watch">AWAITING</span>
                 </div>
                 <div id="actionContainer" class="action-box wait">
@@ -516,9 +540,9 @@
                 </p>
             </div>
             {% endif %}
-<div class="data-card" id="news-panel">
+            <div class="data-card" id="news-panel">
                 <div class="card-header">
-                    Data Model Inputs
+                    Setup Inputs
                     <span class="sys-tag">SYS_ANALYTICS</span>
                 </div>
                 <div class="mini-grid" id="scoreRows">
@@ -529,6 +553,16 @@
                     > Waiting for data feed...
                 </div>
 
+            </div>
+            <div class="data-card">
+                <div class="card-header">Controls &amp; Audit <span class="sys-tag">RISK_CONTROLS</span></div>
+                <ul style="margin:0; padding-left:1rem; color:var(--text-muted); line-height:1.6;">
+                    <li>Rule checks are required before broker-connected routing.</li>
+                    <li>Position sizing is derived from your risk settings.</li>
+                    <li>Broker permissions and account mode define workflow boundaries.</li>
+                    <li>Skipped or blocked setups remain visible with reasons.</li>
+                    <li>Audit trail records what happened and why.</li>
+                </ul>
             </div>
 
             <div class="data-card" id="watchlist-panel">
@@ -627,7 +661,7 @@
 
             <div class="data-card terminal-panel full-width" id="terminal-panel">
                 <div class="card-header" style="border-bottom-color: rgba(255,255,255,0.05);">
-                    <div><i class="fas fa-terminal" style="margin-right: 8px; color: var(--text-muted);"></i>Execution Logs</div>
+                    <div><i class="fas fa-terminal" style="margin-right: 8px; color: var(--text-muted);"></i>Audit Trail</div>
                     <span id="bot-status" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: none;">> Awaiting command...</span>
                 </div>
                 <div class="terminal-output" id="log-container">
@@ -719,6 +753,16 @@
             terminal.innerHTML += `<div><span class="log-time">[${time}]</span> <span style="color: ${color || '#a1a1aa'};">${message}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
         }
+        function updateGateCards(best, upgradeRequiredForExecution, automationMode) {
+            const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+            const blocked = Array.isArray(best?.skip_reasons) && best.skip_reasons.length > 0;
+            set('gate-result-card', upgradeRequiredForExecution ? 'Preview Only' : (best?.decision || best?.setup_grade || 'Watching / No route'));
+            set('gate-rule', blocked ? 'Checked' : 'Checked');
+            set('gate-validation', blocked ? 'Blocked' : 'Checked');
+            set('gate-risk', blocked ? 'Blocked' : 'Checked');
+            if (automationMode === 'full_automation') set('automation-mode-card', 'PRO Workflow Active');
+            if (upgradeRequiredForExecution) set('automation-mode-card', 'Preview Only');
+        }
 
         async function updateLiveMetrics() {
             try {
@@ -777,7 +821,7 @@
         }
         loadChartData('SPY');
 
-        function renderWatchPanel(best) {
+        function renderWatchPanel(best, upgradeRequiredForExecution = false) {
             const panel = best.watch_panel || {};
             const actionContainer = document.getElementById('actionContainer');
             const actionPrimary = document.getElementById('actionPrimary');
@@ -829,13 +873,13 @@
             gradeEl.innerHTML = `<span style="color: ${grade.includes('A') ? 'var(--success)' : 'var(--warning)'}; font-weight: 800;">[${grade}]</span>`;
 
             const notes = [];
-            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">> Model integrated Gemini AI sentiment validation.</span>`);
+            if (details.catalyst?.used_ai) notes.push(`<span style="color: var(--accent-blue)">> AI-assisted catalyst context included.</span>`);
 
             const skips = details.skip_reasons || [];
             if (skips.length > 0) {
                 notes.push(`<span style="color: var(--warning);">> SYSTEM OVERRIDE:</span><br><span style="color: var(--text-muted);">  ${skips[0]}</span>`);
             } else {
-                notes.push(`<span style="color: var(--success);">> SYS_CHECK_OK: Mathematical criteria perfectly aligned.</span>`);
+                notes.push(`<span style="color: var(--success);">> SYS_CHECK_OK: Required rule checks passed.</span>`);
             }
             document.getElementById('bestNotes').innerHTML = notes.join('<br><br>');
         }
@@ -1076,7 +1120,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> COMPILING...';
             btn.disabled = true;
             statusHeader.innerText = "> Executing scan routine...";
-            document.getElementById('ai-confidence').textContent = '--%';
+            document.getElementById('ai-confidence').textContent = '--';
             document.getElementById('setup-grade').innerHTML = '--';
             document.getElementById('risk-amount').textContent = '--';
             document.getElementById('data-panels').style.display = 'none';
@@ -1112,7 +1156,7 @@
                 const automationMode = payload.data.automation_mode || 'locked';
                 const upgradeRequiredForExecution = !!payload.data.upgrade_required_for_auto_workflow;
 
-                addLog(`> Processing complete. Highest probability alignment found: [${best.symbol}].`, "var(--success)");
+                addLog(`> Processing complete. Best rule alignment found: [${best.symbol}].`, "var(--success)");
 
                 tickerHeader.innerText = best.symbol;
                 document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
@@ -1120,9 +1164,10 @@
                 document.getElementById('liveIndicator').style.display = 'inline';
                 loadChartData(best.symbol);
 
-                renderWatchPanel(best);
+                renderWatchPanel(best, upgradeRequiredForExecution);
                 renderBestPick(best);
                 renderWatchlist(payload.data.watchlist || []);
+                updateGateCards(best, upgradeRequiredForExecution, automationMode);
 
                 const upgradePathCard = document.getElementById('upgradePathCard');
                 if (upgradeRequiredForExecution) {
@@ -1138,7 +1183,7 @@
 
                 // EXECUTION TRIGGER
                 if (best.decision === 'CRITERIA MET' && !upgradeRequiredForExecution) {
-                    addLog("> [!] SYSTEMATIC CRITERIA MET. INITIATING PRE-DEFINED EXECUTION PROTOCOL...", "var(--accent-blue)");
+                    addLog("> [!] Rule criteria passed. Preparing user-defined execution workflow...", "var(--accent-blue)");
 
                     try {
                         const executePayload = {
@@ -1168,7 +1213,7 @@
                         const execData = await execRes.json();
 
                         if (execData.ok) {
-                            addLog(`> [SUCCESS] Order Transmitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
+                            addLog(`> [SUCCESS] Order workflow submitted. Allocated ${best.qty} shares of ${best.symbol}.`, "var(--success)");
                             addLog(`> Risk constraint compiled at $${best.stop_price.toFixed(2)}`, "#a1a1aa");
                             addLog(`> Take-profit boundary compiled at $${best.target_1.toFixed(2)}`, "#a1a1aa");
 
