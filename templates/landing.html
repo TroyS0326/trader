@@ -197,6 +197,10 @@
     .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .fit-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.2rem; }
     .fit-card ul { margin: 0; padding-left: 1rem; color: var(--text-muted); }
+    .audience-fit-section { text-align: center; }
+    .audience-fit-section .fit-card { text-align: center; }
+    .audience-fit-section ul { list-style: none; padding-left: 0; margin-left: auto; margin-right: auto; }
+    .audience-fit-section li { text-align: center; }
     .fit-card li { margin-bottom: 0.45rem; }
     .mid-cta { padding: 3rem 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-main) 100%); }
     .mobile-sticky-cta { display: none; }
@@ -265,25 +269,6 @@
     .summary-list li { display: flex; align-items: flex-start; gap: 0.55rem; color: var(--text-main); font-size: 0.94rem; }
     .summary-list i { color: var(--warning); margin-top: 0.2rem; }
     .automation-cta { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 1.2rem; }
-    .product-tour-section { padding: 4rem 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); background: linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(2, 6, 23, 0.95) 100%); }
-    .mock-dashboard { border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 18px; overflow: hidden; background: linear-gradient(150deg, rgba(8, 20, 40, 0.95), rgba(6, 12, 26, 0.98)); box-shadow: 0 28px 55px -30px rgba(56, 189, 248, 0.55); }
-    .mock-command-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; padding: 1rem; border-bottom: 1px solid var(--border-color); background: rgba(148, 163, 184, 0.06); }
-    .mock-status-card { border: 1px solid var(--border-color); border-radius: 10px; padding: 0.7rem 0.75rem; background: rgba(2, 6, 23, 0.6); }
-    .mock-status-card small { display: block; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.32rem; }
-    .mock-status-card strong { font-size: 0.93rem; color: var(--text-main); }
-    .mock-gate-ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 0.6rem; padding: 0.95rem 1rem; border-bottom: 1px solid var(--border-color); }
-    .mock-gate { border: 1px solid var(--border-color); border-radius: 999px; padding: 0.45rem 0.7rem; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-    .mock-gate span { color: var(--text-main); font-weight: 600; font-size: 0.78rem; }
-    .mock-workspace { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 1fr); gap: 0.85rem; padding: 1rem; }
-    .mock-panel { border: 1px solid var(--border-color); border-radius: 12px; padding: 0.85rem; background: rgba(15, 23, 42, 0.55); }
-    .mock-panel h3 { margin-bottom: 0.55rem; font-size: 0.95rem; }
-    .mock-pill { display: inline-flex; padding: 0.3rem 0.6rem; border-radius: 999px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--accent-blue); font-size: 0.75rem; margin-bottom: 0.75rem; }
-    .mock-chart { height: 170px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.25); background: linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 18px 18px, linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 18px 18px, radial-gradient(circle at 16% 24%, rgba(56, 189, 248, 0.2), transparent 35%), #050c19; position: relative; overflow: hidden; }
-    .mock-chart::before { content: ""; position: absolute; inset: 42% 8% auto; height: 2px; background: linear-gradient(90deg, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0.9), rgba(16, 185, 129, 0.8)); transform: rotate(-7deg); transform-origin: left center; }
-    .mock-audit-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.65rem; padding: 0.9rem 1rem 1rem; border-top: 1px solid var(--border-color); background: rgba(2, 6, 23, 0.8); }
-    .mock-audit-row div { border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.84rem; color: var(--text-muted); padding: 0.65rem; }
-    .tour-card { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.05rem; }
-    .tour-card p { font-size: 0.95rem; margin: 0; }
 
     footer { padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
@@ -294,7 +279,6 @@
         .nav-links { display: none; }
         .automation-layout { grid-template-columns: 1fr; }
         .automation-pipeline { grid-template-columns: 1fr; }
-        .mock-workspace { grid-template-columns: 1fr; }
         .flow-step::after { display: none; }
         .fit-grid { grid-template-columns: 1fr; }
         .mobile-sticky-cta {
@@ -365,7 +349,7 @@
                 <div id="sim-terminal" style="padding: 1.5rem; height: 220px; overflow-y: auto; color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.6; background: #060b14;">
                     <div style="color: var(--text-muted);">> Paper sandbox loaded. $10,000 simulated balance available.</div>
                 </div>
-                                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
                     <button id="btn-simulate" class="btn btn-primary" style="width: 100%; font-family: monospace; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 10px;" onclick="runSimulation()" aria-label="Run paper trading sandbox simulation" data-meta-pixel-event="ViewContent" data-meta-pixel-params='{"content_name":"Paper Scan Demo Started","content_category":"Landing Funnel","funnel_step":"paper_scan_demo_started"}'>
                         <i class="fas fa-play" aria-hidden="true"></i> Run Paper Scan
                     </button>
@@ -408,47 +392,6 @@
         </div>
     </section>
 
-    <section class="product-tour-section">
-        <div class="container">
-            <div style="text-align:center; max-width: 900px; margin: 0 auto 1.6rem;">
-                <h2 style="font-size:2.15rem; margin-bottom:0.7rem;">See the workflow before you trust it live.</h2>
-                <p style="margin-bottom:0;">A setup moves through visible gates: rules, validation, risk, paper workflow, broker permissions, and audit logs. XeanVI is built so you can inspect the process before live use.</p>
-            </div>
-            <div class="mock-dashboard" aria-label="Illustrative XeanVI dashboard workflow preview">
-                <div class="mock-command-bar">
-                    <div class="mock-status-card"><small>Mode</small><strong>Paper</strong></div>
-                    <div class="mock-status-card"><small>Broker</small><strong>Not required to start</strong></div>
-                    <div class="mock-status-card"><small>Risk baseline</small><strong>$10,000 simulated</strong></div>
-                    <div class="mock-status-card"><small>Gate result</small><strong>Awaiting scan</strong></div>
-                </div>
-                <div class="mock-gate-ribbon">
-                    <div class="mock-gate">Rule Gate <span>Checked</span></div>
-                    <div class="mock-gate">Validation Gate <span>Checked</span></div>
-                    <div class="mock-gate">Risk Gate <span>Calculated</span></div>
-                    <div class="mock-gate">Paper Gate <span>Ready</span></div>
-                    <div class="mock-gate">Broker Gate <span>Locked until permissioned</span></div>
-                </div>
-                <div class="mock-workspace">
-                    <article class="mock-panel"><h3>Workflow Controls</h3><div class="mock-pill">Playbook Mode: Balanced Rules</div><button class="btn btn-primary" style="width:100%; margin-bottom:0.7rem;" type="button">Run Paper Scan</button><p style="font-size:0.82rem; margin:0;">Broker routing only if rules, risk, and permissions pass.</p></article>
-                    <article class="mock-panel"><h3>Focused Symbol / Chart</h3><div class="mock-chart" aria-hidden="true"></div></article>
-                    <article class="mock-panel"><h3>Execution Plan</h3><p style="font-size:0.88rem; margin:0 0 0.5rem;">Calculated size: <strong>125 shares</strong></p><p style="font-size:0.88rem; margin:0 0 0.5rem;">Max risk: <strong>$125.00</strong></p><p style="font-size:0.88rem; margin:0 0 0.5rem;">Stop boundary: <strong>Structured rule stop</strong></p><p style="font-size:0.88rem; margin:0 0 0.5rem;">Target boundary: <strong>Rule-defined target</strong></p><p style="font-size:0.88rem; margin:0;">Status: <strong>Preview / Paper</strong></p></article>
-                </div>
-                <div class="mock-audit-row">
-                    <div>Rule check recorded</div>
-                    <div>Risk calculation recorded</div>
-                    <div>Skipped setup reasons visible</div>
-                    <div>No live capital used in paper mode</div>
-                </div>
-            </div>
-            <p style="margin: 0.85rem 0 1.2rem; font-size: 0.84rem; text-align:center;">Preview is illustrative. XeanVI does not guarantee trading results. Paper workflow behavior does not guarantee live trading outcomes.</p>
-            <div class="grid-3" style="gap: 0.9rem;">
-                <article class="tour-card"><h3>Command Center</h3><p>See mode, broker status, setup progress, and gate result in one place.</p></article>
-                <article class="tour-card"><h3>Gate System</h3><p>Review rule, validation, risk, paper, and broker gates before routing.</p></article>
-                <article class="tour-card"><h3>Risk Controls</h3><p>Position sizing is tied to user-defined risk settings.</p></article>
-                <article class="tour-card"><h3>Audit Trail</h3><p>Review what happened, what was skipped, and why.</p></article>
-            </div>
-        </div>
-    </section>
     <section class="features" style="padding: 4.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
             <div style="text-align: center; max-width: 860px; margin: 0 auto 2.5rem;">
@@ -663,40 +606,40 @@
             </div>
         </div>
     </section>
-    <section style="padding: 3.5rem 0; border-top: 1px solid var(--border-color);">
+    <section class="audience-fit-section" style="padding: 3.5rem 0; border-top: 1px solid var(--border-color);">
         <div class="container">
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h2 style="font-size: 2rem;">For beginners and serious traders</h2>
+                <h2 style="font-size: 2rem;">For Beginners And Serious Traders</h2>
             </div>
             <div class="fit-grid">
                 <article class="fit-card">
-                    <h3 style="margin-bottom: 0.75rem;">For beginners</h3>
+                    <h3 style="margin-bottom: 0.75rem;">For Beginners</h3>
                     <ul>
-                        <li>Paper mode first</li>
-                        <li>No coding required</li>
-                        <li>Guided setup path</li>
-                        <li>No live broker connection required to create an account</li>
-                        <li>Clear gate decisions before routing</li>
+                        <li>Paper Mode First</li>
+                        <li>No Coding Required</li>
+                        <li>Guided Setup Path</li>
+                        <li>No Live Broker Connection Required To Create An Account</li>
+                        <li>Clear Gate Decisions Before Routing</li>
                     </ul>
                 </article>
                 <article class="fit-card">
-                    <h3 style="margin-bottom: 0.75rem;">For serious traders</h3>
+                    <h3 style="margin-bottom: 0.75rem;">For Serious Traders</h3>
                     <ul>
-                        <li>Rule gate, validation gate, risk gate, paper gate, broker gate</li>
-                        <li>Position sizing from risk settings</li>
-                        <li>Skipped setup reasons</li>
-                        <li>Broker permission boundaries</li>
-                        <li>Audit trail and decision logs</li>
+                        <li>Rule Gate, Validation Gate, Risk Gate, Paper Gate, Broker Gate</li>
+                        <li>Position Sizing From Risk Settings</li>
+                        <li>Skipped Setup Reasons</li>
+                        <li>Broker Permission Boundaries</li>
+                        <li>Audit Trail And Decision Logs</li>
                     </ul>
                 </article>
             </div>
             <article class="fit-card" style="margin-top: 1rem;">
-                <h3 style="margin-bottom: 0.75rem;">Not built for</h3>
+                <h3 style="margin-bottom: 0.75rem;">Not Built For</h3>
                 <ul>
-                    <li>Get-rich-quick trading</li>
-                    <li>Blind signal following</li>
-                    <li>Profit promises</li>
-                    <li>Financial advice</li>
+                    <li>Get-Rich-Quick Trading</li>
+                    <li>Blind Signal Following</li>
+                    <li>Profit Promises</li>
+                    <li>Financial Advice</li>
                 </ul>
             </article>
         </div>
@@ -784,9 +727,6 @@
                 </p>
             </section>
 
-            <p class="risk-disclaimer">
-                XeanVI provides software for trading workflow automation, market review, paper trading, and supported broker connectivity. It does not provide financial advice, investment recommendations, or guaranteed results. Trading involves risk, including possible loss of capital. Paper trading results do not guarantee live trading results.
-            </p>
         </div>
     </section>
 </main>
