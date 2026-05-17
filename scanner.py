@@ -1578,17 +1578,64 @@ def build_model_scores(price_change_pct: float, rvol: float, float_shares: float
 
 
 def get_trade_decision(model_scores: Dict[str, int], time_et: datetime, relative_strength_vs_spy: float) -> str:
+    """
+    Legacy time-bucketed decision function.
+
+    NOTE: The active execution path uses regime_trade_decision() from decision.py
+    which has no gaps. This function is kept for backward compatibility with
+    any direct callers but logs clearly when time falls in a dead zone so
+    debugging missed windows is never silent.
+
+    Dead zones (fall through to WATCH FOR BREAKOUT with no log):
+      10:31–10:59 ET — between morning and midday windows
+      14:01–14:59 ET — between midday and power hour windows
+    """
     minutes = time_et.hour * 60 + time_et.minute
+
+    # Morning window: 09:30–10:30
     if 9 * 60 + 30 <= minutes <= 10 * 60 + 30:
         if model_scores['opportunity'] > 80 and model_scores['tradability'] > 60:
             return 'BUY NOW'
-    elif 11 * 60 <= minutes <= 14 * 60:
+        return 'WATCH FOR BREAKOUT'
+
+    # P2-B: Dead zone 10:31–10:59 — log it so debugging is never silent
+    if 10 * 60 + 30 < minutes < 11 * 60:
+        logger.debug(
+            "get_trade_decision: time %s is in late-morning dead zone "
+            "(10:31–10:59 ET) — returning WATCH FOR BREAKOUT. "
+            "Active path uses regime_trade_decision() which covers this window.",
+            time_et.strftime('%H:%M'),
+        )
+        return 'WATCH FOR BREAKOUT'
+
+    # Midday window: 11:00–14:00
+    if 11 * 60 <= minutes <= 14 * 60:
         if model_scores['opportunity'] > 95 and model_scores['entry_quality'] > 90:
             return 'BUY NOW'
         return 'WATCH FOR BREAKOUT'
-    elif 15 * 60 <= minutes <= 16 * 60:
+
+    # P2-B: Dead zone 14:01–14:59 — log it
+    if 14 * 60 < minutes < 15 * 60:
+        logger.debug(
+            "get_trade_decision: time %s is in pre-power-hour dead zone "
+            "(14:01–14:59 ET) — returning WATCH FOR BREAKOUT. "
+            "Active path uses regime_trade_decision() which covers this window.",
+            time_et.strftime('%H:%M'),
+        )
+        return 'WATCH FOR BREAKOUT'
+
+    # Power hour: 15:00–16:00
+    if 15 * 60 <= minutes <= 16 * 60:
         if relative_strength_vs_spy > 2.0 and model_scores['tradability'] > 55:
             return 'BUY NOW'
+        return 'WATCH FOR BREAKOUT'
+
+    # Outside all market windows (pre-market or post-market)
+    logger.debug(
+        "get_trade_decision: time %s is outside all active windows — "
+        "returning WATCH FOR BREAKOUT.",
+        time_et.strftime('%H:%M'),
+    )
     return 'WATCH FOR BREAKOUT'
 
 
