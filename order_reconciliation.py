@@ -88,6 +88,52 @@ def reconcile_active_trade_orders(user_id: int | None = None, limit: int = 100) 
                 if trade.get("symbol"):
                     summary["affected_symbols"].append(trade.get("symbol"))
             except BrokerError as exc:
+                # P2-C: Before marking stale, attempt client_order_id fallback lookup.
+                client_order_id = None
+                try:
+                    raw = trade.get("raw_json") or {}
+                    if isinstance(raw, str):
+                        raw = json.loads(raw)
+                    client_order_id = (raw or {}).get("client_order_id")
+                except Exception:
+                    pass
+
+                if client_order_id and _is_not_found_error(exc):
+                    try:
+                        order = get_order_by_client_id(
+                            client_order_id,
+                            token=getattr(user, "alpaca_access_token", None),
+                            user=user,
+                        )
+                        status = (order.get("status") or "").strip().lower()
+                        filled_qty = db.numeric_filled_qty(order.get("filled_qty"))
+                        updates: dict[str, Any] = {
+                            "order_status": status or trade.get("order_status"),
+                            "status": "filled" if status == "filled" else (
+                                "partially_filled" if filled_qty > 0 and status in TERMINAL_BROKER_STATUSES
+                                else status or trade.get("status")
+                            ),
+                            "filled_avg_price": order.get("filled_avg_price"),
+                            "filled_qty": order.get("filled_qty"),
+                            "raw_json": {
+                                "reconciliation": {
+                                    "latest_order": order,
+                                    "recovered_via": "client_order_id_fallback",
+                                    "client_order_id": client_order_id,
+                                }
+                            },
+                        }
+                        db.update_trade_status(order_id, updates)
+                        summary["updated_count"] += 1
+                        summary["affected_orders"].append(order_id)
+                        if trade.get("symbol"):
+                            summary["affected_symbols"].append(trade.get("symbol"))
+                        continue
+                    except BrokerError:
+                        pass
+                    except Exception:
+                        pass
+
                 created_dt = None
                 if isinstance(trade.get("created_at"), str):
                     try:

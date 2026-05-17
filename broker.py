@@ -293,6 +293,30 @@ def get_order(order_id: str, token: str | None = None, user: Any | None = None) 
     return resp.json()
 
 
+def get_order_by_client_id(
+    client_order_id: str,
+    token: str | None = None,
+    user: Any | None = None,
+) -> Dict[str, Any]:
+    """
+    P2-C: Looks up an Alpaca order by client_order_id.
+    Used by reconciliation as a fallback when the internal order_id returns 404.
+    Format we stamp: xvi-{user_id}-{scan_id}-{uuid8}
+    """
+    base_url = get_execution_base_url(user)
+    resp = _request_with_retry(
+        'GET',
+        f'{base_url}/v2/orders:by_client_order_id',
+        params={'client_order_id': client_order_id},
+        token=token,
+    )
+    if resp.status_code == 404:
+        raise BrokerError(f'Order not found by client_order_id={client_order_id}')
+    if resp.status_code >= 400:
+        raise BrokerError(resp.text)
+    return resp.json()
+
+
 def get_orders(order_ids: List[str]) -> Dict[str, Dict[str, Any]]:
     out: Dict[str, Dict[str, Any]] = {}
     for oid in order_ids:
