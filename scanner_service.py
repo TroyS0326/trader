@@ -423,6 +423,12 @@ def personalize_scan_for_user(user: Any, shared_scan: Dict[str, Any]) -> Dict[st
             result["watchlist"] = active_blocked_candidates
             result["active_symbol_rotation_all_candidates_blocked"] = True
 
+# P1: re-stamp qty from user's live bankroll before approving the payload.
+    # The shared scan sized against global CURRENT_BANKROLL — wrong for multi-user.
+    best_pick = result.get("best_pick")
+    if isinstance(best_pick, dict) and best_pick.get("symbol"):
+        result["best_pick"] = _resize_best_pick_for_user(user, best_pick)
+
     result = _maybe_promote_aggressive_intraday_pick(user, result)
     return result
 
