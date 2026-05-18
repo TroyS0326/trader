@@ -728,10 +728,13 @@
 
 
         async function setMode(mode) {
+            // ADD THIS SAFETY CHECK:
             if (mode === 'live') {
-                const confirmed = confirm('Switch to LIVE mode? This can place real-money trades.');
-                if (!confirmed) return;
+                if (!confirm("⚠️ WARNING: You are switching to LIVE trading. Real money will be used. Are you sure?")) {
+                    return; // Stop execution if they click cancel
+                }
             }
+
             try {
                 const response = await fetch('/api/update_mode', {
                     method: 'POST',
@@ -743,6 +746,7 @@
                         trading_mode: mode
                     })
                 });
+                // ... rest of the existing function
 
                 const result = await response.json();
 
