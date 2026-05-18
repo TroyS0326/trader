@@ -272,8 +272,13 @@ def calculate_user_kelly_fraction(user_id):
         Trade.status.in_(["filled", "closed"]),
     ).all()
 
-    if len(realized_trades) < 10:
-        return None
+    # ── P3: Kelly warm-start prior for users with < 10 trades ──────────────
+    # Prior: 45% win rate, 1.4 R:R (conservative positive EV ~2.9% half-Kelly)
+    # Blends with actual data as trades accumulate. Pure data takes over at 10.
+    PRIOR_WIN_RATE   = 0.45
+    PRIOR_WIN_LOSS_R = 1.40
+    prior_kelly_raw  = PRIOR_WIN_RATE - ((1 - PRIOR_WIN_RATE) / PRIOR_WIN_LOSS_R)
+    prior_half_kelly = max(0.005, min(0.05, prior_kelly_raw / 2))
 
     trade_pnls = []
     for trade in realized_trades:
@@ -282,8 +287,27 @@ def calculate_user_kelly_fraction(user_id):
             continue
         trade_pnls.append(pnl)
 
-    if len(trade_pnls) < 10:
-        return None
+    n = len(trade_pnls)
+
+    if n == 0:
+        return prior_half_kelly
+
+    if n < 10:
+        prior_weight  = 1.0 - (n / 10.0)
+        actual_weight = 1.0 - prior_weight
+        winners  = [p for p in trade_pnls if p > 0]
+        losers   = [p for p in trade_pnls if p <= 0]
+        win_rate = len(winners) / n
+        avg_win  = sum(winners) / len(winners) if winners else 0.0
+        avg_loss = sum(losers)  / len(losers)  if losers  else 0.0
+        if avg_loss == 0 or not winners or not losers:
+            actual_kelly = prior_half_kelly
+        else:
+            wl_ratio     = avg_win / abs(avg_loss)
+            kelly_raw    = win_rate - ((1 - win_rate) / wl_ratio) if wl_ratio > 0 else 0
+            actual_kelly = max(0.005, min(0.05, kelly_raw / 2)) if kelly_raw > 0 else 0.005
+        blended = (prior_weight * prior_half_kelly) + (actual_weight * actual_kelly)
+        return max(0.005, min(0.05, blended))
 
     winners = [pnl for pnl in trade_pnls if pnl > 0]
     losers = [pnl for pnl in trade_pnls if pnl <= 0]
