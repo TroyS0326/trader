@@ -206,7 +206,8 @@
         }
 
         /* ── Ops status grid ── */
-        .ops-status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .65rem; margin-bottom: .65rem; }
+        .ops-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-bottom: .65rem; }
+        .ops-status-grid .ops-status-item:first-child { display: none; }
         .ops-status-item {
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
@@ -218,7 +219,7 @@
         .ops-pill { margin-top: .4rem; }
 
         /* ── Gate ribbon ── */
-        .compact-gate-ribbon { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .compact-gate-ribbon { display: none; }
         .compact-gate-chip {
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
@@ -358,6 +359,31 @@
         /* Add cache bust — v3 */
         /* xv3 */
 
+    
+        /* Bigger, clearer status values */
+        .ops-value { font-size: 1.05rem; font-weight: 700; }
+        .ops-label { font-size: .7rem; letter-spacing: .04em; margin-bottom: .5rem; }
+        .ops-status-item { padding: 1rem 1.1rem; }
+
+        /* Hide Playbook label if not already hidden */
+        label[for="strategySelect"] { display: none !important; }
+
+        /* "Start a Scan" header cleaner */
+        .control-panel .card-header { font-size: .8rem; }
+
+        /* Hide gate ribbon */
+        .compact-gate-ribbon { display: none !important; }
+
+        /* Target ticker idle state */
+        #target-ticker { font-size: 1rem; font-weight: 500; }
+
+        /* Scan button more prominent */
+        .btn-run-scan {
+            padding: 1.1rem;
+            font-size: 1.05rem;
+            margin-top: .5rem;
+        }
+
     </style>
 </head>
 <body>
@@ -453,7 +479,7 @@
                 </div>
                 
                 <div>
-                    <label style="font-size: 0.75rem; margin-bottom: 8px;">Playbook Mode</label>
+                    <label style="font-size: 0.75rem; margin-bottom: 8px;" style="display:none">Playbook Mode</label>
                     <select id="strategy-select" class="strategy-select">
                         <option value="balanced">Balanced Rules</option>
                         <option value="aggressive">Higher Volatility Criteria</option>
@@ -474,7 +500,7 @@
             <div class="chart-panel">
                 <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
-                        Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">NONE</span>
+                        Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">Waiting for scan...</span>
 
 
 
