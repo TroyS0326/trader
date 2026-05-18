@@ -80,7 +80,7 @@ def _looks_like_html(text: str) -> bool:
     return bool(re.search(r"<(p|h1|h2|h3|ul|ol|li|a|strong|em|blockquote|div|section)\b", text or "", re.I))
 
 
-def _gemini_error_summary(response: requests.Response) -> str:
+def _gemini_error_summary(response: Any) -> str:
     status_summary = f"HTTP {response.status_code}"
     try:
         payload = response.json()
