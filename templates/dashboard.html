@@ -336,7 +336,29 @@
             .compact-gate-chip { min-width: 100px; }
             .ops-status-grid { grid-template-columns: repeat(2,1fr); }
         }
-</style>
+
+        /* Hide redundant text inside gate chips — label + pill is enough */
+        .compact-gate-chip .ops-value { display: none; }
+
+        /* Hide the technical Setup Score / Gate sub-line in status card */
+        #ai-confidence, #setup-grade { display: none; }
+        .ops-status-item .ops-value ~ .ops-value[style] { display: none; }
+
+        /* Make Paper/Live toggle more prominent */
+        .mode-selector { gap: .25rem; }
+        .mode-btn {
+            font-size: .85rem;
+            padding: .5rem 1.15rem;
+            border-radius: 8px;
+        }
+        .mode-btn.active-mode {
+            font-weight: 700;
+        }
+
+        /* Add cache bust — v3 */
+        /* xv3 */
+
+    </style>
 </head>
 <body>
 
@@ -407,8 +429,8 @@
         <section class="ops-status-strip">
             <article class="ops-status-item"><div class="ops-label">Mode</div><div class="ops-value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill ops-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
             <article class="ops-status-item"><div class="ops-label">Broker</div><div class="ops-value">{{ broker_status_text }}</div><span class="status-pill ops-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
-            <article class="ops-status-item"><div class="ops-label">Risk Baseline</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
-            <article class="ops-status-item"><div class="ops-label">Scan State</div><div class="ops-value" id="gate-result-card">Waiting</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
+            <article class="ops-status-item"><div class="ops-label">Balance</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
+            <article class="ops-status-item"><div class="ops-label">Status</div><div class="ops-value" id="gate-result-card">Waiting</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
         </section>
         <section class="compact-gate-ribbon">
             <article class="compact-gate-chip"><div class="ops-label">Rules</div><div class="ops-value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
