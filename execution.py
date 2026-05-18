@@ -312,6 +312,52 @@ class SaaSExecutionManager:
             await asyncio.sleep(DISCOVERY_SECONDS)
 
 
+
+from flask import Flask as _HealthFlask, jsonify as _jsonify
+import threading as _threading
+
+def _start_health_server(manager: "SaaSExecutionManager", port: int = 8765) -> None:
+    """
+    P7: Lightweight HTTP health endpoint for the execution engine.
+    Runs in a daemon thread on port 8765 (internal only — not exposed publicly).
+
+    Endpoints:
+      GET /stream-health        — overall status + per-user stream state
+      GET /stream-health/live   — returns 200 if engine is running, 503 if not
+
+    Usage:
+      curl http://localhost:8765/stream-health
+      curl http://localhost:8765/stream-health/live
+    """
+    health_app = _HealthFlask("xeanvi_execution_health")
+
+    @health_app.route("/stream-health")
+    def stream_health():
+        active = {
+            str(uid): not task.done()
+            for uid, task in manager.active_streams.items()
+        }
+        healthy_count  = sum(1 for v in active.values() if v)
+        degraded_count = sum(1 for v in active.values() if not v)
+        return _jsonify({
+            "ok": manager.running and healthy_count > 0,
+            "engine_running": manager.running,
+            "active_stream_count": healthy_count,
+            "degraded_stream_count": degraded_count,
+            "streams": active,
+        })
+
+    @health_app.route("/stream-health/live")
+    def stream_health_live():
+        if manager.running:
+            return _jsonify({"ok": True}), 200
+        return _jsonify({"ok": False, "reason": "engine_not_running"}), 503
+
+    import logging as _logging
+    _logging.getLogger("werkzeug").setLevel(_logging.ERROR)
+    health_app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+
+
 def start_engine():
     manager = SaaSExecutionManager()
     loop = asyncio.get_event_loop()
@@ -319,6 +365,15 @@ def start_engine():
     scheduler = BackgroundScheduler(timezone=ZoneInfo(config.TIMEZONE_LABEL))
     scheduler.add_job(flatten_book, 'cron', day_of_week='mon-fri', hour=15, minute=45)
     scheduler.start()
+
+    # Start health server on port 8765 (localhost only)
+    health_thread = _threading.Thread(
+        target=_start_health_server,
+        args=(manager,),
+        daemon=True,
+    )
+    health_thread.start()
+    logger.info("Execution health endpoint started on http://127.0.0.1:8765/stream-health")
 
     try:
         loop.run_until_complete(manager.run_discovery_loop())
