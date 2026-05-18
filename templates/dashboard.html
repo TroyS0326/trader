@@ -68,6 +68,16 @@
         }
 
         .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+        .header-clock { display: inline-flex; align-items: center; gap: 8px; padding: 0.45rem 0.7rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: rgba(2,6,23,0.45); font-family: var(--font-mono); font-size: 0.76rem; white-space: nowrap; }
+        .stream-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px rgba(16,185,129,0.45); }
+        .avatar-circle { width: 45px; height: 45px; font-size: 1.2rem; }
+        .icon-inline { margin-right: 6px; }
+        .plan-value-pro { color: var(--accent-blue); }
+        .plan-value-basic { color: var(--warning); }
+        .mode-selector { display: inline-flex; align-items: center; gap: 6px; padding: 4px; border-radius: 999px; background: rgba(2,6,23,0.6); border: 1px solid rgba(255,255,255,0.1); }
+        .mode-btn { border: 1px solid transparent; border-radius: 999px; padding: 0.5rem 0.95rem; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; }
+        .mode-btn:hover { color: var(--text-main); border-color: rgba(255,255,255,0.15); }
+        .mode-btn.active-mode { color: var(--text-main); background: linear-gradient(135deg, rgba(56,189,248,0.32), rgba(37,99,235,0.34)); border-color: rgba(56,189,248,0.55); box-shadow: 0 0 14px rgba(56,189,248,0.2); }
 
         /* --- Workspace Layout --- */
         .dashboard-shell { width: 100%; flex: 1 0 auto; display: flex; flex-direction: column; }
@@ -165,6 +175,7 @@
         .ops-status-item { background: rgba(2,6,23,.45); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:.65rem .75rem; display:flex; flex-direction:column; gap:.35rem; min-height:88px; }
         .ops-label { font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); }
         .ops-value { font-family: var(--font-mono); font-size:.88rem; color:var(--text-main); }
+        .ops-detail { font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted); }
         .ops-pill { margin-top:auto; }
         .compact-gate-ribbon { display:flex; gap:.55rem; flex-wrap:wrap; overflow-x:auto; padding-bottom:.15rem; }
         .compact-gate-chip { background: rgba(15,23,42,.6); border:1px solid rgba(255,255,255,.09); border-radius:999px; padding:.42rem .65rem; display:flex; align-items:center; gap:.45rem; }
@@ -223,8 +234,8 @@
         .terminal-output::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
 
         @media (max-width: 992px) {
-            .command-header-bar { flex-direction: column; padding: 1rem; gap: 1rem; }
-            .header-actions { width: 100%; justify-content: flex-start; }
+            .command-header-bar { flex-direction: column; align-items: stretch; padding: 1rem; gap: 0.85rem; }
+            .header-actions { width: 100%; justify-content: space-between; gap: 0.7rem; }
             .workspace { padding: 1rem; }
             .top-row { display: flex; flex-direction: column; height: auto; }
             .chart-panel { height: 350px; }
@@ -232,6 +243,8 @@
             .bottom-row { display: flex; flex-direction: column; }
             .scanner-ops-grid { grid-template-columns: 1fr; }
             .scanner-kv { grid-template-columns: 1fr; gap: 6px; }
+            .ops-status-strip { gap: .55rem; padding: .65rem; }
+            .compact-gate-ribbon { gap: .45rem; }
         }
 
         @media (max-width: 768px) {
@@ -280,8 +293,9 @@
             .setup-banner p { margin:0; color: var(--text-muted); font-size: 0.82rem; }
             .setup-banner a { color: var(--accent-blue); font-weight:700; text-decoration:none; font-size: 0.82rem; }
 
-        .header-actions {
+            .header-actions {
                 width: 100%;
+                justify-content: flex-start;
             }
 
             .header-actions .btn {
@@ -290,9 +304,14 @@
             }
 
             .mode-selector {
-                flex-wrap: wrap;
+                width: 100%;
+                flex-wrap: nowrap;
                 justify-content: flex-start;
+                overflow-x: auto;
             }
+            .mode-btn { flex: 1 1 auto; min-width: 94px; }
+            .market-health-badge { width: 100%; text-align: center; }
+            .header-clock { width: fit-content; }
 
             .card, .control-panel, .chart-panel, .data-card {
                 padding: 1rem;
@@ -324,6 +343,11 @@
         .scanner-reconnect-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.5); background: rgba(251, 191, 36, 0.18); color: #fef3c7; text-decoration: none; font-weight: 700; }
         .scanner-reconnect-cta:hover { background: rgba(251, 191, 36, 0.28); color: #fff7dd; }
         .scanner-reconnect-disclosure-link { display: inline-block; margin-top: 4px; color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; }
+        .layout-hidden { display: none; }
+        .full-size { height: 100%; width: 100%; }
+        .panel-subtle-copy { color: var(--text-muted); line-height: 1.5; margin-bottom: .85rem; font-size: .86rem; }
+        .link-block-full { display: inline-block; width: 100%; text-align: center; text-decoration: none; }
+        .divider-line { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 0; }
 
     </style>
 </head>
@@ -335,13 +359,13 @@
         <div class="dashboard-header-wrap">
             <div class="command-header-bar">
                 <div class="header-profile">
-                    <div class="nav-avatar" style="width:45px;height:45px;font-size:1.2rem;">
+                    <div class="nav-avatar avatar-circle">
                         {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
                     </div>
                     <div class="profile-text">
                         <span class="profile-name">{{ current_user.full_name }}</span>
                         <span class="profile-tier">
-                            PLAN STATUS // <span style="color: {{ 'var(--accent-blue)' if plan_access.is_pro else 'var(--warning)' }};">{{ plan_access.plan_label }}</span>
+                            PLAN STATUS // <span class="{{ 'plan-value-pro' if plan_access.is_pro else 'plan-value-basic' }}">{{ plan_access.plan_label }}</span>
                         </span>
                     </div>
                 </div>
@@ -353,7 +377,7 @@
                     </div>
                     {% if not plan_access.is_pro %}
                     <a href="/upgrade" class="btn btn-primary upgrade-cta">
-                        <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock PRO Workflow
+                        <i class="fas fa-rocket icon-inline"></i> Unlock PRO Workflow
                     </a>
                     {% endif %}
 
@@ -432,22 +456,22 @@
                     </div>
                 </div>
                 <div class="chart-container">
-                    <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
+                    <div id="tradingview_chart" class="full-size"></div>
                 </div>
             </div>
         </div>
 
-        <div class="bottom-row" id="data-panels" style="display: none;">
+        <div class="bottom-row layout-hidden" id="data-panels">
 
-            <div class="data-card" id="upgradePathCard" style="display: none; border-color: rgba(56, 189, 248, 0.35);">
+            <div class="data-card layout-hidden" id="upgradePathCard" style="border-color: rgba(56, 189, 248, 0.35);">
                 <div class="card-header">
                     Scan Preview Complete
                     <span class="sys-tag">PRO_PATH</span>
                 </div>
-                <p style="color: var(--text-muted); line-height: 1.5; margin-bottom: .85rem; font-size: .86rem;">
+                <p class="panel-subtle-copy">
                     Preview results are ready. Upgrade to PRO to enable full broker-connected paper automation and routing controls.
                 </p>
-                <a href="/upgrade?from=scan_preview" class="btn-run-scan" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
+                <a href="/upgrade?from=scan_preview" class="btn-run-scan link-block-full">
                     Unlock PRO Automation
                 </a>
             </div>
@@ -463,7 +487,7 @@
                     <div class="watch-line"><span>Calculated Size:</span> <span id="watchQtyLine" class="highlight-green">—</span></div>
                     <div class="watch-line"><span>Hard Stop Array:</span> <span id="watchStopLine" class="highlight-red">—</span></div>
                     <div class="watch-line"><span>Target Boundary:</span> <span id="watchTpLine" class="highlight-green">—</span></div>
-                    <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 12px 0;"></div>
+                    <div class="divider-line"></div>
                     <div class="watch-line"><span>Capital Value at Risk:</span> <span id="watchRiskLine" class="highlight-red">—</span></div>
                 </div>
             </div>
