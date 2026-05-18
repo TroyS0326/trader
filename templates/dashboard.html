@@ -50,8 +50,8 @@
 
         /* ── Layout ── */
         .dashboard-shell { width: 100%; flex: 1 0 auto; display: flex; flex-direction: column; }
-        .dashboard-header-wrap { padding: 1rem 1.25rem 0; flex-shrink: 0; }
-        .workspace { padding: 1rem 1.25rem 3rem; display: flex; flex-direction: column; gap: 1rem; }
+        .dashboard-header-wrap { padding: .75rem 1.25rem 0; flex-shrink: 0; }
+        .workspace { padding: .75rem 1.25rem 2.5rem; display: flex; flex-direction: column; gap: .75rem; }
         .top-row { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; height: 520px; flex-shrink: 0; }
         .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; padding-bottom: 2rem; }
         .bottom-row > .full-width { grid-column: 1 / -1; }
@@ -60,8 +60,8 @@
         .card, .control-panel, .chart-panel, .data-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.25rem;
+            border-radius: 10px;
+            padding: 1rem;
             position: relative;
             overflow: hidden;
         }
@@ -140,10 +140,10 @@
             align-items: center;
             justify-content: space-between;
             background: var(--bg-card);
-            padding: 1rem 1.25rem;
-            border-radius: 12px;
+            padding: .85rem 1rem;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
-            gap: 16px;
+            gap: 12px;
         }
         .header-profile { display: flex; align-items: center; gap: 12px; min-width: 160px; }
         .profile-name { font-weight: 700; font-size: 1.05rem; color: var(--text-main); }
@@ -158,10 +158,6 @@
             width: fit-content;
             margin-top: 4px;
         }
-        .header-metrics { display: flex; align-items: center; gap: 1.75rem; flex: 1; justify-content: center; flex-wrap: wrap; }
-        .h-metric { display: flex; flex-direction: column; align-items: center; }
-        .h-label { font-size: .68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
-        .h-value { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; }
         .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
         /* ── Mode selector ── */
@@ -217,16 +213,6 @@
         .ops-pill { margin-top: .4rem; }
 
         /* ── Gate ribbon ── */
-        .compact-gate-ribbon { display: none; }
-        .compact-gate-chip {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: .55rem .9rem;
-            display: flex; align-items: center; gap: .6rem;
-            min-width: 110px;
-        }
-
         /* ── Table pills ── */
         .table-pill {
             font-size: .68rem; font-weight: 700;
@@ -324,8 +310,6 @@
             .command-header-bar { border-radius: 10px; padding: .9rem; }
             .header-profile { width: 100%; min-width: 0; }
             .profile-name { font-size: 1rem; }
-            .header-metrics { width: 100%; justify-content: flex-start; gap: 1rem; }
-            .h-metric { align-items: flex-start; min-width: calc(50% - .5rem); }
             .card, .control-panel, .chart-panel, .data-card { padding: 1rem; }
             .btn-run-scan { font-size: .95rem; padding: .9rem; }
             .chart-panel { height: 300px; }
@@ -342,9 +326,9 @@
         .compact-gate-chip { min-width: 140px; padding:.45rem .7rem; border-radius:9px; justify-content:space-between; }
         .compact-gate-chip .ops-label { margin-bottom:0; font-size:.66rem; }
         .compact-gate-chip .ops-value { display:none; }
-        .activity-feed { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.55rem; }
+        .activity-feed { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.45rem; }
         .activity-item { background: var(--bg-surface); border:1px solid var(--border-color); border-radius:10px; padding:.8rem .9rem; font-size:.9rem; }
-        .workspace { max-width: 1320px; margin: 0 auto; gap: .8rem; }
+        .workspace { max-width: 1320px; margin: 0 auto; gap: .7rem; }
         .header-actions { margin-left:auto; }
         .portfolio-cards, .bot-human-status { display:none; }
         .mode-selector { display:flex; align-items:center; gap:.45rem; }
@@ -408,12 +392,12 @@
         <section class="ops-status-strip">
             <article class="ops-status-item"><div class="ops-label">Mode</div><div class="ops-value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill ops-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
             <article class="ops-status-item"><div class="ops-label">Broker</div><div class="ops-value">{{ broker_status_text }}</div><span class="status-pill ops-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
-            <article class="ops-status-item"><div class="ops-label">Balance</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
-            <article class="ops-status-item"><div class="ops-label">Status</div><div class="ops-value" id="gate-result-card">Waiting</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
+            <article class="ops-status-item"><div class="ops-label">Risk Baseline</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
+            <article class="ops-status-item"><div class="ops-label">Scan State</div><div class="ops-value" id="gate-result-card">Awaiting Scan</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
         </section>
         <section class="compact-gate-ribbon">
-            <article class="compact-gate-chip"><div class="ops-label">Rules</div><div class="ops-value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
-            <article class="compact-gate-chip"><div class="ops-label">Signal</div><div class="ops-value" id="gate-validation">Waiting</div><span class="status-pill warning" id="gate-validation-pill">Waiting</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Rule</div><div class="ops-value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
+            <article class="compact-gate-chip"><div class="ops-label">Validation</div><div class="ops-value" id="gate-validation">Waiting</div><span class="status-pill warning" id="gate-validation-pill">Waiting</span></article>
             <article class="compact-gate-chip"><div class="ops-label">Risk</div><div class="ops-value" id="gate-risk">{{ 'Checked' if risk_ready else 'Risk Setup Needed' }}</div><span class="status-pill {{ 'ready' if risk_ready else 'blocked' }}" id="gate-risk-pill">{{ 'Checked' if risk_ready else 'Blocked' }}</span></article>
             <article class="compact-gate-chip"><div class="ops-label">Paper Mode</div><div class="ops-value" id="gate-paper">{{ 'Ready' if paper_ready else 'Paper Setup Needed' }}</div><span class="status-pill {{ 'ready' if paper_ready else 'warning' }}" id="gate-paper-pill">{{ 'Checked' if paper_ready else 'Setup Needed' }}</span></article>
             <article class="compact-gate-chip"><div class="ops-label">Broker</div><div class="ops-value" id="gate-broker">{{ broker_status_text }}</div><span class="status-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}" id="gate-broker-pill">{{ 'Checked' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Blocked' }}</span></article>
@@ -471,13 +455,13 @@
 
         <div class="bottom-row" id="data-panels" style="display: none;">
 
-            <div class="data-card" id="upgradePathCard" style="display: none; border-color: rgba(56, 189, 248, 0.45);">
+            <div class="data-card" id="upgradePathCard" style="display: none; border-color: rgba(56, 189, 248, 0.35);">
                 <div class="card-header">
                     Scan Preview Complete
                     <span class="sys-tag">PRO_PATH</span>
                 </div>
-                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-                    XeanVI generated a limited scan preview using your current rules and risk settings. PRO unlocks the full automated broker-connected paper workflow, including paper order routing, order monitoring, trade logging, and full dashboard controls.
+                <p style="color: var(--text-muted); line-height: 1.5; margin-bottom: .85rem; font-size: .86rem;">
+                    Preview results are ready. Upgrade to PRO to enable full broker-connected paper automation and routing controls.
                 </p>
                 <a href="/upgrade?from=scan_preview" class="btn-run-scan" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
                     Unlock PRO Automation
@@ -1078,6 +1062,14 @@
         }
 
         async function startScanner() {
+            const setTextById = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            const setDisplayById = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = value;
+            };
             const btn = document.getElementById('scanButton');
             const statusHeader = document.getElementById('bot-status');
             const tickerHeader = document.getElementById('target-ticker');
@@ -1087,7 +1079,7 @@
             statusHeader.innerText = "> Executing scan routine...";
             const humanStatus = document.getElementById('bot-human-status');
             if (humanStatus) humanStatus.textContent = '🟢 Status: Active and scanning the market.';
-            document.getElementById('ai-confidence').textContent = '—';
+            setTextById('ai-confidence', '—');
             const gateResult = document.getElementById('gate-result-card');
             if (gateResult) gateResult.textContent = 'Scanning';
             const gateResultPill = document.getElementById('gate-result-pill');
@@ -1096,9 +1088,9 @@
                 gateResultPill.classList.add('warning');
                 gateResultPill.textContent = 'Scanning';
             }
-            document.getElementById('setup-grade').innerHTML = '--';
-            document.getElementById('risk-amount').textContent = '--';
-            document.getElementById('data-panels').style.display = 'none';
+            setTextById('setup-grade', '--');
+            setTextById('risk-amount', '--');
+            setDisplayById('data-panels', 'none');
             renderThesisPanel(null, [], '');
 
             addLog("> Initiating quantitative data model...", "var(--warning)");
@@ -1134,9 +1126,9 @@
                 addLog(`> Processing complete. Best rule alignment found: [${best.symbol}].`, "var(--success)");
 
                 tickerHeader.innerText = best.symbol;
-                document.getElementById('ai-confidence').textContent = `${best.score_total || '--'}%`;
-                document.getElementById('risk-amount').textContent = money(watchPanel.max_dollar_loss);
-                document.getElementById('liveIndicator').style.display = 'inline';
+                setTextById('ai-confidence', `${best.score_total || '--'}%`);
+                setTextById('risk-amount', money(watchPanel.max_dollar_loss));
+                setDisplayById('liveIndicator', 'inline');
                 loadChartData(best.symbol);
 
                 renderWatchPanel(best, upgradeRequiredForExecution);
@@ -1153,7 +1145,7 @@
                     addLog("PRO_AUTOMATION_MODE: Rules validated. Automated workflow active.", "var(--success)");
                 }
 
-                document.getElementById('data-panels').style.display = 'grid';
+                setDisplayById('data-panels', 'grid');
                 markSetupChecklistStep('first_scan_completed');
 
                 // EXECUTION TRIGGER
