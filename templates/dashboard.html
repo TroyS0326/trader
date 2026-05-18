@@ -294,10 +294,33 @@
         #pl-container { text-align: center; padding: 1.5rem; border-radius: 8px; }
         #ai-thesis-panel { border-left: 3px solid var(--accent); background: rgba(0,0,0,.15); }
 
+
+        .header-clock { display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);padding:.4rem .8rem;border:1px solid var(--border-color);border-radius:7px;background:var(--bg-surface);line-height:1; }
+        .stream-dot { display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0; }
+        .upgrade-cta { background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: .83rem; padding: .55rem .95rem; display:inline-flex; align-items:center; }
+        .upgrade-cta i { margin-right: 6px; }
+        .mode-selector { padding: .2rem; border:1px solid var(--border-color); border-radius:10px; background: rgba(15,30,46,.55); }
+        .mode-btn { min-width: 72px; }
+        .market-health-badge { display:inline-flex; align-items:center; }
+        .ops-detail { font-size:.78rem; color:var(--text-muted); margin-top:.2rem; line-height:1.35; }
+        .compact-gate-chip { display:flex; align-items:center; gap:.45rem; background: rgba(28,42,62,.62); border:1px solid var(--border-color); }
+        .compact-gate-chip .status-pill { margin-left:auto; }
+        .control-card-header { border:none; padding:0; margin-bottom:1.2rem; }
+        .control-label { font-size:.75rem; margin-bottom:8px; display:block; color:var(--text-muted); }
+        .control-footer { margin-top:auto; }
+        .control-helper { font-size: .72rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; line-height: 1.5; }
+        .scan-icon { margin-right: 8px; }
+        .chart-header { margin-bottom: .9rem; display:flex; justify-content:space-between; align-items:center; gap:.8rem; }
+        .chart-symbol { font-family: var(--font-mono); font-size: .9rem; color: var(--text-muted); }
+        .ticker-text { color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px; }
+        .live-indicator { display:none; color: var(--success); font-family: var(--font-mono); font-size: .75rem; white-space:nowrap; }
+        .live-indicator-dot { display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success); }
+
         /* ── Responsive ── */
         @media (max-width: 992px) {
             .command-header-bar { flex-direction: column; padding: 1rem; gap: 1rem; }
             .header-actions { width: 100%; justify-content: flex-start; }
+            .mode-selector { width: fit-content; }
             .workspace { padding: .85rem; }
             .top-row { display: flex; flex-direction: column; height: auto; }
             .chart-panel { height: 350px; }
@@ -338,8 +361,8 @@
         }
         @media (max-width: 768px) {
             .ops-status-strip { grid-template-columns: 1fr; }
-            .compact-gate-ribbon { overflow-x:auto; flex-wrap:nowrap; padding-bottom:.15rem; }
-            .compact-gate-chip { min-width: 125px; }
+            .compact-gate-ribbon { overflow-x:visible; flex-wrap:wrap; padding-bottom:.15rem; }
+            .compact-gate-chip { min-width: 118px; flex: 1 1 calc(50% - .4rem); }
         }
     </style>
 </head>
@@ -351,7 +374,7 @@
         <div class="dashboard-header-wrap">
             <div class="command-header-bar">
                 <div class="header-profile">
-                    <div class="nav-avatar" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <div class="nav-avatar" style="width:45px;height:45px;font-size:1.2rem;">
                         {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
                     </div>
                     <div class="profile-text">
@@ -363,12 +386,12 @@
                 </div>
 
                 <div class="header-actions">
-                    <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);padding:.35rem .75rem;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-surface);">
-                        <span id="stream-health-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;"></span>
+                    <div class="header-clock">
+                        <span id="stream-health-dot" class="stream-dot"></span>
                         <span id="et-clock-display">— ET</span>
                     </div>
                     {% if not plan_access.is_pro %}
-                    <a href="/upgrade" class="btn btn-primary" style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.85rem; padding: 0.6rem 1rem;">
+                    <a href="/upgrade" class="btn btn-primary upgrade-cta">
                         <i class="fas fa-rocket" style="margin-right: 6px;"></i> Unlock PRO Workflow
                     </a>
                     {% endif %}
@@ -392,8 +415,8 @@
         <section class="ops-status-strip">
             <article class="ops-status-item"><div class="ops-label">Mode</div><div class="ops-value" id="automation-mode-card">{{ 'Preview Only' if not plan_access.is_pro else ('Live Workflow' if is_live_mode else 'PRO Paper Workflow') }}</div><span class="status-pill ops-pill {{ 'warning' if not plan_access.is_pro else ('live' if is_live_mode else 'ready') }}" id="automation-mode-pill">{{ 'Preview' if not plan_access.is_pro else ('Live Mode' if is_live_mode else 'Ready') }}</span></article>
             <article class="ops-status-item"><div class="ops-label">Broker</div><div class="ops-value">{{ broker_status_text }}</div><span class="status-pill ops-pill {{ 'ready' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'blocked' }}">{{ 'Connected' if (is_live_mode and live_connected) or ((not is_live_mode) and paper_connected) else 'Setup Needed' }}</span></article>
-            <article class="ops-status-item"><div class="ops-label">Risk Baseline</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Max Risk: <span id="risk-amount">--</span></div></article>
-            <article class="ops-status-item"><div class="ops-label">Scan State</div><div class="ops-value" id="gate-result-card">Awaiting Scan</div><div class="ops-value" style="font-size:.78rem; color:var(--text-muted);">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
+            <article class="ops-status-item"><div class="ops-label">Risk Baseline</div><div class="ops-value" id="capital-auth-value">{{ "${:,.2f}".format(current_user.live_bankroll if is_live_mode else current_user.paper_bankroll) }}</div><div class="ops-detail">Max Risk: <span id="risk-amount">--</span></div></article>
+            <article class="ops-status-item"><div class="ops-label">Scan State</div><div class="ops-value" id="gate-result-card">Awaiting Scan</div><div class="ops-detail">Setup Score: <span id="ai-confidence">--%</span> · Gate: <span id="setup-grade">--</span></div><span class="status-pill ops-pill warning" id="gate-result-pill">Waiting</span></article>
         </section>
         <section class="compact-gate-ribbon">
             <article class="compact-gate-chip"><div class="ops-label">Rule</div><div class="ops-value" id="gate-rule">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</div><span class="status-pill {{ 'ready' if current_user.playbook_reviewed else 'warning' }}" id="gate-rule-pill">{{ 'Checked' if current_user.playbook_reviewed else 'Waiting' }}</span></article>
@@ -411,39 +434,39 @@
 
         <div class="top-row">
             <div class="control-panel">
-                <div class="card-header" style="border: none; padding: 0; margin-bottom: 1.5rem;">
+                <div class="card-header control-card-header">
                     Workflow Controls <span class="sys-tag">INPUT_REQ</span>
                 </div>
                 
                 <div>
-                    <label style="font-size: 0.75rem; margin-bottom: 8px;" style="display:none">Playbook Mode</label>
+                    <label class="control-label">Playbook Mode</label>
                     <select id="strategy-select" class="strategy-select">
                         <option value="balanced">Balanced Rules</option>
                         <option value="aggressive">Higher Volatility Criteria</option>
                     </select>
                 </div>
 
-                <div style="margin-top: auto;">
-                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 12px; text-align: center; line-height: 1.5;">
+                <div class="control-footer">
+                    <p class="control-helper">
                         Paper-first workflow. Broker routing requires rules, risk, and permissions to pass.
                     </p>
-                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()" style="width: 100%;">
-                        <i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now
+                    <button id="scanButton" class="btn-run-scan" onclick="startScanner()">
+                        <i class="fas fa-radar scan-icon"></i> Run Scan Now
                     </button>
                 </div>
 
             </div>
 
             <div class="chart-panel">
-                <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted);">
-                        Symbol: <span id="target-ticker" style="color: var(--accent-blue); font-size: 1.2rem; font-weight: 700; margin-left: 8px;">Waiting for scan...</span>
+                <div class="chart-header">
+                    <div class="chart-symbol">
+                        Symbol: <span id="target-ticker" class="ticker-text">Waiting for scan...</span>
 
 
 
                     </div>
-                    <div id="liveIndicator" style="display:none; color: var(--success); font-family: var(--font-mono); font-size: 0.75rem;">
-                        <span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:6px; box-shadow: 0 0 8px var(--success);"></span>Stream Active
+                    <div id="liveIndicator" class="live-indicator">
+                        <span class="live-indicator-dot"></span>Stream Active
 
                     </div>
                 </div>
@@ -1218,7 +1241,7 @@
             } catch (err) {
                 addLog(`> [FATAL ERROR] ${err.message}`, "var(--danger)");
             } finally {
-                btn.innerHTML = '<i class="fas fa-radar" style="margin-right: 8px;"></i> Run Scan Now';
+                btn.innerHTML = '<i class="fas fa-radar scan-icon"></i> Run Scan Now';
                 btn.disabled = false;
                 statusHeader.innerText = "> Awaiting command...";
                 const humanStatus = document.getElementById('bot-human-status');
