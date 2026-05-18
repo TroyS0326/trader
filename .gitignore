@@ -55,3 +55,7 @@ htmlcov/
 Thumbs.db
 .vscode/
 .idea/
+
+# Generated at runtime — never commit
+static/performance_report.json
+static/blog/uploads/
