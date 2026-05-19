@@ -1880,14 +1880,16 @@ def stripe_webhook():
     event_id = event.get('id')
     obj = (event.get('data') or {}).get('object') or {}
 
-    def find_user(subscription_id=None, customer_id=None, metadata_user_id=None):
+    def find_user(subscription_id=None, customer_id=None, reference_user_id=None, customer_email=None):
         user = None
         if subscription_id:
             user = User.query.filter_by(stripe_subscription_id=subscription_id).first()
-        if not user and metadata_user_id:
-            user = db.session.get(User, int(metadata_user_id)) if str(metadata_user_id).isdigit() else None
+        if not user and reference_user_id:
+            user = db.session.get(User, int(reference_user_id)) if str(reference_user_id).isdigit() else None
         if not user and customer_id:
             user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if not user and customer_email:
+            user = User.query.filter_by(email=(customer_email or '').strip().lower()).first()
         return user
 
     if event_id and StripeEvent.query.filter_by(event_id=event_id).first():
@@ -1895,8 +1897,8 @@ def stripe_webhook():
 
     try:
         if event_type == 'checkout.session.completed':
-            user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
-            user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
+            reference_user_id = obj.get('client_reference_id') or (obj.get('metadata') or {}).get('user_id')
+            user = find_user(customer_id=obj.get('customer'), reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             subscription_id = obj.get('subscription')
             if user and subscription_id:
                 subscription = stripe.Subscription.retrieve(subscription_id)
@@ -1914,16 +1916,16 @@ def stripe_webhook():
 
 
         elif event_type == 'checkout.session.expired':
-            user_id = (obj.get('metadata') or {}).get('user_id') or obj.get('client_reference_id')
-            user = find_user(customer_id=obj.get('customer'), metadata_user_id=user_id)
+            reference_user_id = obj.get('client_reference_id') or (obj.get('metadata') or {}).get('user_id')
+            user = find_user(customer_id=obj.get('customer'), reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             if user:
                 track_user_event('checkout.expired', user=user, context={'session_id_masked': mask_identifier(obj.get('id')), 'customer_id_masked': mask_identifier(obj.get('customer'))})
             else:
-                logger.warning('checkout.session.expired received without matching user metadata_user_id=%s', user_id)
+                logger.warning('checkout.session.expired received without matching user reference_user_id=%s', reference_user_id)
 
         elif event_type in {'customer.subscription.created', 'customer.subscription.updated'}:
-            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
-            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
+            reference_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             if user:
                 prior_state = (user.subscription_status, user.stripe_subscription_id, user.stripe_price_id)
                 apply_subscription_to_user(user, obj)
@@ -1936,8 +1938,8 @@ def stripe_webhook():
                     update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
 
         elif event_type == 'customer.subscription.deleted':
-            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
-            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), metadata_user_id=metadata_user_id)
+            reference_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=obj.get('id'), customer_id=obj.get('customer'), reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             if user:
                 user.subscription_status = 'free'
                 user.subscription_cancel_at_period_end = False
@@ -1947,8 +1949,8 @@ def stripe_webhook():
         elif event_type == 'invoice.payment_failed':
             sub_id = obj.get('subscription')
             customer_id = obj.get('customer')
-            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
-            user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
+            reference_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=sub_id, customer_id=customer_id, reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             if user:
                 user.subscription_status = 'past_due'
                 update_brevo_contact_attributes(user, {'IS_PRO': False, 'SUBSCRIPTION_STATUS': 'past_due'})
@@ -1957,8 +1959,8 @@ def stripe_webhook():
         elif event_type == 'invoice.paid':
             sub_id = obj.get('subscription')
             customer_id = obj.get('customer')
-            metadata_user_id = (obj.get('metadata') or {}).get('user_id')
-            user = find_user(subscription_id=sub_id, customer_id=customer_id, metadata_user_id=metadata_user_id)
+            reference_user_id = (obj.get('metadata') or {}).get('user_id')
+            user = find_user(subscription_id=sub_id, customer_id=customer_id, reference_user_id=reference_user_id, customer_email=obj.get('customer_email'))
             if user and sub_id:
                 subscription = stripe.Subscription.retrieve(sub_id)
                 if subscription.get('status') in {'active', 'trialing'}:

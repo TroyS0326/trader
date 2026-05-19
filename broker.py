@@ -648,11 +648,9 @@ def _background_leg_placement(
                 'qty': str(qty_target_1),
                 'side': 'sell',
                 'type': 'limit',
+                'limit_price': round(target_1_price, 2),
                 'time_in_force': 'day',
                 'order_class': 'oco',
-                'take_profit': {
-                    'limit_price': round(target_1_price, 2),
-                },
                 'stop_loss': {
                     'stop_price': round(stop_price, 2),
                 },
