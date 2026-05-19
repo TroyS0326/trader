@@ -16,11 +16,14 @@ from db import get_trade_by_target1_id, update_trade_status
 logger = logging.getLogger(__name__)
 
 DISCOVERY_SECONDS = 60
+STREAM_STARTUP_JITTER_SECONDS = 0.2
+MAX_CONCURRENT_STREAMS = 25
 
 
 def get_user_wss_url(trading_mode: str, sub_status: str) -> str:
     """Dynamically route to the correct WSS stream based on user's active tier."""
-    if trading_mode == 'live' and sub_status == 'pro':
+    _ = sub_status  # reserved for future tier-specific routing
+    if (trading_mode or '').lower() == 'live':
         return "wss://api.alpaca.markets/stream"
     return "wss://paper-api.alpaca.markets/stream"
 
@@ -116,6 +119,7 @@ class SaaSExecutionManager:
     def __init__(self):
         self.active_streams: Dict[int, asyncio.Task] = {}
         self.running = True
+        self.stream_semaphore = asyncio.Semaphore(MAX_CONCURRENT_STREAMS)
 
     async def handle_fill(self, user_id: int, order: dict):
         """
@@ -224,25 +228,26 @@ class SaaSExecutionManager:
         retry_delay = 1
         while self.running:
             try:
-                async for websocket in websockets.connect(
-                    wss_url,
-                    ping_interval=20,
-                    ping_timeout=20,
-                    close_timeout=10,
-                ):
-                    auth_msg = {"action": "auth", "key": token}
-                    await websocket.send(json.dumps(auth_msg))
+                async with self.stream_semaphore:
+                    async for websocket in websockets.connect(
+                        wss_url,
+                        ping_interval=20,
+                        ping_timeout=20,
+                        close_timeout=10,
+                    ):
+                        auth_msg = {"action": "auth", "key": token}
+                        await websocket.send(json.dumps(auth_msg))
 
-                    sub_msg = {"action": "listen", "data": {"streams": ["trade_updates"]}}
-                    await websocket.send(json.dumps(sub_msg))
+                        sub_msg = {"action": "listen", "data": {"streams": ["trade_updates"]}}
+                        await websocket.send(json.dumps(sub_msg))
 
-                    async for message in websocket:
-                        data = json.loads(message)
-                        if data.get('stream') == 'trade_updates':
-                            event = data.get('data', {}).get('event')
-                            if event in ('fill', 'partial_fill'):
-                                await self.handle_fill(user_id, data.get('data', {}).get('order', {}))
-                    retry_delay = 1
+                        async for message in websocket:
+                            data = json.loads(message)
+                            if data.get('stream') == 'trade_updates':
+                                event = data.get('data', {}).get('event')
+                                if event in ('fill', 'partial_fill'):
+                                    await self.handle_fill(user_id, data.get('data', {}).get('order', {}))
+                        retry_delay = 1
             except Exception as e:
                 logger.error('Stream error for User %s: %s', user_id, e)
                 await asyncio.sleep(retry_delay)
@@ -287,6 +292,11 @@ class SaaSExecutionManager:
     async def run_discovery_loop(self):
         """Periodically checks for new users to start listening to."""
         while self.running:
+            for u_id, task in list(self.active_streams.items()):
+                if task.done():
+                    self.active_streams.pop(u_id, None)
+                    logger.warning('Removed completed stream task for user %s', u_id)
+
             users = await self.get_connected_users()
             active_ids = {user['id'] for user in users}
 
@@ -299,7 +309,7 @@ class SaaSExecutionManager:
                     )
                     self.active_streams[u_id] = task
                     logger.info('Started stream task for user %s', u_id)
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(STREAM_STARTUP_JITTER_SECONDS)
 
             removed_ids = [u_id for u_id in self.active_streams if u_id not in active_ids]
             for u_id in removed_ids:

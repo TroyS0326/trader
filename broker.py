@@ -461,6 +461,29 @@ def _poll_for_fill(
         time.sleep(max(0.25, ENTRY_ORDER_POLL_SECONDS))
 
 
+def _poll_for_fill_in_background(
+    entry_id: str,
+    symbol: str,
+    qty: int,
+    entry_price: float,
+    stop_price: float,
+    target_1_price: float,
+    user_token: str | None,
+    user: Any | None,
+) -> threading.Thread:
+    """
+    Starts fill polling + managed leg placement on a daemon thread so request
+    handlers can return immediately without blocking Flask workers.
+    """
+    thread = threading.Thread(
+        target=_background_leg_placement,
+        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, user),
+        daemon=True,
+    )
+    thread.start()
+    return thread
+
+
 def _pegged_limit_entry(
     symbol: str,
     qty: int,
@@ -796,12 +819,9 @@ def place_managed_entry_order(
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
 
-    thread = threading.Thread(
-        target=_background_leg_placement,
-        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user),
-        daemon=True,
+    _poll_for_fill_in_background(
+        entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user
     )
-    thread.start()
 
     return {
         'id': entry_id,
@@ -843,12 +863,9 @@ def place_managed_entry_order(
     if not entry_id:
         raise BrokerError('Broker did not return an order id for entry.')
 
-    thread = threading.Thread(
-        target=_background_leg_placement,
-        args=(entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user),
-        daemon=True,
+    _poll_for_fill_in_background(
+        entry_id, symbol, qty, entry_price, stop_price, target_1_price, user_token, execution_user
     )
-    thread.start()
 
     return {
         'id': entry_id,
